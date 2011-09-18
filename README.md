@@ -5,12 +5,13 @@ This project is a template for getting [WordPress](http://wordpress.org/) up and
 Installation
 ============
 
-Clone the repository from Github.
+Clone the repository from Github
 
     $ git clone git://github.com/mhoofman/wordpress-heroku.git
     
 With the [Heroku gem](http://devcenter.heroku.com/articles/heroku-command), create your app
 
+    $ cd heroku-wordpress
     $ heroku create --stack cedar
     > Creating strange-turtle-1234... done, stack is cedar
     > http://strange-turtle-1234.herokuapp.com/ | git@heroku.com:strange-turtle-1234.git
@@ -24,12 +25,11 @@ Add a database to your app
 Retrieve database info (You'll need this info when setting up the WordPress config)
 
     $ heroku config
-    > DATABASE_URL          => postgress://username:password@host/database
-    > SHARED_DATABASE_URL   => postgress://username:password@host/database
+    > DATABASE_URL          => postgres://username:password@host/database
+    > SHARED_DATABASE_URL   => postgres://username:password@host/database
 
 Create a new branch to modify and save database configuration
 
-    $ cd wordpress-heroku
     $ git checkout -b "production"
     
 Copy and edit the `wp-config.php` with the database info from the previous step
@@ -59,3 +59,5 @@ Deploy to Heroku
     >
     > To git@heroku:strange-turtle-1234.git
     > * [new branch]    production -> master 
+
+After deployment WordPress has a few more steps to setup and thats it!
