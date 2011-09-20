@@ -14,17 +14,17 @@
  * @package WordPress
  */
 
-// ** MySQL settings - You can get this info from your web host ** //
+// ** Database settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
 define('DB_NAME', 'database_name_here');
 
-/** MySQL database username */
+/** Database username */
 define('DB_USER', 'username_here');
 
-/** MySQL database password */
+/** Database password */
 define('DB_PASSWORD', 'password_here');
 
-/** MySQL hostname */
+/** Database hostname */
 define('DB_HOST', 'localhost');
 
 /** Database Charset to use in creating database tables. */
@@ -84,7 +84,7 @@ define('WP_DEBUG', false);
 
 /** Absolute path to the WordPress directory. */
 if ( !defined('ABSPATH') )
-	define('ABSPATH', dirname(__FILE__) . '/');
+  define('ABSPATH', dirname(__FILE__) . '/');
 
 /** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');

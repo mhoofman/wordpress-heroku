@@ -25,8 +25,8 @@ Add a database to your app
 Retrieve database info (You'll need this info when setting up the WordPress config)
 
     $ heroku config
-    > DATABASE_URL          => postgres://username:password@host/database
-    > SHARED_DATABASE_URL   => postgres://username:password@host/database
+    > DATABASE_URL          => postgres://username:password@host/database_name
+    > SHARED_DATABASE_URL   => postgres://username:password@host/database_name
 
 Create a new branch to modify and save database configuration
 
@@ -36,6 +36,20 @@ Copy and edit the `wp-config.php` with the database info from the previous step
 
     $ cp wp-config-sample.php wp-config.php
     $ mate wp-config.php # input and save database info
+
+Enter in database info from `heroku config`
+
+    /** The name of the database for WordPress */
+    define('DB_NAME', 'database_name');
+
+    /** Database username */
+    define('DB_USER', 'username');
+
+    /** Database password */
+    define('DB_PASSWORD', 'password');
+
+    /** Database hostname */
+    define('DB_HOST', 'host');
     
 Clear `.gitignore` and commit `wp-config.php`
 
