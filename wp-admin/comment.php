@@ -45,8 +45,15 @@ switch( $action ) {
 case 'editcomment' :
 	$title = __('Edit Comment');
 
-	add_contextual_help( $current_screen, '<p>' . __( 'You can edit the information left in a comment if needed. This is often useful when you notice that a commenter has made a typographical error.' ) . '</p>' .
-	'<p>' . __( 'You can also moderate the comment from this screen using the Status box, where you can also change the timestamp of the comment.' ) . '</p>' .
+	get_current_screen()->add_help_tab( array(
+		'id'      => 'overview',
+		'title'   => __('Overview'),
+		'content' =>
+			'<p>' . __( 'You can edit the information left in a comment if needed. This is often useful when you notice that a commenter has made a typographical error.' ) . '</p>' .
+			'<p>' . __( 'You can also moderate the comment from this screen using the Status box, where you can also change the timestamp of the comment.' ) . '</p>'
+	) );
+
+	get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
 	'<p>' . __( '<a href="http://codex.wordpress.org/Administration_Screens#Comments" target="_blank">Documentation on Comments</a>' ) . '</p>' .
 	'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
@@ -65,6 +72,9 @@ case 'editcomment' :
 
 	if ( 'trash' == $comment->comment_approved )
 		comment_footer_die( __('This comment is in the Trash. Please move it out of the Trash if you want to edit it.') );
+
+	if ( 'spam' == $comment->comment_approved )
+		comment_footer_die( __('This comment is marked as Spam. Please mark it as Not Spam if you want to edit it.') );
 
 	$comment = get_comment_to_edit( $comment_id );
 

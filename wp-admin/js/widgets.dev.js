@@ -5,7 +5,7 @@ wpWidgets = {
 
 	init : function() {
 		var rem, sidebars = $('div.widgets-sortables'), isRTL = !! ( 'undefined' != typeof isRtl && isRtl ),
-			margin = ( isRtl ? 'marginRight' : 'marginLeft' );
+			margin = ( isRtl ? 'marginRight' : 'marginLeft' ), the_id;
 
 		$('#widgets-right').children('.widgets-holder-wrap').children('.sidebar-name').click(function(){
 			var c = $(this).siblings('.widgets-sortables'), p = $(this).parent();
@@ -19,10 +19,13 @@ wpWidgets = {
 		});
 
 		$('#widgets-left').children('.widgets-holder-wrap').children('.sidebar-name').click(function() {
-			$(this).siblings('.widget-holder').parent().toggleClass('closed');
+			$(this).parent().toggleClass('closed');
 		});
 
-		sidebars.not('#wp_inactive_widgets').each(function(){
+		sidebars.each(function(){
+			if ( $(this).parent().hasClass('inactive') )
+				return true;
+
 			var h = 50, H = $(this).children('.widget').length;
 			h = h + parseInt(H * 48, 10);
 			$(this).css( 'minHeight', h + 'px' );
@@ -77,14 +80,14 @@ wpWidgets = {
 			zIndex: 5,
 			containment: 'document',
 			start: function(e,ui) {
-				wpWidgets.fixWebkit(1);
 				ui.helper.find('div.widget-description').hide();
+				the_id = this.id;
 			},
 			stop: function(e,ui) {
 				if ( rem )
 					$(rem).hide();
+
 				rem = '';
-				wpWidgets.fixWebkit();
 			}
 		});
 
@@ -96,7 +99,6 @@ wpWidgets = {
 			distance: 2,
 			containment: 'document',
 			start: function(e,ui) {
-				wpWidgets.fixWebkit(1);
 				ui.item.children('.widget-inside').hide();
 				ui.item.css({margin:'', 'width':''});
 			},
@@ -112,15 +114,16 @@ wpWidgets = {
 
 				var add = ui.item.find('input.add_new').val(),
 					n = ui.item.find('input.multi_number').val(),
-					id = ui.item.attr('id'),
+					id = the_id,
 					sb = $(this).attr('id');
 
 				ui.item.css({margin:'', 'width':''});
-				wpWidgets.fixWebkit();
+				the_id = '';
+
 				if ( add ) {
 					if ( 'multi' == add ) {
 						ui.item.html( ui.item.html().replace(/<[^<>]+>/g, function(m){ return m.replace(/__i__|%i%/g, n); }) );
-						ui.item.attr( 'id', id.replace(/__i__|%i%/g, n) );
+						ui.item.attr( 'id', id.replace('__i__', n) );
 						n++;
 						$('div#' + id).find('input.multi_number').val(n);
 					} else if ( 'single' == add ) {
@@ -134,9 +137,15 @@ wpWidgets = {
 				}
 				wpWidgets.saveOrder(sb);
 			},
-			receive: function(e,ui) {
-				if ( !$(this).is(':visible') )
-					$(this).sortable('cancel');
+			receive: function(e, ui) {
+				var sender = $(ui.sender);
+
+				if ( !$(this).is(':visible') || this.id.indexOf('orphaned_widgets') != -1 )
+					sender.sortable('cancel');
+
+				if ( sender.attr('id').indexOf('orphaned_widgets') != -1 && !sender.children('.widget').length ) {
+					sender.parents('.orphan-sidebar').slideUp(400, function(){ $(this).remove(); });
+				}
 			}
 		}).sortable('option', 'connectWith', 'div.widgets-sortables').parent().filter('.closed').children('.widgets-sortables').sortable('disable');
 
@@ -176,7 +185,8 @@ wpWidgets = {
 		};
 
 		$('div.widgets-sortables').each( function() {
-			a['sidebars[' + $(this).attr('id') + ']'] = $(this).sortable('toArray').join(',');
+			if ( $(this).sortable )
+				a['sidebars[' + $(this).attr('id') + ']'] = $(this).sortable('toArray').join(',');
 		});
 
 		$.post( ajaxurl, a, function() {
@@ -247,22 +257,17 @@ wpWidgets = {
 	},
 
 	resize : function() {
-		$('div.widgets-sortables').not('#wp_inactive_widgets').each(function(){
+		$('div.widgets-sortables').each(function(){
+			if ( $(this).parent().hasClass('inactive') )
+				return true;
+
 			var h = 50, H = $(this).children('.widget').length;
 			h = h + parseInt(H * 48, 10);
 			$(this).css( 'minHeight', h + 'px' );
 		});
 	},
 
-    fixWebkit : function(n) {
-        n = n ? 'none' : '';
-        $('body').css({
-			WebkitUserSelect: n,
-			KhtmlUserSelect: n
-		});
-    },
-
-    fixLabels : function(widget) {
+	fixLabels : function(widget) {
 		widget.children('.widget-inside').find('label').each(function(){
 			var f = $(this).attr('for');
 			if ( f && f == $('input', this).attr('id') )
@@ -270,7 +275,7 @@ wpWidgets = {
 		});
 	},
 
-    close : function(widget) {
+	close : function(widget) {
 		widget.children('.widget-inside').slideUp('fast', function(){
 			widget.css({'width':'', margin:''});
 		});

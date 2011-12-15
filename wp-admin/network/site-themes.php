@@ -21,12 +21,18 @@ if ( empty( $menu_perms['themes'] ) && ! is_super_admin() )
 if ( ! current_user_can( 'manage_sites' ) )
 	wp_die( __( 'You do not have sufficient permissions to manage themes for this site.' ) );
 
-add_contextual_help($current_screen,
-	'<p>' . __('The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.') . '</p>' .
-	'<p>' . __('<strong>Info</strong> - The domain and path are rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.') . '</p>' .
-	'<p>' . __('<strong>Users</strong> - This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.') . '</p>' .
-	'<p>' . sprintf( __('<strong>Themes</strong> - This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ), network_admin_url( 'themes.php' ) ) . '</p>' .
-	'<p>' . __('<strong>Settings</strong> - This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.') . '</p>' .
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' =>
+		'<p>' . __('The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.') . '</p>' .
+		'<p>' . __('<strong>Info</strong> - The domain and path are rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.') . '</p>' .
+		'<p>' . __('<strong>Users</strong> - This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.') . '</p>' .
+		'<p>' . sprintf( __('<strong>Themes</strong> - This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ), network_admin_url( 'themes.php' ) ) . '</p>' .
+		'<p>' . __('<strong>Settings</strong> - This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.') . '</p>'
+) );
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Sites_Screens" target="_blank">Documentation on Site Management</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/forum/multisite/" target="_blank">Support Forums</a>') . '</p>'
@@ -39,8 +45,8 @@ $action = $wp_list_table->current_action();
 $s = isset($_REQUEST['s']) ? $_REQUEST['s'] : '';
 
 // Clean up request URI from temporary args for screen options/paging uri's to work as expected.
-$temp_args = array( 'enabled', 'disabled', 'error' ); 
-$_SERVER['REQUEST_URI'] = remove_query_arg( $temp_args, $_SERVER['REQUEST_URI'] ); 
+$temp_args = array( 'enabled', 'disabled', 'error' );
+$_SERVER['REQUEST_URI'] = remove_query_arg( $temp_args, $_SERVER['REQUEST_URI'] );
 $referer = remove_query_arg( $temp_args, wp_get_referer() );
 
 $id = isset( $_REQUEST['id'] ) ? intval( $_REQUEST['id'] ) : 0;
@@ -75,7 +81,7 @@ if ( $action ) {
 			check_admin_referer( 'disable-theme_' . $_GET['theme'] );
 			$theme = $_GET['theme'];
 			$action = 'disabled';
-			$n = 1;			
+			$n = 1;
 			if ( !$allowed_themes )
 				$allowed_themes = array();
 			else
@@ -108,16 +114,16 @@ if ( $action ) {
 			}
 			break;
 	}
-	
+
 	update_option( 'allowedthemes', $allowed_themes );
 	restore_current_blog();
-	
-	wp_redirect( add_query_arg( $action, $n, $referer ) );
-	exit;	
+
+	wp_safe_redirect( add_query_arg( array( 'id' => $id, $action => $n ), $referer ) );
+	exit;
 }
 
 if ( isset( $_GET['action'] ) && 'update-site' == $_GET['action'] ) {
-	wp_redirect( $referer );
+	wp_safe_redirect( $referer );
 	exit();
 }
 
@@ -152,13 +158,13 @@ foreach ( $tabs as $tab_id => $tab ) {
 </h3><?php
 
 if ( isset( $_GET['enabled'] ) ) {
-	$_GET['enabled'] = absint( $_GET['enabled'] ); 
-	echo '<div id="message" class="updated"><p>' . sprintf( _n( 'Theme enabled.', '%s themes enabled.', $_GET['enabled'] ), number_format_i18n( $_GET['enabled'] ) ) . '</p></div>'; 
-} elseif ( isset( $_GET['disabled'] ) ) { 
-	$_GET['disabled'] = absint( $_GET['disabled'] ); 
-	echo '<div id="message" class="updated"><p>' . sprintf( _n( 'Theme disabled.', '%s themes disabled.', $_GET['disabled'] ), number_format_i18n( $_GET['disabled'] ) ) . '</p></div>'; 
-} elseif ( isset( $_GET['error'] ) && 'none' == $_GET['error'] ) { 
-	echo '<div id="message" class="error"><p>' . __( 'No theme selected.' ) . '</p></div>'; 
+	$_GET['enabled'] = absint( $_GET['enabled'] );
+	echo '<div id="message" class="updated"><p>' . sprintf( _n( 'Theme enabled.', '%s themes enabled.', $_GET['enabled'] ), number_format_i18n( $_GET['enabled'] ) ) . '</p></div>';
+} elseif ( isset( $_GET['disabled'] ) ) {
+	$_GET['disabled'] = absint( $_GET['disabled'] );
+	echo '<div id="message" class="updated"><p>' . sprintf( _n( 'Theme disabled.', '%s themes disabled.', $_GET['disabled'] ), number_format_i18n( $_GET['disabled'] ) ) . '</p></div>';
+} elseif ( isset( $_GET['error'] ) && 'none' == $_GET['error'] ) {
+	echo '<div id="message" class="error"><p>' . __( 'No theme selected.' ) . '</p></div>';
 } ?>
 
 <p><?php _e( 'Network enabled themes are not shown on this screen.' ) ?></p>

@@ -99,12 +99,20 @@ class Custom_Image_Header {
 	 * @since 3.0.0
 	 */
 	function help() {
-		add_contextual_help( $this->page, '<p>' . __( 'You can set a custom image header for your site. Simply upload the image and crop it, and the new header will go live immediately.' ) . '</p>' .
-		'<p>' . __( 'If you want to discard your custom header and go back to the default included in your theme, click on the buttons to remove the custom image and restore the original header image.' ) . '</p>' .
-		'<p>' . __( 'Some themes come with additional header images bundled. If you see multiple images displayed, select the one you&#8217;d like and click the Save Changes button.' ) . '</p>' .
-		'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
-		'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Header_Screen" target="_blank">Documentation on Custom Header</a>' ) . '</p>' .
-		'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>' );
+		get_current_screen()->add_help_tab( array(
+			'id'      => 'overview',
+			'title'   => __('Overview'),
+			'content' =>
+				'<p>' . __( 'You can set a custom image header for your site. Simply upload the image and crop it, and the new header will go live immediately.' ) . '</p>' .
+				'<p>' . __( 'If you want to discard your custom header and go back to the default included in your theme, click on the buttons to remove the custom image and restore the original header image.' ) . '</p>' .
+				'<p>' . __( 'Some themes come with additional header images bundled. If you see multiple images displayed, select the one you&#8217;d like and click the Save Changes button.' ) . '</p>'
+		) );
+
+		get_current_screen()->set_help_sidebar(
+			'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
+			'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Header_Screen" target="_blank">Documentation on Custom Header</a>' ) . '</p>' .
+			'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
+		);
 	}
 
 	/**
@@ -241,9 +249,11 @@ class Custom_Image_Header {
 			return;
 
 		$this->default_headers = $_wp_default_headers;
+		$template_directory_uri = get_template_directory_uri();
+		$stylesheet_directory_uri = get_stylesheet_directory_uri();
 		foreach ( array_keys($this->default_headers) as $header ) {
-			$this->default_headers[$header]['url'] =  sprintf( $this->default_headers[$header]['url'], get_template_directory_uri(), get_stylesheet_directory_uri() );
-			$this->default_headers[$header]['thumbnail_url'] =  sprintf( $this->default_headers[$header]['thumbnail_url'], get_template_directory_uri(), get_stylesheet_directory_uri() );
+			$this->default_headers[$header]['url'] =  sprintf( $this->default_headers[$header]['url'], $template_directory_uri, $stylesheet_directory_uri );
+			$this->default_headers[$header]['thumbnail_url'] =  sprintf( $this->default_headers[$header]['thumbnail_url'], $template_directory_uri, $stylesheet_directory_uri );
 		}
 
 	}
@@ -627,7 +637,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	function step_2() {
 		check_admin_referer('custom-header-upload', '_wpnonce-custom-header-upload');
 		if ( ! current_theme_supports( 'custom-header-uploads' ) )
-			wp_die( 'Cheatin&#8217; uh?' );
+			wp_die( __( 'Cheatin&#8217; uh?' ) );
 
 		$overrides = array('test_form' => false);
 		$file = wp_handle_upload($_FILES['import'], $overrides);
@@ -713,7 +723,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	function step_3() {
 		check_admin_referer('custom-header-crop-image');
 		if ( ! current_theme_supports( 'custom-header-uploads' ) )
-			wp_die( 'Cheatin&#8217; uh?' );
+			wp_die( __( 'Cheatin&#8217; uh?' ) );
 
 		if ( $_POST['oitar'] > 1 ) {
 			$_POST['x1'] = $_POST['x1'] * $_POST['oitar'];

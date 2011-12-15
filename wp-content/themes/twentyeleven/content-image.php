@@ -36,7 +36,7 @@
 						get_the_date( 'c' ),
 						get_the_date(),
 						esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ),
-						sprintf( esc_attr__( 'View all posts by %s', 'twentyeleven' ), get_the_author() ),
+						esc_attr( sprintf( __( 'View all posts by %s', 'twentyeleven' ), get_the_author() ) ),
 						get_the_author()
 					);
 				?>
@@ -61,7 +61,7 @@
 				<?php endif; // End if $tags_list ?>
 
 				<?php if ( comments_open() ) : ?>
-				<span class="comments-link"><?php comments_popup_link( '<span class="leave-reply">' . __( 'Reply', 'twentyeleven' ) . '</span>', __( '<strong>1</strong> Reply', 'twentyeleven' ), __( '<strong>%</strong> Replies', 'twentyeleven' ) ); ?></span>
+				<span class="comments-link"><?php comments_popup_link( '<span class="leave-reply">' . __( 'Leave a reply', 'twentyeleven' ) . '</span>', __( '<b>1</b> Reply', 'twentyeleven' ), __( '<b>%</b> Replies', 'twentyeleven' ) ); ?></span>
 				<?php endif; // End if comments_open() ?>
 			</div><!-- .entry-meta -->
 

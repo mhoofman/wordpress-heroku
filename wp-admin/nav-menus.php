@@ -22,11 +22,7 @@ if ( ! current_theme_supports( 'menus' ) && ! current_theme_supports( 'widgets' 
 if ( ! current_user_can('edit_theme_options') )
 	wp_die( __( 'Cheatin&#8217; uh?' ) );
 
-// Nav Menu CSS
-wp_admin_css( 'nav-menu' );
-
 // jQuery
-wp_enqueue_script( 'jquery' );
 wp_enqueue_script( 'jquery-ui-draggable' );
 wp_enqueue_script( 'jquery-ui-droppable' );
 wp_enqueue_script( 'jquery-ui-sortable' );
@@ -436,12 +432,12 @@ $_wp_nav_menu_max_depth = 0;
 if ( is_nav_menu( $nav_menu_selected_id ) )
 	$edit_markup = wp_get_nav_menu_to_edit( $nav_menu_selected_id  );
 
-function wp_nav_menu_max_depth() {
+function wp_nav_menu_max_depth($classes) {
 	global $_wp_nav_menu_max_depth;
-	return "menu-max-depth-$_wp_nav_menu_max_depth";
+	return "$classes menu-max-depth-$_wp_nav_menu_max_depth";
 }
 
-add_action('admin_body_class','wp_nav_menu_max_depth');
+add_filter('admin_body_class', 'wp_nav_menu_max_depth');
 
 wp_nav_menu_setup();
 wp_initial_nav_menu_meta_boxes();
@@ -449,14 +445,26 @@ wp_initial_nav_menu_meta_boxes();
 if ( ! current_theme_supports( 'menus' ) && ! wp_get_nav_menus() )
 	$messages[] = '<div id="message" class="updated"><p>' . __('The current theme does not natively support menus, but you can use the &#8220;Custom Menu&#8221; widget to add any menus you create here to the theme&#8217;s sidebar.') . '</p></div>';
 
-$help =  '<p>' . __('This feature allows you to use a custom menu in place of your theme&#8217;s default menus. If your theme does not support the custom menus feature yet (the new and old default themes, Twenty Eleven and Twenty Ten, do), you can learn about adding this support by following the Documentation link in this tab. You can still use the &#8220;Custom Menu&#8221; widget to add menus to a sidebar.') . '</p>';
-$help .= '<p>' . __('You can create custom menus for your site. These menus may contain links to pages, categories, custom links or other content types (use the Screen Options tab to decide which ones to show on the screen). You can specify a different navigation label for a menu item as well as other attributes. You can create multiple menus. If your theme includes more than one menu, you can choose which custom menu to associate with each. You can also use custom menus in conjunction with the Custom Menus widget.') . '</p>';
-$help .= '<p>' . __('To create a new custom menu, click on the + tab, give the menu a name, and click Create Menu. Next, add menu items from the appropriate boxes. You&#8217;ll be able to edit the information for each menu item, and can drag and drop to put them in order. You can also drag a menu item a little to the right to make it a submenu, to create menus with hierarchy. Drop the item into its new nested placement when the dotted rectangle target shifts over, also a little to the right. Don&#8217;t forget to click Save when you&#8217;re finished.') . '</p>';
-$help .= '<p><strong>' . __('For more information:') . '</strong></p>';
-$help .= '<p>' . __('<a href="http://codex.wordpress.org/Appearance_Menus_Screen" target="_blank">Documentation on Menus</a>') . '</p>';
-$help .= '<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>';
+get_current_screen()->add_help_tab( array(
+'id'		=> 'overview',
+'title'		=> __('Overview'),
+'content'	=>
+	'<p>' . __('This feature allows you to use a custom menu in place of your theme&#8217;s default menus.') . '</p>' .
+	'<p>' . __('Custom menus may contain links to pages, categories, custom links or other content types (use the Screen Options tab to decide which ones to show on the screen). You can specify a different navigation label for a menu item as well as other attributes. You can create multiple menus. If your theme includes more than one menu, you can choose which custom menu to associate with each. You can also use custom menus in conjunction with the Custom Menus widget.') . '</p>' .
+	'<p>' . __('If your theme does not support the custom menus feature yet (the default themes, Twenty Eleven and Twenty Ten, do), you can learn about adding this support by following the Documentation link to the side.') . '</p>'
+) );
+get_current_screen()->add_help_tab( array(
+'id'		=> 'create-menus',
+'title'		=> __('Create Menus'),
+'content'	=>
+	'<p>' . __('To create a new custom menu, click on the + tab, give the menu a name, and click Create Menu. Next, add menu items from the appropriate boxes. You&#8217;ll be able to edit the information for each menu item, and can drag and drop to put them in order. You can also drag a menu item a little to the right to make it a submenu, to create menus with hierarchy. Drop the item into its new nested placement when the dotted rectangle target shifts over, also a little to the right. Don&#8217;t forget to click Save when you&#8217;re finished.') . '</p>'
+) );
 
-add_contextual_help($current_screen, $help);
+get_current_screen()->set_help_sidebar(
+	'<p><strong>' . __('For more information:') . '</strong></p>' .
+	'<p>' . __('<a href="http://codex.wordpress.org/Appearance_Menus_Screen" target="_blank">Documentation on Menus</a>') . '</p>' .
+	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+);
 
 // Get the admin header
 require_once( './admin-header.php' );

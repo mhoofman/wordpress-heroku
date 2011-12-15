@@ -15,11 +15,11 @@
 /**
  * @since 2.1
  * @deprecated 2.1
- * @deprecated Use wp_tiny_mce().
- * @see wp_tiny_mce()
+ * @deprecated Use wp_editor().
+ * @see wp_editor()
  */
 function tinymce_include() {
-	_deprecated_function( __FUNCTION__, '2.1', 'wp_tiny_mce()' );
+	_deprecated_function( __FUNCTION__, '2.1', 'wp_editor()' );
 
 	wp_tiny_mce();
 }
@@ -37,7 +37,7 @@ function documentation_link() {
 }
 
 /**
- * Calculates the new dimentions for a downsampled image.
+ * Calculates the new dimensions for a downsampled image.
  *
  * @since 2.0.0
  * @deprecated 3.0.0
@@ -255,7 +255,7 @@ function get_editable_user_ids( $user_id, $exclude_zeros = true, $post_type = 'p
 
 	if ( ! $user->has_cap($post_type_obj->cap->edit_others_posts) ) {
 		if ( $user->has_cap($post_type_obj->cap->edit_posts) || ! $exclude_zeros )
-			return array($user->id);
+			return array($user->ID);
 		else
 			return array();
 	}
@@ -700,4 +700,184 @@ function get_others_pending($user_id) {
 function wp_dashboard_quick_press_output() {
 	_deprecated_function( __FUNCTION__, '3.2', 'wp_dashboard_quick_press()' );
 	wp_dashboard_quick_press();
+}
+
+/**
+ * @since 2.7.0
+ * @deprecated 3.3
+ * @deprecated Use wp_editor()
+ * @see wp_editor()
+ */
+function wp_tiny_mce( $teeny = false, $settings = false ) {
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
+
+	static $num = 1;
+
+	if ( ! class_exists('_WP_Editors' ) )
+		require_once( ABSPATH . WPINC . '/class-wp-editor.php' );
+
+	$editor_id = 'content' . $num++;
+
+	$set = array(
+		'teeny' => $teeny,
+		'tinymce' => $settings ? $settings : true,
+		'quicktags' => false
+	);
+
+	$set = _WP_Editors::parse_settings($editor_id, $set);
+	_WP_Editors::editor_settings($editor_id, $set);
+}
+
+/**
+ * @deprecated 3.3.0
+ * @deprecated Use wp_editor()
+ * @see wp_editor()
+ */
+function wp_preload_dialogs() {
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
+}
+
+/**
+ * @deprecated 3.3.0
+ * @deprecated Use wp_editor()
+ * @see wp_editor()
+ */
+function wp_print_editor_js() {
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
+}
+
+/**
+ * @deprecated 3.3.0
+ * @deprecated Use wp_editor()
+ * @see wp_editor()
+ */
+function wp_quicktags() {
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
+}
+
+/**
+ * Returns the screen layout options.
+ *
+ * @since 2.8.0
+ * @deprecated 3.3.0
+ * @deprecated Use $current_screen->render_screen_layout()
+ * @see WP_Screen::render_screen_layout()
+ */
+function screen_layout( $screen ) {
+	_deprecated_function( __FUNCTION__, '3.3', '$current_screen->render_screen_layout()' );
+
+	$current_screen = get_current_screen();
+
+	if ( ! $current_screen )
+		return '';
+
+	ob_start();
+	$current_screen->render_screen_layout();
+	return ob_get_clean();
+}
+
+/**
+ * Returns the screen's per-page options.
+ *
+ * @since 2.8.0
+ * @deprecated 3.3.0
+ * @deprecated Use $current_screen->render_per_page_options()
+ * @see WP_Screen::render_per_page_options()
+ */
+function screen_options( $screen ) {
+	_deprecated_function( __FUNCTION__, '3.3', '$current_screen->render_per_page_options()' );
+
+	$current_screen = get_current_screen();
+
+	if ( ! $current_screen )
+		return '';
+
+	ob_start();
+	$current_screen->render_per_page_options();
+	return ob_get_clean();
+}
+
+/**
+ * Renders the screen's help.
+ *
+ * @since 2.7.0
+ * @deprecated 3.3.0
+ * @deprecated Use $current_screen->render_screen_meta()
+ * @see WP_Screen::render_screen_meta()
+ */
+function screen_meta( $screen ) {
+	$current_screen = get_current_screen();
+	$current_screen->render_screen_meta();
+}
+
+/**
+ * Favorite actions were deprecated in version 3.2. Use the admin bar instead.
+ *
+ * @since 2.7.0
+ * @deprecated 3.2.0
+ */
+function favorite_actions() {
+	_deprecated_function( __FUNCTION__, '3.2', 'WP_Admin_Bar' );
+}
+
+function media_upload_image() {
+	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	return wp_media_upload_handler();
+}
+
+function media_upload_audio() {
+	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	return wp_media_upload_handler();
+}
+
+function media_upload_video() {
+	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	return wp_media_upload_handler();
+}
+
+function media_upload_file() {
+	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	return wp_media_upload_handler();
+}
+
+function type_url_form_image() {
+	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('image')" );
+	return wp_media_insert_url_form( 'image' );
+}
+
+function type_url_form_audio() {
+	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('audio')" );
+	return wp_media_insert_url_form( 'audio' );
+}
+
+function type_url_form_video() {
+	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('video')" );
+	return wp_media_insert_url_form( 'video' );
+}
+
+function type_url_form_file() {
+	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('file')" );
+	return wp_media_insert_url_form( 'file' );
+}
+
+/**
+ * Add contextual help text for a page.
+ *
+ * Creates an 'Overview' help tab.
+ *
+ * @since 2.7.0
+ * @deprecated 3.3.0
+ * @deprecated Use get_current_screen()->add_help_tab()
+ * @see WP_Screen
+ *
+ * @param string    $screen The handle for the screen to add help to.  This is usually the hook name returned by the add_*_page() functions.
+ * @param string    $help   The content of an 'Overview' help tab.
+ */
+function add_contextual_help( $screen, $help ) {
+	_deprecated_function( __FUNCTION__, '3.3', 'get_current_screen()->add_help_tab()' );
+
+	if ( is_string( $screen ) )
+		$screen = convert_to_screen( $screen );
+
+	WP_Screen::add_old_compat_help( $screen, $help );
 }

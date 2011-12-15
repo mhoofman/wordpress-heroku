@@ -21,7 +21,7 @@ if ( is_multisite() ) {
 		/* translators: 1: Site name, 2: site URL, 3: role */
 		return sprintf( __( 'Hi,
 You\'ve been invited to join \'%1$s\' at
-%2$s as a %3$s.
+%2$s with the role of %3$s.
 If you do not want to join this site please ignore
 this email. This invitation will expire in a few days.
 
@@ -59,7 +59,7 @@ if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 		wp_die(__('Cheatin&#8217; uh?'));
 
 	// Adding an existing user to this blog
-	$new_user_email = esc_html(trim($_REQUEST['email']));
+	$new_user_email = $user_details->user_email;
 	$redirect = 'user-new.php';
 	$username = $user_details->user_login;
 	$user_id = $user_details->ID;
@@ -72,7 +72,14 @@ if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 		} else {
 			$newuser_key = substr( md5( $user_id ), 0, 5 );
 			add_option( 'new_user_' . $newuser_key, array( 'user_id' => $user_id, 'email' => $user_details->user_email, 'role' => $_REQUEST[ 'role' ] ) );
-			$message = __("Hi,\n\nYou have been invited to join '%s' at\n%s as a %s.\nPlease click the following link to confirm the invite:\n%s\n");
+			/* translators: 1: Site name, 2: site URL, 3: role, 4: activation URL */
+			$message = __( 'Hi,
+
+You\'ve been invited to join \'%1$s\' at
+%2$s with the role of %3$s.
+
+Please click the following link to confirm the invite:
+%4$s' );
 			wp_mail( $new_user_email, sprintf( __( '[%s] Joining confirmation' ), get_option( 'blogname' ) ),  sprintf($message, get_option('blogname'), site_url(), $_REQUEST[ 'role' ], site_url("/newbloguser/$newuser_key/")));
 			$redirect = add_query_arg( array('update' => 'add'), 'user-new.php' );
 		}
@@ -125,7 +132,6 @@ if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 	}
 }
 
-
 $title = __('Add New User');
 $parent_file = 'users.php';
 
@@ -133,18 +139,38 @@ $do_both = false;
 if ( is_multisite() && current_user_can('promote_users') && current_user_can('create_users') )
 	$do_both = true;
 
-add_contextual_help($current_screen,
-    '<p>' . __('To add a new user to your site, fill in the form on this screen. If you&#8217;re not sure which role to assign, you can use the link below to review the different roles and their capabilities. Here is a basic overview of roles:') . '</p>' .
-    '<ul>' .
-        '<li>' . __('Administrators have access to all the administration features.') . '</li>' .
-        '<li>' . __('Editors can publish posts, manage posts as well as manage other people&#8217;s posts, etc.')  . '</li>' .
-        '<li>' . __('Authors can publish and manage their own posts.') . '</li>' .
-        '<li>' . __('Contributors can write and manage their posts but not publish posts or upload media files.') . '</li>' .
-        '<li>' . __('Subscribers can read comments/comment/receive newsletters, etc.') . '</li>' .
-    '</ul>' .
-    '<p>' . __('You must assign a password to the new user, but don&#8217;t worry; when they log in for the first time they will be prompted to change it. The username, however, cannot be changed.') . '</p>' .
-    '<p>' . __('New users will receive an email letting them know they&#8217;ve been added as a user for your site. By default, this email will also contain their password. Uncheck the box if you don&#8217;t want the password to be included in the welcome email.') . '</p>' .
-    '<p>' . __('Remember to click the Add User button at the bottom of this screen when you are finished.') . '</p>' .
+$help = '<p>' . __('To add a new user to your site, fill in the form on this screen and click the Add New User button at the bottom.') . '</p>';
+
+if ( is_multisite() ) {
+	$help .= '<p>' . __('Because this is a multisite installation, you may add accounts that already exist on the Network by specifying a username or email, and defining a role. For more options, such as specifying a password, you have to be a Network Administrator and use the hover link under an existing user&#8217;s name to Edit the user profile under Network Admin > All Users.') . '</p>' .
+	'<p>' . __('New users will receive an email letting them know they&#8217;ve been added as a user for your site. This email will also contain their password. Check the box if you don&#8217;t want the user to recieve a welcome email.') . '</p>';
+} else {
+	$help .= '<p>' . __('You must assign a password to the new user, which they can change after logging in. The username, however, cannot be changed.') . '</p>' .
+	'<p>' . __('New users will receive an email letting them know they&#8217;ve been added as a user for your site. By default, this email will also contain their password. Uncheck the box if you don&#8217;t want the password to be included in the welcome email.') . '</p>';
+}
+
+$help .= '<p>' . __('Remember to click the Add New User button at the bottom of this screen when you are finished.') . '</p>';
+
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' => $help,
+) );
+
+get_current_screen()->add_help_tab( array(
+'id'      => 'user-roles',
+'title'   => __('User Roles'),
+'content' => '<p>' . __('Here is a basic overview of the different user roles and the permissions associated with each one:') . '</p>' .
+				'<ul>' .
+				'<li>' . __('Administrators have access to all the administration features.') . '</li>' .
+				'<li>' . __('Editors can publish posts, manage posts as well as manage other people&#8217;s posts, etc.')  . '</li>' .
+				'<li>' . __('Authors can publish and manage their own posts, and are able to upload files.') . '</li>' .
+				'<li>' . __('Contributors can write and manage their posts but not publish posts or upload media files.') . '</li>' .
+				'<li>' . __('Subscribers can read comments/comment/receive newsletters, etc. but cannot create regular site content.') . '</li>' .
+				'</ul>'
+) );
+
+get_current_screen()->set_help_sidebar(
     '<p><strong>' . __('For more information:') . '</strong></p>' .
     '<p>' . __('<a href="http://codex.wordpress.org/Users_Add_New_Screen" target="_blank">Documentation on Adding New Users</a>') . '</p>' .
     '<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'

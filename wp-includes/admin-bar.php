@@ -55,8 +55,6 @@ function wp_admin_bar_render() {
 	if ( ! is_admin_bar_showing() || ! is_object( $wp_admin_bar ) )
 		return false;
 
-	$wp_admin_bar->load_user_locale_translations();
-
 	do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 
 	do_action( 'wp_before_admin_bar_render' );
@@ -64,50 +62,204 @@ function wp_admin_bar_render() {
 	$wp_admin_bar->render();
 
 	do_action( 'wp_after_admin_bar_render' );
-
-	$wp_admin_bar->unload_user_locale_translations();
 }
 add_action( 'wp_footer', 'wp_admin_bar_render', 1000 );
 add_action( 'admin_footer', 'wp_admin_bar_render', 1000 );
 
 /**
- * Add the "My Account" menu and all submenus.
+ * Add the WordPress logo menu.
+ *
+ * @since 3.3.0
+ */
+function wp_admin_bar_wp_menu( $wp_admin_bar ) {
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'wp-logo',
+		'title' => '<span class="ab-icon"></span>',
+		'href'  => admin_url( 'about.php' ),
+		'meta'  => array(
+			'title' => __('About WordPress'),
+		),
+	) );
+
+	if ( is_user_logged_in() ) {
+		// Add "About WordPress" link
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'wp-logo',
+			'id'     => 'about',
+			'title'  => __('About WordPress'),
+			'href'   => admin_url('about.php'),
+		) );
+	}
+
+	// Add WordPress.org link
+	$wp_admin_bar->add_menu( array(
+		'parent'    => 'wp-logo-external',
+		'id'        => 'wporg',
+		'title'     => __('WordPress.org'),
+		'href'      => __('http://wordpress.org'),
+	) );
+
+	// Add codex link
+	$wp_admin_bar->add_menu( array(
+		'parent'    => 'wp-logo-external',
+		'id'        => 'documentation',
+		'title'     => __('Documentation'),
+		'href'      => __('http://codex.wordpress.org'),
+	) );
+
+	// Add forums link
+	$wp_admin_bar->add_menu( array(
+		'parent'    => 'wp-logo-external',
+		'id'        => 'support-forums',
+		'title'     => __('Support Forums'),
+		'href'      => __('http://wordpress.org/support/'),
+	) );
+
+	// Add feedback link
+	$wp_admin_bar->add_menu( array(
+		'parent'    => 'wp-logo-external',
+		'id'        => 'feedback',
+		'title'     => __('Feedback'),
+		'href'      => __('http://wordpress.org/support/forum/requests-and-feedback'),
+	) );
+}
+
+/**
+ * Add the "My Account" item.
+ *
+ * @since 3.3.0
+ */
+function wp_admin_bar_my_account_item( $wp_admin_bar ) {
+	$user_id      = get_current_user_id();
+	$current_user = wp_get_current_user();
+	$profile_url  = get_edit_profile_url( $user_id );
+
+	if ( ! $user_id )
+		return;
+
+	$avatar = get_avatar( $user_id, 16 );
+	$howdy  = sprintf( __('Howdy, %1$s'), $current_user->display_name );
+	$class  = empty( $avatar ) ? '' : 'with-avatar';
+
+	$wp_admin_bar->add_menu( array(
+		'id'        => 'my-account',
+		'parent'    => 'top-secondary',
+		'title'     => $howdy . $avatar,
+		'href'      => $profile_url,
+		'meta'      => array(
+			'class'     => $class,
+			'title'     => __('My Account'),
+		),
+	) );
+}
+
+/**
+ * Add the "My Account" submenu items.
  *
  * @since 3.1.0
  */
 function wp_admin_bar_my_account_menu( $wp_admin_bar ) {
-	global $user_identity;
+	$user_id      = get_current_user_id();
+	$current_user = wp_get_current_user();
+	$profile_url  = get_edit_profile_url( $user_id );
 
-	$user_id = get_current_user_id();
+	if ( ! $user_id )
+		return;
 
-	if ( 0 != $user_id ) {
-		/* Add the 'My Account' menu */
-		$avatar = get_avatar( get_current_user_id(), 16 );
-		$id = ( ! empty( $avatar ) ) ? 'my-account-with-avatar' : 'my-account';
+	$wp_admin_bar->add_group( array(
+		'parent' => 'my-account',
+		'id'     => 'user-actions',
+	) );
 
-		$wp_admin_bar->add_menu( array( 'id' => $id, 'title' => $avatar . $user_identity,  'href' => get_edit_profile_url( $user_id ) ) );
+	$user_info  = get_avatar( $user_id, 64 );
+	$user_info .= "<span class='display-name'>{$current_user->display_name}</span>";
 
-		/* Add the "My Account" sub menus */
-		$wp_admin_bar->add_menu( array( 'id' => 'edit-profile', 'parent' => $id, 'title' => __( 'Edit My Profile' ), 'href' => get_edit_profile_url( $user_id ) ) );
-		$wp_admin_bar->add_menu( array( 'id' => 'logout', 'parent' => $id, 'title' => __( 'Log Out' ), 'href' => wp_logout_url() ) );
-	}
+	if ( $current_user->display_name !== $current_user->user_nicename )
+		$user_info .= "<span class='username'>{$current_user->user_nicename}</span>";
+
+	$wp_admin_bar->add_menu( array(
+		'parent' => 'user-actions',
+		'id'     => 'user-info',
+		'title'  => $user_info,
+		'href'   => $profile_url,
+		'meta'   => array(
+			'tabindex' => -1,
+		),
+	) );
+	$wp_admin_bar->add_menu( array(
+		'parent' => 'user-actions',
+		'id'     => 'edit-profile',
+		'title'  => __( 'Edit My Profile' ),
+		'href' => $profile_url,
+	) );
+	$wp_admin_bar->add_menu( array(
+		'parent' => 'user-actions',
+		'id'     => 'logout',
+		'title'  => __( 'Log Out' ),
+		'href'   => wp_logout_url(),
+	) );
 }
 
 /**
- * Add the "Dashboard"/"Visit Site" menu.
+ * Add the "Site Name" menu.
  *
- * @since 3.2.0
+ * @since 3.3.0
  */
-function wp_admin_bar_dashboard_view_site_menu( $wp_admin_bar ) {
-	$user_id = get_current_user_id();
+function wp_admin_bar_site_menu( $wp_admin_bar ) {
+	global $current_site;
 
-	if ( 0 != $user_id ) {
-		if ( is_admin() )
-			$wp_admin_bar->add_menu( array( 'id' => 'view-site', 'title' => __( 'Visit Site' ), 'href' => home_url() ) );
-		elseif ( is_multisite() )
-			$wp_admin_bar->add_menu( array( 'id' => 'dashboard', 'title' => __( 'Dashboard' ), 'href' => get_dashboard_url( $user_id ) ) );
-		else
-			$wp_admin_bar->add_menu( array( 'id' => 'dashboard', 'title' => __( 'Dashboard' ), 'href' => admin_url() ) );
+	// Don't show for logged out users.
+	if ( ! is_user_logged_in() )
+		return;
+
+	// Show only when the user is a member of this site, or they're a super admin.
+	if ( ! is_user_member_of_blog() && ! is_super_admin() )
+		return;
+
+	$blogname = get_bloginfo('name');
+
+	if ( empty( $blogname ) )
+		$blogname = preg_replace( '#^(https?://)?(www.)?#', '', get_home_url() );
+
+	if ( is_network_admin() ) {
+		$blogname = sprintf( __('Network Admin: %s'), esc_html( $current_site->site_name ) );
+	} elseif ( is_user_admin() ) {
+		$blogname = sprintf( __('Global Dashboard: %s'), esc_html( $current_site->site_name ) );
+	}
+
+	$title = wp_html_excerpt( $blogname, 40 );
+	if ( $title != $blogname )
+		$title = trim( $title ) . '&hellip;';
+
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'site-name',
+		'title' => $title,
+		'href'  => is_admin() ? home_url( '/' ) : admin_url(),
+	) );
+
+	// Create submenu items.
+
+	if ( is_admin() ) {
+		// Add an option to visit the site.
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'site-name',
+			'id'     => 'view-site',
+			'title'  => __( 'Visit Site' ),
+			'href'   => home_url( '/' ),
+		) );
+
+	// We're on the front end, print a copy of the admin menu.
+	} else {
+		// Add the dashboard item.
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'site-name',
+			'id'     => 'dashboard',
+			'title'  => __( 'Dashboard' ),
+			'href'   => admin_url(),
+		) );
+
+		// Add the appearance submenu items.
+		wp_admin_bar_appearance_menu( $wp_admin_bar );
 	}
 }
 
@@ -119,30 +271,113 @@ function wp_admin_bar_dashboard_view_site_menu( $wp_admin_bar ) {
 function wp_admin_bar_my_sites_menu( $wp_admin_bar ) {
 	global $wpdb;
 
-	/* Add the 'My Sites' menu if the user has more than one site. */
-	if ( count( $wp_admin_bar->user->blogs ) <= 1 )
+	// Don't show for logged out users or single site mode.
+	if ( ! is_user_logged_in() || ! is_multisite() )
 		return;
 
-	$wp_admin_bar->add_menu( array(  'id' => 'my-blogs', 'title' => __( 'My Sites' ),  'href' => admin_url( 'my-sites.php' ) ) );
+	// Show only when the user has at least one site, or they're a super admin.
+	if ( count( $wp_admin_bar->user->blogs ) < 1 && ! is_super_admin() )
+		return;
 
-	$default = includes_url('images/wpmini-blue.png');
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'my-sites',
+		'title' => __( 'My Sites' ),
+		'href'  => admin_url( 'my-sites.php' ),
+	) );
+
+	if ( is_super_admin() ) {
+		$wp_admin_bar->add_group( array(
+			'parent' => 'my-sites',
+			'id'     => 'my-sites-super-admin',
+		) );
+
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'my-sites-super-admin',
+			'id'     => 'network-admin',
+			'title'  => __('Network Admin'),
+			'href'   => network_admin_url(),
+		) );
+
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'network-admin',
+			'id'     => 'network-admin-d',
+			'title'  => __( 'Dashboard' ),
+			'href'   => network_admin_url(),
+		) );
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'network-admin',
+			'id'     => 'network-admin-s',
+			'title'  => __( 'Sites' ),
+			'href'   => network_admin_url( 'sites.php' ),
+		) );
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'network-admin',
+			'id'     => 'network-admin-u',
+			'title'  => __( 'Users' ),
+			'href'   => network_admin_url( 'users.php' ),
+		) );
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'network-admin',
+			'id'     => 'network-admin-v',
+			'title'  => __( 'Visit Network' ),
+			'href'   => network_home_url(),
+		) );
+	}
+
+	// Add site links
+	$wp_admin_bar->add_group( array(
+		'parent' => 'my-sites',
+		'id'     => 'my-sites-list',
+		'meta'   => array(
+			'class' => is_super_admin() ? 'ab-sub-secondary' : '',
+		),
+	) );
+
+	$blue_wp_logo_url = includes_url('images/wpmini-blue.png');
 
 	foreach ( (array) $wp_admin_bar->user->blogs as $blog ) {
 		// @todo Replace with some favicon lookup.
-		//$blavatar = '<img src="' . esc_url( blavatar_url( blavatar_domain( $blog->siteurl ), 'img', 16, $default ) ) . '" alt="Blavatar" width="16" height="16" />';
-		$blavatar = '<img src="' . esc_url($default) . '" alt="' . esc_attr__( 'Blavatar' ) . '" width="16" height="16" class="blavatar"/>';
+		//$blavatar = '<img src="' . esc_url( blavatar_url( blavatar_domain( $blog->siteurl ), 'img', 16, $blue_wp_logo_url ) ) . '" alt="Blavatar" width="16" height="16" />';
+		$blavatar = '<img src="' . esc_url($blue_wp_logo_url) . '" alt="' . esc_attr__( 'Blavatar' ) . '" width="16" height="16" class="blavatar"/>';
 
 		$blogname = empty( $blog->blogname ) ? $blog->domain : $blog->blogname;
+		$menu_id  = 'blog-' . $blog->userblog_id;
 
-		$wp_admin_bar->add_menu( array( 'parent' => 'my-blogs', 'id' => 'blog-' . $blog->userblog_id, 'title' => $blavatar . $blogname,  'href' => get_admin_url($blog->userblog_id) ) );
-		$wp_admin_bar->add_menu( array( 'parent' => 'blog-' . $blog->userblog_id, 'id' => 'blog-' . $blog->userblog_id . '-d', 'title' => __( 'Dashboard' ), 'href' => get_admin_url($blog->userblog_id) ) );
+		$wp_admin_bar->add_menu( array(
+			'parent'    => 'my-sites-list',
+			'id'        => $menu_id,
+			'title'     => $blavatar . $blogname,
+			'href'      => get_admin_url( $blog->userblog_id ),
+		) );
+
+		$wp_admin_bar->add_menu( array(
+			'parent' => $menu_id,
+			'id'     => $menu_id . '-d',
+			'title'  => __( 'Dashboard' ),
+			'href'   => get_admin_url( $blog->userblog_id ),
+		) );
 
 		if ( current_user_can_for_blog( $blog->userblog_id, 'edit_posts' ) ) {
-			$wp_admin_bar->add_menu( array( 'parent' => 'blog-' . $blog->userblog_id, 'id' => 'blog-' . $blog->userblog_id . '-n', 'title' => __( 'New Post' ), 'href' => get_admin_url($blog->userblog_id, 'post-new.php') ) );
-			$wp_admin_bar->add_menu( array( 'parent' => 'blog-' . $blog->userblog_id, 'id' => 'blog-' . $blog->userblog_id . '-c', 'title' => __( 'Manage Comments' ), 'href' => get_admin_url($blog->userblog_id, 'edit-comments.php') ) );
+			$wp_admin_bar->add_menu( array(
+				'parent' => $menu_id,
+				'id'     => $menu_id . '-n',
+				'title'  => __( 'New Post' ),
+				'href'   => get_admin_url( $blog->userblog_id, 'post-new.php' ),
+			) );
+			$wp_admin_bar->add_menu( array(
+				'parent' => $menu_id,
+				'id'     => $menu_id . '-c',
+				'title'  => __( 'Manage Comments' ),
+				'href'   => get_admin_url( $blog->userblog_id, 'edit-comments.php' ),
+			) );
 		}
 
-		$wp_admin_bar->add_menu( array( 'parent' => 'blog-' . $blog->userblog_id, 'id' => 'blog-' . $blog->userblog_id . '-v', 'title' => __( 'Visit Site' ), 'href' => get_home_url($blog->userblog_id) ) );
+		$wp_admin_bar->add_menu( array(
+			'parent' => $menu_id,
+			'id'     => $menu_id . '-v',
+			'title'  => __( 'Visit Site' ),
+			'href'   => get_home_url( $blog->userblog_id, '/' ),
+		) );
 	}
 }
 
@@ -174,7 +409,7 @@ function wp_admin_bar_shortlink_menu( $wp_admin_bar ) {
  * @since 3.1.0
  */
 function wp_admin_bar_edit_menu( $wp_admin_bar ) {
-	global $post, $tag;
+	global $post, $tag, $wp_the_query;
 
 	if ( is_admin() ) {
 		$current_screen = get_current_screen();
@@ -202,9 +437,9 @@ function wp_admin_bar_edit_menu( $wp_admin_bar ) {
 			) );
 		}
 	} else {
-		$current_object = get_queried_object();
+		$current_object = $wp_the_query->get_queried_object();
 
-		if ( empty($current_object) )
+		if ( empty( $current_object ) )
 			return;
 
 		if ( ! empty( $current_object->post_type )
@@ -238,35 +473,60 @@ function wp_admin_bar_edit_menu( $wp_admin_bar ) {
  */
 function wp_admin_bar_new_content_menu( $wp_admin_bar ) {
 	$actions = array();
-	foreach ( (array) get_post_types( array( 'show_in_admin_bar' => true ), 'objects' ) as $ptype_obj ) {
-		if ( ! current_user_can( $ptype_obj->cap->edit_posts ) )
-			continue;
 
-		$actions[ 'post-new.php?post_type=' . $ptype_obj->name ] = array( $ptype_obj->labels->name_admin_bar, $ptype_obj->cap->edit_posts, 'new-' . $ptype_obj->name );
+	$cpts = (array) get_post_types( array( 'show_in_admin_bar' => true ), 'objects' );
+
+	if ( isset( $cpts['post'] ) && current_user_can( $cpts['post']->cap->edit_posts ) ) {
+		$actions[ 'post-new.php' ] = array( $cpts['post']->labels->name_admin_bar, 'new-post' );
+		unset( $cpts['post'] );
 	}
 
 	if ( current_user_can( 'upload_files' ) )
-		$actions[ 'media-new.php' ] = array( _x( 'Media', 'add new from admin bar' ), 'upload_files', 'new-media' );
+		$actions[ 'media-new.php' ] = array( _x( 'Media', 'add new from admin bar' ), 'new-media' );
 
 	if ( current_user_can( 'manage_links' ) )
-		$actions[ 'link-add.php' ] = array( _x( 'Link', 'add new from admin bar' ), 'manage_links', 'new-link' );
+		$actions[ 'link-add.php' ] = array( _x( 'Link', 'add new from admin bar' ), 'new-link' );
+
+	if ( isset( $cpts['page'] ) && current_user_can( $cpts['page']->cap->edit_posts ) ) {
+		$actions[ 'post-new.php?post_type=page' ] = array( $cpts['page']->labels->name_admin_bar, 'new-page' );
+		unset( $cpts['page'] );
+	}
+
+	// Add any additional custom post types.
+	foreach ( $cpts as $cpt ) {
+		if ( ! current_user_can( $cpt->cap->edit_posts ) )
+			continue;
+
+		$key = 'post-new.php?post_type=' . $cpt->name;
+		$actions[ $key ] = array( $cpt->labels->name_admin_bar, 'new-' . $cpt->name );
+	}
 
 	if ( current_user_can( 'create_users' ) || current_user_can( 'promote_users' ) )
-		$actions[ 'user-new.php' ] = array( _x( 'User', 'add new from admin bar' ), 'create_users', 'new-user' );
+		$actions[ 'user-new.php' ] = array( _x( 'User', 'add new from admin bar' ), 'new-user' );
 
-	if ( ! is_multisite() && current_user_can( 'install_themes' ) )
-		$actions[ 'theme-install.php' ] = array( _x( 'Theme', 'add new from admin bar' ), 'install_themes', 'new-theme' );
-
-	if ( ! is_multisite() && current_user_can( 'install_plugins' ) )
-		$actions[ 'plugin-install.php' ] = array( _x( 'Plugin', 'add new from admin bar' ), 'install_plugins', 'new-plugin' );
-
-	if ( empty( $actions ) )
+	if ( ! $actions )
 		return;
 
-	$wp_admin_bar->add_menu( array( 'id' => 'new-content', 'title' => _x( 'Add New', 'admin bar menu group label' ), 'href' => admin_url( array_shift( array_keys( $actions ) ) ) ) );
+	$title = '<span class="ab-icon"></span><span class="ab-label">' . _x( 'New', 'admin bar menu group label' ) . '</span>';
+
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'new-content',
+		'title' => $title,
+		'href'  => admin_url( current( array_keys( $actions ) ) ),
+		'meta'  => array(
+			'title' => _x( 'Add New', 'admin bar menu group label' ),
+		),
+	) );
 
 	foreach ( $actions as $link => $action ) {
-		$wp_admin_bar->add_menu( array( 'parent' => 'new-content', 'id' => $action[2], 'title' => $action[0], 'href' => admin_url($link) ) );
+		list( $title, $id ) = $action;
+
+		$wp_admin_bar->add_menu( array(
+			'parent'    => 'new-content',
+			'id'        => $id,
+			'title'     => $title,
+			'href'      => admin_url( $link )
+		) );
 	}
 }
 
@@ -281,28 +541,32 @@ function wp_admin_bar_comments_menu( $wp_admin_bar ) {
 
 	$awaiting_mod = wp_count_comments();
 	$awaiting_mod = $awaiting_mod->moderated;
+	$awaiting_title = esc_attr( sprintf( _n( '%s comment awaiting moderation', '%s comments awaiting moderation', $awaiting_mod ), number_format_i18n( $awaiting_mod ) ) );
 
-	$awaiting_mod = $awaiting_mod ? "<span id='ab-awaiting-mod' class='pending-count'>" . number_format_i18n( $awaiting_mod ) . "</span>" : '';
-	$wp_admin_bar->add_menu( array( 'id' => 'comments', 'title' => sprintf( __('Comments %s'), $awaiting_mod ), 'href' => admin_url('edit-comments.php') ) );
+	$icon  = '<span class="ab-icon"></span>';
+	$title = '<span id="ab-awaiting-mod" class="ab-label awaiting-mod pending-count count-' . $awaiting_mod . '">' . number_format_i18n( $awaiting_mod ) . '</span>';
+
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'comments',
+		'title' => $icon . $title,
+		'href'  => admin_url('edit-comments.php'),
+		'meta'  => array( 'title' => $awaiting_title ),
+	) );
 }
 
 /**
- * Add "Appearance" menu with widget and nav menu submenu.
+ * Add appearance submenu items to the "Site Name" menu.
  *
  * @since 3.1.0
  */
 function wp_admin_bar_appearance_menu( $wp_admin_bar ) {
-	// You can have edit_theme_options but not switch_themes.
-	if ( ! current_user_can('switch_themes') && ! current_user_can( 'edit_theme_options' ) )
-		return;
+	$wp_admin_bar->add_group( array( 'parent' => 'site-name', 'id' => 'appearance' ) );
 
-	$wp_admin_bar->add_menu( array( 'id' => 'appearance', 'title' => __('Appearance'), 'href' => admin_url('themes.php') ) );
+	if ( current_user_can( 'switch_themes' ) || current_user_can( 'edit_theme_options' ) )
+		$wp_admin_bar->add_menu( array( 'parent' => 'appearance', 'id' => 'themes', 'title' => __('Themes'), 'href' => admin_url('themes.php') ) );
 
 	if ( ! current_user_can( 'edit_theme_options' ) )
 		return;
-
-	if ( current_user_can( 'switch_themes' ) )
-		$wp_admin_bar->add_menu( array( 'parent' => 'appearance', 'id' => 'themes', 'title' => __('Themes'), 'href' => admin_url('themes.php') ) );
 
 	if ( current_theme_supports( 'widgets' )  )
 		$wp_admin_bar->add_menu( array( 'parent' => 'appearance', 'id' => 'widgets', 'title' => __('Widgets'), 'href' => admin_url('widgets.php') ) );
@@ -323,42 +587,69 @@ function wp_admin_bar_appearance_menu( $wp_admin_bar ) {
  * @since 3.1.0
  */
 function wp_admin_bar_updates_menu( $wp_admin_bar ) {
-	if ( !current_user_can('install_plugins') )
+
+	$update_data = wp_get_update_data();
+
+	if ( !$update_data['counts']['total'] )
 		return;
 
-	$plugin_update_count = $theme_update_count = $wordpress_update_count = 0;
-	$update_plugins = get_site_transient( 'update_plugins' );
-	if ( !empty($update_plugins->response) )
-		$plugin_update_count = count( $update_plugins->response );
-	$update_themes = get_site_transient( 'update_themes' );
-	if ( !empty($update_themes->response) )
-		$theme_update_count = count( $update_themes->response );
-	/* @todo get_core_updates() is only available on admin page loads
-	$update_wordpress = get_core_updates( array('dismissed' => false) );
-	if ( !empty($update_wordpress) && !in_array( $update_wordpress[0]->response, array('development', 'latest') ) )
-		$wordpress_update_count = 1;
-	*/
+	$title = '<span class="ab-icon"></span><span class="ab-label">' . number_format_i18n( $update_data['counts']['total'] ) . '</span>';
 
-	$update_count = $plugin_update_count + $theme_update_count + $wordpress_update_count;
+	$wp_admin_bar->add_menu( array(
+		'id'    => 'updates',
+		'title' => $title,
+		'href'  => network_admin_url( 'update-core.php' ),
+		'meta'  => array(
+			'title' => $update_data['title'],
+		),
+	) );
+}
 
-	if ( !$update_count )
+/**
+ * Add search form.
+ *
+ * @since 3.3.0
+ */
+function wp_admin_bar_search_menu( $wp_admin_bar ) {
+	if ( is_admin() )
 		return;
 
-	$update_title = array();
-	if ( $wordpress_update_count )
-		$update_title[] = sprintf(__('%d WordPress Update'), $wordpress_update_count);
-	if ( $plugin_update_count )
-		$update_title[] = sprintf(_n('%d Plugin Update', '%d Plugin Updates', $plugin_update_count), $plugin_update_count);
-	if ( $theme_update_count )
-		$update_title[] = sprintf(_n('%d Theme Update', '%d Theme Updates', $theme_update_count), $theme_update_count);
+	$form  = '<form action="' . esc_url( home_url( '/' ) ) . '" method="get" id="adminbarsearch">';
+	$form .= '<input class="adminbar-input" name="s" id="adminbar-search" tabindex="10" type="text" value="" maxlength="150" />';
+	$form .= '<input type="submit" class="adminbar-button" value="' . __('Search') . '"/>';
+	$form .= '</form>';
 
-	$update_title = !empty($update_title) ? esc_attr(implode(', ', $update_title)) : '';
+	$wp_admin_bar->add_menu( array(
+		'parent' => 'top-secondary',
+		'id'     => 'search',
+		'title'  => $form,
+		'meta'   => array(
+			'class'    => 'admin-bar-search',
+			'tabindex' => -1,
+		)
+	) );
+}
 
-	$update_title = "<span title='$update_title'>";
-	$update_title .= sprintf( __('Updates %s'), "<span id='ab-updates' class='update-count'>" . number_format_i18n($update_count) . '</span>' );
-	$update_title .= '</span>';
+/**
+ * Add secondary menus.
+ *
+ * @since 3.3.0
+ */
+function wp_admin_bar_add_secondary_groups( $wp_admin_bar ) {
+	$wp_admin_bar->add_group( array(
+		'id'     => 'top-secondary',
+		'meta'   => array(
+			'class' => 'ab-top-secondary',
+		),
+	) );
 
-	$wp_admin_bar->add_menu( array( 'id' => 'updates', 'title' => $update_title, 'href' => network_admin_url( 'update-core.php' ) ) );
+	$wp_admin_bar->add_group( array(
+		'parent' => 'wp-logo',
+		'id'     => 'wp-logo-external',
+		'meta'   => array(
+			'class' => 'ab-sub-secondary',
+		),
+	) );
 }
 
 /**
@@ -411,16 +702,19 @@ function show_admin_bar( $show ) {
 function is_admin_bar_showing() {
 	global $show_admin_bar, $pagenow;
 
-	/* For all these types of request we never want an admin bar period */
+	// For all these types of requests, we never want an admin bar.
 	if ( defined('XMLRPC_REQUEST') || defined('APP_REQUEST') || defined('DOING_AJAX') || defined('IFRAME_REQUEST') )
 		return false;
+
+	// Integrated into the admin.
+	if ( is_admin() )
+		return true;
 
 	if ( ! isset( $show_admin_bar ) ) {
 		if ( ! is_user_logged_in() || 'wp-login.php' == $pagenow ) {
 			$show_admin_bar = false;
 		} else {
-			$context = is_admin() ? 'admin' : 'front';
-			$show_admin_bar = _get_admin_bar_pref( $context );
+			$show_admin_bar = _get_admin_bar_pref();
 		}
 	}
 
@@ -430,19 +724,20 @@ function is_admin_bar_showing() {
 }
 
 /**
- * Retrieve the admin bar display preference of a user based on context.
+ * Retrieve the admin bar display preference of a user.
  *
  * @since 3.1.0
  * @access private
  *
- * @param string $context Context of this preference check, either 'admin' or 'front'.
+ * @param string $context Context of this preference check. Defaults to 'front'. The 'admin'
+ * 	preference is no longer used.
  * @param int $user Optional. ID of the user to check, defaults to 0 for current user.
  * @return bool Whether the admin bar should be showing for this user.
  */
-function _get_admin_bar_pref( $context, $user = 0 ) {
+function _get_admin_bar_pref( $context = 'front', $user = 0 ) {
 	$pref = get_user_option( "show_admin_bar_{$context}", $user );
 	if ( false === $pref )
-		return 'admin' != $context || is_multisite();
+		return true;
 
 	return 'true' === $pref;
 }

@@ -18,7 +18,6 @@
  * @return bool Whether post has an image attached.
  */
 function has_post_thumbnail( $post_id = null ) {
-	$post_id = ( null === $post_id ) ? get_the_ID() : $post_id;
 	return (bool) get_post_thumbnail_id( $post_id );
 }
 
@@ -50,7 +49,7 @@ function the_post_thumbnail( $size = 'post-thumbnail', $attr = '' ) {
 /**
  * Update cache for thumbnails in the current loop
  *
- * @sicne 3.2
+ * @since 3.2
  */
 function update_post_thumbnail_cache() {
 	global $wp_query;

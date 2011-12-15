@@ -10,7 +10,7 @@
  * @subpackage Administration
  */
 
-define( 'WP_NETWORK_ADMIN_PAGE', true );
+define( 'WP_INSTALLING_NETWORK', true );
 
 /** WordPress Administration Bootstrap */
 require_once( './admin.php' );
@@ -103,13 +103,23 @@ if ( is_network_admin() ) {
 	$parent_file = 'tools.php';
 }
 
-add_contextual_help($current_screen,
-	'<p>' . __('This screen allows you to configure a network as having subdomains (<code>site1.example.com</code>) or subdirectories (<code>example.com/site1</code>). Subdomains require wildcard subdomains to be enabled in Apache and DNS records, if your host allows it.') . '</p>' .
+$network_help = '<p>' . __('This screen allows you to configure a network as having subdomains (<code>site1.example.com</code>) or subdirectories (<code>example.com/site1</code>). Subdomains require wildcard subdomains to be enabled in Apache and DNS records, if your host allows it.') . '</p>' .
 	'<p>' . __('Choose subdomains or subdirectories; this can only be switched afterwards by reconfiguring your install. Fill out the network details, and click install. If this does not work, you may have to add a wildcard DNS record (for subdomains) or change to another setting in Permalinks (for subdirectories).') . '</p>' .
 	'<p>' . __('The next screen for Network Setup will give you individually-generated lines of code to add to your wp-config.php and .htaccess files. Make sure the settings of your FTP client make files starting with a dot visible, so that you can find .htaccess; you may have to create this file if it really is not there. Make backup copies of those two files.') . '</p>' .
 	'<p>' . __('Add a <code>blogs.dir</code> directory under <code>/wp-content</code> and add the designated lines of code to wp-config.php (just before <code>/*...stop editing...*/</code>) and <code>.htaccess</code> (replacing the existing WordPress rules).') . '</p>' .
-	'<p>' . __('Once you add this code and refresh your browser, multisite should be enabled. This screen will keep an archive of the added code. You can toggle between Network Admin and Site Admin by clicking on the Howdy (Username) dropdown in the upper right of the administration area.') . '</p>' .
-	'<p>' . __('The choice of subdirectory sites is disabled if this setup is more than a month old because of permalink problems with &#8220;/blog/&#8221; from the main site. This disabling will be addressed soon in a future version.') . '</p>' .
+	'<p>' . __('Once you add this code and refresh your browser, multisite should be enabled. This screen, now in the Network Admin navigation menu, will keep an archive of the added code. You can toggle between Network Admin and Site Admin by clicking on the Network Admin or an individual site name under the My Sites dropdown in the Toolbar.') . '</p>' .
+	'<p>' . __('The choice of subdirectory sites is disabled if this setup is more than a month old because of permalink problems with &#8220;/blog/&#8221; from the main site. This disabling will be addressed in a future version.') . '</p>' .
+	'<p><strong>' . __('For more information:') . '</strong></p>' .
+	'<p>' . __('<a href="http://codex.wordpress.org/Create_A_Network" target="_blank">Documentation on Creating a Network</a>') . '</p>' .
+	'<p>' . __('<a href="http://codex.wordpress.org/Tools_Network_Screen" target="_blank">Documentation on the Network Screen</a>') . '</p>';
+
+get_current_screen()->add_help_tab( array(
+	'id'      => 'network',
+	'title'   => __('Network'),
+	'content' => $network_help,
+) );
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Create_A_Network" target="_blank">Documentation on Creating a Network</a>') . '</p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Tools_Network_Screen" target="_blank">Documentation on the Network Screen</a>') . '</p>' .
@@ -135,14 +145,14 @@ function network_step1( $errors = false ) {
 	global $is_apache;
 
 	if ( get_option( 'siteurl' ) != get_option( 'home' ) ) {
-		echo '<div class="error"><p><strong>' . __('Error:') . '</strong> ' . sprintf( __( 'Your <strong>WordPress address</strong> must match your <strong>Site address</strong> before creating a Network. See <a href="%s">General Settings</a>.' ), esc_url( admin_url( 'options-general.php' ) ) ) . '</p></div>';
+		echo '<div class="error"><p><strong>' . __('ERROR:') . '</strong> ' . sprintf( __( 'Your <strong>WordPress address</strong> must match your <strong>Site address</strong> before creating a Network. See <a href="%s">General Settings</a>.' ), esc_url( admin_url( 'options-general.php' ) ) ) . '</p></div>';
 		echo '</div>';
 		include ( ABSPATH . 'wp-admin/admin-footer.php' );
 		die();
 	}
 
 	if ( defined('DO_NOT_UPGRADE_GLOBAL_TABLES') ) {
-		echo '<div class="error"><p><strong>' . __('Error:') . '</strong> ' . __( 'The constant DO_NOT_UPGRADE_GLOBAL_TABLES cannot be defined when creating a network.' ) . '</p></div>';
+		echo '<div class="error"><p><strong>' . __('ERROR:') . '</strong> ' . __( 'The constant DO_NOT_UPGRADE_GLOBAL_TABLES cannot be defined when creating a network.' ) . '</p></div>';
 		echo '</div>';
 		include ( ABSPATH . 'wp-admin/admin-footer.php' );
 		die();
@@ -159,7 +169,7 @@ function network_step1( $errors = false ) {
 	$hostname = get_clean_basedomain();
 	$has_ports = strstr( $hostname, ':' );
 	if ( ( false !== $has_ports && ! in_array( $has_ports, array( ':80', ':443' ) ) ) ) {
-		echo '<div class="error"><p><strong>' . __( 'Error:') . '</strong> ' . __( 'You cannot install a network of sites with your server address.' ) . '</p></div>';
+		echo '<div class="error"><p><strong>' . __( 'ERROR:') . '</strong> ' . __( 'You cannot install a network of sites with your server address.' ) . '</p></div>';
 		echo '<p>' . sprintf( __( 'You cannot use port numbers such as <code>%s</code>.' ), $has_ports ) . '</p>';
 		echo '<a href="' . esc_url( admin_url() ) . '">' . __( 'Return to Dashboard' ) . '</a>';
 		echo '</div>';
@@ -229,7 +239,7 @@ function network_step1( $errors = false ) {
 		if ( $is_www ) :
 		?>
 		<h3><?php esc_html_e( 'Server Address' ); ?></h3>
-		<p><?php printf( __( 'We recommend you change your siteurl to <code>%1$s</code> before enabling the network feature. It will still be possible to visit your site using the <code>www</code> prefix with an address like <code>%2$s</code> but any links will not have the <code>www</code> prefix.' ), substr( $hostname, 4 ), $hostname ); ?></h3>
+		<p><?php printf( __( 'We recommend you change your siteurl to <code>%1$s</code> before enabling the network feature. It will still be possible to visit your site using the <code>www</code> prefix with an address like <code>%2$s</code> but any links will not have the <code>www</code> prefix.' ), substr( $hostname, 4 ), $hostname ); ?></p>
 		<table class="form-table">
 			<tr>
 				<th scope='row'><?php esc_html_e( 'Server Address' ); ?></th>
@@ -353,7 +363,7 @@ function network_step2( $errors = false ) {
 			<li><p><?php
 				printf( __( 'Create a <code>blogs.dir</code> directory at <code>%s/blogs.dir</code>. This directory is used to store uploaded media for your additional sites and must be writeable by the web server.' ), WP_CONTENT_DIR );
 				if ( WP_CONTENT_DIR != ABSPATH . 'wp-content' )
-					echo ' <strong>' . __('Warning:') . ' ' . __( 'Networks may not be fully compatible with custom wp-content directories.' ) . '</strong';
+					echo ' <strong>' . __('Warning:') . ' ' . __( 'Networks may not be fully compatible with custom wp-content directories.' ) . '</strong>';
 			?></p></li>
 			<li><p><?php printf( __( 'Add the following to your <code>wp-config.php</code> file in <code>%s</code> <strong>above</strong> the line reading <code>/* That&#8217;s all, stop editing! Happy blogging. */</code>:' ), ABSPATH ); ?></p>
 				<textarea class="code" readonly="readonly" cols="100" rows="7">
@@ -455,7 +465,7 @@ define( 'BLOG_ID_CURRENT_SITE', 1 );</textarea>
                 </rule>
                 <rule name="WordPress Rule 5" stopProcessing="true">
                     <match url="^[_0-9a-zA-Z-]+/(wp-(content|admin|includes).*)" ignoreCase="false" />
-                    <action type="Rewrite" url="{R:2}" />
+                    <action type="Rewrite" url="{R:1}" />
                 </rule>
                 <rule name="WordPress Rule 6" stopProcessing="true">
                     <match url="^([_0-9a-zA-Z-]+/)?(.*\.php)$" ignoreCase="false" />
@@ -523,7 +533,7 @@ if ( $_POST ) {
 	// create network tables
 	install_network();
 	$hostname = get_clean_basedomain();
-	$subdomain_install = !allow_subdomain_install() ? false : (bool) $_POST['subdomain_install'];
+	$subdomain_install = allow_subdomain_install() ? !empty( $_POST['subdomain_install'] ) : false;
 	if ( ! network_domain_check() ) {
 		$result = populate_network( 1, get_clean_basedomain(), sanitize_email( $_POST['email'] ), stripslashes( $_POST['sitename'] ), $base, $subdomain_install );
 		if ( is_wp_error( $result ) ) {

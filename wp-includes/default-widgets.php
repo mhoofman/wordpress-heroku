@@ -105,7 +105,7 @@ class WP_Widget_Links extends WP_Widget {
 
 		if ( is_admin() && !$category ) {
 			// Display All Links widget as such in the widgets screen
-			echo $before_widget . $before_title. __('All Links') . $after_title . $after_widget;
+			echo $before_widget . $before_title . _x('All Links', 'links widget') . $after_title . $after_widget;
 			return;
 		}
 
@@ -140,7 +140,7 @@ class WP_Widget_Links extends WP_Widget {
 		<p>
 		<label for="<?php echo $this->get_field_id('category'); ?>" class="screen-reader-text"><?php _e('Select Link Category'); ?></label>
 		<select class="widefat" id="<?php echo $this->get_field_id('category'); ?>" name="<?php echo $this->get_field_name('category'); ?>">
-		<option value=""><?php _e('All Links'); ?></option>
+		<option value=""><?php _ex('All Links', 'links widget'); ?></option>
 		<?php
 		foreach ( $link_cats as $link_cat ) {
 			echo '<option value="' . intval($link_cat->term_id) . '"'
@@ -177,7 +177,7 @@ class WP_Widget_Search extends WP_Widget {
 
 	function widget( $args, $instance ) {
 		extract($args);
-		$title = apply_filters('widget_title', $instance['title'], $instance, $this->id_base);
+		$title = apply_filters( 'widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base );
 
 		echo $before_widget;
 		if ( $title )
@@ -220,8 +220,8 @@ class WP_Widget_Archives extends WP_Widget {
 
 	function widget( $args, $instance ) {
 		extract($args);
-		$c = $instance['count'] ? '1' : '0';
-		$d = $instance['dropdown'] ? '1' : '0';
+		$c = ! empty( $instance['count'] ) ? '1' : '0';
+		$d = ! empty( $instance['dropdown'] ) ? '1' : '0';
 		$title = apply_filters('widget_title', empty($instance['title']) ? __('Archives') : $instance['title'], $instance, $this->id_base);
 
 		echo $before_widget;
@@ -375,11 +375,11 @@ class WP_Widget_Text extends WP_Widget {
 
 	function widget( $args, $instance ) {
 		extract($args);
-		$title = apply_filters( 'widget_title', empty($instance['title']) ? '' : $instance['title'], $instance, $this->id_base);
-		$text = apply_filters( 'widget_text', $instance['text'], $instance );
+		$title = apply_filters( 'widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base );
+		$text = apply_filters( 'widget_text', empty( $instance['text'] ) ? '' : $instance['text'], $instance );
 		echo $before_widget;
 		if ( !empty( $title ) ) { echo $before_title . $title . $after_title; } ?>
-			<div class="textwidget"><?php echo $instance['filter'] ? wpautop($text) : $text; ?></div>
+			<div class="textwidget"><?php echo !empty( $instance['filter'] ) ? wpautop( $text ) : $text; ?></div>
 		<?php
 		echo $after_widget;
 	}
@@ -426,9 +426,9 @@ class WP_Widget_Categories extends WP_Widget {
 		extract( $args );
 
 		$title = apply_filters('widget_title', empty( $instance['title'] ) ? __( 'Categories' ) : $instance['title'], $instance, $this->id_base);
-		$c = $instance['count'] ? '1' : '0';
-		$h = $instance['hierarchical'] ? '1' : '0';
-		$d = $instance['dropdown'] ? '1' : '0';
+		$c = ! empty( $instance['count'] ) ? '1' : '0';
+		$h = ! empty( $instance['hierarchical'] ) ? '1' : '0';
+		$d = ! empty( $instance['dropdown'] ) ? '1' : '0';
 
 		echo $before_widget;
 		if ( $title )
@@ -525,8 +525,11 @@ class WP_Widget_Recent_Posts extends WP_Widget {
 		if ( !is_array($cache) )
 			$cache = array();
 
-		if ( isset($cache[$args['widget_id']]) ) {
-			echo $cache[$args['widget_id']];
+		if ( ! isset( $args['widget_id'] ) )
+			$args['widget_id'] = $this->id;
+
+		if ( isset( $cache[ $args['widget_id'] ] ) ) {
+			echo $cache[ $args['widget_id'] ];
 			return;
 		}
 
@@ -534,7 +537,7 @@ class WP_Widget_Recent_Posts extends WP_Widget {
 		extract($args);
 
 		$title = apply_filters('widget_title', empty($instance['title']) ? __('Recent Posts') : $instance['title'], $instance, $this->id_base);
-		if ( ! $number = absint( $instance['number'] ) )
+		if ( empty( $instance['number'] ) || ! $number = absint( $instance['number'] ) )
  			$number = 10;
 
 		$r = new WP_Query(array('posts_per_page' => $number, 'no_found_rows' => true, 'post_status' => 'publish', 'ignore_sticky_posts' => true));
@@ -628,16 +631,19 @@ class WP_Widget_Recent_Comments extends WP_Widget {
 		if ( ! is_array( $cache ) )
 			$cache = array();
 
-		if ( isset( $cache[$args['widget_id']] ) ) {
-			echo $cache[$args['widget_id']];
+		if ( ! isset( $args['widget_id'] ) )
+			$args['widget_id'] = $this->id;
+
+		if ( isset( $cache[ $args['widget_id'] ] ) ) {
+			echo $cache[ $args['widget_id'] ];
 			return;
 		}
 
  		extract($args, EXTR_SKIP);
  		$output = '';
- 		$title = apply_filters('widget_title', empty($instance['title']) ? __('Recent Comments') : $instance['title']);
+		$title = apply_filters( 'widget_title', empty( $instance['title'] ) ? __( 'Recent Comments' ) : $instance['title'], $instance, $this->id_base );
 
-		if ( ! $number = absint( $instance['number'] ) )
+		if ( empty( $instance['number'] ) || ! $number = absint( $instance['number'] ) )
  			$number = 5;
 
 		$comments = get_comments( array( 'number' => $number, 'status' => 'approve', 'post_status' => 'publish' ) );
@@ -705,7 +711,7 @@ class WP_Widget_RSS extends WP_Widget {
 
 		extract($args, EXTR_SKIP);
 
-		$url = $instance['url'];
+		$url = ! empty( $instance['url'] ) ? $instance['url'] : '';
 		while ( stristr($url, 'http') != $url )
 			$url = substr($url, 1);
 
@@ -751,7 +757,7 @@ class WP_Widget_RSS extends WP_Widget {
 	}
 
 	function update($new_instance, $old_instance) {
-		$testurl = ( isset($new_instance['url']) && ($new_instance['url'] != $old_instance['url']) );
+		$testurl = ( isset( $new_instance['url'] ) && ( !isset( $old_instance['url'] ) || ( $new_instance['url'] != $old_instance['url'] ) ) );
 		return wp_widget_rss_process( $new_instance, $testurl );
 	}
 
@@ -1059,12 +1065,12 @@ class WP_Widget_Tag_Cloud extends WP_Widget {
 
 	function widget($args, $instance) {
 		// Get menu
-		$nav_menu = wp_get_nav_menu_object( $instance['nav_menu'] );
+		$nav_menu = ! empty( $instance['nav_menu'] ) ? wp_get_nav_menu_object( $instance['nav_menu'] ) : false;
 
 		if ( !$nav_menu )
 			return;
 
-		$instance['title'] = apply_filters('widget_title', $instance['title'], $instance, $this->id_base);
+		$instance['title'] = apply_filters( 'widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base );
 
 		echo $args['before_widget'];
 

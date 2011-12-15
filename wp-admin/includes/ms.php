@@ -53,15 +53,16 @@ add_filter( 'wp_handle_upload_prefilter', 'check_upload_size' );
  * @return void
  */
 function wpmu_delete_blog( $blog_id, $drop = false ) {
-	global $wpdb;
+	global $wpdb, $current_site;
 
 	$switch = false;
 	if ( $blog_id != $wpdb->blogid ) {
 		$switch = true;
 		switch_to_blog( $blog_id );
+		$blog = get_blog_details( $blog_id );
+	} else {
+		$blog = $GLOBALS['current_blog'];
 	}
-
-	$blog_prefix = $wpdb->get_blog_prefix( $blog_id );
 
 	do_action( 'delete_blog', $blog_id, $drop );
 
@@ -70,23 +71,24 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 	// Remove users from this blog.
 	if ( ! empty( $users ) ) {
 		foreach ( $users as $user_id ) {
-			remove_user_from_blog( $user_id, $blog_id) ;
+			remove_user_from_blog( $user_id, $blog_id );
 		}
 	}
 
 	update_blog_status( $blog_id, 'deleted', 1 );
 
+	// Don't destroy the initial, main, or root blog.
+	if ( $drop && ( 1 == $blog_id || is_main_site( $blog_id ) || ( $blog->path == $current_site->path && $blog->domain == $current_site->domain ) ) )
+		$drop = false;
+
 	if ( $drop ) {
-		if ( substr( $blog_prefix, -1 ) == '_' )
-			$blog_prefix =  substr( $blog_prefix, 0, -1 ) . '\_';
 
-		$drop_tables = $wpdb->get_results( "SHOW TABLES LIKE '{$blog_prefix}%'", ARRAY_A );
-		$drop_tables = apply_filters( 'wpmu_drop_tables', $drop_tables );
+		$drop_tables = apply_filters( 'wpmu_drop_tables', $wpdb->tables( 'blog' ) );
 
-		reset( $drop_tables );
-		foreach ( (array) $drop_tables as $drop_table) {
-			$wpdb->query( "DROP TABLE IF EXISTS ". current( $drop_table ) ."" );
+		foreach ( (array) $drop_tables as $table ) {
+			$wpdb->query( "DROP TABLE IF EXISTS `$table`" );
 		}
+
 		$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->blogs WHERE blog_id = %d", $blog_id ) );
 		$dir = apply_filters( 'wpmu_delete_blog_upload_dir', WP_CONTENT_DIR . "/blogs.dir/{$blog_id}/files/", $blog_id );
 		$dir = rtrim( $dir, DIRECTORY_SEPARATOR );
@@ -120,17 +122,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 		}
 	}
 
-	$wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key = '{$blog_prefix}autosave_draft_ids'" );
-	$blogs = get_site_option( 'blog_list' );
-	if ( is_array( $blogs ) ) {
-		foreach ( $blogs as $n => $blog ) {
-			if ( $blog['blog_id'] == $blog_id )
-				unset( $blogs[$n] );
-		}
-		update_site_option( 'blog_list', $blogs );
-	}
-
-	if ( $switch === true )
+	if ( $switch )
 		restore_current_blog();
 }
 
@@ -250,7 +242,7 @@ function send_confirmation_on_profile_email() {
 	if ( ! is_object($errors) )
 		$errors = new WP_Error();
 
-	if ( $current_user->id != $_POST['user_id'] )
+	if ( $current_user->ID != $_POST['user_id'] )
 		return false;
 
 	if ( $current_user->user_email != $_POST['email'] ) {
@@ -393,7 +385,7 @@ function get_upload_space_available() {
  */
 function get_space_allowed() {
 	$space_allowed = get_option( 'blog_upload_space' );
-	if ( $space_allowed == false )
+	if ( $space_allowed === false )
 		$space_allowed = get_site_option( 'blog_upload_space' );
 	if ( empty( $space_allowed ) || !is_numeric( $space_allowed ) )
 		$space_allowed = 50;
@@ -775,4 +767,23 @@ var tb_closeImage = "../../wp-includes/js/thickbox/tb-close.png";
 <?php
 }
 
+/**
+ * Whether or not we have a large network.
+ *
+ * The default criteria for a large network is either more than 10,000 users or more than 10,000 sites.
+ * Plugins can alter this criteria  using the 'wp_is_large_network' filter.
+ *
+ * @since 3.3.0
+ * @param string $using 'sites or 'users'.  Default is 'sites'.
+ * @return bool True if the network meets the criteria for large. False otherwise.
+ */
+function wp_is_large_network( $using = 'sites' ) {
+	if ( 'users' == $using ) {
+		$count = get_user_count();
+		return apply_filters( 'wp_is_large_network', $count > 10000, 'users', $count );
+	}
+
+	$count = get_blog_count();
+	return apply_filters( 'wp_is_large_network', $count > 10000, 'sites', $count );
+}
 ?>

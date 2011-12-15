@@ -191,16 +191,11 @@ function edit_post( $post_data = null ) {
 	}
 
 	// Post Formats
-	if ( current_theme_supports( 'post-formats' ) && isset( $post_data['post_format'] ) ) {
-		$formats = get_theme_support( 'post-formats' );
-		if ( is_array( $formats ) ) {
-			$formats = $formats[0];
-			if ( in_array( $post_data['post_format'], $formats ) ) {
-				set_post_format( $post_ID, $post_data['post_format'] );
-			} elseif ( '0' == $post_data['post_format'] ) {
-				set_post_format( $post_ID, false );
-			}
-		}
+	if ( isset( $post_data['post_format'] ) ) {
+		if ( current_theme_supports( 'post-formats', $post_data['post_format'] ) )
+			set_post_format( $post_ID, $post_data['post_format'] );
+		elseif ( '0' == $post_data['post_format'] )
+			set_post_format( $post_ID, false );
 	}
 
 	// Meta Stuff
@@ -210,7 +205,7 @@ function edit_post( $post_data = null ) {
 				continue;
 			if ( $meta->post_id != $post_ID )
 				continue;
-			if ( is_protected_meta( $value['key'] ) )
+			if ( is_protected_meta( $value['key'], 'post' ) || ! current_user_can( 'edit_post_meta', $post_ID, $value['key'] ) )
 				continue;
 			update_meta( $key, $value['key'], $value['value'] );
 		}
@@ -222,7 +217,7 @@ function edit_post( $post_data = null ) {
 				continue;
 			if ( $meta->post_id != $post_ID )
 				continue;
-			if ( is_protected_meta( $meta->meta_key ) )
+			if ( is_protected_meta( $meta->meta_key, 'post' ) || ! current_user_can( 'delete_post_meta', $post_ID, $meta->meta_key ) )
 				continue;
 			delete_meta( $key );
 		}
@@ -234,16 +229,10 @@ function edit_post( $post_data = null ) {
 
 	wp_update_post( $post_data );
 
-	// Reunite any orphaned attachments with their parent
-	if ( !$draft_ids = get_user_option( 'autosave_draft_ids' ) )
-		$draft_ids = array();
-	if ( $draft_temp_id = (int) array_search( $post_ID, $draft_ids ) )
-		_relocate_children( $draft_temp_id, $post_ID );
-
 	// Now that we have an ID we can fix any attachment anchor hrefs
 	_fix_attachment_links( $post_ID );
 
-	wp_set_post_lock( $post_ID, $GLOBALS['current_user']->ID );
+	wp_set_post_lock( $post_ID );
 
 	if ( current_user_can( $ptype->cap->edit_others_posts ) ) {
 		if ( ! empty( $post_data['sticky'] ) )
@@ -312,9 +301,9 @@ function bulk_edit_posts( $post_data = null ) {
 		foreach ( $post_data['tax_input'] as $tax_name => $terms ) {
 			if ( empty($terms) )
 				continue;
-			if ( is_taxonomy_hierarchical( $tax_name ) )
+			if ( is_taxonomy_hierarchical( $tax_name ) ) {
 				$tax_input[$tax_name] = array_map( 'absint', $terms );
-			else {
+			} else {
 				$tax_input[$tax_name] = preg_replace( '/\s*,\s*/', ',', rtrim( trim($terms), ' ,' ) );
 				$tax_input[$tax_name] = explode(',', $tax_input[$tax_name]);
 			}
@@ -335,6 +324,14 @@ function bulk_edit_posts( $post_data = null ) {
 				}
 			}
 		}
+	}
+
+	if ( isset( $post_data['post_format'] ) ) {
+		if ( '0' == $post_data['post_format'] )
+			$post_data['post_format'] = false;
+		// don't change the post format if it's not supported or not '0' (standard)
+		elseif ( ! current_theme_supports( 'post-formats', $post_data['post_format'] ) )
+			unset( $post_data['post_format'] );
 	}
 
 	$updated = $skipped = $locked = array();
@@ -387,6 +384,8 @@ function bulk_edit_posts( $post_data = null ) {
 				unstick_post( $post_ID );
 		}
 
+		if ( isset( $post_data['post_format'] ) )
+			set_post_format( $post_ID, $post_data['post_format'] );
 	}
 
 	return array( 'updated' => $updated, 'skipped' => $skipped, 'locked' => $locked );
@@ -425,6 +424,7 @@ function get_default_post_to_edit( $post_type = 'post', $create_in_db = false ) 
 		if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post->post_type, 'post-formats' ) && get_option( 'default_post_format' ) )
 			set_post_format( $post, get_option( 'default_post_format' ) );
 	} else {
+		$post = new stdClass;
 		$post->ID = 0;
 		$post->post_author = '';
 		$post->post_date = '';
@@ -533,7 +533,6 @@ function post_exists($title, $content = '', $date = '') {
 function wp_write_post() {
 	global $user_ID;
 
-
 	if ( isset($_POST['post_type']) )
 		$ptype = get_post_type_object($_POST['post_type']);
 	else
@@ -551,33 +550,9 @@ function wp_write_post() {
 	// Clear out any data in internal vars.
 	unset( $_POST['filter'] );
 
-	// Check for autosave collisions
-	// Does this need to be updated? ~ Mark
-	$temp_id = false;
-	if ( isset($_POST['temp_ID']) ) {
-		$temp_id = (int) $_POST['temp_ID'];
-		if ( !$draft_ids = get_user_option( 'autosave_draft_ids' ) )
-			$draft_ids = array();
-		foreach ( $draft_ids as $temp => $real )
-			if ( time() + $temp > 86400 ) // 1 day: $temp is equal to -1 * time( then )
-				unset($draft_ids[$temp]);
-
-		if ( isset($draft_ids[$temp_id]) ) { // Edit, don't write
-			$_POST['post_ID'] = $draft_ids[$temp_id];
-			unset($_POST['temp_ID']);
-			update_user_option( $user_ID, 'autosave_draft_ids', $draft_ids );
-			return edit_post();
-		}
-	}
-
 	// Edit don't write if we have a post id.
-	if ( isset( $_POST['ID'] ) ) {
-		$_POST['post_ID'] = $_POST['ID'];
-		unset ( $_POST['ID'] );
-	}
-	if ( isset( $_POST['post_ID'] ) ) {
+	if ( isset( $_POST['post_ID'] ) )
 		return edit_post();
-	}
 
 	$translated = _wp_translate_postdata( false );
 	if ( is_wp_error($translated) )
@@ -611,25 +586,10 @@ function wp_write_post() {
 
 	add_post_meta( $post_ID, '_edit_last', $GLOBALS['current_user']->ID );
 
-	// Reunite any orphaned attachments with their parent
-	// Does this need to be udpated? ~ Mark
-	if ( !$draft_ids = get_user_option( 'autosave_draft_ids' ) )
-		$draft_ids = array();
-	if ( $draft_temp_id = (int) array_search( $post_ID, $draft_ids ) )
-		_relocate_children( $draft_temp_id, $post_ID );
-	if ( $temp_id && $temp_id != $draft_temp_id )
-		_relocate_children( $temp_id, $post_ID );
-
-	// Update autosave collision detection
-	if ( $temp_id ) {
-		$draft_ids[$temp_id] = $post_ID;
-		update_user_option( $user_ID, 'autosave_draft_ids', $draft_ids );
-	}
-
 	// Now that we have an ID we can fix any attachment anchor hrefs
 	_fix_attachment_links( $post_ID );
 
-	wp_set_post_lock( $post_ID, $GLOBALS['current_user']->ID );
+	wp_set_post_lock( $post_ID );
 
 	return $post_ID;
 }
@@ -638,7 +598,10 @@ function wp_write_post() {
  * Calls wp_write_post() and handles the errors.
  *
  * @since 2.0.0
- *
+
+ * @uses wp_write_post()
+ * @uses is_wp_error()
+ * @uses wp_die()
  * @return unknown
  */
 function write_post() {
@@ -667,30 +630,28 @@ function add_meta( $post_ID ) {
 
 	$metakeyselect = isset($_POST['metakeyselect']) ? stripslashes( trim( $_POST['metakeyselect'] ) ) : '';
 	$metakeyinput = isset($_POST['metakeyinput']) ? stripslashes( trim( $_POST['metakeyinput'] ) ) : '';
-	$metavalue = isset($_POST['metavalue']) ? maybe_serialize( stripslashes_deep( $_POST['metavalue'] ) ) : '';
-	if ( is_string($metavalue) )
+	$metavalue = isset($_POST['metavalue']) ? $_POST['metavalue'] : '';
+	if ( is_string( $metavalue ) )
 		$metavalue = trim( $metavalue );
 
-	if ( ('0' === $metavalue || !empty ( $metavalue ) ) && ((('#NONE#' != $metakeyselect) && !empty ( $metakeyselect) ) || !empty ( $metakeyinput) ) ) {
+	if ( ('0' === $metavalue || ! empty ( $metavalue ) ) && ( ( ( '#NONE#' != $metakeyselect ) && !empty ( $metakeyselect) ) || !empty ( $metakeyinput ) ) ) {
 		// We have a key/value pair. If both the select and the
 		// input for the key have data, the input takes precedence:
 
- 		if ('#NONE#' != $metakeyselect)
+ 		if ( '#NONE#' != $metakeyselect )
 			$metakey = $metakeyselect;
 
-		if ( $metakeyinput)
+		if ( $metakeyinput )
 			$metakey = $metakeyinput; // default
 
-		if ( is_protected_meta( $metakey ) )
+		if ( is_protected_meta( $metakey, 'post' ) || ! current_user_can( 'add_post_meta', $post_ID, $metakey ) )
 			return false;
 
-		wp_cache_delete($post_ID, 'post_meta');
-		$wpdb->insert( $wpdb->postmeta, array( 'post_id' => $post_ID, 'meta_key' => $metakey, 'meta_value' => $metavalue ) );
-		$meta_id = $wpdb->insert_id;
-		do_action( 'added_postmeta', $meta_id, $post_ID, $metakey, $metavalue );
+		$metakey = esc_sql( $metakey );
 
-		return $meta_id;
+		return add_post_meta( $post_ID, $metakey, $metavalue );
 	}
+
 	return false;
 } // add_meta
 
@@ -703,17 +664,7 @@ function add_meta( $post_ID ) {
  * @return unknown
  */
 function delete_meta( $mid ) {
-	global $wpdb;
-	$mid = (int) $mid;
-
-	$post_id = $wpdb->get_var( $wpdb->prepare("SELECT post_id FROM $wpdb->postmeta WHERE meta_id = %d", $mid) );
-
-	do_action( 'delete_postmeta', $mid );
-	wp_cache_delete($post_id, 'post_meta');
-	$rval = $wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->postmeta WHERE meta_id = %d", $mid) );
-	do_action( 'deleted_postmeta', $mid );
-
-	return $rval;
+	return delete_metadata_by_mid( 'post' , $mid );
 }
 
 /**
@@ -744,15 +695,7 @@ function get_meta_keys() {
  * @return unknown
  */
 function get_post_meta_by_id( $mid ) {
-	global $wpdb;
-	$mid = (int) $mid;
-
-	$meta = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_id = %d", $mid) );
-	if ( empty($meta) )
-		return false;
-	if ( is_serialized_string( $meta->meta_value ) )
-		$meta->meta_value = maybe_unserialize( $meta->meta_value );
-	return $meta;
+	return get_metadata_by_mid( 'post', $mid );
 }
 
 /**
@@ -771,7 +714,6 @@ function has_meta( $postid ) {
 	return $wpdb->get_results( $wpdb->prepare("SELECT meta_key, meta_value, meta_id, post_id
 			FROM $wpdb->postmeta WHERE post_id = %d
 			ORDER BY meta_key,meta_id", $postid), ARRAY_A );
-
 }
 
 /**
@@ -785,30 +727,10 @@ function has_meta( $postid ) {
  * @return unknown
  */
 function update_meta( $meta_id, $meta_key, $meta_value ) {
-	global $wpdb;
+	$meta_key = stripslashes( $meta_key );
+	$meta_value = stripslashes_deep( $meta_value );
 
-	$meta_key = stripslashes($meta_key);
-
-	if ( is_protected_meta( $meta_key ) )
-		return false;
-
-	if ( '' === trim( $meta_value ) )
-		return false;
-
-	$post_id = $wpdb->get_var( $wpdb->prepare("SELECT post_id FROM $wpdb->postmeta WHERE meta_id = %d", $meta_id) );
-
-	$meta_value = maybe_serialize( stripslashes_deep( $meta_value ) );
-	$meta_id = (int) $meta_id;
-
-	$data  = compact( 'meta_key', 'meta_value' );
-	$where = compact( 'meta_id' );
-
-	do_action( 'update_postmeta', $meta_id, $post_id, $meta_key, $meta_value );
-	$rval = $wpdb->update( $wpdb->postmeta, $data, $where );
-	wp_cache_delete($post_id, 'post_meta');
-	do_action( 'updated_postmeta', $meta_id, $post_id, $meta_key, $meta_value );
-
-	return $rval;
+	return update_metadata_by_mid( 'post', $meta_id, $meta_value, $meta_key );
 }
 
 //
@@ -1275,7 +1197,8 @@ function wp_check_post_lock( $post_id ) {
  * @since 2.5.0
  *
  * @param int $post_id ID of the post to being edited
- * @return bool Returns false if the post doesn't exist of there is no current user
+ * @return bool|array Returns false if the post doesn't exist of there is no current user, or
+ * 	an array of the lock time and the user ID.
  */
 function wp_set_post_lock( $post_id ) {
 	if ( !$post = get_post( $post_id ) )
@@ -1287,6 +1210,7 @@ function wp_set_post_lock( $post_id ) {
 	$lock = "$now:$user_id";
 
 	update_post_meta( $post->ID, '_edit_lock', $lock );
+	return array( $now, $user_id );
 }
 
 /**
@@ -1356,11 +1280,14 @@ function wp_create_post_autosave( $post_id ) {
  * @package WordPress
  * @since 2.7.0
  *
- * @uses wp_write_post()
+ * @uses get_post_status()
  * @uses edit_post()
  * @uses get_post()
  * @uses current_user_can()
+ * @uses wp_die()
  * @uses wp_create_post_autosave()
+ * @uses add_query_arg()
+ * @uses wp_create_nonce()
  *
  * @return str URL to redirect to show the preview
  */
@@ -1411,454 +1338,3 @@ function post_preview() {
 
 	return $url;
 }
-
-/**
- * Adds the TinyMCE editor used on the Write and Edit screens.
- *
- * @package WordPress
- * @since 2.7.0
- *
- * TinyMCE is loaded separately from other Javascript by using wp-tinymce.php. It outputs concatenated
- * and optionaly pre-compressed version of the core and all default plugins. Additional plugins are loaded
- * directly by TinyMCE using non-blocking method. Custom plugins can be refreshed by adding a query string
- * to the URL when queueing them with the mce_external_plugins filter.
- *
- * @param bool $teeny optional Output a trimmed down version used in Press This.
- * @param mixed $settings optional An array that can add to or overwrite the default TinyMCE settings.
- */
-function wp_tiny_mce( $teeny = false, $settings = false ) {
-	global $concatenate_scripts, $compress_scripts, $tinymce_version, $editor_styles;
-
-	if ( ! user_can_richedit() )
-		return;
-
-	$baseurl = includes_url('js/tinymce');
-
-	$mce_locale = ( '' == get_locale() ) ? 'en' : strtolower( substr(get_locale(), 0, 2) ); // only ISO 639-1
-
-	/*
-	The following filter allows localization scripts to change the languages displayed in the spellchecker's drop-down menu.
-	By default it uses Google's spellchecker API, but can be configured to use PSpell/ASpell if installed on the server.
-	The + sign marks the default language. More information:
-	http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/spellchecker
-	*/
-	$mce_spellchecker_languages = apply_filters('mce_spellchecker_languages', '+English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv');
-
-	if ( $teeny ) {
-		$plugins = apply_filters( 'teeny_mce_plugins', array('inlinepopups', 'fullscreen', 'wordpress', 'wplink', 'wpdialogs') );
-		$ext_plugins = '';
-	} else {
-		$plugins = array( 'inlinepopups', 'spellchecker', 'tabfocus', 'paste', 'media', 'wordpress', 'wpfullscreen', 'wpeditimage', 'wpgallery', 'wplink', 'wpdialogs' );
-
-		/*
-		The following filter takes an associative array of external plugins for TinyMCE in the form 'plugin_name' => 'url'.
-		It adds the plugin's name to TinyMCE's plugins init and the call to PluginManager to load the plugin.
-		The url should be absolute and should include the js file name to be loaded. Example:
-		array( 'myplugin' => 'http://my-site.com/wp-content/plugins/myfolder/mce_plugin.js' )
-		If the plugin uses a button, it should be added with one of the "$mce_buttons" filters.
-		*/
-		$mce_external_plugins = apply_filters('mce_external_plugins', array());
-
-		$ext_plugins = '';
-		if ( ! empty($mce_external_plugins) ) {
-
-			/*
-			The following filter loads external language files for TinyMCE plugins.
-			It takes an associative array 'plugin_name' => 'path', where path is the
-			include path to the file. The language file should follow the same format as
-			/tinymce/langs/wp-langs.php and should define a variable $strings that
-			holds all translated strings.
-			When this filter is not used, the function will try to load {mce_locale}.js.
-			If that is not found, en.js will be tried next.
-			*/
-			$mce_external_languages = apply_filters('mce_external_languages', array());
-
-			$loaded_langs = array();
-			$strings = '';
-
-			if ( ! empty($mce_external_languages) ) {
-				foreach ( $mce_external_languages as $name => $path ) {
-					if ( @is_file($path) && @is_readable($path) ) {
-						include_once($path);
-						$ext_plugins .= $strings . "\n";
-						$loaded_langs[] = $name;
-					}
-				}
-			}
-
-			foreach ( $mce_external_plugins as $name => $url ) {
-
-				if ( is_ssl() ) $url = str_replace('http://', 'https://', $url);
-
-				$plugins[] = '-' . $name;
-
-				$plugurl = dirname($url);
-				$strings = $str1 = $str2 = '';
-				if ( ! in_array($name, $loaded_langs) ) {
-					$path = str_replace( WP_PLUGIN_URL, '', $plugurl );
-					$path = WP_PLUGIN_DIR . $path . '/langs/';
-
-					if ( function_exists('realpath') )
-						$path = trailingslashit( realpath($path) );
-
-					if ( @is_file($path . $mce_locale . '.js') )
-						$strings .= @file_get_contents($path . $mce_locale . '.js') . "\n";
-
-					if ( @is_file($path . $mce_locale . '_dlg.js') )
-						$strings .= @file_get_contents($path . $mce_locale . '_dlg.js') . "\n";
-
-					if ( 'en' != $mce_locale && empty($strings) ) {
-						if ( @is_file($path . 'en.js') ) {
-							$str1 = @file_get_contents($path . 'en.js');
-							$strings .= preg_replace( '/([\'"])en\./', '$1' . $mce_locale . '.', $str1, 1 ) . "\n";
-						}
-
-						if ( @is_file($path . 'en_dlg.js') ) {
-							$str2 = @file_get_contents($path . 'en_dlg.js');
-							$strings .= preg_replace( '/([\'"])en\./', '$1' . $mce_locale . '.', $str2, 1 ) . "\n";
-						}
-					}
-
-					if ( ! empty($strings) )
-						$ext_plugins .= "\n" . $strings . "\n";
-				}
-
-				$ext_plugins .= 'tinyMCEPreInit.load_ext("' . $plugurl . '", "' . $mce_locale . '");' . "\n";
-				$ext_plugins .= 'tinymce.PluginManager.load("' . $name . '", "' . $url . '");' . "\n";
-			}
-		}
-	}
-
-	if ( $teeny ) {
-		$mce_buttons = apply_filters( 'teeny_mce_buttons', array('bold, italic, underline, blockquote, separator, strikethrough, bullist, numlist,justifyleft, justifycenter, justifyright, undo, redo, link, unlink, fullscreen') );
-		$mce_buttons = implode($mce_buttons, ',');
-		$mce_buttons_2 = $mce_buttons_3 = $mce_buttons_4 = '';
-	} else {
-		$mce_buttons = apply_filters('mce_buttons', array('bold', 'italic', 'strikethrough', '|', 'bullist', 'numlist', 'blockquote', '|', 'justifyleft', 'justifycenter', 'justifyright', '|', 'link', 'unlink', 'wp_more', '|', 'spellchecker', 'fullscreen', 'wp_adv' ));
-		$mce_buttons = implode($mce_buttons, ',');
-
-		$mce_buttons_2 = array( 'formatselect', 'underline', 'justifyfull', 'forecolor', '|', 'pastetext', 'pasteword', 'removeformat', '|', 'charmap', '|', 'outdent', 'indent', '|', 'undo', 'redo', 'wp_help' );
-		$mce_buttons_2 = apply_filters('mce_buttons_2', $mce_buttons_2);
-		$mce_buttons_2 = implode($mce_buttons_2, ',');
-
-		$mce_buttons_3 = apply_filters('mce_buttons_3', array());
-		$mce_buttons_3 = implode($mce_buttons_3, ',');
-
-		$mce_buttons_4 = apply_filters('mce_buttons_4', array());
-		$mce_buttons_4 = implode($mce_buttons_4, ',');
-	}
-	$no_captions = (bool) apply_filters( 'disable_captions', '' );
-
-	// TinyMCE init settings
-	$initArray = array (
-		'mode' => 'specific_textareas',
-		'editor_selector' => 'theEditor',
-		'width' => '100%',
-		'theme' => 'advanced',
-		'skin' => 'wp_theme',
-		'theme_advanced_buttons1' => $mce_buttons,
-		'theme_advanced_buttons2' => $mce_buttons_2,
-		'theme_advanced_buttons3' => $mce_buttons_3,
-		'theme_advanced_buttons4' => $mce_buttons_4,
-		'language' => $mce_locale,
-		'spellchecker_languages' => $mce_spellchecker_languages,
-		'theme_advanced_toolbar_location' => 'top',
-		'theme_advanced_toolbar_align' => 'left',
-		'theme_advanced_statusbar_location' => 'bottom',
-		'theme_advanced_resizing' => true,
-		'theme_advanced_resize_horizontal' => false,
-		'dialog_type' => 'modal',
-		'formats' => "{
-			alignleft : [
-				{selector : 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles : {textAlign : 'left'}},
-				{selector : 'img,table', classes : 'alignleft'}
-			],
-			aligncenter : [
-				{selector : 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles : {textAlign : 'center'}},
-				{selector : 'img,table', classes : 'aligncenter'}
-			],
-			alignright : [
-				{selector : 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles : {textAlign : 'right'}},
-				{selector : 'img,table', classes : 'alignright'}
-			],
-			strikethrough : {inline : 'del'}
-		}",
-		'relative_urls' => false,
-		'remove_script_host' => false,
-		'convert_urls' => false,
-		'apply_source_formatting' => false,
-		'remove_linebreaks' => true,
-		'gecko_spellcheck' => true,
-		'keep_styles' => false,
-		'entities' => '38,amp,60,lt,62,gt',
-		'accessibility_focus' => true,
-		'tabfocus_elements' => 'major-publishing-actions',
-		'media_strict' => false,
-		'paste_remove_styles' => true,
-		'paste_remove_spans' => true,
-		'paste_strip_class_attributes' => 'all',
-		'paste_text_use_dialog' => true,
-		'extended_valid_elements' => 'article[*],aside[*],audio[*],canvas[*],command[*],datalist[*],details[*],embed[*],figcaption[*],figure[*],footer[*],header[*],hgroup[*],keygen[*],mark[*],meter[*],nav[*],output[*],progress[*],section[*],source[*],summary,time[*],video[*],wbr',
-		'wpeditimage_disable_captions' => $no_captions,
-		'wp_fullscreen_content_css' => "$baseurl/plugins/wpfullscreen/css/wp-fullscreen.css",
-		'plugins' => implode( ',', $plugins ),
-	);
-
-	if ( ! empty( $editor_styles ) && is_array( $editor_styles ) ) {
-		$mce_css = array();
-		$style_uri = get_stylesheet_directory_uri();
-		if ( ! is_child_theme() ) {
-			foreach ( $editor_styles as $file )
-				$mce_css[] = "$style_uri/$file";
-		} else {
-			$style_dir    = get_stylesheet_directory();
-			$template_uri = get_template_directory_uri();
-			$template_dir = get_template_directory();
-			foreach ( $editor_styles as $file ) {
-				if ( file_exists( "$template_dir/$file" ) )
-					$mce_css[] = "$template_uri/$file";
-				if ( file_exists( "$style_dir/$file" ) )
-					$mce_css[] = "$style_uri/$file";
-			}
-		}
-		$mce_css = implode( ',', $mce_css );
-	} else {
-		$mce_css = '';
-	}
-
-	$mce_css = trim( apply_filters( 'mce_css', $mce_css ), ' ,' );
-
-	if ( ! empty($mce_css) )
-		$initArray['content_css'] = $mce_css;
-
-	if ( is_array($settings) )
-		$initArray = array_merge($initArray, $settings);
-
-	// For people who really REALLY know what they're doing with TinyMCE
-	// You can modify initArray to add, remove, change elements of the config before tinyMCE.init
-	// Setting "valid_elements", "invalid_elements" and "extended_valid_elements" can be done through "tiny_mce_before_init".
-	// Best is to use the default cleanup by not specifying valid_elements, as TinyMCE contains full set of XHTML 1.0.
-	if ( $teeny ) {
-		$initArray = apply_filters('teeny_mce_before_init', $initArray);
-	} else {
-		$initArray = apply_filters('tiny_mce_before_init', $initArray);
-	}
-
-	if ( empty($initArray['theme_advanced_buttons3']) && !empty($initArray['theme_advanced_buttons4']) ) {
-		$initArray['theme_advanced_buttons3'] = $initArray['theme_advanced_buttons4'];
-		$initArray['theme_advanced_buttons4'] = '';
-	}
-
-	if ( ! isset($concatenate_scripts) )
-		script_concat_settings();
-
-	$language = $initArray['language'];
-
-	$compressed = $compress_scripts && $concatenate_scripts && isset($_SERVER['HTTP_ACCEPT_ENCODING'])
-		&& false !== stripos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip');
-
-	/**
-	 * Deprecated
-	 *
-	 * The tiny_mce_version filter is not needed since external plugins are loaded directly by TinyMCE.
-	 * These plugins can be refreshed by appending query string to the URL passed to mce_external_plugins filter.
-	 * If the plugin has a popup dialog, a query string can be added to the button action that opens it (in the plugin's code).
-	 */
-	$version = apply_filters('tiny_mce_version', '');
-	$version = 'ver=' . $tinymce_version . $version;
-
-	if ( 'en' != $language )
-		include_once(ABSPATH . WPINC . '/js/tinymce/langs/wp-langs.php');
-
-	$mce_options = '';
-	foreach ( $initArray as $k => $v ) {
-		if ( is_bool($v) ) {
-			$val = $v ? 'true' : 'false';
-			$mce_options .= $k . ':' . $val . ', ';
-			continue;
-		} elseif ( !empty($v) && is_string($v) && ( ('{' == $v{0} && '}' == $v{strlen($v) - 1}) || ('[' == $v{0} && ']' == $v{strlen($v) - 1}) || preg_match('/^\(?function ?\(/', $v) ) ) {
-			$mce_options .= $k . ':' . $v . ', ';
-			continue;
-		}
-
-		$mce_options .= $k . ':"' . $v . '", ';
-	}
-
-	$mce_options = rtrim( trim($mce_options), '\n\r,' );
-
-	do_action('before_wp_tiny_mce', $initArray); ?>
-
-<script type="text/javascript">
-/* <![CDATA[ */
-tinyMCEPreInit = {
-	base : "<?php echo $baseurl; ?>",
-	suffix : "",
-	query : "<?php echo $version; ?>",
-	mceInit : {<?php echo $mce_options; ?>},
-	load_ext : function(url,lang){var sl=tinymce.ScriptLoader;sl.markDone(url+'/langs/'+lang+'.js');sl.markDone(url+'/langs/'+lang+'_dlg.js');}
-};
-/* ]]> */
-</script>
-
-<?php
-	if ( $compressed )
-		echo "<script type='text/javascript' src='$baseurl/wp-tinymce.php?c=1&amp;$version'></script>\n";
-	else
-		echo "<script type='text/javascript' src='$baseurl/tiny_mce.js?$version'></script>\n";
-
-	if ( 'en' != $language && isset($lang) )
-		echo "<script type='text/javascript'>\n$lang\n</script>\n";
-	else
-		echo "<script type='text/javascript' src='$baseurl/langs/wp-langs-en.js?$version'></script>\n";
-?>
-
-<script type="text/javascript">
-/* <![CDATA[ */
-<?php
-	if ( $ext_plugins )
-		echo "$ext_plugins\n";
-
-	if ( ! $compressed ) {
-?>
-(function(){var t=tinyMCEPreInit,sl=tinymce.ScriptLoader,ln=t.mceInit.language,th=t.mceInit.theme,pl=t.mceInit.plugins;sl.markDone(t.base+'/langs/'+ln+'.js');sl.markDone(t.base+'/themes/'+th+'/langs/'+ln+'.js');sl.markDone(t.base+'/themes/'+th+'/langs/'+ln+'_dlg.js');tinymce.each(pl.split(','),function(n){if(n&&n.charAt(0)!='-'){sl.markDone(t.base+'/plugins/'+n+'/langs/'+ln+'.js');sl.markDone(t.base+'/plugins/'+n+'/langs/'+ln+'_dlg.js');}});})();
-<?php } ?>
-tinyMCE.init(tinyMCEPreInit.mceInit);
-/* ]]> */
-</script>
-<?php
-
-do_action('after_wp_tiny_mce', $initArray);
-}
-
-// Load additional inline scripts based on active plugins.
-function wp_preload_dialogs($init) {
-	$plugins = preg_split('/[ ,-]+/', $init['plugins']);
-
-	if ( in_array( 'wpdialogs', $plugins, true ) ) {
-		wp_print_scripts('wpdialogs-popup');
-		wp_print_styles('wp-jquery-ui-dialog');
-	}
-
-	if ( in_array( 'wplink', $plugins, true ) ) {
-		require_once ABSPATH . 'wp-admin/includes/internal-linking.php';
-		?><div style="display:none;"><?php wp_link_dialog(); ?></div><?php
-		wp_print_scripts('wplink');
-		wp_print_styles('wplink');
-	}
-
-	// Distraction Free Writing mode
-	if ( in_array( 'wpfullscreen', $plugins, true ) ) {
-		wp_fullscreen_html();
-		wp_print_scripts('wp-fullscreen');
-	}
-
-	wp_print_scripts('word-count');
-}
-
-function wp_quicktags() {
-	global $tinymce_version;
-
-	wp_preload_dialogs( array( 'plugins' => 'wpdialogs,wplink,wpfullscreen' ) );
-
-	if ( !user_can_richedit() ) {
-		wp_enqueue_style( 'tinymce-buttons', includes_url('js/tinymce/themes/advanced/skins/wp_theme/ui.css'), array(), $tinymce_version );
-		wp_print_styles('tinymce-buttons');
-	}
-}
-
-function wp_print_editor_js() {
-	wp_print_scripts('editor');
-}
-
-function wp_fullscreen_html() {
-	global $content_width, $post;
-
-	$width = isset($content_width) && 800 > $content_width ? $content_width : 800;
-	$width = $width + 10; // compensate for the padding
-	$dfw_width = get_user_setting( 'dfw_width', $width );
-	$save = isset($post->post_status) && $post->post_status == 'publish' ? __('Update') : __('Save');
-?>
-<div id="wp-fullscreen-body">
-<div id="fullscreen-topbar">
-	<div id="wp-fullscreen-toolbar">
-		<div id="wp-fullscreen-close"><a href="#" onclick="fullscreen.off();return false;"><?php _e('Exit fullscreen'); ?></a></div>
-		<div id="wp-fullscreen-central-toolbar" style="width:<?php echo $width; ?>px;">
-
-		<div id="wp-fullscreen-mode-bar"><div id="wp-fullscreen-modes">
-			<a href="#" onclick="fullscreen.switchmode('tinymce');return false;"><?php _e('Visual'); ?></a>
-			<a href="#" onclick="fullscreen.switchmode('html');return false;"><?php _e('HTML'); ?></a>
-		</div></div>
-
-		<div id="wp-fullscreen-button-bar"><div id="wp-fullscreen-buttons" class="wp_themeSkin">
-<?php
-
-	$media_link_type = 'image';
-	if ( is_multisite() && ( ( ! $mu_media_buttons = get_site_option( 'mu_media_buttons' ) ) || empty( $mu_media_buttons['image'] ) ) )
-		$media_link_type = 'media';
-
-	$buttons = array(
-		// format: title, onclick, show in both editors
-		'bold' => array( 'title' => __('Bold (Ctrl + B)'), 'onclick' => 'fullscreen.b();', 'both' => false ),
-		'italic' => array( 'title' => __('Italic (Ctrl + I)'), 'onclick' => 'fullscreen.i();', 'both' => false ),
-		'0' => 'separator',
-		'bullist' => array( 'title' => __('Unordered list (Alt + Shift + U)'), 'onclick' => 'fullscreen.ul();', 'both' => false ),
-		'numlist' => array( 'title' => __('Ordered list (Alt + Shift + O)'), 'onclick' => 'fullscreen.ol();', 'both' => false ),
-		'1' => 'separator',
-		'blockquote' => array( 'title' => __('Blockquote (Alt+Shift+Q)'), 'onclick' => 'fullscreen.blockquote();', 'both' => false ),
-		'image' => array( 'title' => __('Insert/edit image (Alt + Shift + M)'), 'onclick' => "jQuery('#add_{$media_link_type}').click();", 'both' => true ),
-		'2' => 'separator',
-		'link' => array( 'title' => __('Insert/edit link (Alt + Shift + A)'), 'onclick' => 'fullscreen.link();', 'both' => true ),
-		'unlink' => array( 'title' => __('Unlink (Alt + Shift + S)'), 'onclick' => 'fullscreen.unlink();', 'both' => false ),
-		'3' => 'separator',
-		'help' => array( 'title' => __('Help (Alt + Shift + H)'), 'onclick' => 'fullscreen.help();', 'both' => false )
-	);
-
-	$buttons = apply_filters( 'wp_fullscreen_buttons', $buttons );
-
-	foreach ( $buttons as $button => $args ) {
-		if ( 'separator' == $args ) { ?>
-			<div><span aria-orientation="vertical" role="separator" class="mceSeparator"></span></div>
-<?php		continue;
-		} ?>
-
-		<div<?php if ( $args['both'] ) { ?> class="wp-fullscreen-both"<?php } ?>>
-		<a title="<?php echo $args['title']; ?>" onclick="<?php echo $args['onclick']; ?>return false;" class="mceButton mceButtonEnabled mce_<?php echo $button; ?>" href="#" id="wp_fs_<?php echo $button; ?>" role="button" aria-pressed="false">
-		<span class="mceIcon mce_<?php echo $button; ?>"></span>
-		</a>
-		</div>
-<?php
-	} ?>
-
-		</div></div>
-
-		<div id="wp-fullscreen-save">
-			<span><?php if ( $post->post_status == 'publish' ) _e('Updated.'); else _e('Saved.'); ?></span>
-			<img src="images/wpspin_light.gif" alt="" />
-			<input type="button" class="button-primary" value="<?php echo $save; ?>" onclick="fullscreen.save();" />
-		</div>
-
-		</div>
-	</div>
-</div>
-
-<div id="wp-fullscreen-wrap" style="width:<?php echo $dfw_width; ?>px;">
-	<label id="wp-fullscreen-title-prompt-text" for="wp-fullscreen-title"><?php echo apply_filters( 'enter_title_here', __( 'Enter title here' ), $post ); ?></label>
-	<input type="text" id="wp-fullscreen-title" value="" autocomplete="off" />
-
-	<div id="wp-fullscreen-container">
-		<textarea id="wp_mce_fullscreen"></textarea>
-	</div>
-
-	<div id="wp-fullscreen-status">
-		<div id="wp-fullscreen-count"><?php printf( __( 'Word count: %s' ), '<span class="word-count">0</span>' ); ?></div>
-		<div id="wp-fullscreen-tagline"><?php _e('Just write.'); ?></div>
-	</div>
-</div>
-</div>
-
-<div class="fullscreen-overlay" id="fullscreen-overlay"></div>
-<div class="fullscreen-overlay fullscreen-fader fade-600" id="fullscreen-fader"></div>
-<?php
-}
-
-

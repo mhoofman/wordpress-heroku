@@ -80,13 +80,22 @@ class Custom_Background {
 	 * @since 3.0.0
 	 */
 	function admin_load() {
-		add_contextual_help( $this->page, '<p>' . __( 'You can customize the look of your site without touching any of your theme&#8217;s code by using a custom background. Your background can be an image or a color.' ) . '</p>' .
-		'<p>' . __( 'To use a background image, simply upload it, then choose your display options below. You can display a single instance of your image, or tile it to fill the screen. You can have your background fixed in place, so your site content moves on top of it, or you can have it scroll with your site.' ) . '</p>' .
-		'<p>' . __( 'You can also choose a background color. If you know the hexadecimal code for the color you want, enter it in the Color field. If not, click on the Select a Color link, and a color picker will allow you to choose the exact shade you want.' ) . '</p>' .
-		'<p>' . __( 'Don&#8217;t forget to click on the Save Changes button when you are finished.' ) . '</p>' .
-		'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
-		'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Background_Screen" target="_blank">Documentation on Custom Background</a>' ) . '</p>' .
-		'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>' );
+		get_current_screen()->add_help_tab( array(
+			'id'      => 'overview',
+			'title'   => __('Overview'),
+			'content' =>
+				'<p>' . __( 'You can customize the look of your site without touching any of your theme&#8217;s code by using a custom background. Your background can be an image or a color.' ) . '</p>' .
+				'<p>' . __( 'To use a background image, simply upload it, then choose your display options below. You can display a single instance of your image, or tile it to fill the screen. You can have your background fixed in place, so your site content moves on top of it, or you can have it scroll with your site.' ) . '</p>' .
+				'<p>' . __( 'You can also choose a background color. If you know the hexadecimal code for the color you want, enter it in the Background Color field. If not, click on the Select a Color link, and a color picker will allow you to choose the exact shade you want.' ) . '</p>' .
+				'<p>' . __( 'Don&#8217;t forget to click on the Save Changes button when you are finished.' ) . '</p>'
+		) );
+
+		get_current_screen()->set_help_sidebar(
+			'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
+			'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Background_Screen" target="_blank">Documentation on Custom Background</a>' ) . '</p>' .
+			'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
+		);
+
 		wp_enqueue_script('custom-background');
 		wp_enqueue_style('farbtastic');
 	}
@@ -291,11 +300,11 @@ if ( get_background_image() ) {
 </tr>
 <?php endif; // get_background_image() ?>
 <tr valign="top">
-<th scope="row"><?php _e( 'Color' ); ?></th>
+<th scope="row"><?php _e( 'Background Color' ); ?></th>
 <td><fieldset><legend class="screen-reader-text"><span><?php _e( 'Background Color' ); ?></span></legend>
 <?php $show_clear = get_background_color() ? '' : ' style="display:none"'; ?>
 <input type="text" name="background-color" id="background-color" value="#<?php echo esc_attr(get_background_color()) ?>" />
-<a class="hide-if-no-js" href="#" id="pickcolor"><?php _e('Select a Color'); ?></a> <span <?php echo $show_clear; ?>class="hide-if-no-js" id="clearcolor"> (<a href="#"><?php _e( 'Clear' ); ?></a>)</span>
+<a class="hide-if-no-js" href="#" id="pickcolor"><?php _e('Select a Color'); ?></a> <span<?php echo $show_clear; ?> class="hide-if-no-js" id="clearcolor"> (<a href="#"><?php _e( 'Clear' ); ?></a>)</span>
 <div id="colorPickerDiv" style="z-index: 100; background:#eee; border:1px solid #ccc; position:absolute; display:none;"></div>
 </fieldset></td>
 </tr>

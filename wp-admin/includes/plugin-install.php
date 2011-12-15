@@ -12,7 +12,7 @@
  * It is possible for a plugin to override the Plugin API result with three
  * filters. Assume this is for plugins, which can extend on the Plugin Info to
  * offer more choices. This is very powerful and must be used with care, when
- * overridding the filters.
+ * overriding the filters.
  *
  * The first filter, 'plugins_api_args', is for the args and gives the action as
  * the second parameter. The hook for 'plugins_api_args' must ensure that an
@@ -35,7 +35,7 @@ function plugins_api($action, $args = null) {
 		$args->per_page = 24;
 
 	// Allows a plugin to override the WordPress.org API entirely.
-	// Use the filter 'plugins_api_result' to mearly add results.
+	// Use the filter 'plugins_api_result' to merely add results.
 	// Please ensure that a object is returned from the following filters.
 	$args = apply_filters('plugins_api_args', $args, $action);
 	$res = apply_filters('plugins_api', false, $action, $args);
@@ -81,7 +81,7 @@ function install_popular_tags( $args = array() ) {
 
 function install_dashboard() {
 	?>
-	<p><?php _e('Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="http://wordpress.org/extend/plugins/">WordPress Plugin Directory</a> or upload a plugin in .zip format via this page.') ?></p>
+	<p><?php printf( __( 'Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="http://wordpress.org/extend/plugins/">WordPress Plugin Directory</a> or upload a plugin in .zip format via <a href="%s">this page</a>.' ), self_admin_url( 'plugin-install.php?tab=upload' ) ); ?></p>
 
 	<h4><?php _e('Search') ?></h4>
 	<p class="install-help"><?php _e('Search for plugins by keyword, author, or tag.') ?></p>
@@ -97,7 +97,7 @@ function install_dashboard() {
 	if ( is_wp_error($api_tags) ) {
 		echo $api_tags->get_error_message();
 	} else {
-		//Set up the tags in a way which can be interprated by wp_generate_tag_cloud()
+		//Set up the tags in a way which can be interpreted by wp_generate_tag_cloud()
 		$tags = array();
 		foreach ( (array)$api_tags as $tag )
 			$tags[ $tag['name'] ] = (object) array(
@@ -105,7 +105,7 @@ function install_dashboard() {
 									'name' => $tag['name'],
 									'id' => sanitize_title_with_dashes($tag['name']),
 									'count' => $tag['count'] );
-		echo wp_generate_tag_cloud($tags, array( 'single_text' => __('%d plugin'), 'multiple_text' => __('%d plugins') ) );
+		echo wp_generate_tag_cloud($tags, array( 'single_text' => __('%s plugin'), 'multiple_text' => __('%s plugins') ) );
 	}
 	echo '</p><br class="clear" />';
 }
@@ -175,7 +175,7 @@ add_action('install_plugins_updated', 'display_plugins_table');
  * @since 3.0.0
  */
 function install_plugin_install_status($api, $loop = false) {
-	// this function is called recursivly, $loop prevents futhur loops.
+	// this function is called recursively, $loop prevents further loops.
 	if ( is_array($api) )
 		$api = (object) $api;
 
@@ -254,8 +254,10 @@ function install_plugin_information() {
 	//Sanitize HTML
 	foreach ( (array)$api->sections as $section_name => $content )
 		$api->sections[$section_name] = wp_kses($content, $plugins_allowedtags);
-	foreach ( array('version', 'author', 'requires', 'tested', 'homepage', 'downloaded', 'slug') as $key )
-		$api->$key = wp_kses($api->$key, $plugins_allowedtags);
+	foreach ( array( 'version', 'author', 'requires', 'tested', 'homepage', 'downloaded', 'slug' ) as $key ) {
+		if ( isset( $api->$key ) )
+			$api->$key = wp_kses( $api->$key, $plugins_allowedtags );
+	}
 
 	$section = isset($_REQUEST['section']) ? stripslashes( $_REQUEST['section'] ) : 'description'; //Default to the Description tab, Do not translate, API returns English.
 	if ( empty($section) || ! isset($api->sections[ $section ]) )
@@ -327,11 +329,11 @@ function install_plugin_information() {
 		<h2><?php _e('Average Rating') ?></h2>
 		<div class="star-holder" title="<?php printf(_n('(based on %s rating)', '(based on %s ratings)', $api->num_ratings), number_format_i18n($api->num_ratings)); ?>">
 			<div class="star star-rating" style="width: <?php echo esc_attr($api->rating) ?>px"></div>
-			<div class="star star5"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('5 stars') ?>" /></div>
-			<div class="star star4"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('4 stars') ?>" /></div>
-			<div class="star star3"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('3 stars') ?>" /></div>
-			<div class="star star2"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('2 stars') ?>" /></div>
-			<div class="star star1"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('1 star') ?>" /></div>
+			<div class="star star5"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('5 stars') ?>" /></div>
+			<div class="star star4"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('4 stars') ?>" /></div>
+			<div class="star star3"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('3 stars') ?>" /></div>
+			<div class="star star2"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('2 stars') ?>" /></div>
+			<div class="star star1"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('1 star') ?>" /></div>
 		</div>
 		<small><?php printf(_n('(based on %s rating)', '(based on %s ratings)', $api->num_ratings), number_format_i18n($api->num_ratings)); ?></small>
 		<?php endif; ?>

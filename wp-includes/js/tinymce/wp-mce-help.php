@@ -9,17 +9,19 @@
 require_once('../../../wp-load.php');
 header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 <head>
 <meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php echo get_option('blog_charset'); ?>" />
 <title><?php _e('Rich Editor Help') ?></title>
 <script type="text/javascript" src="tiny_mce_popup.js?ver=342"></script>
 <?php
-wp_admin_css( 'global', true );
 wp_admin_css( 'wp-admin', true );
 ?>
 <style type="text/css">
+	body {
+		min-width: 0;
+	}
 	#wphead {
 		font-size: 80%;
 		border-top: 0;
@@ -36,6 +38,7 @@ wp_admin_css( 'wp-admin', true );
 		padding: 15px 15px 3px;
 		background-color: #f1f1f1;
 		border-bottom: 1px solid #dfdfdf;
+		margin: 0;
 	}
 	#tabs li {
 		display: inline;
@@ -140,7 +143,7 @@ wp_admin_css( 'wp-admin', true );
 	.macwebkit tr.mac {
 		display: table-row;
 	}
-	
+
 </style>
 <?php if ( is_rtl() ) : ?>
 <style type="text/css">
@@ -178,7 +181,7 @@ wp_admin_css( 'wp-admin', true );
 
 		document.getElementById('version').innerHTML = tinymce.majorVersion + "." + tinymce.minorVersion;
         document.getElementById('date').innerHTML = tinymce.releaseDate;
- 
+
 		if ( win.fullscreen && win.fullscreen.settings.visible ) {
 			d('content1').className = 'hidden';
 			d('tabs').className = 'hidden';
@@ -187,7 +190,7 @@ wp_admin_css( 'wp-admin', true );
 
 		if ( tinymce.isMac )
 			document.body.className = 'macos';
-		
+
 		if ( tinymce.isMac && tinymce.isWebKit )
 			document.body.className = 'macos macwebkit';
 
@@ -197,10 +200,10 @@ wp_admin_css( 'wp-admin', true );
 <body>
 
 <ul id="tabs">
-	<li><a id="tab1" href="javascript:flipTab(1)" title="<?php _e('Basics of Rich Editing') ?>" accesskey="1" tabindex="1" class="current"><?php _e('Basics') ?></a></li>
-	<li><a id="tab2" href="javascript:flipTab(2)" title="<?php _e('Advanced use of the Rich Editor') ?>" accesskey="2" tabindex="2"><?php _e('Advanced') ?></a></li>
-	<li><a id="tab3" href="javascript:flipTab(3)" title="<?php _e('Hotkeys') ?>" accesskey="3" tabindex="3"><?php _e('Hotkeys') ?></a></li>
-	<li><a id="tab4" href="javascript:flipTab(4)" title="<?php _e('About the software') ?>" accesskey="4" tabindex="4"><?php _e('About') ?></a></li>
+	<li><a id="tab1" href="javascript:flipTab(1)" title="<?php esc_attr_e('Basics of Rich Editing') ?>" accesskey="1" tabindex="1" class="current"><?php _e('Basics') ?></a></li>
+	<li><a id="tab2" href="javascript:flipTab(2)" title="<?php esc_attr_e('Advanced use of the Rich Editor') ?>" accesskey="2" tabindex="2"><?php _e('Advanced') ?></a></li>
+	<li><a id="tab3" href="javascript:flipTab(3)" title="<?php esc_attr_e('Hotkeys') ?>" accesskey="3" tabindex="3"><?php _e('Hotkeys') ?></a></li>
+	<li><a id="tab4" href="javascript:flipTab(4)" title="<?php esc_attr_e('About the software') ?>" accesskey="4" tabindex="4"><?php _e('About') ?></a></li>
 </ul>
 
 <div id="flipper" class="wrap">
@@ -273,7 +276,7 @@ wp_admin_css( 'wp-admin', true );
 	<p><?php _e('For more information about this software visit the <a href="http://tinymce.moxiecode.com" target="_blank">TinyMCE website</a>.') ?></p>
 
 	<div id="buttoncontainer">
-		<a href="http://www.moxiecode.com" target="_blank"><img src="themes/advanced/img/gotmoxie.png" alt="<?php _e('Got Moxie?') ?>" style="border: 0" /></a>
+		<a href="http://www.moxiecode.com" target="_blank"><img src="themes/advanced/img/gotmoxie.png" alt="<?php esc_attr_e('Got Moxie?') ?>" style="border: 0" /></a>
 	</div>
 
 </div>
@@ -281,7 +284,7 @@ wp_admin_css( 'wp-admin', true );
 
 <div class="mceActionPanel">
 	<div style="margin: 8px auto; text-align: center;padding-bottom: 10px;">
-		<input type="button" id="cancel" name="cancel" value="<?php _e('Close'); ?>" title="<?php _e('Close'); ?>" onclick="tinyMCEPopup.close();" />
+		<input type="button" id="cancel" name="cancel" value="<?php esc_attr_e('Close'); ?>" title="<?php esc_attr_e('Close'); ?>" onclick="tinyMCEPopup.close();" />
 	</div>
 </div>
 

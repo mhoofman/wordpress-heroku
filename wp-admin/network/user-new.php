@@ -17,9 +17,15 @@ if ( ! current_user_can('create_users') )
 	wp_die(__('You do not have sufficient permissions to add users to this network.'));
 
 
-add_contextual_help($current_screen,
-	'<p>' . __('Add User will set up a new user account on the network and send that person an email with username and password.') . '</p>' .
-	'<p>' . __('Users who are signed up to the network without a site are added as subscribers to the main or primary dashboard site, giving them profile pages to manage their accounts. These users will only see Dashboard and My Sites in the main navigation until a site is created for them.') . '</p>' .
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' =>
+		'<p>' . __('Add User will set up a new user account on the network and send that person an email with username and password.') . '</p>' .
+		'<p>' . __('Users who are signed up to the network without a site are added as subscribers to the main or primary dashboard site, giving them profile pages to manage their accounts. These users will only see Dashboard and My Sites in the main navigation until a site is created for them.') . '</p>'
+) );
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Users_Screen" target="_blank">Documentation on Network Users</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/forum/multisite/" target="_blank">Support Forums</a>') . '</p>'
@@ -35,7 +41,7 @@ if ( isset($_REQUEST['action']) && 'add-user' == $_REQUEST['action'] ) {
 
 	$user = $_POST['user'];
 
-	$user_details = wpmu_validate_user_signup( $user['username'], $user['email'] ); 
+	$user_details = wpmu_validate_user_signup( $user['username'], $user['email'] );
 	if ( is_wp_error( $user_details[ 'errors' ] ) && ! empty( $user_details[ 'errors' ]->errors ) ) {
 		$add_user_errors = $user_details[ 'errors' ];
 	} else {
@@ -80,7 +86,7 @@ if ( isset( $add_user_errors ) && is_wp_error( $add_user_errors ) ) { ?>
 		?>
 	</div>
 <?php } ?>
-	<form action="<?php echo network_admin_url('user-new.php?action=add-user'); ?>" id="adduser" method="post">	
+	<form action="<?php echo network_admin_url('user-new.php?action=add-user'); ?>" id="adduser" method="post">
 	<table class="form-table">
 		<tr class="form-field form-required">
 			<th scope="row"><?php _e( 'Username' ) ?></th>

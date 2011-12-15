@@ -223,10 +223,9 @@ add_action( 'update_option_siteurl', 'update_home_siteurl', 10, 2 );
 function url_shorten( $url ) {
 	$short_url = str_replace( 'http://', '', stripslashes( $url ));
 	$short_url = str_replace( 'www.', '', $short_url );
-	if ('/' == substr( $short_url, -1 ))
-		$short_url = substr( $short_url, 0, -1 );
+	$short_url = untrailingslashit( $short_url );
 	if ( strlen( $short_url ) > 35 )
-		$short_url = substr( $short_url, 0, 32 ).'...';
+		$short_url = substr( $short_url, 0, 32 ) . '...';
 	return $short_url;
 }
 
@@ -368,7 +367,7 @@ function set_screen_options() {
 		}
 
 		update_user_meta($user->ID, $option, $value);
-		wp_redirect( remove_query_arg( array('pagenum', 'apage', 'paged'), wp_get_referer() ) );
+		wp_safe_redirect( remove_query_arg( array('pagenum', 'apage', 'paged'), wp_get_referer() ) );
 		exit;
 	}
 }
@@ -585,4 +584,12 @@ foreach ( $_wp_admin_css_colors as $color => $color_info ): ?>
 </fieldset>
 <?php
 }
-?>
+
+function _ipad_meta() {
+	if ( strpos($_SERVER['HTTP_USER_AGENT'], 'iPad') !== false ) { ?>
+		<meta name="viewport" id="ipad-viewportmeta" content="width=device-width, initial-scale=1">
+	<?php
+	}
+}
+add_action('admin_head', '_ipad_meta');
+

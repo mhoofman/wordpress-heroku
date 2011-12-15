@@ -9,7 +9,7 @@
 // Sanity check.
 if ( false ) {
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -53,14 +53,14 @@ $step = isset( $_GET['step'] ) ? $_GET['step'] : 0;
 function display_header() {
 	header( 'Content-Type: text/html; charset=utf-8' );
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title><?php _e( 'WordPress &rsaquo; Installation' ); ?></title>
 	<?php wp_admin_css( 'install', true ); ?>
 </head>
-<body>
+<body<?php if ( is_rtl() ) echo ' class="rtl"'; ?>>
 <h1 id="logo"><img alt="WordPress" src="images/wordpress-logo.png" /></h1>
 
 <?php
@@ -130,6 +130,7 @@ function display_setup_form( $error = null ) {
 			<p><?php _e( 'Double-check your email address before continuing.' ); ?></p></td>
 		</tr>
 		<tr>
+			<th scope="row"><label for="blog_public"><?php _e( 'Privacy' ); ?></label></th>
 			<td colspan="2"><label><input type="checkbox" name="blog_public" value="1" <?php checked( $blog_public ); ?> /> <?php _e( 'Allow my site to appear in search engines like Google and Technorati.' ); ?></label></td>
 		</tr>
 	</table>
@@ -220,10 +221,10 @@ switch($step) {
 
 <p><?php _e( 'WordPress has been installed. Were you expecting more steps? Sorry to disappoint.' ); ?></p>
 
-<table class="form-table">
+<table class="form-table install-success">
 	<tr>
 		<th><?php _e( 'Username' ); ?></th>
-		<td><code><?php echo esc_html( sanitize_user( $user_name, true ) ); ?></code></td>
+		<td><?php echo esc_html( sanitize_user( $user_name, true ) ); ?></td>
 	</tr>
 	<tr>
 		<th><?php _e( 'Password' ); ?></th>
@@ -243,22 +244,6 @@ switch($step) {
 }
 ?>
 <script type="text/javascript">var t = document.getElementById('weblog_title'); if (t){ t.focus(); }</script>
-<script type="text/javascript" src="../wp-includes/js/jquery/jquery.js"></script>
-<script type="text/javascript" src="js/password-strength-meter.js"></script>
-<script type="text/javascript" src="js/user-profile.js"></script>
-<script type="text/javascript" src="../wp-includes/js/l10n.js"></script>
-<script type='text/javascript'>
-/* <![CDATA[ */
-var pwsL10n = {
- empty: "<?php echo esc_js( __( 'Strength indicator' ) ); ?>",
- short: "<?php echo esc_js( __( 'Very weak' ) ); ?>",
- bad: "<?php echo esc_js( __( 'Weak' ) ); ?>",
- good: "<?php echo esc_js( _x( 'Medium', 'password strength' ) ); ?>",
- strong: "<?php echo esc_js( __( 'Strong' ) ); ?>",
- mismatch: "<?php echo esc_js( __( 'Mismatch' ) ); ?>"
-};
-try{convertEntities(pwsL10n);}catch(e){};
-/* ]]> */
-</script>
+<?php wp_print_scripts( 'user-profile' ); ?>
 </body>
 </html>

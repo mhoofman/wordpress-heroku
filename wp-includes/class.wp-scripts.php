@@ -47,35 +47,26 @@ class WP_Scripts extends WP_Dependencies {
 		return $this->do_items( $handles, $group );
 	}
 
+	// Deprecated since 3.3, see print_extra_script()
 	function print_scripts_l10n( $handle, $echo = true ) {
-		if ( empty($this->registered[$handle]->extra['l10n']) || empty($this->registered[$handle]->extra['l10n'][0]) || !is_array($this->registered[$handle]->extra['l10n'][1]) )
-			return false;
+		_deprecated_function( __FUNCTION__, '3.3', 'print_extra_script()' );
+		return $this->print_extra_script( $handle, $echo );
+	}
 
-		$object_name = $this->registered[$handle]->extra['l10n'][0];
+	function print_extra_script( $handle, $echo = true ) {
+		if ( !$output = $this->get_data( $handle, 'data' ) )
+			return;
 
-		$data = "var $object_name = {\n";
-		$eol = '';
-		foreach ( $this->registered[$handle]->extra['l10n'][1] as $var => $val ) {
-			if ( 'l10n_print_after' == $var ) {
-				$after = $val;
-				continue;
-			}
-			$data .= "$eol\t$var: \"" . esc_js( $val ) . '"';
-			$eol = ",\n";
-		}
-		$data .= "\n};\n";
-		$data .= isset($after) ? "$after\n" : '';
+		if ( !$echo )
+			return $output;
 
-		if ( $echo ) {
-			echo "<script type='text/javascript'>\n";
-			echo "/* <![CDATA[ */\n";
-			echo $data;
-			echo "/* ]]> */\n";
-			echo "</script>\n";
-			return true;
-		} else {
-			return $data;
-		}
+		echo "<script type='text/javascript'>\n"; // CDATA and type='text/javascript' is not needed for HTML 5
+		echo "/* <![CDATA[ */\n";
+		echo "$output\n";
+		echo "/* ]]> */\n";
+		echo "</script>\n";
+
+		return true;
 	}
 
 	function do_item( $handle, $group = false ) {
@@ -103,7 +94,7 @@ class WP_Scripts extends WP_Dependencies {
 		if ( $this->do_concat ) {
 			$srce = apply_filters( 'script_loader_src', $src, $handle );
 			if ( $this->in_default_dir($srce) ) {
-				$this->print_code .= $this->print_scripts_l10n( $handle, false );
+				$this->print_code .= $this->print_extra_script( $handle, false );
 				$this->concat .= "$handle,";
 				$this->concat_version .= "$handle$ver";
 				return true;
@@ -113,14 +104,15 @@ class WP_Scripts extends WP_Dependencies {
 			}
 		}
 
-		$this->print_scripts_l10n( $handle );
+		$this->print_extra_script( $handle );
 		if ( !preg_match('|^https?://|', $src) && ! ( $this->content_url && 0 === strpos($src, $this->content_url) ) ) {
 			$src = $this->base_url . $src;
 		}
 
 		if ( !empty($ver) )
 			$src = add_query_arg('ver', $ver, $src);
-		$src = esc_url(apply_filters( 'script_loader_src', $src, $handle ));
+
+		$src = esc_url( apply_filters( 'script_loader_src', $src, $handle ) );
 
 		if ( $this->do_concat )
 			$this->print_html .= "<script type='text/javascript' src='$src'></script>\n";
@@ -133,21 +125,41 @@ class WP_Scripts extends WP_Dependencies {
 	/**
 	 * Localizes a script
 	 *
-	 * Localizes only if script has already been added
-	 *
-	 * @param string $handle Script name
-	 * @param string $object_name Name of JS object to hold l10n info
-	 * @param array $l10n Array of JS var name => localized string
-	 * @return bool Successful localization
+	 * Localizes only if the script has already been added
 	 */
 	function localize( $handle, $object_name, $l10n ) {
-		if ( !$object_name || !$l10n )
-			return false;
-		return $this->add_data( $handle, 'l10n', array( $object_name, $l10n ) );
+		if ( is_array($l10n) && isset($l10n['l10n_print_after']) ) { // back compat, preserve the code in 'l10n_print_after' if present
+			$after = $l10n['l10n_print_after'];
+			unset($l10n['l10n_print_after']);
+		}
+
+		foreach ( (array) $l10n as $key => $value ) {
+			if ( !is_scalar($value) )
+				continue;
+
+			$l10n[$key] = html_entity_decode( (string) $value, ENT_QUOTES, 'UTF-8');
+		}
+
+		$script = "var $object_name = " . json_encode($l10n) . ';';
+
+		if ( !empty($after) )
+			$script .= "\n$after";
+
+		$data = $this->get_data( $handle, 'data' );
+
+		if ( !empty( $data ) )
+			$script = "$data;\n$script";
+
+		return $this->add_data( $handle, 'data', $script );
 	}
 
 	function set_group( $handle, $recursion, $group = false ) {
-		$grp = isset($this->registered[$handle]->extra['group']) ? (int) $this->registered[$handle]->extra['group'] : 0;
+
+		if ( $this->registered[$handle]->args === 1 )
+			$grp = 1;
+		else
+			$grp = (int) $this->get_data( $handle, 'group' );
+
 		if ( false !== $group && $grp > $group )
 			$grp = $group;
 
@@ -167,15 +179,7 @@ class WP_Scripts extends WP_Dependencies {
 	}
 
 	function do_footer_items() {
-		if ( !empty($this->in_footer) ) {
-			foreach( $this->in_footer as $key => $handle ) {
-				if ( !in_array($handle, $this->done, true) && isset($this->registered[$handle]) ) {
-					$this->do_item($handle);
-					$this->done[] = $handle;
-					unset( $this->in_footer[$key] );
-				}
-			}
-		}
+		$this->do_items(false, 1);
 		return $this->done;
 	}
 

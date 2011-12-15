@@ -84,13 +84,11 @@ class WP_Media_List_Table extends WP_List_Table {
 	}
 
 	function extra_tablenav( $which ) {
-		global $post_type;
-		$post_type_obj = get_post_type_object( $post_type );
 ?>
 		<div class="alignleft actions">
 <?php
 		if ( 'top' == $which && !is_singular() && !$this->detached && !$this->is_trash ) {
-			$this->months_dropdown( $post_type );
+			$this->months_dropdown( 'attachment' );
 
 			do_action( 'restrict_manage_posts' );
 			submit_button( __( 'Filter' ), 'secondary', false, false, array( 'id' => 'post-query-submit' ) );
@@ -137,7 +135,8 @@ class WP_Media_List_Table extends WP_List_Table {
 		/* translators: column name */
 		if ( !$this->detached ) {
 			$posts_columns['parent'] = _x( 'Attached to', 'column name' );
-			$posts_columns['comments'] = '<span class="vers"><img alt="Comments" src="' . esc_url( admin_url( 'images/comment-grey-bubble.png' ) ) . '" /></span>';
+			if ( post_type_supports( 'attachment', 'comments' ) )
+				$posts_columns['comments'] = '<span class="vers"><img alt="' . esc_attr__( 'Comments' ) . '" src="' . esc_url( admin_url( 'images/comment-grey-bubble.png' ) ) . '" /></span>';
 		}
 		/* translators: column name */
 		$posts_columns['date'] = _x( 'Date', 'column name' );
@@ -163,6 +162,7 @@ class WP_Media_List_Table extends WP_List_Table {
 		$alt = '';
 
 		while ( have_posts() ) : the_post();
+			$user_can_edit = current_user_can( 'edit_post', $post->ID );
 
 			if ( $this->is_trash && $post->post_status != 'trash'
 			||  !$this->is_trash && $post->post_status == 'trash' )
@@ -189,7 +189,11 @@ foreach ( $columns as $column_name => $column_display_name ) {
 
 	case 'cb':
 ?>
-		<th scope="row" class="check-column"><?php if ( current_user_can( 'edit_post', $post->ID ) ) { ?><input type="checkbox" name="media[]" value="<?php the_ID(); ?>" /><?php } ?></th>
+		<th scope="row" class="check-column">
+			<?php if ( $user_can_edit ) { ?>
+				<input type="checkbox" name="media[]" value="<?php the_ID(); ?>" />
+			<?php } ?>
+		</th>
 <?php
 		break;
 
@@ -198,7 +202,7 @@ foreach ( $columns as $column_name => $column_display_name ) {
 ?>
 		<td <?php echo $attributes ?>><?php
 			if ( $thumb = wp_get_attachment_image( $post->ID, array( 80, 60 ), true ) ) {
-				if ( $this->is_trash ) {
+				if ( $this->is_trash || ! $user_can_edit ) {
 					echo $thumb;
 				} else {
 ?>
@@ -215,7 +219,15 @@ foreach ( $columns as $column_name => $column_display_name ) {
 
 	case 'title':
 ?>
-		<td <?php echo $attributes ?>><strong><?php if ( $this->is_trash ) echo $att_title; else { ?><a href="<?php echo get_edit_post_link( $post->ID, true ); ?>" title="<?php echo esc_attr( sprintf( __( 'Edit &#8220;%s&#8221;' ), $att_title ) ); ?>"><?php echo $att_title; ?></a><?php }; _media_states( $post ); ?></strong>
+		<td <?php echo $attributes ?>><strong>
+			<?php if ( $this->is_trash || ! $user_can_edit ) {
+				echo $att_title;
+			} else { ?>
+			<a href="<?php echo get_edit_post_link( $post->ID, true ); ?>"
+				title="<?php echo esc_attr( sprintf( __( 'Edit &#8220;%s&#8221;' ), $att_title ) ); ?>">
+				<?php echo $att_title; ?></a>
+			<?php };
+			_media_states( $post ); ?></strong>
 			<p>
 <?php
 			if ( preg_match( '/^.*?\.(\w+)$/', get_attached_file( $post->ID ), $matches ) )
@@ -287,15 +299,25 @@ foreach ( $columns as $column_name => $column_display_name ) {
 				$title =_draft_or_post_title( $post->post_parent );
 			}
 ?>
-			<td <?php echo $attributes ?>>
-				<strong><a href="<?php echo get_edit_post_link( $post->post_parent ); ?>"><?php echo $title ?></a></strong>,
+			<td <?php echo $attributes ?>><strong>
+				<?php if( current_user_can( 'edit_post', $post->post_parent ) ) { ?>
+					<a href="<?php echo get_edit_post_link( $post->post_parent ); ?>">
+						<?php echo $title ?></a>
+				<?php } else {
+					echo $title;
+				} ?></strong>,
 				<?php echo get_the_time( __( 'Y/m/d' ) ); ?>
 			</td>
 <?php
 		} else {
 ?>
 			<td <?php echo $attributes ?>><?php _e( '(Unattached)' ); ?><br />
-			<a class="hide-if-no-js" onclick="findPosts.open( 'media[]','<?php echo $post->ID ?>' );return false;" href="#the-list"><?php _e( 'Attach' ); ?></a></td>
+			<?php if( $user_can_edit ) {?>
+				<a class="hide-if-no-js"
+					onclick="findPosts.open( 'media[]','<?php echo $post->ID ?>' ); return false;"
+					href="#the-list">
+					<?php _e( 'Attach' ); ?></a>
+			<?php } ?></td>
 <?php
 		}
 		break;

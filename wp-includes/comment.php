@@ -1664,21 +1664,15 @@ function do_all_pings() {
 	global $wpdb;
 
 	// Do pingbacks
-	while ($ping = $wpdb->get_row("SELECT * FROM {$wpdb->posts}, {$wpdb->postmeta} WHERE {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id AND {$wpdb->postmeta}.meta_key = '_pingme' LIMIT 1")) {
-		$mid = $wpdb->get_var( "SELECT meta_id FROM {$wpdb->postmeta} WHERE post_id = {$ping->ID} AND meta_key = '_pingme' LIMIT 1");
-		do_action( 'delete_postmeta', $mid );
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_id = %d", $mid ) );
-		do_action( 'deleted_postmeta', $mid );
-		pingback($ping->post_content, $ping->ID);
+	while ($ping = $wpdb->get_row("SELECT ID, post_content, meta_id FROM {$wpdb->posts}, {$wpdb->postmeta} WHERE {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id AND {$wpdb->postmeta}.meta_key = '_pingme' LIMIT 1")) {
+		delete_metadata_by_mid( 'post', $ping->meta_id );
+		pingback( $ping->post_content, $ping->ID );
 	}
 
 	// Do Enclosures
-	while ($enclosure = $wpdb->get_row("SELECT * FROM {$wpdb->posts}, {$wpdb->postmeta} WHERE {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id AND {$wpdb->postmeta}.meta_key = '_encloseme' LIMIT 1")) {
-		$mid = $wpdb->get_var( $wpdb->prepare("SELECT meta_id FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_encloseme'", $enclosure->ID) );
-		do_action( 'delete_postmeta', $mid );
-		$wpdb->query( $wpdb->prepare("DELETE FROM {$wpdb->postmeta} WHERE meta_id =  %d", $mid) );
-		do_action( 'deleted_postmeta', $mid );
-		do_enclose($enclosure->post_content, $enclosure->ID);
+	while ($enclosure = $wpdb->get_row("SELECT ID, post_content, meta_id FROM {$wpdb->posts}, {$wpdb->postmeta} WHERE {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id AND {$wpdb->postmeta}.meta_key = '_encloseme' LIMIT 1")) {
+		delete_metadata_by_mid( 'post', $enclosure->meta_id );
+		do_enclose( $enclosure->post_content, $enclosure->ID );
 	}
 
 	// Do Trackbacks
@@ -1717,7 +1711,7 @@ function do_trackbacks($post_id) {
 	$excerpt = str_replace(']]>', ']]&gt;', $excerpt);
 	$excerpt = wp_html_excerpt($excerpt, 252) . '...';
 
-	$post_title = apply_filters('the_title', $post->post_title);
+	$post_title = apply_filters('the_title', $post->post_title, $post->ID);
 	$post_title = strip_tags($post_title);
 
 	if ( $to_ping ) {
@@ -1959,18 +1953,19 @@ function update_comment_cache($comments) {
  * @since 2.7.0
  *
  * @param object $posts Post data object.
+ * @param object $query Query object.
  * @return object
  */
-function _close_comments_for_old_posts( $posts ) {
-	if ( empty($posts) || !is_singular() || !get_option('close_comments_for_old_posts') )
+function _close_comments_for_old_posts( $posts, $query ) {
+	if ( empty( $posts ) || ! $query->is_singular() || ! get_option( 'close_comments_for_old_posts' ) )
 		return $posts;
 
 	$post_types = apply_filters( 'close_comments_for_post_types', array( 'post' ) );
 	if ( ! in_array( $posts[0]->post_type, $post_types ) )
 		return $posts;
 
-	$days_old = (int) get_option('close_comments_days_old');
-	if ( !$days_old )
+	$days_old = (int) get_option( 'close_comments_days_old' );
+	if ( ! $days_old )
 		return $posts;
 
 	if ( time() - strtotime( $posts[0]->post_date_gmt ) > ( $days_old * 24 * 60 * 60 ) ) {

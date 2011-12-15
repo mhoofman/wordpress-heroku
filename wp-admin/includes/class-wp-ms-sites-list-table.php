@@ -37,23 +37,24 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 
 		$like_s = esc_sql( like_escape( $s ) );
 
-		$large_network = false;
 		// If the network is large and a search is not being performed, show only the latest blogs with no paging in order
 		// to avoid expensive count queries.
-		if ( !$s && ( get_blog_count() >= 10000 ) ) {
+		if ( !$s && wp_is_large_network() ) {
 			if ( !isset($_REQUEST['orderby']) )
 				$_GET['orderby'] = $_REQUEST['orderby'] = '';
 			if ( !isset($_REQUEST['order']) )
 				$_GET['order'] = $_REQUEST['order'] = 'DESC';
-			$large_network = true;
 		}
 
 		$query = "SELECT * FROM {$wpdb->blogs} WHERE site_id = '{$wpdb->siteid}' ";
 
 		if ( empty($s) ) {
 			// Nothing to do.
-		} elseif ( preg_match('/^[0-9]+\./', $s) ) {
-			// IP address
+		} elseif ( preg_match( '/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/', $s ) ||
+					preg_match( '/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.?$/', $s ) ||
+					preg_match( '/^[0-9]{1,3}\.[0-9]{1,3}\.?$/', $s ) ||
+					preg_match( '/^[0-9]{1,3}\.$/', $s ) ) {
+			// IPv4 address
 			$reg_blog_ids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->registration_log} WHERE {$wpdb->registration_log}.IP LIKE ( '{$like_s}$wild' )" );
 
 			if ( !$reg_blog_ids )
@@ -64,7 +65,7 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 				WHERE site_id = '{$wpdb->siteid}'
 				AND {$wpdb->blogs}.blog_id IN (" . implode( ', ', $reg_blog_ids ) . ")";
 		} else {
-			if ( is_numeric($s) ) {
+			if ( is_numeric($s) && empty( $wild ) ) {
 				$query .= " AND ( {$wpdb->blogs}.blog_id = '{$like_s}' )";
 			} elseif ( is_subdomain_install() ) {
 				$blog_s = str_replace( '.' . $current_site->domain, '', $like_s );
@@ -101,13 +102,13 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 		}
 
 		// Don't do an unbounded count on large networks
-		if ( ! $large_network )
+		if ( ! wp_is_large_network() )
 			$total = $wpdb->get_var( str_replace( 'SELECT *', 'SELECT COUNT( blog_id )', $query ) );
 
 		$query .= " LIMIT " . intval( ( $pagenum - 1 ) * $per_page ) . ", " . intval( $per_page );
 		$this->items = $wpdb->get_results( $query, ARRAY_A );
 
-		if ( $large_network )
+		if ( wp_is_large_network() )
 			$total = count($this->items);
 
 		$this->set_pagination_args( array(
@@ -245,22 +246,22 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 							$actions['backend']	= "<span class='backend'><a href='" . esc_url( get_admin_url( $blog['blog_id'] ) ) . "' class='edit'>" . __( 'Dashboard' ) . '</a></span>';
 							if ( $current_site->blog_id != $blog['blog_id'] ) {
 								if ( get_blog_status( $blog['blog_id'], 'deleted' ) == '1' )
-									$actions['activate']	= '<span class="activate"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=activateblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to activate the site %s' ), $blogname ) ) ), 'confirm' ) ) . '">' . __( 'Activate' ) . '</a></span>';
+									$actions['activate']	= '<span class="activate"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=activateblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to activate the site %s' ), $blogname ) ) ), 'confirm' ) ) . '">' . __( 'Activate' ) . '</a></span>';
 								else
-									$actions['deactivate']	= '<span class="activate"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=deactivateblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to deactivate the site %s' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Deactivate' ) . '</a></span>';
+									$actions['deactivate']	= '<span class="activate"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=deactivateblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to deactivate the site %s' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Deactivate' ) . '</a></span>';
 
 								if ( get_blog_status( $blog['blog_id'], 'archived' ) == '1' )
-									$actions['unarchive']	= '<span class="archive"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=unarchiveblog&amp;id=' .  $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to unarchive the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Unarchive' ) . '</a></span>';
+									$actions['unarchive']	= '<span class="archive"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=unarchiveblog&amp;id=' .  $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to unarchive the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Unarchive' ) . '</a></span>';
 								else
-									$actions['archive']	= '<span class="archive"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=archiveblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to archive the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Archive', 'verb; site' ) . '</a></span>';
+									$actions['archive']	= '<span class="archive"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=archiveblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to archive the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Archive', 'verb; site' ) . '</a></span>';
 
 								if ( get_blog_status( $blog['blog_id'], 'spam' ) == '1' )
-									$actions['unspam']	= '<span class="spam"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=unspamblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to unspam the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Not Spam', 'site' ) . '</a></span>';
+									$actions['unspam']	= '<span class="spam"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=unspamblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to unspam the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Not Spam', 'site' ) . '</a></span>';
 								else
-									$actions['spam']	= '<span class="spam"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=spamblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to mark the site %s as spam.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Spam', 'site' ) . '</a></span>';
+									$actions['spam']	= '<span class="spam"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=spamblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to mark the site %s as spam.' ), $blogname ) ) ), 'confirm') ) . '">' . _x( 'Spam', 'site' ) . '</a></span>';
 
 								if ( current_user_can( 'delete_site', $blog['blog_id'] ) )
-									$actions['delete']	= '<span class="delete"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'edit.php?action=confirm&amp;action2=deleteblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to delete the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Delete' ) . '</a></span>';
+									$actions['delete']	= '<span class="delete"><a href="' . esc_url( wp_nonce_url( network_admin_url( 'sites.php?action=confirm&amp;action2=deleteblog&amp;id=' . $blog['blog_id'] . '&amp;msg=' . urlencode( sprintf( __( 'You are about to delete the site %s.' ), $blogname ) ) ), 'confirm') ) . '">' . __( 'Delete' ) . '</a></span>';
 							}
 
 							$actions['visit']	= "<span class='view'><a href='" . esc_url( get_home_url( $blog['blog_id'] ) ) . "' rel='permalink'>" . __( 'Visit' ) . '</a></span>';

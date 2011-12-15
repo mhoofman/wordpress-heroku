@@ -9,6 +9,10 @@
 /** WordPress Administration Bootstrap */
 require_once('./admin.php');
 
+wp_enqueue_style( 'plugin-install' );
+wp_enqueue_script( 'plugin-install' );
+add_thickbox();
+
 if ( is_multisite() && ! is_network_admin() ) {
 	wp_redirect( network_admin_url( 'update-core.php' ) );
 	exit();
@@ -41,7 +45,11 @@ function list_core_update( $update ) {
 			$form_action = 'update-core.php?action=do-core-reinstall';
 		} else {
 			$php_compat     = version_compare( $php_version, $update->php_version, '>=' );
-			$mysql_compat   = version_compare( $mysql_version, $update->mysql_version, '>=' ) || file_exists( WP_CONTENT_DIR . '/db.php' );
+			if ( file_exists( WP_CONTENT_DIR . '/db.php' ) && empty( $wpdb->is_mysql ) )
+				$mysql_compat = true;
+			else
+				$mysql_compat = version_compare( $mysql_version, $update->mysql_version, '>=' );
+
 			if ( !$mysql_compat && !$php_compat )
 				$message = sprintf( __('You cannot update because <a href="http://codex.wordpress.org/Version_%1$s">WordPress %1$s</a> requires PHP version %2$s or higher and MySQL version %3$s or higher. You are running PHP version %4$s and MySQL version %5$s.'), $update->current, $update->php_version, $update->mysql_version, $php_version, $mysql_version );
 			elseif ( !$php_compat )
@@ -66,7 +74,7 @@ function list_core_update( $update ) {
 	echo '<input name="locale" value="'. esc_attr($update->locale) .'" type="hidden"/>';
 	if ( $show_buttons ) {
 		if ( $first_pass ) {
-			submit_button( $submit, 'button button-primary', 'upgrade', false );
+			submit_button( $submit, $current ? 'button' : 'primary', 'upgrade', false );
 			$first_pass = false;
 		} else {
 			submit_button( $submit, 'button', 'upgrade', false );
@@ -123,7 +131,7 @@ function dismissed_updates() {
  * @return null
  */
 function core_upgrade_preamble() {
-	global $upgrade_error;
+	global $upgrade_error, $wp_version;
 
 	$updates = get_core_updates();
 ?>
@@ -168,7 +176,12 @@ function core_upgrade_preamble() {
 		echo '</li>';
 	}
 	echo '</ul>';
-	echo '<p>' . __( 'While your site is being updated, it will be in maintenance mode. As soon as your updates are complete, your site will return to normal.' ) . '</p>';
+	if ( $updates ) {
+		echo '<p>' . __( 'While your site is being updated, it will be in maintenance mode. As soon as your updates are complete, your site will return to normal.' ) . '</p>';
+	} else {
+		list( $normalized_version ) = explode( '-', $wp_version );
+		echo '<p>' . sprintf( __( '<a href="%s">Learn more about WordPress %s</a>.' ), esc_url( admin_url( 'about.php' ) ), $normalized_version ) . '</p>';
+	}
 	dismissed_updates();
 
 	if ( current_user_can( 'update_plugins' ) )
@@ -246,10 +259,15 @@ function list_plugin_updates() {
 		} else {
 			$upgrade_notice = '';
 		}
+
+		$details_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $plugin_data->update->slug . '&TB_iframe=true&width=640&height=662');
+		$details_text = sprintf(__('View version %1$s details'), $plugin_data->update->new_version);
+		$details = sprintf('<a href="%1$s" class="thickbox" title="%2$s">%3$s</a>.', esc_url($details_url), esc_attr($plugin_data->Name), $details_text);
+
 		echo "
 	<tr class='active'>
 		<th scope='row' class='check-column'><input type='checkbox' name='checked[]' value='" . esc_attr($plugin_file) . "' /></th>
-		<td><strong>{$plugin_data->Name}</strong><br />" . sprintf(__('You have version %1$s installed. Update to %2$s.'), $plugin_data->Version, $plugin_data->update->new_version) . $compat . $upgrade_notice . "</td>
+		<td><p><strong>{$plugin_data->Name}</strong><br />" . sprintf(__('You have version %1$s installed. Update to %2$s.'), $plugin_data->Version, $plugin_data->update->new_version) . ' ' . $details . $compat . $upgrade_notice . "</p></td>
 	</tr>";
 	}
 ?>
@@ -299,7 +317,7 @@ function list_theme_updates() {
 		echo "
 	<tr class='active'>
 		<th scope='row' class='check-column'><input type='checkbox' name='checked[]' value='" . esc_attr($stylesheet) . "' /></th>
-		<td class='plugin-title'><img src='$screenshot' width='64' height='64' style='float:left; padding: 5px' /><strong>{$theme_data->Name}</strong>" .  sprintf(__('You have version %1$s installed. Update to %2$s.'), $theme_data->Version, $theme_data->update['new_version']) . "</td>
+		<td class='plugin-title'><img src='$screenshot' width='64' height='64' style='float:left; padding: 0 5px 5px' /><strong>{$theme_data->Name}</strong>" .  sprintf(__('You have version %1$s installed. Update to %2$s.'), $theme_data->Version, $theme_data->update['new_version']) . "</td>
 	</tr>";
 	}
 ?>
@@ -360,11 +378,19 @@ function do_core_upgrade( $reinstall = false ) {
 		show_message($result);
 		if ('up_to_date' != $result->get_error_code() )
 			show_message( __('Installation Failed') );
-	} else {
-		show_message( __('WordPress updated successfully') );
-		show_message( '<a href="' . esc_url( self_admin_url() ) . '">' . __('Go to Dashboard') . '</a>' );
+		echo '</div>';
+		return;
 	}
-	echo '</div>';
+
+	show_message( __('WordPress updated successfully') );
+	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%s">here</a>.' ), $result, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	show_message( '<span class="hide-if-js">' . sprintf( __( 'Welcome to WordPress %1$s. <a href="%2$s">Learn more</a>.' ), $result, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	?>
+	</div>
+	<script type="text/javascript">
+	window.location = '<?php echo admin_url( 'about.php?upgraded' ); ?>';
+	</script>
+	<?php
 }
 
 function do_dismiss_core_update() {
@@ -405,10 +431,24 @@ if ( ( 'do-theme-upgrade' == $action || ( 'do-plugin-upgrade' == $action && ! is
 $title = __('WordPress Updates');
 $parent_file = 'tools.php';
 
-add_contextual_help($current_screen,
-	'<p>' . __('This screen lets you update to the latest version of WordPress as well as update your themes and plugins from the WordPress.org repository. When updates are available, the number of available updates will appear in a bubble on the left hand menu as a notification. It is very important to keep your WordPress installation up to date for security reasons, so when you see a number appear, make sure you take the time to update, which is an easy process.') . '</p>' .
+get_current_screen()->add_help_tab( array(
+'id'		=> 'overview',
+'title'		=> __('Overview'),
+'content'	=>
+	'<p>' . __('This screen lets you update to the latest version of WordPress as well as update your themes and plugins from the WordPress.org repository. When updates are available, the number of available updates will appear in a bubble on the left hand menu as a notification.') . '</p>' .
+	'<p>' . __('It is very important to keep your WordPress installation up to date for security reasons, so when you see a number appear, make sure you take the time to update, which is an easy process.') . '</p>'
+) );
+
+get_current_screen()->add_help_tab( array(
+'id'		=> 'how-to-update',
+'title'		=> __('How to Update'),
+'content'	=>
 	'<p>' . __('Updating your WordPress installation is a simple one-click procedure; just click on the Update button when it says a new version is available.') . '</p>' .
-	'<p>' . __('To update themes or plugins from this screen, use the checkboxes to make your selection and click on the appropriate Update button. Check the box at the top of the Themes or Plugins section to select all and update them all at once.') . '</p>' .
+	'<p>' . __('To update themes or plugins from this screen, use the checkboxes to make your selection and click on the appropriate Update button. Check the box at the top of the Themes or Plugins section to select all and update them all at once.') . '</p>'
+) );
+
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Dashboard_Updates_Screen" target="_blank">Documentation on Updating WordPress</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'

@@ -205,7 +205,7 @@ class WP_Roles {
 	 * @param string $role Role name.
 	 * @return object|null Null, if role does not exist. WP_Role object, if found.
 	 */
-	function &get_role( $role ) {
+	function get_role( $role ) {
 		if ( isset( $this->role_objects[$role] ) )
 			return $this->role_objects[$role];
 		else
@@ -360,8 +360,6 @@ class WP_User {
 	/**
 	 * User data container.
 	 *
-	 * This will be set as properties of the object.
-	 *
 	 * @since 2.0.0
 	 * @access private
 	 * @var array
@@ -376,17 +374,6 @@ class WP_User {
 	 * @var int
 	 */
 	var $ID = 0;
-
-	/**
-	 * The deprecated user's ID.
-	 *
-	 * @since 2.0.0
-	 * @access public
-	 * @deprecated Use WP_User::$ID
-	 * @see WP_User::$ID
-	 * @var int
-	 */
-	var $id = 0;
 
 	/**
 	 * The individual capabilities the user has been given.
@@ -425,28 +412,6 @@ class WP_User {
 	var $allcaps = array();
 
 	/**
-	 * First name of the user.
-	 *
-	 * Created to prevent notices.
-	 *
-	 * @since 2.7.0
-	 * @access public
-	 * @var string
-	 */
-	var $first_name = '';
-
-	/**
-	 * Last name of the user.
-	 *
-	 * Created to prevent notices.
-	 *
-	 * @since 2.7.0
-	 * @access public
-	 * @var string
-	 */
-	var $last_name = '';
-
-	/**
 	 * The filter context applied to user data fields.
 	 *
 	 * @since 2.9.0
@@ -455,45 +420,203 @@ class WP_User {
 	 */
 	var $filter = null;
 
+	private static $back_compat_keys;
+
 	/**
-	 * Constructor - Sets up the object properties.
+	 * Constructor
 	 *
-	 * Retrieves the userdata and then assigns all of the data keys to direct
-	 * properties of the object. Calls {@link WP_User::_init_caps()} after
-	 * setting up the object's user data properties.
+	 * Retrieves the userdata and passes it to {@link WP_User::init()}.
 	 *
 	 * @since 2.0.0
 	 * @access public
 	 *
-	 * @param int|string $id User's ID or username
-	 * @param int $name Optional. User's username
+	 * @param int|string $id User's ID
+	 * @param string $name Optional. User's username
 	 * @param int $blog_id Optional Blog ID, defaults to current blog.
 	 * @return WP_User
 	 */
-	function __construct( $id, $name = '', $blog_id = '' ) {
+	function __construct( $id = 0, $name = '', $blog_id = '' ) {
+		if ( ! isset( self::$back_compat_keys ) ) {
+			$prefix = $GLOBALS['wpdb']->prefix;
+			self::$back_compat_keys = array(
+				'user_firstname' => 'first_name',
+				'user_lastname' => 'last_name',
+				'user_description' => 'description',
+				'user_level' => $prefix . 'user_level',
+				$prefix . 'usersettings' => $prefix . 'user-settings',
+				$prefix . 'usersettingstime' => $prefix . 'user-settings-time',
+			);
+		}
 
-		if ( empty( $id ) && empty( $name ) )
-			return;
-
-		if ( ! is_numeric( $id ) ) {
+		if ( ! empty( $id ) && ! is_numeric( $id ) ) {
 			$name = $id;
 			$id = 0;
 		}
 
-		if ( ! empty( $id ) )
-			$this->data = get_userdata( $id );
+		if ( $id )
+			$data = self::get_data_by( 'id', $id );
 		else
-			$this->data = get_userdatabylogin( $name );
+			$data = self::get_data_by( 'login', $name );
 
-		if ( empty( $this->data->ID ) )
-			return;
+		if ( $data )
+			$this->init( $data, $blog_id );
+	}
 
-		foreach ( get_object_vars( $this->data ) as $key => $value ) {
-			$this->{$key} = $value;
+	/**
+	 * Sets up object properties, including capabilities.
+	 *
+	 * @param object $data User DB row object
+	 * @param int $blog_id Optional. The blog id to initialize for
+	 */
+	function init( $data, $blog_id = '' ) {
+		$this->data = $data;
+		$this->ID = (int) $data->ID;
+
+		$this->for_blog( $blog_id );
+	}
+
+	/**
+	 * Return only the main user fields
+	 *
+	 * @since 3.3.0
+	 *
+	 * @param string $field The field to query against: 'id', 'slug', 'email' or 'login'
+	 * @param string|int $value The field value
+	 * @return object Raw user object
+	 */
+	static function get_data_by( $field, $value ) {
+		global $wpdb;
+
+		if ( 'id' == $field )
+			$value = absint( $value );
+		else
+			$value = trim( $value );
+
+		if ( !$value )
+			return false;
+
+		switch ( $field ) {
+			case 'id':
+				$user_id = $value;
+				$db_field = 'ID';
+				break;
+			case 'slug':
+				$user_id = wp_cache_get($value, 'userslugs');
+				$db_field = 'user_nicename';
+				break;
+			case 'email':
+				$user_id = wp_cache_get($value, 'useremail');
+				$db_field = 'user_email';
+				break;
+			case 'login':
+				$value = sanitize_user( $value );
+				$user_id = wp_cache_get($value, 'userlogins');
+				$db_field = 'user_login';
+				break;
+			default:
+				return false;
 		}
 
-		$this->id = $this->ID;
-		$this->for_blog( $blog_id );
+		if ( false !== $user_id ) {
+			if ( $user = wp_cache_get( $user_id, 'users' ) )
+				return $user;
+		}
+
+		if ( !$user = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM $wpdb->users WHERE $db_field = %s", $value
+		) ) )
+			return false;
+
+		update_user_caches( $user );
+
+		return $user;
+	}
+
+	/**
+	 * Magic method for checking the existence of a certain custom field
+	 *
+	 * @since 3.3.0
+	 */
+	function __isset( $key ) {
+		if ( 'id' == $key ) {
+			_deprecated_argument( 'WP_User->id', '2.1', __( 'Use <code>WP_User->ID</code> instead.' ) );
+			$key = 'ID';
+		}
+
+		if ( isset( $this->data->$key ) )
+			return true;
+
+		if ( isset( self::$back_compat_keys[ $key ] ) )
+			$key = self::$back_compat_keys[ $key ];
+
+		return metadata_exists( 'user', $this->ID, $key );
+	}
+
+	/**
+	 * Magic method for accessing custom fields
+	 *
+	 * @since 3.3.0
+	 */
+	function __get( $key ) {
+		if ( 'id' == $key ) {
+			_deprecated_argument( 'WP_User->id', '2.1', __( 'Use <code>WP_User->ID</code> instead.' ) );
+			return $this->ID;
+		}
+
+		if ( isset( $this->data->$key ) ) {
+			$value = $this->data->$key;
+		} else {
+			if ( isset( self::$back_compat_keys[ $key ] ) )
+				$key = self::$back_compat_keys[ $key ];
+			$value = get_user_meta( $this->ID, $key, true );
+		}
+
+		if ( $this->filter ) {
+			$value = sanitize_user_field( $key, $value, $this->ID, $this->filter );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Magic method for setting custom fields
+	 *
+	 * @since 3.3.0
+	 */
+	function __set( $key, $value ) {
+		if ( 'id' == $key ) {
+			_deprecated_argument( 'WP_User->id', '2.1', __( 'Use <code>WP_User->ID</code> instead.' ) );
+			$this->ID = $value;
+			return;
+		}
+
+		$this->data->$key = $value;
+	}
+
+	/**
+	 * Retrieve the value of a property or meta key.
+	 *
+	 * Retrieves from the users and usermeta table.
+	 *
+	 * @since 3.3.0
+	 *
+	 * @param string $key Property
+	 */
+	function get( $key ) {
+		return $this->__get( $key );
+	}
+
+	/**
+	 * Determine whether a property or meta key is set
+	 *
+	 * Consults the users and usermeta tables.
+	 *
+	 * @since 3.3.0
+	 *
+	 * @param string $key Property
+	 */
+	function has_prop( $key ) {
+		return $this->__isset( $key );
 	}
 
 	/**
@@ -504,20 +627,24 @@ class WP_User {
 	 * property matching the 'cap_key' exists and is an array. If so, it will be
 	 * used.
 	 *
+	 * @access protected
 	 * @since 2.1.0
 	 *
 	 * @param string $cap_key Optional capability key
-	 * @access protected
 	 */
 	function _init_caps( $cap_key = '' ) {
 		global $wpdb;
+
 		if ( empty($cap_key) )
 			$this->cap_key = $wpdb->prefix . 'capabilities';
 		else
 			$this->cap_key = $cap_key;
-		$this->caps = &$this->{$this->cap_key};
+
+		$this->caps = get_user_meta( $this->ID, $this->cap_key, true );
+
 		if ( ! is_array( $this->caps ) )
 			$this->caps = array();
+
 		$this->get_role_caps();
 	}
 
@@ -546,7 +673,7 @@ class WP_User {
 		//Build $allcaps from role caps, overlay user's $caps
 		$this->allcaps = array();
 		foreach ( (array) $this->roles as $role ) {
-			$the_role =& $wp_roles->get_role( $role );
+			$the_role = $wp_roles->get_role( $role );
 			$this->allcaps = array_merge( (array) $this->allcaps, (array) $the_role->capabilities );
 		}
 		$this->allcaps = array_merge( (array) $this->allcaps, (array) $this->caps );
@@ -657,7 +784,7 @@ class WP_User {
 	 */
 	function update_user_level_from_caps() {
 		global $wpdb;
-		$this->user_level = array_reduce( array_keys( $this->allcaps ), array( &$this, 'level_reduction' ), 0 );
+		$this->user_level = array_reduce( array_keys( $this->allcaps ), array( $this, 'level_reduction' ), 0 );
 		update_user_meta( $this->ID, $wpdb->prefix . 'user_level', $this->user_level );
 	}
 
@@ -709,7 +836,7 @@ class WP_User {
 	 *
 	 * This is useful for looking up whether the user has a specific role
 	 * assigned to the user. The second optional parameter can also be used to
-	 * check for capabilities against a specfic post.
+	 * check for capabilities against a specific post.
 	 *
 	 * @since 2.0.0
 	 * @access public
@@ -739,8 +866,7 @@ class WP_User {
 		$capabilities = apply_filters( 'user_has_cap', $this->allcaps, $caps, $args );
 		$capabilities['exist'] = true; // Everyone is allowed to exist
 		foreach ( (array) $caps as $cap ) {
-			//echo "Checking cap $cap<br />";
-			if ( empty( $capabilities[$cap] ) || !$capabilities[$cap] )
+			if ( empty( $capabilities[ $cap ] ) )
 				return false;
 		}
 
@@ -951,6 +1077,23 @@ function map_meta_cap( $cap, $user_id ) {
 		else
 			$caps[] = $post_type->cap->read_private_posts;
 		break;
+	case 'edit_post_meta':
+	case 'delete_post_meta':
+	case 'add_post_meta':
+		$post = get_post( $args[0] );
+		$post_type_object = get_post_type_object( $post->post_type );
+		$caps = map_meta_cap( $post_type_object->cap->edit_post, $user_id, $post->ID );
+
+		$meta_key = isset( $args[ 1 ] ) ? $args[ 1 ] : false;
+
+		if ( $meta_key && has_filter( "auth_post_meta_{$meta_key}" ) ) {
+			$allowed = apply_filters( "auth_post_meta_{$meta_key}", false, $meta_key, $post->ID, $user_id, $cap, $caps );
+			if ( ! $allowed )
+				$caps[] = $cap;
+		} elseif ( $meta_key && is_protected_meta( $meta_key, 'post' ) ) {
+			$caps[] = $cap;
+		}
+		break;
 	case 'edit_comment':
 		$comment = get_comment( $args[0] );
 		$post = get_post( $comment->comment_post_ID );
@@ -1044,7 +1187,7 @@ function current_user_can( $capability ) {
 	$args = array_slice( func_get_args(), 1 );
 	$args = array_merge( array( $capability ), $args );
 
-	return call_user_func_array( array( &$current_user, 'has_cap' ), $args );
+	return call_user_func_array( array( $current_user, 'has_cap' ), $args );
 }
 
 /**
@@ -1063,7 +1206,7 @@ function current_user_can_for_blog( $blog_id, $capability ) {
 		return false;
 
 	// Create new object to avoid stomping the global current_user.
-	$user = new WP_User( $current_user->id) ;
+	$user = new WP_User( $current_user->ID) ;
 
 	// Set the blog id.  @todo add blog id arg to WP_User constructor?
 	$user->for_blog( $blog_id );
@@ -1208,7 +1351,7 @@ function is_super_admin( $user_id = false ) {
 	else
 		$user = wp_get_current_user();
 
-	if ( empty( $user->id ) )
+	if ( empty( $user->ID ) )
 		return false;
 
 	if ( is_multisite() ) {

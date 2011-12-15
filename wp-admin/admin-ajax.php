@@ -55,10 +55,7 @@ case 'fetch-list' :
 	$list_class = $_GET['list_args']['class'];
 	check_ajax_referer( "fetch-list-$list_class", '_ajax_fetch_list_nonce' );
 
-	$current_screen = (object) $_GET['list_args']['screen'];
-	//TODO fix this in a better way see #15336
-	$current_screen->is_network = 'false' === $current_screen->is_network ? false : true;
-	$current_screen->is_user = 'false' === $current_screen->is_user ? false : true;
+	$current_screen = convert_to_screen( $_GET['list_args']['screen']['id'] );
 
 	define( 'WP_NETWORK_ADMIN', $current_screen->is_network );
 	define( 'WP_USER_ADMIN', $current_screen->is_user );
@@ -321,7 +318,7 @@ switch ( $action = $_POST['action'] ) :
 case 'delete-comment' : // On success, die with time() instead of 1
 	if ( !$comment = get_comment( $id ) )
 		die( (string) time() );
-	if ( !current_user_can( 'edit_post', $comment->comment_post_ID ) )
+	if ( ! current_user_can( 'edit_comment', $comment->comment_ID ) )
 		die('-1');
 
 	check_ajax_referer( "delete-comment_$id" );
@@ -393,10 +390,10 @@ case 'delete-link' :
 	break;
 case 'delete-meta' :
 	check_ajax_referer( "delete-meta_$id" );
-	if ( !$meta = get_post_meta_by_id( $id ) )
+	if ( !$meta = get_metadata_by_mid( 'post', $id ) )
 		die('1');
 
-	if ( !current_user_can( 'edit_post', $meta->post_id ) || is_protected_meta( $meta->meta_key ) )
+	if ( is_protected_meta( $meta->meta_key, 'post' ) || ! current_user_can( 'delete_post_meta',  $meta->post_id, $meta->meta_key ) )
 		die('-1');
 	if ( delete_meta( $meta->meta_id ) )
 		die('1');
@@ -457,7 +454,7 @@ case 'dim-comment' : // On success, die with time() instead of 1
 		$x->send();
 	}
 
-	if ( !current_user_can( 'edit_post', $comment->comment_post_ID ) && !current_user_can( 'moderate_comments' ) )
+	if ( ! current_user_can( 'edit_comment', $comment->comment_ID ) && ! current_user_can( 'moderate_comments' ) )
 		die('-1');
 
 	$current = wp_get_comment_status( $comment->comment_ID );
@@ -612,6 +609,8 @@ case 'get-comments' :
 	$x = new WP_Ajax_Response();
 	ob_start();
 	foreach ( $wp_list_table->items as $comment ) {
+		if ( ! current_user_can( 'edit_comment', $comment->comment_ID ) )
+			continue;
 		get_comment( $comment );
 		$wp_list_table->single_row( $comment );
 	}
@@ -638,7 +637,7 @@ case 'replyto-comment' :
 	if ( empty($status) )
 		die('1');
 	elseif ( in_array($status, array('draft', 'pending', 'trash') ) )
-		die( __('Error: you are replying to a comment on a draft post.') );
+		die( __('ERROR: you are replying to a comment on a draft post.') );
 
 	$user = wp_get_current_user();
 	if ( $user->ID ) {
@@ -646,8 +645,8 @@ case 'replyto-comment' :
 		$comment_author_email = $wpdb->escape($user->user_email);
 		$comment_author_url   = $wpdb->escape($user->user_url);
 		$comment_content      = trim($_POST['content']);
-		if ( current_user_can('unfiltered_html') ) {
-			if ( wp_create_nonce('unfiltered-html-comment_' . $comment_post_ID) != $_POST['_wp_unfiltered_html_comment'] ) {
+		if ( current_user_can( 'unfiltered_html' ) ) {
+			if ( wp_create_nonce( 'unfiltered-html-comment' ) != $_POST['_wp_unfiltered_html_comment'] ) {
 				kses_remove_filters(); // start with a clean slate
 				kses_init_filters(); // set up the filters
 			}
@@ -657,7 +656,7 @@ case 'replyto-comment' :
 	}
 
 	if ( '' == $comment_content )
-		die( __('Error: please type a comment.') );
+		die( __('ERROR: please type a comment.') );
 
 	$comment_parent = absint($_POST['comment_ID']);
 	$comment_auto_approved = false;
@@ -714,14 +713,13 @@ case 'edit-comment' :
 
 	set_current_screen( 'edit-comments' );
 
-	$comment_post_ID = (int) $_POST['comment_post_ID'];
-	if ( ! current_user_can( 'edit_post', $comment_post_ID ) )
+	$comment_id = (int) $_POST['comment_ID'];
+	if ( ! current_user_can( 'edit_comment', $comment_id ) )
 		die('-1');
 
 	if ( '' == $_POST['content'] )
-		die( __('Error: please type a comment.') );
+		die( __('ERROR: please type a comment.') );
 
-	$comment_id = (int) $_POST['comment_ID'];
 	$_POST['comment_status'] = $_POST['status'];
 	edit_comment();
 
@@ -848,7 +846,7 @@ case 'add-meta' :
 			die(__('Please provide a custom field value.'));
 		}
 
-		$meta = get_post_meta_by_id( $mid );
+		$meta = get_metadata_by_mid( 'post', $mid );
 		$pid = (int) $meta->post_id;
 		$meta = get_object_vars( $meta );
 		$x = new WP_Ajax_Response( array(
@@ -859,26 +857,24 @@ case 'add-meta' :
 			'supplemental' => array('postid' => $pid)
 		) );
 	} else { // Update?
-		$mid = (int) array_pop( array_keys($_POST['meta']) );
-		$key = $_POST['meta'][$mid]['key'];
-		$value = $_POST['meta'][$mid]['value'];
+		$mid = (int) key( $_POST['meta'] );
+		$key = stripslashes( $_POST['meta'][$mid]['key'] );
+		$value = stripslashes( $_POST['meta'][$mid]['value'] );
 		if ( '' == trim($key) )
 			die(__('Please provide a custom field name.'));
 		if ( '' == trim($value) )
 			die(__('Please provide a custom field value.'));
-		if ( !$meta = get_post_meta_by_id( $mid ) )
+		if ( ! $meta = get_metadata_by_mid( 'post', $mid ) )
 			die('0'); // if meta doesn't exist
-		if ( !current_user_can( 'edit_post', $meta->post_id ) )
+		if ( is_protected_meta( $meta->meta_key, 'post' ) || is_protected_meta( $key, 'post' ) ||
+			! current_user_can( 'edit_post_meta', $meta->post_id, $meta->meta_key ) ||
+			! current_user_can( 'edit_post_meta', $meta->post_id, $key ) )
 			die('-1');
-		if ( is_protected_meta( $meta->meta_key ) )
-			die('-1');
-		if ( $meta->meta_value != stripslashes($value) || $meta->meta_key != stripslashes($key) ) {
-			if ( !$u = update_meta( $mid, $key, $value ) )
+		if ( $meta->meta_value != $value || $meta->meta_key != $key ) {
+			if ( !$u = update_metadata_by_mid( 'post', $mid, $value, $key ) )
 				die('0'); // We know meta exists; we also know it's unchanged (or DB error, in which case there are bigger problems).
 		}
 
-		$key = stripslashes($key);
-		$value = stripslashes($value);
 		$x = new WP_Ajax_Response( array(
 			'what' => 'meta',
 			'id' => $mid, 'old_id' => $mid,
@@ -983,20 +979,23 @@ case 'autosave' : // The name of this action is hardcoded in edit_post()
 		}
 		$data = $message;
 	} else {
-		if ( isset( $_POST['auto_draft'] ) && '1' == $_POST['auto_draft'] )
+		if ( ! empty( $_POST['auto_draft'] ) )
 			$id = 0; // This tells us it didn't actually save
 		else
 			$id = $post->ID;
 	}
 
-	if ( $do_lock && ( isset( $_POST['auto_draft'] ) && ( $_POST['auto_draft'] != '1' ) ) && $id && is_numeric($id) )
-		wp_set_post_lock( $id );
+	if ( $do_lock && empty( $_POST['auto_draft'] ) && $id && is_numeric( $id ) ) {
+		$lock_result = wp_set_post_lock( $id );
+		$supplemental['active-post-lock'] = implode( ':', $lock_result );
+	}
 
 	if ( $nonce_age == 2 ) {
 		$supplemental['replace-autosavenonce'] = wp_create_nonce('autosave');
 		$supplemental['replace-getpermalinknonce'] = wp_create_nonce('getpermalink');
 		$supplemental['replace-samplepermalinknonce'] = wp_create_nonce('samplepermalink');
 		$supplemental['replace-closedpostboxesnonce'] = wp_create_nonce('closedpostboxes');
+		$supplemental['replace-_ajax_linking_nonce'] = wp_create_nonce( 'internal-linking' );
 		if ( $id ) {
 			if ( $_POST['post_type'] == 'post' )
 				$supplemental['replace-_wpnonce'] = wp_create_nonce('update-post_' . $id);
@@ -1026,8 +1025,8 @@ case 'closed-postboxes' :
 
 	$page = isset( $_POST['page'] ) ? $_POST['page'] : '';
 
-	if ( !preg_match( '/^[a-z_-]+$/', $page ) )
-		die('-1');
+	if ( $page != sanitize_key( $page ) )
+		die('0');
 
 	if ( ! $user = wp_get_current_user() )
 		die('-1');
@@ -1048,14 +1047,24 @@ case 'hidden-columns' :
 	$hidden = explode( ',', $_POST['hidden'] );
 	$page = isset( $_POST['page'] ) ? $_POST['page'] : '';
 
-	if ( !preg_match( '/^[a-z_-]+$/', $page ) )
-		die('-1');
+	if ( $page != sanitize_key( $page ) )
+		die('0');
 
 	if ( ! $user = wp_get_current_user() )
 		die('-1');
 
 	if ( is_array($hidden) )
 		update_user_option($user->ID, "manage{$page}columnshidden", $hidden, true);
+
+	die('1');
+	break;
+case 'update-welcome-panel' :
+	check_ajax_referer( 'welcome-panel-nonce', 'welcomepanelnonce' );
+
+	if ( ! current_user_can( 'edit_theme_options' ) )
+		die('-1');
+
+	update_user_meta( get_current_user_id(), 'show_welcome_panel', empty( $_POST['visible'] ) ? 0 : 1 );
 
 	die('1');
 	break;
@@ -1109,8 +1118,6 @@ case 'menu-quick-search':
 	exit;
 	break;
 case 'wp-link-ajax':
-	require_once ABSPATH . 'wp-admin/includes/internal-linking.php';
-
 	check_ajax_referer( 'internal-linking', '_ajax_linking_nonce' );
 
 	$args = array();
@@ -1119,7 +1126,8 @@ case 'wp-link-ajax':
 		$args['s'] = stripslashes( $_POST['search'] );
 	$args['pagenum'] = ! empty( $_POST['page'] ) ? absint( $_POST['page'] ) : 1;
 
-	$results = wp_link_query( $args );
+	require(ABSPATH . WPINC . '/class-wp-editor.php');
+	$results = _WP_Editors::wp_link_query( $args );
 
 	if ( ! isset( $results ) )
 		die( '0' );
@@ -1141,11 +1149,15 @@ case 'menu-locations-save':
 case 'meta-box-order':
 	check_ajax_referer( 'meta-box-order' );
 	$order = isset( $_POST['order'] ) ? (array) $_POST['order'] : false;
-	$page_columns = isset( $_POST['page_columns'] ) ? (int) $_POST['page_columns'] : 0;
+	$page_columns = isset( $_POST['page_columns'] ) ? $_POST['page_columns'] : 'auto';
+
+	if ( $page_columns != 'auto' )
+		$page_columns = (int) $page_columns;
+
 	$page = isset( $_POST['page'] ) ? $_POST['page'] : '';
 
-	if ( !preg_match( '/^[a-z_-]+$/', $page ) )
-		die('-1');
+	if ( $page != sanitize_key( $page ) )
+		die('0');
 
 	if ( ! $user = wp_get_current_user() )
 		die('-1');
@@ -1471,8 +1483,10 @@ case 'set-post-thumbnail':
 	check_ajax_referer( "set_post_thumbnail-$post_ID" );
 
 	if ( $thumbnail_id == '-1' ) {
-		delete_post_meta( $post_ID, '_thumbnail_id' );
-		die( _wp_post_thumbnail_html() );
+		if ( delete_post_thumbnail( $post_ID ) )
+			die( _wp_post_thumbnail_html() );
+		else
+			die( '0' );
 	}
 
 	if ( set_post_thumbnail( $post_ID, $thumbnail_id ) )
@@ -1486,32 +1500,17 @@ case 'time_format' :
 	die( date_i18n( sanitize_option( 'time_format', $_POST['date'] ) ) );
 	break;
 case 'wp-fullscreen-save-post' :
-	if ( isset($_POST['post_ID']) )
-		$post_id = (int) $_POST['post_ID'];
-	else
-		$post_id = 0;
+	$post_id = isset( $_POST['post_ID'] ) ? (int) $_POST['post_ID'] : 0;
 
-	$post = null;
-	$post_type_object = null;
-	$post_type = null;
-	if ( $post_id ) {
-		$post = get_post($post_id);
-		if ( $post ) {
-			$post_type_object = get_post_type_object($post->post_type);
-			if ( $post_type_object ) {
-				$post_type = $post->post_type;
-				$current_screen->post_type = $post->post_type;
-				$current_screen->id = $current_screen->post_type;
-			}
-		}
-	} elseif ( isset($_POST['post_type']) ) {
-		$post_type_object = get_post_type_object($_POST['post_type']);
-		if ( $post_type_object ) {
-			$post_type = $post_type_object->name;
-			$current_screen->post_type = $post_type;
-			$current_screen->id = $current_screen->post_type;
-		}
-	}
+	$post = $post_type = null;
+
+	if ( $post_id )
+		$post = get_post( $post_id );
+
+	if ( $post )
+		$post_type = $post->post_type;
+	elseif ( isset( $_POST['post_type'] ) && post_type_exists( $_POST['post_type'] ) )
+		$post_type = $_POST['post_type'];
 
 	check_ajax_referer('update-' . $post_type . '_' . $post_id, '_wpnonce');
 
@@ -1546,6 +1545,43 @@ case 'wp-fullscreen-save-post' :
 
 	echo json_encode( array( 'message' => $message, 'last_edited' => $last_edited ) );
 	die();
+	break;
+case 'wp-remove-post-lock' :
+	if ( empty( $_POST['post_ID'] ) || empty( $_POST['active_post_lock'] ) )
+		die( '0' );
+	$post_id = (int) $_POST['post_ID'];
+	if ( ! $post = get_post( $post_id ) )
+		die( '0' );
+
+	check_ajax_referer( 'update-' . $post->post_type . '_' . $post_id );
+
+	if ( ! current_user_can( 'edit_post', $post_id ) )
+		die( '-1' );
+
+	$active_lock = array_map( 'absint', explode( ':', $_POST['active_post_lock'] ) );
+	if ( $active_lock[1] != get_current_user_id() )
+		die( '0' );
+
+	$new_lock = ( time() - apply_filters( 'wp_check_post_lock_window', AUTOSAVE_INTERVAL * 2 ) + 5 ) . ':' . $active_lock[1];
+	update_post_meta( $post_id, '_edit_lock', $new_lock, implode( ':', $active_lock ) );
+	die( '1' );
+case 'dismiss-wp-pointer' :
+	$pointer = $_POST['pointer'];
+	if ( $pointer != sanitize_key( $pointer ) )
+		die( '0' );
+
+//	check_ajax_referer( 'dismiss-pointer_' . $pointer );
+
+	$dismissed = array_filter( explode( ',', (string) get_user_meta( get_current_user_id(), 'dismissed_wp_pointers', true ) ) );
+
+	if ( in_array( $pointer, $dismissed ) )
+		die( '0' );
+
+	$dismissed[] = $pointer;
+	$dismissed = implode( ',', $dismissed );
+
+	update_user_meta( get_current_user_id(), 'dismissed_wp_pointers', $dismissed );
+	die( '1' );
 	break;
 default :
 	do_action( 'wp_ajax_' . $_POST['action'] );

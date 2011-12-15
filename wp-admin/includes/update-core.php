@@ -252,7 +252,78 @@ $_old_files = array(
 'wp-admin/js/list-table.js',
 'wp-admin/js/list-table.dev.js',
 'wp-admin/images/logo-login.gif',
-'wp-admin/images/star.gif'
+'wp-admin/images/star.gif',
+// 3.3
+'wp-admin/css/colors-classic-rtl.css',
+'wp-admin/css/colors-classic-rtl.dev.css',
+'wp-admin/css/colors-fresh-rtl.css',
+'wp-admin/css/colors-fresh-rtl.dev.css',
+'wp-admin/css/dashboard-rtl.css',
+'wp-admin/css/dashboard-rtl.dev.css',
+'wp-admin/css/dashboard.css',
+'wp-admin/css/dashboard.dev.css',
+'wp-admin/css/farbtastic-rtl.css',
+'wp-admin/css/global-rtl.css',
+'wp-admin/css/global-rtl.dev.css',
+'wp-admin/css/global.css',
+'wp-admin/css/global.dev.css',
+'wp-admin/css/install-rtl.css',
+'wp-admin/css/install-rtl.dev.css',
+'wp-admin/css/login-rtl.css',
+'wp-admin/css/login-rtl.dev.css',
+'wp-admin/css/login.css',
+'wp-admin/css/login.dev.css',
+'wp-admin/css/ms.css',
+'wp-admin/css/ms.dev.css',
+'wp-admin/css/nav-menu-rtl.css',
+'wp-admin/css/nav-menu-rtl.dev.css',
+'wp-admin/css/nav-menu.css',
+'wp-admin/css/nav-menu.dev.css',
+'wp-admin/css/plugin-install-rtl.css',
+'wp-admin/css/plugin-install-rtl.dev.css',
+'wp-admin/css/plugin-install.css',
+'wp-admin/css/plugin-install.dev.css',
+'wp-admin/css/press-this-rtl.css',
+'wp-admin/css/press-this-rtl.dev.css',
+'wp-admin/css/press-this.css',
+'wp-admin/css/press-this.dev.css',
+'wp-admin/css/theme-editor-rtl.css',
+'wp-admin/css/theme-editor-rtl.dev.css',
+'wp-admin/css/theme-editor.css',
+'wp-admin/css/theme-editor.dev.css',
+'wp-admin/css/theme-install-rtl.css',
+'wp-admin/css/theme-install-rtl.dev.css',
+'wp-admin/css/theme-install.css',
+'wp-admin/css/theme-install.dev.css',
+'wp-admin/css/widgets-rtl.css',
+'wp-admin/css/widgets-rtl.dev.css',
+'wp-admin/css/widgets.css',
+'wp-admin/css/widgets.dev.css',
+'wp-admin/includes/internal-linking.php',
+'wp-includes/images/admin-bar-sprite-rtl.png',
+'wp-includes/js/jquery/ui.button.js',
+'wp-includes/js/jquery/ui.core.js',
+'wp-includes/js/jquery/ui.dialog.js',
+'wp-includes/js/jquery/ui.draggable.js',
+'wp-includes/js/jquery/ui.droppable.js',
+'wp-includes/js/jquery/ui.mouse.js',
+'wp-includes/js/jquery/ui.position.js',
+'wp-includes/js/jquery/ui.resizable.js',
+'wp-includes/js/jquery/ui.selectable.js',
+'wp-includes/js/jquery/ui.sortable.js',
+'wp-includes/js/jquery/ui.tabs.js',
+'wp-includes/js/jquery/ui.widget.js',
+'wp-includes/js/l10n.dev.js',
+'wp-includes/js/l10n.js',
+'wp-includes/js/tinymce/plugins/wplink/css',
+'wp-includes/js/tinymce/plugins/wplink/img',
+'wp-includes/js/tinymce/plugins/wplink/js',
+'wp-includes/js/tinymce/themes/advanced/img/wpicons.png',
+'wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img/butt2.png',
+'wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img/button_bg.png',
+'wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img/down_arrow.gif',
+'wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img/fade-butt.png',
+'wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img/separator.gif',
 );
 
 /**
@@ -335,9 +406,12 @@ function update_core($from, $to) {
 	$mysql_version  = $wpdb->db_version();
 	$required_php_version = '5.2.4';
 	$required_mysql_version = '5.0';
-	$wp_version = '3.2.1';
+	$wp_version = '3.3';
 	$php_compat     = version_compare( $php_version, $required_php_version, '>=' );
-	$mysql_compat   = version_compare( $mysql_version, $required_mysql_version, '>=' ) || file_exists( WP_CONTENT_DIR . '/db.php' );
+	if ( file_exists( WP_CONTENT_DIR . '/db.php' ) && empty( $wpdb->is_mysql ) )
+		$mysql_compat = true;
+	else
+		$mysql_compat = version_compare( $mysql_version, $required_mysql_version, '>=' );
 
 	if ( !$mysql_compat || !$php_compat )
 		$wp_filesystem->delete($from, true);
@@ -384,7 +458,7 @@ function update_core($from, $to) {
 			$lang_dir = WP_CONTENT_DIR . '/languages';
 
 		if ( !@is_dir($lang_dir) && 0 === strpos($lang_dir, ABSPATH) ) { // Check the language directory exists first
-			$wp_filesystem->mkdir($to . str_replace($lang_dir, ABSPATH, ''), FS_CHMOD_DIR); // If it's within the ABSPATH we can handle it here, otherwise they're out of luck.
+			$wp_filesystem->mkdir($to . str_replace(ABSPATH, '', $lang_dir), FS_CHMOD_DIR); // If it's within the ABSPATH we can handle it here, otherwise they're out of luck.
 			clearstatcache(); // for FTP, Need to clear the stat cache
 		}
 
@@ -462,6 +536,11 @@ function update_core($from, $to) {
 
 	// Remove maintenance file, we're done.
 	$wp_filesystem->delete($maintenance_file);
+
+	// If we made it this far:
+	do_action( '_core_updated_successfully', $wp_version );
+
+	return $wp_version;
 }
 
 /**
@@ -519,4 +598,43 @@ function _copy_dir($from, $to, $skip_list = array() ) {
 	return true;
 }
 
-?>
+/**
+ * Redirect to the About WordPress page after a successful upgrade.
+ *
+ * This function is only needed when the existing install is older than 3.3.0.
+ *
+ * @since 3.3.0
+ *
+ */
+function _redirect_to_about_wordpress( $new_version ) {
+	global $wp_version, $pagenow, $action;
+
+	if ( version_compare( $wp_version, '3.3', '>=' ) )
+		return;
+
+	// Ensure we only run this on the update-core.php page. wp_update_core() could be called in other contexts.
+	if ( 'update-core.php' != $pagenow )
+		return;
+
+ 	if ( 'do-core-upgrade' != $action && 'do-core-reinstall' != $action )
+ 		return;
+
+	// Load the updated default text localization domain for new strings
+	load_default_textdomain();
+
+	// See do_core_upgrade()
+	show_message( __('WordPress updated successfully') );
+	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%s">here</a>.' ), $new_version, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	show_message( '<span class="hide-if-js">' . sprintf( __( 'Welcome to WordPress %1$s. <a href="%2$s">Learn more</a>.' ), $new_version, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	echo '</div>';
+	?>
+<script type="text/javascript">
+window.location = '<?php echo admin_url( 'about.php?updated' ); ?>';
+</script>
+	<?php
+
+	// Include admin-footer.php and exit
+	include(ABSPATH . 'wp-admin/admin-footer.php');
+	exit();
+}
+add_action( '_core_updated_successfully', '_redirect_to_about_wordpress' );

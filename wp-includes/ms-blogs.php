@@ -16,10 +16,7 @@
 function wpmu_update_blogs_date() {
 	global $wpdb;
 
-	// TODO: use update_blog_details
-
-	$wpdb->update( $wpdb->blogs, array('last_updated' => current_time('mysql', true)), array('blog_id' => $wpdb->blogid) );
-	refresh_blog_details( $wpdb->blogid );
+	update_blog_details( $wpdb->blogid, array('last_updated' => current_time('mysql', true)) );
 
 	do_action( 'wpmu_blog_updated', $wpdb->blogid );
 }
@@ -323,13 +320,16 @@ function update_blog_details( $blog_id, $details = array() ) {
  * @since MU
  * @uses apply_filters() Calls 'blog_option_$optionname' with the option name value.
  *
- * @param int $blog_id is the id of the blog.
+ * @param int $blog_id Optional. Blog ID, can be null to refer to the current blog.
  * @param string $setting Name of option to retrieve. Should already be SQL-escaped.
  * @param string $default (optional) Default value returned if option not found.
  * @return mixed Value set for the option.
  */
 function get_blog_option( $blog_id, $setting, $default = false ) {
 	global $wpdb;
+
+	if ( null === $blog_id )
+		$blog_id = $wpdb->blogid;
 
 	$key = $blog_id . '-' . $setting . '-blog_option';
 	$value = wp_cache_get( $key, 'site-options' );
@@ -383,14 +383,17 @@ function get_blog_option( $blog_id, $setting, $default = false ) {
  * @param int $id The blog id
  * @param string $key The option key
  * @param mixed $value The option value
+ * @return bool True on success, false on failure.
  */
 function add_blog_option( $id, $key, $value ) {
 	$id = (int) $id;
 
 	switch_to_blog($id);
-	add_option( $key, $value );
+	$return = add_option( $key, $value );
 	restore_current_blog();
-	wp_cache_set( $id . '-' . $key . '-blog_option', $value, 'site-options' );
+	if ( $return )
+		wp_cache_set( $id . '-' . $key . '-blog_option', $value, 'site-options' );
+	return $return;
 }
 
 /**
@@ -400,14 +403,17 @@ function add_blog_option( $id, $key, $value ) {
  *
  * @param int $id The blog id
  * @param string $key The option key
+ * @return bool True on success, false on failure.
  */
 function delete_blog_option( $id, $key ) {
 	$id = (int) $id;
 
 	switch_to_blog($id);
-	delete_option( $key );
+	$return = delete_option( $key );
 	restore_current_blog();
-	wp_cache_set( $id . '-' . $key . '-blog_option', '', 'site-options' );
+	if ( $return )
+		wp_cache_set( $id . '-' . $key . '-blog_option', '', 'site-options' );
+	return $return;
 }
 
 /**
@@ -418,6 +424,7 @@ function delete_blog_option( $id, $key ) {
  * @param int $id The blog id
  * @param string $key The option key
  * @param mixed $value The option value
+ * @return bool True on success, false on failrue.
  */
 function update_blog_option( $id, $key, $value, $deprecated = null ) {
 	$id = (int) $id;
@@ -426,12 +433,14 @@ function update_blog_option( $id, $key, $value, $deprecated = null ) {
 		_deprecated_argument( __FUNCTION__, '3.1' );
 
 	switch_to_blog($id);
-	update_option( $key, $value );
+	$return = update_option( $key, $value );
 	restore_current_blog();
 
 	refresh_blog_details( $id );
 
-	wp_cache_set( $id . '-' . $key . '-blog_option', $value, 'site-options');
+	if ( $return )
+		wp_cache_set( $id . '-' . $key . '-blog_option', $value, 'site-options');
+	return $return;
 }
 
 /**
@@ -676,6 +685,28 @@ function get_last_updated( $deprecated = '', $start = 0, $quantity = 40 ) {
 		_deprecated_argument( __FUNCTION__, 'MU' ); // never used
 
 	return $wpdb->get_results( $wpdb->prepare("SELECT blog_id, domain, path FROM $wpdb->blogs WHERE site_id = %d AND public = '1' AND archived = '0' AND mature = '0' AND spam = '0' AND deleted = '0' AND last_updated != '0000-00-00 00:00:00' ORDER BY last_updated DESC limit %d, %d", $wpdb->siteid, $start, $quantity ) , ARRAY_A );
+}
+
+/**
+ * Handler for updating the blog date when a post is published or an already published post is changed.
+ *
+ * @since 3.3.0
+ *
+ * @param string $new_status The new post status
+ * @param string $old_status The old post status
+ * @param object $post Post object
+ */
+function _update_blog_date_on_post_publish( $new_status, $old_status, $post ) {
+	$post_type_obj = get_post_type_object( $post->post_type );
+	if ( ! $post_type_obj->public )
+		return;
+
+	if ( 'publish' != $new_status && 'publish' != $old_status )
+		return;
+
+	// Post was freshly published, published post was saved, or published post was unpublished.
+
+	wpmu_update_blogs_date();
 }
 
 ?>

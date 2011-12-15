@@ -16,9 +16,15 @@ if ( !current_user_can('import') )
 
 $title = __('Import');
 
-add_contextual_help($current_screen,
-	'<p>' . __('This screen lists links to plugins to import data from blogging/content management platforms. Choose the platform you want to import from, and click Install Now when you are prompted in the popup window. If your platform is not listed, click the link to search the plugin directory for other importer plugins to see if there is one for your platform.') . '</p>' .
-	'<p>' . __('In previous versions of WordPress, all the importers were built-in, but they have been turned into plugins as of version 3.0 since most people only use them once or infrequently.') . '</p>' .
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' => '<p>' . __('This screen lists links to plugins to import data from blogging/content management platforms. Choose the platform you want to import from, and click Install Now when you are prompted in the popup window. If your platform is not listed, click the link to search the plugin directory for other importer plugins to see if there is one for your platform.') . '</p>' .
+		'<p>' . __('In previous versions of WordPress, all importers were built-in.  They have been turned into plugins since most people only use them once or infrequently.') . '</p>',
+) );
+
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Tools_Import_Screen" target="_blank">Documentation on Import</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
@@ -33,6 +39,7 @@ if ( current_user_can('install_plugins') )
 		'movabletype' => array( __('Movable Type and TypePad'), __('Install the Movable Type importer to import posts and comments from a Movable Type or TypePad blog.'), 'install', 'mt' ),
 		'opml' => array( __('Blogroll'), __('Install the blogroll importer to import links in OPML format.'), 'install' ),
 		'rss' => array( __('RSS'), __('Install the RSS importer to import posts from an RSS feed.'), 'install' ),
+		'tumblr' => array( __('Tumblr'), __('Install the Tumblr importer to import posts &amp; media from Tumblr using their API.'), 'install' ),
 		'wordpress' => array( 'WordPress', __('Install the WordPress importer to import posts, pages, comments, custom fields, categories, and tags from a WordPress export file.'), 'install' )
 	);
 
@@ -43,7 +50,6 @@ if ( ! empty( $_GET['invalid'] ) && !empty($popular_importers[$_GET['invalid']][
 
 add_thickbox();
 wp_enqueue_script( 'plugin-install' );
-wp_admin_css( 'plugin-install' );
 
 require_once ('admin-header.php');
 $parent_file = 'tools.php';
@@ -59,29 +65,11 @@ $parent_file = 'tools.php';
 
 <?php
 
-// Load all importers so that they can register.
-$import_loc = 'wp-admin/import';
-$import_root = ABSPATH . $import_loc;
-
-if ( file_exists( $import_root ) ) {
-	$imports_dir = opendir($import_root);
-	if ($imports_dir) {
-		while (($file = readdir($imports_dir)) !== false) {
-			if ($file[0] == '.') {
-				continue;
-			} elseif (substr($file, -4) == '.php') {
-				require_once($import_root . '/' . $file);
-			}
-		}
-	}
-	closedir( $imports_dir );
-}
-
 $importers = get_importers();
 
 // If a popular importer is not registered, create a dummy registration that links to the plugin installer.
 foreach ( $popular_importers as $pop_importer => $pop_data ) {
-	if ( isset($importers[$pop_importer] ) )
+	if ( isset( $importers[$pop_importer] ) )
 		continue;
 	if ( isset( $pop_data[3] ) && isset( $importers[ $pop_data[3] ] ) )
 		continue;
@@ -89,12 +77,12 @@ foreach ( $popular_importers as $pop_importer => $pop_data ) {
 	$importers[$pop_importer] = $popular_importers[$pop_importer];
 }
 
-if (empty ($importers)) {
+if ( empty($importers) ) {
 	echo '<p>'.__('No importers are available.').'</p>'; // TODO: make more helpful
 } else {
 	uasort($importers, create_function('$a, $b', 'return strcmp($a[0], $b[0]);'));
 ?>
-<table class="widefat" cellspacing="0">
+<table class="widefat importers" cellspacing="0">
 
 <?php
 	$style = '';
@@ -113,10 +101,16 @@ if (empty ($importers)) {
 											'"title="' . esc_attr__('Activate importer') . '"">' . $data[0] . '</a>';
 				}
 			}
-			if ( empty($action) )
-				$action = '<a href="' . esc_url( network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . $plugin_slug .
+			if ( empty($action) ) {
+				if ( is_main_site() ) {
+					$action = '<a href="' . esc_url( network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=' . $plugin_slug .
 										'&from=import&TB_iframe=true&width=600&height=550' ) ) . '" class="thickbox" title="' .
 										esc_attr__('Install importer') . '">' . $data[0] . '</a>';
+				} else {
+					$action = $data[0];
+					$data[1] = sprintf( __( 'This importer is not installed. Please install importers from <a href="%s">the main site</a>.' ), get_admin_url( $current_site->blog_id, 'import.php' ) );
+				}
+			}
 		} else {
 			$action = "<a href='" . esc_url("admin.php?import=$id") . "' title='" . esc_attr( wptexturize(strip_tags($data[1])) ) ."'>{$data[0]}</a>";
 		}
@@ -136,7 +130,7 @@ if (empty ($importers)) {
 }
 
 if ( current_user_can('install_plugins') )
-	echo '<p>' . sprintf( __('If the importer you need is not listed, <a href="%s">search the plugins directory</a> to see if an importer is available.'), esc_url( network_admin_url( 'plugin-install.php?tab=search&type=tag&s=importer' ) ) ) . '</p>';
+	echo '<p>' . sprintf( __('If the importer you need is not listed, <a href="%s">search the plugin directory</a> to see if an importer is available.'), esc_url( network_admin_url( 'plugin-install.php?tab=search&type=tag&s=importer' ) ) ) . '</p>';
 ?>
 
 </div>

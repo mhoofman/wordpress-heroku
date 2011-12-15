@@ -89,7 +89,7 @@ function set_query_var($var, $value) {
  */
 function &query_posts($query) {
 	unset($GLOBALS['wp_query']);
-	$GLOBALS['wp_query'] =& new WP_Query();
+	$GLOBALS['wp_query'] = new WP_Query();
 	return $GLOBALS['wp_query']->query($query);
 }
 
@@ -105,7 +105,7 @@ function &query_posts($query) {
  */
 function wp_reset_query() {
 	unset($GLOBALS['wp_query']);
-	$GLOBALS['wp_query'] =& $GLOBALS['wp_the_query'];
+	$GLOBALS['wp_query'] = $GLOBALS['wp_the_query'];
 	wp_reset_postdata();
 }
 
@@ -713,6 +713,18 @@ function is_404() {
 	}
 
 	return $wp_query->is_404();
+}
+
+/**
+ * Is the query the main query?
+ *
+ * @since 3.3.0
+ *
+ * @return bool
+ */
+function is_main_query() {
+	global $wp_query;
+	return $wp_query->is_main_query();
 }
 
 /*
@@ -1826,7 +1838,7 @@ class WP_Query {
 		}
 
 		if ( !empty($q['tag_slug__in']) ) {
-			$q['tag_slug__in'] = array_map('sanitize_title', array_unique( (array) $q['tag_slug__in'] ) );
+			$q['tag_slug__in'] = array_map('sanitize_title_for_query', array_unique( (array) $q['tag_slug__in'] ) );
 			$tax_query[] = array(
 				'taxonomy' => 'post_tag',
 				'terms' => $q['tag_slug__in'],
@@ -1835,7 +1847,7 @@ class WP_Query {
 		}
 
 		if ( !empty($q['tag_slug__and']) ) {
-			$q['tag_slug__and'] = array_map('sanitize_title', array_unique( (array) $q['tag_slug__and'] ) );
+			$q['tag_slug__and'] = array_map('sanitize_title_for_query', array_unique( (array) $q['tag_slug__and'] ) );
 			$tax_query[] = array(
 				'taxonomy' => 'post_tag',
 				'terms' => $q['tag_slug__and'],
@@ -2137,7 +2149,7 @@ class WP_Query {
 		if ( intval($q['comments_popup']) )
 			$q['p'] = absint($q['comments_popup']);
 
-		// If an attachment is requested by number, let it supercede any post number.
+		// If an attachment is requested by number, let it supersede any post number.
 		if ( $q['attachment_id'] )
 			$q['p'] = absint($q['attachment_id']);
 
@@ -2288,7 +2300,7 @@ class WP_Query {
 				if ( $q['author_name'][ count($q['author_name'])-1 ] ) {
 					$q['author_name'] = $q['author_name'][count($q['author_name'])-1]; // no trailing slash
 				} else {
-					$q['author_name'] = $q['author_name'][count($q['author_name'])-2]; // there was a trailling slash
+					$q['author_name'] = $q['author_name'][count($q['author_name'])-2]; // there was a trailing slash
 				}
 			}
 			$q['author_name'] = sanitize_title_for_query( $q['author_name'] );
@@ -2317,7 +2329,7 @@ class WP_Query {
 			$orderby = '';
 		} else {
 			// Used to filter values
-			$allowed_keys = array('author', 'date', 'title', 'modified', 'menu_order', 'parent', 'ID', 'rand', 'comment_count');
+			$allowed_keys = array('name', 'author', 'date', 'title', 'modified', 'menu_order', 'parent', 'ID', 'rand', 'comment_count');
 			if ( !empty($q['meta_key']) ) {
 				$allowed_keys[] = $q['meta_key'];
 				$allowed_keys[] = 'meta_value';
@@ -2373,13 +2385,10 @@ class WP_Query {
 				$post_type_cap = $post_type;
 		}
 
-		$exclude_post_types = '';
-		$in_search_post_types = get_post_types( array('exclude_from_search' => false) );
-		if ( ! empty( $in_search_post_types ) )
-			$exclude_post_types .= $wpdb->prepare(" AND $wpdb->posts.post_type IN ('" . join("', '", $in_search_post_types ) . "')");
-
 		if ( 'any' == $post_type ) {
-			$where .= $exclude_post_types;
+			$in_search_post_types = get_post_types( array('exclude_from_search' => false) );
+			if ( ! empty( $in_search_post_types ) )
+				$where .= $wpdb->prepare(" AND $wpdb->posts.post_type IN ('" . join("', '", $in_search_post_types ) . "')");
 		} elseif ( !empty( $post_type ) && is_array( $post_type ) ) {
 			$where .= " AND $wpdb->posts.post_type IN ('" . join("', '", $post_type) . "')";
 		} elseif ( ! empty( $post_type ) ) {
@@ -2733,9 +2742,9 @@ class WP_Query {
 
 		$this->post_count = count($this->posts);
 
-		// Sanitize before caching so it'll only get done once
-		for ( $i = 0; $i < $this->post_count; $i++ ) {
-			$this->posts[$i] = sanitize_post($this->posts[$i], 'raw');
+		// Always sanitize
+		foreach ( $this->posts as $i => $post ) {
+			$this->posts[$i] = sanitize_post( $post, 'raw' );
 		}
 
 		if ( $q['cache_results'] )
@@ -3466,6 +3475,18 @@ class WP_Query {
 	 */
 	function is_404() {
 		return (bool) $this->is_404;
+	}
+
+	/**
+	 * Is the query the main query?
+	 *
+	 * @since 3.3.0
+	 *
+	 * @return bool
+	 */
+	function is_main_query() {
+		global $wp_the_query;
+		return $wp_the_query === $this;
 	}
 }
 

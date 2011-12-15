@@ -8,6 +8,9 @@
  * @subpackage Administration
  */
 
+// Declare these as global in case schema.php is included from a function.
+global $wpdb, $wp_queries, $charset_collate;
+
 /**
  * The database character collate.
  * @var string
@@ -16,16 +19,38 @@
  */
 $charset_collate = '';
 
-// Declare these as global in case schema.php is included from a function.
-global $wpdb, $wp_queries;
-
-if ( ! empty($wpdb->charset) )
+if ( ! empty( $wpdb->charset ) )
 	$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
-if ( ! empty($wpdb->collate) )
+if ( ! empty( $wpdb->collate ) )
 	$charset_collate .= " COLLATE $wpdb->collate";
 
-/** Create WordPress database tables SQL */
-$wp_queries = "CREATE TABLE $wpdb->terms (
+/**
+ * Retrieve the SQL for creating database tables.
+ *
+ * @since 3.3.0
+ *
+ * @param string $scope Optional. The tables for which to retrieve SQL. Can be all, global, ms_global, or blog tables. Defaults to all.
+ * @param int $blog_id Optional. The blog ID for which to retrieve SQL.  Default is the current blog ID.
+ * @return string The SQL needed to create the requested tables.
+ */
+function wp_get_db_schema( $scope = 'all', $blog_id = null ) {
+	global $wpdb;
+
+	$charset_collate = '';
+
+	if ( ! empty($wpdb->charset) )
+		$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
+	if ( ! empty($wpdb->collate) )
+		$charset_collate .= " COLLATE $wpdb->collate";
+
+	if ( $blog_id && $blog_id != $wpdb->blogid )
+		$old_blog_id = $wpdb->set_blog_id( $blog_id );
+
+	// Engage multisite if in the middle of turning it on from network.php.
+	$is_multisite = is_multisite() || ( defined( 'WP_INSTALLING_NETWORK' ) && WP_INSTALLING_NETWORK );
+
+	// Blog specific tables.
+	$blog_tables = "CREATE TABLE $wpdb->terms (
  term_id bigint(20) unsigned NOT NULL auto_increment,
  name varchar(200) NOT NULL default '',
  slug varchar(200) NOT NULL default '',
@@ -148,8 +173,10 @@ CREATE TABLE $wpdb->posts (
   KEY type_status_date (post_type,post_status,post_date,ID),
   KEY post_parent (post_parent),
   KEY post_author (post_author)
-) $charset_collate;
-CREATE TABLE $wpdb->users (
+) $charset_collate;\n";
+
+	// Single site users table. The multisite flavor of the users table is handled below.
+	$users_single_table = "CREATE TABLE $wpdb->users (
   ID bigint(20) unsigned NOT NULL auto_increment,
   user_login varchar(60) NOT NULL default '',
   user_pass varchar(64) NOT NULL default '',
@@ -163,8 +190,29 @@ CREATE TABLE $wpdb->users (
   PRIMARY KEY  (ID),
   KEY user_login_key (user_login),
   KEY user_nicename (user_nicename)
-) $charset_collate;
-CREATE TABLE $wpdb->usermeta (
+) $charset_collate;\n";
+
+	// Multisite users table
+	$users_multi_table = "CREATE TABLE $wpdb->users (
+  ID bigint(20) unsigned NOT NULL auto_increment,
+  user_login varchar(60) NOT NULL default '',
+  user_pass varchar(64) NOT NULL default '',
+  user_nicename varchar(50) NOT NULL default '',
+  user_email varchar(100) NOT NULL default '',
+  user_url varchar(100) NOT NULL default '',
+  user_registered datetime NOT NULL default '0000-00-00 00:00:00',
+  user_activation_key varchar(60) NOT NULL default '',
+  user_status int(11) NOT NULL default '0',
+  display_name varchar(250) NOT NULL default '',
+  spam tinyint(2) NOT NULL default '0',
+  deleted tinyint(2) NOT NULL default '0',
+  PRIMARY KEY  (ID),
+  KEY user_login_key (user_login),
+  KEY user_nicename (user_nicename)
+) $charset_collate;\n";
+
+	// usermeta
+	$usermeta_table = "CREATE TABLE $wpdb->usermeta (
   umeta_id bigint(20) unsigned NOT NULL auto_increment,
   user_id bigint(20) unsigned NOT NULL default '0',
   meta_key varchar(255) default NULL,
@@ -172,7 +220,107 @@ CREATE TABLE $wpdb->usermeta (
   PRIMARY KEY  (umeta_id),
   KEY user_id (user_id),
   KEY meta_key (meta_key)
+) $charset_collate;\n";
+
+	// Global tables
+	if ( $is_multisite )
+		$global_tables = $users_multi_table . $usermeta_table;
+	else
+		$global_tables = $users_single_table . $usermeta_table;
+
+	// Multisite global tables.
+	$ms_global_tables = "CREATE TABLE $wpdb->blogs (
+  blog_id bigint(20) NOT NULL auto_increment,
+  site_id bigint(20) NOT NULL default '0',
+  domain varchar(200) NOT NULL default '',
+  path varchar(100) NOT NULL default '',
+  registered datetime NOT NULL default '0000-00-00 00:00:00',
+  last_updated datetime NOT NULL default '0000-00-00 00:00:00',
+  public tinyint(2) NOT NULL default '1',
+  archived enum('0','1') NOT NULL default '0',
+  mature tinyint(2) NOT NULL default '0',
+  spam tinyint(2) NOT NULL default '0',
+  deleted tinyint(2) NOT NULL default '0',
+  lang_id int(11) NOT NULL default '0',
+  PRIMARY KEY  (blog_id),
+  KEY domain (domain(50),path(5)),
+  KEY lang_id (lang_id)
+) $charset_collate;
+CREATE TABLE $wpdb->blog_versions (
+  blog_id bigint(20) NOT NULL default '0',
+  db_version varchar(20) NOT NULL default '',
+  last_updated datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY  (blog_id),
+  KEY db_version (db_version)
+) $charset_collate;
+CREATE TABLE $wpdb->registration_log (
+  ID bigint(20) NOT NULL auto_increment,
+  email varchar(255) NOT NULL default '',
+  IP varchar(30) NOT NULL default '',
+  blog_id bigint(20) NOT NULL default '0',
+  date_registered datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY  (ID),
+  KEY IP (IP)
+) $charset_collate;
+CREATE TABLE $wpdb->site (
+  id bigint(20) NOT NULL auto_increment,
+  domain varchar(200) NOT NULL default '',
+  path varchar(100) NOT NULL default '',
+  PRIMARY KEY  (id),
+  KEY domain (domain,path)
+) $charset_collate;
+CREATE TABLE $wpdb->sitemeta (
+  meta_id bigint(20) NOT NULL auto_increment,
+  site_id bigint(20) NOT NULL default '0',
+  meta_key varchar(255) default NULL,
+  meta_value longtext,
+  PRIMARY KEY  (meta_id),
+  KEY meta_key (meta_key),
+  KEY site_id (site_id)
+) $charset_collate;
+CREATE TABLE $wpdb->signups (
+  domain varchar(200) NOT NULL default '',
+  path varchar(100) NOT NULL default '',
+  title longtext NOT NULL,
+  user_login varchar(60) NOT NULL default '',
+  user_email varchar(100) NOT NULL default '',
+  registered datetime NOT NULL default '0000-00-00 00:00:00',
+  activated datetime NOT NULL default '0000-00-00 00:00:00',
+  active tinyint(1) NOT NULL default '0',
+  activation_key varchar(50) NOT NULL default '',
+  meta longtext,
+  KEY activation_key (activation_key),
+  KEY domain (domain)
 ) $charset_collate;";
+
+	switch ( $scope ) {
+		case 'blog' :
+			$queries = $blog_tables;
+			break;
+		case 'global' :
+			$queries = $global_tables;
+			if ( $is_multisite )
+				$queries .= $ms_global_tables;
+			break;
+		case 'ms_global' :
+			$queries = $ms_global_tables;
+			break;
+		default:
+		case 'all' :
+			$queries = $global_tables . $blog_tables;
+			if ( $is_multisite )
+				$queries .= $ms_global_tables;
+			break;
+	}
+
+	if ( isset( $old_blog_id ) )
+		$wpdb->set_blog_id( $old_blog_id );
+
+	return $queries;
+}
+
+// Populate for back compat.
+$wp_queries = wp_get_db_schema( 'all' );
 
 /**
  * Create WordPress options and set the default values.
@@ -182,7 +330,7 @@ CREATE TABLE $wpdb->usermeta (
  * @uses $wp_db_version
  */
 function populate_options() {
-	global $wpdb, $wp_db_version, $current_site;
+	global $wpdb, $wp_db_version, $current_site, $wp_current_db_version;
 
 	$guessurl = wp_guess_url();
 
@@ -193,6 +341,15 @@ function populate_options() {
 		$uploads_use_yearmonth_folders = 0;
 	} else {
 		$uploads_use_yearmonth_folders = 1;
+	}
+
+	$template = WP_DEFAULT_THEME;
+	// If default theme is a child theme, we need to get its template
+	foreach ( (array) get_themes() as $theme ) {
+		if ( WP_DEFAULT_THEME == $theme['Stylesheet'] ) {
+			$template = $theme['Template'];
+			break;
+		}
 	}
 
 	$options = array(
@@ -246,7 +403,7 @@ function populate_options() {
 	// 1.5
 	'default_email_category' => 1,
 	'recently_edited' => '',
-	'template' => WP_DEFAULT_THEME,
+	'template' => $template,
 	'stylesheet' => WP_DEFAULT_THEME,
 	'comment_whitelist' => 1,
 	'blacklist_keys' => '',
@@ -322,6 +479,12 @@ function populate_options() {
 	// 3.1
 	'default_post_format' => 0,
 	);
+
+	// 3.3
+	if ( ! is_multisite() ) {
+		$options['initial_db_version'] = ! empty( $wp_current_db_version ) && $wp_current_db_version < $wp_db_version
+			? $wp_current_db_version : $wp_db_version;
+	}
 
 	// 3.0 multisite
 	if ( is_multisite() ) {
@@ -624,6 +787,21 @@ function populate_roles_300() {
 }
 
 /**
+ * Install Network.
+ *
+ * @since 3.0.0
+ *
+ */
+if ( !function_exists( 'install_network' ) ) :
+function install_network() {
+	if ( ! defined( 'WP_INSTALLING_NETWORK' ) )
+		define( 'WP_INSTALLING_NETWORK', true );
+
+	dbDelta( wp_get_db_schema( 'global' ) );
+}
+endif;
+
+/**
  * populate network settings
  *
  * @since 3.0.0
@@ -645,7 +823,7 @@ function populate_network( $network_id = 1, $domain = '', $email = '', $site_nam
 	if ( $network_id == $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $wpdb->site WHERE id = %d", $network_id ) ) )
 		$errors->add( 'siteid_exists', __( 'The network already exists.' ) );
 
-	$site_user = get_user_by_email( $email );
+	$site_user = get_user_by( 'email', $email );
 	if ( ! is_email( $email ) )
 		$errors->add( 'invalid_email', __( 'You must provide a valid e-mail address.' ) );
 
@@ -689,10 +867,9 @@ BLOG_URL
 You can log in to the administrator account with the following information:
 Username: USERNAME
 Password: PASSWORD
-Log in Here: BLOG_URLwp-login.php
+Log in here: BLOG_URLwp-login.php
 
-We hope you enjoy your new site.
-Thanks!
+We hope you enjoy your new site. Thanks!
 
 --The Team @ SITE_NAME' );
 
@@ -715,7 +892,9 @@ Thanks!
 		'add_new_users' => '0',
 		'upload_space_check_disabled' => '0',
 		'subdomain_install' => intval( $subdomain_install ),
-		'global_terms_enabled' => global_terms_enabled() ? '1' : '0'
+		'global_terms_enabled' => global_terms_enabled() ? '1' : '0',
+		'initial_db_version' => get_option( 'initial_db_version' ),
+		'active_sitewide_plugins' => array(),
 	);
 	if ( ! $subdomain_install )
 		$sitemeta['illegal_names'][] = 'blog';

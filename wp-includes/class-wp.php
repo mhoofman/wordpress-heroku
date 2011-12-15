@@ -185,54 +185,60 @@ class WP {
 
 			// Look for matches.
 			$request_match = $request;
-			foreach ( (array) $rewrite as $match => $query) {
-				// Don't try to match against AtomPub calls
-				if ( $req_uri == 'wp-app.php' )
-					break;
-
-				// If the requesting file is the anchor of the match, prepend it
-				// to the path info.
-				if ( (! empty($req_uri)) && (strpos($match, $req_uri) === 0) && ($req_uri != $request) )
-					$request_match = $req_uri . '/' . $request;
-
-				if ( preg_match("#^$match#", $request_match, $matches) ||
-					preg_match("#^$match#", urldecode($request_match), $matches) ) {
-					// Got a match.
-					$this->matched_rule = $match;
-
-					// Trim the query of everything up to the '?'.
-					$query = preg_replace("!^.+\?!", '', $query);
-
-					// Substitute the substring matches into the query.
-					$query = addslashes(WP_MatchesMapRegex::apply($query, $matches));
-
-					$this->matched_query = $query;
-
-					// Parse the query.
-					parse_str($query, $perma_query_vars);
-
-					// If we're processing a 404 request, clear the error var
-					// since we found something.
-					if ( isset($_GET['error']) )
-						unset($_GET['error']);
-
-					if ( isset($error) )
-						unset($error);
-
-					break;
+			if ( empty( $request_match ) ) {
+				// An empty request could only match against ^$ regex
+				if ( isset( $rewrite['$'] ) ) {
+					$this->matched_rule = '$';
+					$query = $rewrite['$'];
+					$matches = array('');
 				}
+			} else if ( $req_uri != 'wp-app.php' ) {
+				foreach ( (array) $rewrite as $match => $query ) {
+					// If the requesting file is the anchor of the match, prepend it to the path info.
+					if ( ! empty($req_uri) && strpos($match, $req_uri) === 0 && $req_uri != $request )
+						$request_match = $req_uri . '/' . $request;
+
+					if ( preg_match("#^$match#", $request_match, $matches) ||
+						preg_match("#^$match#", urldecode($request_match), $matches) ) {
+
+						if ( $wp_rewrite->use_verbose_page_rules && preg_match( '/pagename=\$matches\[([0-9]+)\]/', $query, $varmatch ) ) {
+							// this is a verbose page match, lets check to be sure about it
+							if ( ! get_page_by_path( $matches[ $varmatch[1] ] ) )
+						 		continue;
+						}
+
+						// Got a match.
+						$this->matched_rule = $match;
+						break;
+					}
+				}
+			}
+
+			if ( isset( $this->matched_rule ) ) {
+				// Trim the query of everything up to the '?'.
+				$query = preg_replace("!^.+\?!", '', $query);
+
+				// Substitute the substring matches into the query.
+				$query = addslashes(WP_MatchesMapRegex::apply($query, $matches));
+
+				$this->matched_query = $query;
+
+				// Parse the query.
+				parse_str($query, $perma_query_vars);
+
+				// If we're processing a 404 request, clear the error var
+				// since we found something.
+				unset( $_GET['error'] );
+				unset( $error );
 			}
 
 			// If req_uri is empty or if it is a request for ourself, unset error.
 			if ( empty($request) || $req_uri == $self || strpos($_SERVER['PHP_SELF'], 'wp-admin/') !== false ) {
-				if ( isset($_GET['error']) )
-					unset($_GET['error']);
-
-				if ( isset($error) )
-					unset($error);
+				unset( $_GET['error'] );
+				unset( $error );
 
 				if ( isset($perma_query_vars) && strpos($_SERVER['PHP_SELF'], 'wp-admin/') !== false )
-					unset($perma_query_vars);
+					unset( $perma_query_vars );
 
 				$this->did_permalink = false;
 			}
@@ -563,11 +569,11 @@ class WP_MatchesMapRegex {
 	 *
 	 * @access public
 	 * @param string $subject subject
-	 * @param array  $matches data used for subsitution
+	 * @param array  $matches data used for substitution
 	 * @return string
 	 */
-	function apply($subject, $matches) {
-		$oSelf =& new WP_MatchesMapRegex($subject, $matches);
+	public static function apply($subject, $matches) {
+		$oSelf = new WP_MatchesMapRegex($subject, $matches);
 		return $oSelf->output;
 	}
 

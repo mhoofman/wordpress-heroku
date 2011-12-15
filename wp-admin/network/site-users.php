@@ -19,18 +19,25 @@ if ( ! current_user_can('manage_sites') )
 $wp_list_table = _get_list_table('WP_Users_List_Table');
 $wp_list_table->prepare_items();
 
-$action = $wp_list_table->current_action();
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' =>
+		'<p>' . __('The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.') . '</p>' .
+		'<p>' . __('<strong>Info</strong> - The domain and path are rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.') . '</p>' .
+		'<p>' . __('<strong>Users</strong> - This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.') . '</p>' .
+		'<p>' . sprintf( __('<strong>Themes</strong> - This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ), network_admin_url( 'themes.php' ) ) . '</p>' .
+		'<p>' . __('<strong>Settings</strong> - This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.') . '</p>'
+) );
 
-add_contextual_help($current_screen,
-	'<p>' . __('The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.') . '</p>' .
-	'<p>' . __('<strong>Info</strong> - The domain and path are rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.') . '</p>' .
-	'<p>' . __('<strong>Users</strong> - This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.') . '</p>' .
-	'<p>' . sprintf( __('<strong>Themes</strong> - This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ), network_admin_url( 'themes.php' ) ) . '</p>' .
-	'<p>' . __('<strong>Settings</strong> - This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.') . '</p>' .
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Sites_Screens" target="_blank">Documentation on Site Management</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/forum/multisite/" target="_blank">Support Forums</a>') . '</p>'
 );
+
+$_SERVER['REQUEST_URI'] = remove_query_arg( 'update', $_SERVER['REQUEST_URI'] );
+$referer = remove_query_arg( 'update', wp_get_referer() );
 
 $id = isset( $_REQUEST['id'] ) ? intval( $_REQUEST['id'] ) : 0;
 
@@ -59,7 +66,7 @@ $action = $wp_list_table->current_action();
 
 if ( $action ) {
 	switch_to_blog( $id );
-	
+
 	switch ( $action ) {
 		case 'newuser':
 			check_admin_referer( 'add-user', '_wpnonce_add-new-user' );
@@ -84,7 +91,7 @@ if ( $action ) {
 			check_admin_referer( 'add-user', '_wpnonce_add-user' );
 			if ( !empty( $_POST['newuser'] ) ) {
 				$update = 'adduser';
-				$newuser = $_POST['newuser'];				
+				$newuser = $_POST['newuser'];
 				$userid = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM " . $wpdb->users . " WHERE user_login = %s", $newuser ) );
 				if ( $userid ) {
 					$user = $wpdb->get_var( "SELECT user_id FROM " . $wpdb->usermeta . " WHERE user_id='$userid' AND meta_key='{$blog_prefix}capabilities'" );
@@ -99,12 +106,12 @@ if ( $action ) {
 				$update = 'err_add_notfound';
 			}
 			break;
-		
+
 		case 'remove':
 			if ( !current_user_can('remove_users')  )
 				die(__('You can&#8217;t remove users.'));
 			check_admin_referer( 'bulk-users' );
-			
+
 			$update = 'remove';
 			if ( isset( $_REQUEST['users'] ) ) {
 				$userids = $_REQUEST['users'];
@@ -144,14 +151,14 @@ if ( $action ) {
 			}
 			break;
 	}
-	
+
 	restore_current_blog();
-	wp_redirect( add_query_arg( 'update', $update, wp_get_referer() ) );
+	wp_safe_redirect( add_query_arg( 'update', $update, $referer ) );
 	exit();
 }
 
 if ( isset( $_GET['action'] ) && 'update-site' == $_GET['action'] ) {
-	wp_redirect( wp_get_referer() );
+	wp_safe_redirect( $referer );
 	exit();
 }
 

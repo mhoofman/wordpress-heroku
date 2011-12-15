@@ -49,7 +49,8 @@ function wp_initial_constants( ) {
 	if ( !defined('WP_DEBUG') )
 		define( 'WP_DEBUG', false );
 
-	// Add define('WP_DEBUG_DISPLAY', false); to wp-config.php use the globally configured setting for display_errors and not force errors to be displayed.
+	// Add define('WP_DEBUG_DISPLAY', null); to wp-config.php use the globally configured setting for
+	// display_errors and not force errors to be displayed. Use false to force display_errors off.
 	if ( !defined('WP_DEBUG_DISPLAY') )
 		define( 'WP_DEBUG_DISPLAY', true );
 
@@ -267,6 +268,12 @@ function wp_functionality_constants( ) {
 
 	if ( !defined('WP_POST_REVISIONS') )
 		define('WP_POST_REVISIONS', true);
+
+	/**
+	 * @since 3.3.0
+	 */
+	if ( !defined( 'WP_CRON_LOCK_TIMEOUT' ) )
+		define('WP_CRON_LOCK_TIMEOUT', 60);  // In seconds
 }
 
 /**

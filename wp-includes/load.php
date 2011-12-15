@@ -166,7 +166,7 @@ function wp_maintenance() {
 	header( 'Content-Type: text/html; charset=utf-8' );
 	header( 'Retry-After: 600' );
 ?>
-	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+	<!DOCTYPE html>
 	<html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -186,7 +186,7 @@ function wp_maintenance() {
  *
  * @access private
  * @since 0.71
- * @global int $timestart Seconds and Microseconds added together from when function is called.
+ * @global int $timestart Seconds and microseconds added together from when function is called.
  * @return bool Always returns true.
  */
 function timer_start() {
@@ -210,11 +210,11 @@ function timer_start() {
  * timer_stop(1);
  * </code>
  * which will do what the above does. If you need the result, you can assign it to a variable, but
- * most cases, you only need to echo it.
+ * in most cases, you only need to echo it.
  *
  * @since 0.71
- * @global int $timestart Seconds and Microseconds added together from when timer_start() is called
- * @global int $timeend  Seconds and Microseconds added together from when function is called
+ * @global int $timestart Seconds and microseconds added together from when timer_start() is called
+ * @global int $timeend Seconds and microseconds added together from when function is called
  *
  * @param int $display Use '0' or null to not echo anything and 1 to echo the total time
  * @param int $precision The amount of digits from the right of the decimal to display. Default is 3.
@@ -249,9 +249,9 @@ function timer_stop( $display = 0, $precision = 3 ) { // if called like timer_st
  * development environments.
  *
  * When WP_DEBUG_DISPLAY is true, WordPress will force errors to be displayed.
- * WP_DEBUG_DISPLAY defaults to true. Defining it as false prevents WordPress from
- * changing the global configuration setting. (Defining WP_DEBUG_DISPLAY as false
- * will never force errors to be hidden.)
+ * WP_DEBUG_DISPLAY defaults to true. Defining it as null prevents WordPress from
+ * changing the global configuration setting. Defining WP_DEBUG_DISPLAY as false
+ * will force errors to be hidden.
  *
  * When WP_DEBUG_LOG is true, errors will be logged to wp-content/debug.log.
  * WP_DEBUG_LOG defaults to false.
@@ -270,6 +270,8 @@ function wp_debug_mode() {
 
 		if ( WP_DEBUG_DISPLAY )
 			ini_set( 'display_errors', 1 );
+		elseif ( null !== WP_DEBUG_DISPLAY )
+			ini_set( 'display_errors', 0 );
 
 		if ( WP_DEBUG_LOG ) {
 			ini_set( 'log_errors', 1 );
@@ -285,9 +287,9 @@ function wp_debug_mode() {
  *
  * To set directory manually, define <code>WP_LANG_DIR</code> in wp-config.php.
  *
- * If the language directory exists within WP_CONTENT_DIR that is used
- * Otherwise if the language directory exists within WPINC, that's used
- * Finally, If neither of the preceeding directories is found,
+ * If the language directory exists within WP_CONTENT_DIR, that is used.
+ * Otherwise if the language directory exists within WPINC, that's used.
+ * Finally, if neither of the preceding directories are found,
  * WP_CONTENT_DIR/languages is used.
  *
  * The WP_LANG_DIR constant was introduced in 2.1.0.
@@ -394,7 +396,7 @@ function wp_start_object_cache() {
 	} else if ( !$_wp_using_ext_object_cache && file_exists( WP_CONTENT_DIR . '/object-cache.php' ) ) {
 		// Sometimes advanced-cache.php can load object-cache.php before it is loaded here.
 		// This breaks the function_exists check above and can result in $_wp_using_ext_object_cache
-		// being set incorrectly.  Double check if an external cache exists.
+		// being set incorrectly. Double check if an external cache exists.
 		$_wp_using_ext_object_cache = true;
 	}
 

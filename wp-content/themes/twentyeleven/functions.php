@@ -78,10 +78,10 @@ function twentyeleven_setup() {
 	 * If you're building a theme based on Twenty Eleven, use a find and replace
 	 * to change 'twentyeleven' to the name of your theme in all the template files.
 	 */
-	load_theme_textdomain( 'twentyeleven', TEMPLATEPATH . '/languages' );
+	load_theme_textdomain( 'twentyeleven', get_template_directory() . '/languages' );
 
 	$locale = get_locale();
-	$locale_file = TEMPLATEPATH . "/languages/$locale.php";
+	$locale_file = get_template_directory() . "/languages/$locale.php";
 	if ( is_readable( $locale_file ) )
 		require_once( $locale_file );
 
@@ -89,10 +89,10 @@ function twentyeleven_setup() {
 	add_editor_style();
 
 	// Load up our theme options page and related code.
-	require( dirname( __FILE__ ) . '/inc/theme-options.php' );
+	require( get_template_directory() . '/inc/theme-options.php' );
 
 	// Grab Twenty Eleven's Ephemera widget.
-	require( dirname( __FILE__ ) . '/inc/widgets.php' );
+	require( get_template_directory() . '/inc/widgets.php' );
 
 	// Add default posts and comments RSS feed links to <head>.
 	add_theme_support( 'automatic-feed-links' );
@@ -421,6 +421,7 @@ function twentyeleven_widgets_init() {
 }
 add_action( 'widgets_init', 'twentyeleven_widgets_init' );
 
+if ( ! function_exists( 'twentyeleven_content_nav' ) ) :
 /**
  * Display navigation to next/previous pages when applicable
  */
@@ -435,6 +436,7 @@ function twentyeleven_content_nav( $nav_id ) {
 		</nav><!-- #nav-above -->
 	<?php endif;
 }
+endif; // twentyeleven_content_nav
 
 /**
  * Return the URL for the first link found in the post content.
@@ -565,8 +567,8 @@ function twentyeleven_posted_on() {
 		esc_attr( get_the_date( 'c' ) ),
 		esc_html( get_the_date() ),
 		esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ),
-		sprintf( esc_attr__( 'View all posts by %s', 'twentyeleven' ), get_the_author() ),
-		esc_html( get_the_author() )
+		esc_attr( sprintf( __( 'View all posts by %s', 'twentyeleven' ), get_the_author() ) ),
+		get_the_author()
 	);
 }
 endif;
@@ -580,9 +582,8 @@ endif;
  */
 function twentyeleven_body_classes( $classes ) {
 
-	if ( ! is_multi_author() ) {
+	if ( function_exists( 'is_multi_author' ) && ! is_multi_author() )
 		$classes[] = 'single-author';
-	}
 
 	if ( is_singular() && ! is_home() && ! is_page_template( 'showcase.php' ) && ! is_page_template( 'sidebar-page.php' ) )
 		$classes[] = 'singular';

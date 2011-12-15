@@ -172,11 +172,11 @@ function display_theme($theme, $actions = null, $show_details = true) {
 <?php endif; ?>
 <div class="star-holder" title="<?php printf(_n('(based on %s rating)', '(based on %s ratings)', $theme->num_ratings), number_format_i18n($theme->num_ratings)) ?>">
 	<div class="star star-rating" style="width: <?php echo esc_attr($theme->rating) ?>px"></div>
-	<div class="star star5"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('5 stars') ?>" /></div>
-	<div class="star star4"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('4 stars') ?>" /></div>
-	<div class="star star3"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('3 stars') ?>" /></div>
-	<div class="star star2"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('2 stars') ?>" /></div>
-	<div class="star star1"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php _e('1 star') ?>" /></div>
+	<div class="star star5"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('5 stars') ?>" /></div>
+	<div class="star star4"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('4 stars') ?>" /></div>
+	<div class="star star3"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('3 stars') ?>" /></div>
+	<div class="star star2"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('2 stars') ?>" /></div>
+	<div class="star star1"><img src="<?php echo admin_url('images/star.png?v=20110615'); ?>" alt="<?php esc_attr_e('1 star') ?>" /></div>
 </div>
 </div>
 <?php }
@@ -237,7 +237,7 @@ function install_theme_information() {
 	iframe_header( __('Theme Install') );
 
 	if ( empty($api->download_link) ) {
-		echo '<div id="message" class="error"><p>' . __('<strong>Error:</strong> This theme is currently not available. Please try again later.') . '</p></div>';
+		echo '<div id="message" class="error"><p>' . __('<strong>ERROR:</strong> This theme is currently not available. Please try again later.') . '</p></div>';
 		iframe_footer();
 		exit;
 	}
@@ -262,7 +262,7 @@ function install_theme_information() {
 	}
 
 	$themes = get_themes();
-	foreach ( $themes as $this_theme ) {
+	foreach ( (array) $themes as $this_theme ) {
 		if ( is_array($this_theme) && $this_theme['Stylesheet'] == $api->slug ) {
 			if ( $this_theme['Version'] == $api->version ) {
 				$type = 'latest_installed';

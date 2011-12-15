@@ -32,7 +32,8 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 			'fields' => 'all_with_meta'
 		);
 
-		$args['search'] = ltrim($args['search'], '*');
+		if ( wp_is_large_network( 'users' ) )
+			$args['search'] = ltrim( $args['search'], '*' );
 
 		if ( $role == 'super' ) {
 			$logins = implode( "', '", get_super_admins() );
@@ -41,7 +42,7 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 
 		// If the network is large and a search is not being performed, show only the latest users with no paging in order
 		// to avoid expensive count queries.
-		if ( !$usersearch && ( get_blog_count() >= 10000 ) ) {
+		if ( !$usersearch && wp_is_large_network( 'users' ) ) {
 			if ( !isset($_REQUEST['orderby']) )
 				$_GET['orderby'] = $_REQUEST['orderby'] = 'id';
 			if ( !isset($_REQUEST['order']) )
@@ -188,8 +189,8 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 								$actions = array();
 								$actions['edit'] = '<a href="' . $edit_link . '">' . __( 'Edit' ) . '</a>';
 
-								if ( current_user_can( 'delete_user', $user->ID) && ! in_array( $user->user_login, $super_admins ) ) {
-									$actions['delete'] = '<a href="' . $delete = esc_url( network_admin_url( add_query_arg( '_wp_http_referer', urlencode( stripslashes( $_SERVER['REQUEST_URI'] ) ), wp_nonce_url( 'edit.php', 'deleteuser' ) . '&amp;action=deleteuser&amp;id=' . $user->ID ) ) ) . '" class="delete">' . __( 'Delete' ) . '</a>';
+								if ( current_user_can( 'delete_user', $user->ID ) && ! in_array( $user->user_login, $super_admins ) ) {
+									$actions['delete'] = '<a href="' . $delete = esc_url( network_admin_url( add_query_arg( '_wp_http_referer', urlencode( stripslashes( $_SERVER['REQUEST_URI'] ) ), wp_nonce_url( 'users.php', 'deleteuser' ) . '&amp;action=deleteuser&amp;id=' . $user->ID ) ) ) . '" class="delete">' . __( 'Delete' ) . '</a>';
 								}
 
 								$actions = apply_filters( 'ms_user_row_actions', $actions, $user );

@@ -37,20 +37,38 @@ $parent_file = 'themes.php';
 
 if ( current_user_can( 'switch_themes' ) ) :
 
-$help = '<p>' . __('Aside from the default theme included with your WordPress installation, themes are designed and developed by third parties.') . '</p>';
-$help .= '<p>' . __('You can see your active theme at the top of the screen. Below are the other themes you have installed that are not currently in use. You can see what your site would look like with one of these themes by clicking the Preview link. To change themes, click the Activate link.') . '</p>';
-if ( current_user_can('install_themes') )
-	$help .= '<p>' . sprintf(__('If you would like to see more themes to choose from, click on the &#8220;Install Themes&#8221; tab and you will be able to browse or search for additional themes from the <a href="%s" target="_blank">WordPress.org Theme Directory</a>. Themes in the WordPress.org Theme Directory are designed and developed by third parties, and are compatible with the license WordPress uses. Oh, and they&#8217;re free!'), 'http://wordpress.org/extend/themes/') . '</p>';
+$help_manage = '<p>' . __('Aside from the default theme included with your WordPress installation, themes are designed and developed by third parties.') . '</p>' .
+	'<p>' . __('You can see your active theme at the top of the screen. Below are the other themes you have installed that are not currently in use. You can see what your site would look like with one of these themes by clicking the Preview link. To change themes, click the Activate link.') . '</p>';
 
-$help .= '<p><strong>' . __('For more information:') . '</strong></p>';
-$help .= '<p>' . __('<a href="http://codex.wordpress.org/Using_Themes" target="_blank">Documentation on Using Themes</a>') . '</p>';
-$help .= '<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>';
-add_contextual_help($current_screen, $help);
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' => $help_manage,
+) );
+
+if ( current_user_can( 'install_themes' ) ) {
+	if ( is_multisite() ) {
+		$help_install = '<p>' . __('Installing themes on Multisite can only be done from the Network Admin section.') . '</p>';
+	} else {
+		$help_install = '<p>' . sprintf( __('If you would like to see more themes to choose from, click on the &#8220;Install Themes&#8221; tab and you will be able to browse or search for additional themes from the <a href="%s" target="_blank">WordPress.org Theme Directory</a>. Themes in the WordPress.org Theme Directory are designed and developed by third parties, and are compatible with the license WordPress uses. Oh, and they&#8217;re free!'), 'http://wordpress.org/extend/themes/' ) . '</p>';
+	}
+
+	get_current_screen()->add_help_tab( array(
+		'id'      => 'adding-themes',
+		'title'   => __('Adding Themes'),
+		'content' => $help_install,
+	) );
+}
+
+get_current_screen()->set_help_sidebar(
+	'<p><strong>' . __('For more information:') . '</strong></p>' .
+	'<p>' . __('<a href="http://codex.wordpress.org/Using_Themes" target="_blank">Documentation on Using Themes</a>') . '</p>' .
+	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+);
 
 add_thickbox();
 wp_enqueue_script( 'theme-preview' );
 wp_enqueue_script( 'theme' );
-wp_enqueue_style( 'theme-install' );
 
 endif;
 
@@ -82,7 +100,7 @@ if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
 <h3><?php _e('Current Theme'); ?></h3>
 <div id="current-theme">
 <?php if ( $ct->screenshot ) : ?>
-<img src="<?php echo $ct->theme_root_uri . '/' . $ct->stylesheet . '/' . $ct->screenshot; ?>" alt="<?php _e('Current theme preview'); ?>" />
+<img src="<?php echo $ct->theme_root_uri . '/' . $ct->stylesheet . '/' . $ct->screenshot; ?>" alt="<?php esc_attr_e('Current theme preview'); ?>" />
 <?php endif; ?>
 <h4><?php
 	/* translators: 1: theme title, 2: theme version, 3: theme author */
@@ -104,7 +122,7 @@ if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
 			if ( !empty($submenu[$item[2]]) ) {
 				$submenu[$item[2]] = array_values($submenu[$item[2]]);  // Re-index.
 				$menu_hook = get_plugin_page_hook($submenu[$item[2]][0][2], $item[2]);
-				if ( file_exists(ABSPATH . PLUGINDIR . "/{$submenu[$item[2]][0][2]}") || !empty($menu_hook))
+				if ( file_exists(WP_PLUGIN_DIR . "/{$submenu[$item[2]][0][2]}") || !empty($menu_hook))
 					$options[] = "<a href='admin.php?page={$submenu[$item[2]][0][2]}'$class>{$item[0]}</a>";
 				else
 					$options[] = "<a href='{$submenu[$item[2]][0][2]}'$class>{$item[0]}</a>";

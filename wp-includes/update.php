@@ -57,8 +57,18 @@ function wp_version_check() {
 		$wp_install = home_url( '/' );
 	}
 
-	$local_package = isset( $wp_local_package )? $wp_local_package : '';
-	$url = "http://api.wordpress.org/core/version-check/1.6/?version=$wp_version&php=$php_version&locale=$locale&mysql=$mysql_version&local_package=$local_package&blogs=$num_blogs&users={$user_count['total_users']}&multisite_enabled=$multisite_enabled";
+	$query = array(
+		'version'           => $wp_version,
+		'php'               => $php_version,
+		'locale'            => $locale,
+		'mysql'             => $mysql_version,
+		'local_package'     => isset( $wp_local_package ) ? $wp_local_package : '',
+		'blogs'             => $num_blogs,
+		'users'             => $user_count['total_users'],
+		'multisite_enabled' => $multisite_enabled
+	);
+
+	$url = 'http://api.wordpress.org/core/version-check/1.6/?' . http_build_query( $query, null, '&' );
 
 	$options = array(
 		'timeout' => ( ( defined('DOING_CRON') && DOING_CRON ) ? 30 : 3 ),
@@ -133,7 +143,8 @@ function wp_update_plugins() {
 
 	$new_option = new stdClass;
 	$new_option->last_checked = time();
-	$timeout = 'load-plugins.php' == current_filter() ? 3600 : 43200; //Check for updated every 60 minutes if hitting the themes page, Else, check every 12 hours
+	// Check for updated every 60 minutes if hitting update pages; else, check every 12 hours.
+	$timeout = in_array( current_filter(), array( 'load-plugins.php', 'load-update.php', 'load-update-core.php' ) ) ? 3600 : 43200;
 	$time_not_changed = isset( $current->last_checked ) && $timeout > ( time() - $current->last_checked );
 
 	$plugin_changed = false;
@@ -211,7 +222,8 @@ function wp_update_themes() {
 	if ( ! is_object($last_update) )
 		$last_update = new stdClass;
 
-	$timeout = 'load-themes.php' == current_filter() ? 3600 : 43200; //Check for updated every 60 minutes if hitting the themes page, Else, check every 12 hours
+	// Check for updated every 60 minutes if hitting update pages; else, check every 12 hours.
+	$timeout = in_array( current_filter(), array( 'load-themes.php', 'load-update.php', 'load-update-core.php' ) ) ? 3600 : 43200;
 	$time_not_changed = isset( $last_update->last_checked ) && $timeout > ( time( ) - $last_update->last_checked );
 
 	$themes = array();
@@ -280,6 +292,48 @@ function wp_update_themes() {
 	set_site_transient( 'update_themes', $new_update );
 }
 
+/*
+ * Collect counts and UI strings for available updates
+ *
+ * @since 3.3.0
+ *
+ * @return array
+ */
+function wp_get_update_data() {
+	$counts = array( 'plugins' => 0, 'themes' => 0, 'wordpress' => 0 );
+
+	if ( current_user_can( 'update_plugins' ) ) {
+		$update_plugins = get_site_transient( 'update_plugins' );
+		if ( ! empty( $update_plugins->response ) )
+			$counts['plugins'] = count( $update_plugins->response );
+	}
+
+	if ( current_user_can( 'update_themes' ) ) {
+		$update_themes = get_site_transient( 'update_themes' );
+		if ( ! empty( $update_themes->response ) )
+			$counts['themes'] = count( $update_themes->response );
+	}
+
+	if ( function_exists( 'get_core_updates' ) && current_user_can( 'update_core' ) ) {
+		$update_wordpress = get_core_updates( array('dismissed' => false) );
+		if ( ! empty( $update_wordpress ) && ! in_array( $update_wordpress[0]->response, array('development', 'latest') ) && current_user_can('update_core') )
+			$counts['wordpress'] = 1;
+	}
+
+	$counts['total'] = $counts['plugins'] + $counts['themes'] + $counts['wordpress'];
+	$update_title = array();
+	if ( $counts['wordpress'] )
+		$update_title[] = sprintf(__('%d WordPress Update'), $counts['wordpress']);
+	if ( $counts['plugins'] )
+		$update_title[] = sprintf(_n('%d Plugin Update', '%d Plugin Updates', $counts['plugins']), $counts['plugins']);
+	if ( $counts['themes'] )
+		$update_title[] = sprintf(_n('%d Theme Update', '%d Theme Updates', $counts['themes']), $counts['themes']);
+
+	$update_title = ! empty( $update_title ) ? esc_attr( implode( ', ', $update_title ) ) : '';
+
+	return array( 'counts' => $counts, 'title' => $update_title );
+}
+
 function _maybe_update_core() {
 	include ABSPATH . WPINC . '/version.php'; // include an unmodified $wp_version
 
@@ -343,7 +397,7 @@ function wp_schedule_update_checks() {
 		wp_schedule_event(time(), 'twicedaily', 'wp_update_themes');
 }
 
-if ( ! is_main_site() )
+if ( ! is_main_site() && ! is_network_admin() )
 	return;
 
 add_action( 'admin_init', '_maybe_update_core' );

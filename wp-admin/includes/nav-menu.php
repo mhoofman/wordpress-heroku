@@ -88,7 +88,7 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu  {
 					<span class="item-title"><?php echo esc_html( $title ); ?></span>
 					<span class="item-controls">
 						<span class="item-type"><?php echo esc_html( $item->type_label ); ?></span>
-						<span class="item-order">
+						<span class="item-order hide-if-js">
 							<a href="<?php
 								echo wp_nonce_url(
 									add_query_arg(
@@ -115,7 +115,7 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu  {
 								);
 							?>" class="item-move-down"><abbr title="<?php esc_attr_e('Move down'); ?>">&#8595;</abbr></a>
 						</span>
-						<a class="item-edit" id="edit-<?php echo $item_id; ?>" title="<?php _e('Edit Menu Item'); ?>" href="<?php
+						<a class="item-edit" id="edit-<?php echo $item_id; ?>" title="<?php esc_attr_e('Edit Menu Item'); ?>" href="<?php
 							echo ( isset( $_GET['edit-menu-item'] ) && $item_id == $_GET['edit-menu-item'] ) ? admin_url( 'nav-menus.php' ) : add_query_arg( 'edit-menu-item', $item_id, remove_query_arg( $removed_args, admin_url( 'nav-menus.php#menu-item-settings-' . $item_id ) ) );
 						?>"><?php _e( 'Edit Menu Item' ); ?></a>
 					</span>
@@ -143,13 +143,10 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu  {
 						<input type="text" id="edit-menu-item-attr-title-<?php echo $item_id; ?>" class="widefat edit-menu-item-attr-title" name="menu-item-attr-title[<?php echo $item_id; ?>]" value="<?php echo esc_attr( $item->post_excerpt ); ?>" />
 					</label>
 				</p>
-				<p class="field-link-target description description-thin">
+				<p class="field-link-target description">
 					<label for="edit-menu-item-target-<?php echo $item_id; ?>">
-						<?php _e( 'Link Target' ); ?><br />
-						<select id="edit-menu-item-target-<?php echo $item_id; ?>" class="widefat edit-menu-item-target" name="menu-item-target[<?php echo $item_id; ?>]">
-							<option value="" <?php selected( $item->target, ''); ?>><?php _e('Same window or tab'); ?></option>
-							<option value="_blank" <?php selected( $item->target, '_blank'); ?>><?php _e('New window or tab'); ?></option>
-						</select>
+						<input type="checkbox" id="edit-menu-item-target-<?php echo $item_id; ?>" value="_blank" name="menu-item-target[<?php echo $item_id; ?>]"<?php checked( $item->target, '_blank' ); ?> />
+						<?php _e( 'Open link in a new window/tab' ); ?>
 					</label>
 				</p>
 				<p class="field-css-classes description description-thin">
@@ -340,7 +337,8 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 			while ( have_posts() ) {
 				the_post();
 				if ( 'markup' == $response_format ) {
-					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_post( get_the_ID() ) ) ), 0, (object) $args );
+					$var_by_ref = get_the_ID();
+					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_post( $var_by_ref ) ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
 					echo json_encode(
 						array(

@@ -1,114 +1,14 @@
-var showNotice, adminMenu, columns, validateForm, screenMeta;
+var showNotice, adminMenu, columns, validateForm, screenMeta, autofold_menu;
 (function($){
-// sidebar admin menu
+// Removed in 3.3.
+// (perhaps) needed for back-compat
 adminMenu = {
-	init : function() {
-		var menu = $('#adminmenu');
-
-		$('.wp-menu-toggle', menu).each( function() {
-			var t = $(this), sub = t.siblings('.wp-submenu');
-			if ( sub.length )
-				t.click(function(){ adminMenu.toggle( sub ); });
-			else
-				t.hide();
-		});
-
-		this.favorites();
-
-		$('#collapse-menu', menu).click(function(){
-			if ( $('body').hasClass('folded') ) {
-				adminMenu.fold(1);
-				deleteUserSetting( 'mfold' );
-			} else {
-				adminMenu.fold();
-				setUserSetting( 'mfold', 'f' );
-			}
-			return false;
-		});
-
-		if ( $('body').hasClass('folded') )
-			this.fold();
-	},
-
-	restoreMenuState : function() {
-		// (perhaps) needed for back-compat
-	},
-
-	toggle : function(el) {
-		el.slideToggle(150, function() {
-			var id = el.css('display','').parent().toggleClass( 'wp-menu-open' ).attr('id');
-			if ( id ) {
-				$('li.wp-has-submenu', '#adminmenu').each(function(i, e) {
-					if ( id == e.id ) {
-						var v = $(e).hasClass('wp-menu-open') ? 'o' : 'c';
-						setUserSetting( 'm'+i, v );
-					}
-				});
-			}
-		});
-
-		return false;
-	},
-
-	fold : function(off) {
-		if (off) {
-			$('body').removeClass('folded');
-			$('#adminmenu li.wp-has-submenu').unbind();
-		} else {
-			$('body').addClass('folded');
-			$('#adminmenu li.wp-has-submenu').hoverIntent({
-				over: function(e){
-					var m, b, h, o, f;
-					m = $(this).find('.wp-submenu');
-					b = $(this).offset().top + m.height() + 1; // Bottom offset of the menu
-					h = $('#wpwrap').height(); // Height of the entire page
-					o = 60 + b - h;
-					f = $(window).height() + $(window).scrollTop() - 15; // The fold
-					if ( f < (b - o) ) {
-						o = b - f;
-					}
-					if ( o > 1 ) {
-						m.css({'marginTop':'-'+o+'px'});
-					} else if ( m.css('marginTop') ) {
-						m.css({'marginTop':''});
-					}
-					m.addClass('sub-open');
-				},
-				out: function(){
-					$(this).find('.wp-submenu').removeClass('sub-open');
-				},
-				timeout: 220,
-				sensitivity: 8,
-				interval: 100
-			});
-
-		}
-	},
-
-	favorites : function() {
-		$('#favorite-inside').width( $('#favorite-actions').width() - 4 );
-		$('#favorite-toggle, #favorite-inside').bind('mouseenter', function() {
-			$('#favorite-inside').removeClass('slideUp').addClass('slideDown');
-			setTimeout(function() {
-				if ( $('#favorite-inside').hasClass('slideDown') ) {
-					$('#favorite-inside').slideDown(100);
-					$('#favorite-first').addClass('slide-down');
-				}
-			}, 200);
-		}).bind('mouseleave', function() {
-			$('#favorite-inside').removeClass('slideDown').addClass('slideUp');
-			setTimeout(function() {
-				if ( $('#favorite-inside').hasClass('slideUp') ) {
-					$('#favorite-inside').slideUp(100, function() {
-						$('#favorite-first').removeClass('slide-down');
-					});
-				}
-			}, 300);
-		});
-	}
+	init : function() {},
+	fold : function() {},
+	restoreMenuState : function() {},
+	toggle : function() {},
+	favorites : function() {}
 };
-
-$(document).ready(function(){ adminMenu.init(); });
 
 // show/hide/save table columns
 columns = {
@@ -190,46 +90,160 @@ showNotice = {
 };
 
 screenMeta = {
-	links: {
-		'screen-options-link-wrap': 'screen-options-wrap',
-		'contextual-help-link-wrap': 'contextual-help-wrap'
-	},
+	element: null, // #screen-meta
+	toggles: null, // .screen-meta-toggle
+	page:    null, // #wpcontent
+
 	init: function() {
-		$('.screen-meta-toggle').click( screenMeta.toggleEvent );
+		this.element = $('#screen-meta');
+		this.toggles = $('.screen-meta-toggle a');
+		this.page    = $('#wpcontent');
+
+		this.toggles.click( this.toggleEvent );
 	},
+
 	toggleEvent: function( e ) {
-		var panel;
+		var panel = $( this.href.replace(/.+#/, '#') );
 		e.preventDefault();
 
-		// Check to see if we found a panel.
-		if ( ! screenMeta.links[ this.id ] )
+		if ( !panel.length )
 			return;
-
-		panel = $('#' + screenMeta.links[ this.id ]);
 
 		if ( panel.is(':visible') )
 			screenMeta.close( panel, $(this) );
 		else
 			screenMeta.open( panel, $(this) );
 	},
-	open: function( panel, link ) {
-		$('.screen-meta-toggle').not( link ).css('visibility', 'hidden');
 
+	open: function( panel, link ) {
+
+		$('.screen-meta-toggle').not( link.parent() ).css('visibility', 'hidden');
+
+		panel.parent().show();
 		panel.slideDown( 'fast', function() {
 			link.addClass('screen-meta-active');
 		});
 	},
+
 	close: function( panel, link ) {
 		panel.slideUp( 'fast', function() {
 			link.removeClass('screen-meta-active');
 			$('.screen-meta-toggle').css('visibility', '');
+			panel.parent().hide();
 		});
 	}
 };
 
+/**
+ * Help tabs.
+ */
+$('.contextual-help-tabs').delegate('a', 'click focus', function(e) {
+	var link = $(this),
+		panel;
+
+	e.preventDefault();
+
+	// Don't do anything if the click is for the tab already showing.
+	if ( link.is('.active a') )
+		return false;
+
+	// Links
+	$('.contextual-help-tabs .active').removeClass('active');
+	link.parent('li').addClass('active');
+
+	panel = $( link.attr('href') );
+
+	// Panels
+	$('.help-tab-content').not( panel ).removeClass('active').hide();
+	panel.addClass('active').show();
+});
+
 $(document).ready( function() {
-	var lastClicked = false, checks, first, last, checked, dropdown,
-		pageInput = $('input[name="paged"]'), currentPage;
+	var lastClicked = false, checks, first, last, checked, menu = $('#adminmenu'),
+		pageInput = $('input.current-page'), currentPage = pageInput.val(), folded, refresh;
+
+	// admin menu
+	refresh = function(i, el){ // force the browser to refresh the tabbing index
+		var node = $(el), tab = node.attr('tabindex');
+		if ( tab )
+			node.attr('tabindex', '0').attr('tabindex', tab);
+	};
+
+	$('#collapse-menu', menu).click(function(){
+		var body = $(document.body);
+
+		if ( body.hasClass('folded') ) {
+			body.removeClass('folded');
+			setUserSetting('mfold', 'o');
+		} else {
+			body.addClass('folded');
+			setUserSetting('mfold', 'f');
+		}
+		return false;
+	});
+
+	$('li.wp-has-submenu', menu).hoverIntent({
+		over: function(e){
+			var b, h, o, f, m = $(this).find('.wp-submenu'), menutop, wintop, maxtop;
+
+			if ( !$(document.body).hasClass('folded') && $(this).hasClass('wp-menu-open') )
+				return;
+
+			menutop = $(this).offset().top;
+			wintop = $(window).scrollTop();
+			maxtop = menutop - wintop - 30; // max = make the top of the sub almost touch admin bar
+
+			b = menutop + m.height() + 1; // Bottom offset of the menu
+			h = $('#wpwrap').height(); // Height of the entire page
+			o = 60 + b - h;
+			f = $(window).height() + wintop - 15; // The fold
+
+			if ( f < (b - o) )
+				o = b - f;
+
+			if ( o > maxtop )
+				o = maxtop;
+
+			if ( o > 1 )
+				m.css({'marginTop':'-'+o+'px'});
+			else if ( m.css('marginTop') )
+				m.css({'marginTop':''});
+
+			m.addClass('sub-open');
+		},
+		out: function(){
+			$(this).find('.wp-submenu').removeClass('sub-open');
+		},
+		timeout: 200,
+		sensitivity: 7,
+		interval: 90
+	});
+
+	// Tab to select, Enter to open sub, Esc to close sub and focus the top menu
+	$('li.wp-has-submenu > a.wp-not-current-submenu', menu).bind('keydown.adminmenu', function(e){
+		if ( e.which != 13 )
+			return;
+
+		var target = $(e.target);
+
+		e.stopPropagation();
+		e.preventDefault();
+
+		menu.find('.wp-submenu').removeClass('sub-open');
+		target.siblings('.wp-submenu').toggleClass('sub-open').find('a[role="menuitem"]').each(refresh);
+	}).each(refresh);
+
+	$('a[role="menuitem"]', menu).bind('keydown.adminmenu', function(e){
+		if ( e.which != 27 )
+			return;
+
+		var target = $(e.target);
+
+		e.stopPropagation();
+		e.preventDefault();
+
+		target.add( target.siblings() ).closest('.sub-open').removeClass('sub-open').siblings('a.wp-not-current-submenu').focus();
+	});
 
 	// Move .updated and .error alert boxes. Don't move boxes designed to be inline.
 	$('div.wrap h2:first').nextAll('div.updated, div.error').addClass('below-h2');
@@ -237,24 +251,6 @@ $(document).ready( function() {
 
 	// Init screen meta
 	screenMeta.init();
-
-	// User info dropdown.
-	dropdown = {
-		doc: $(document),
-		element: $('#user_info'),
-		open: function() {
-			if ( ! dropdown.element.hasClass('active') ) {
-				dropdown.element.addClass('active');
-				dropdown.doc.one( 'click', dropdown.close );
-				return false;
-			}
-		},
-		close: function() {
-			dropdown.element.removeClass('active');
-		}
-	};
-
-	dropdown.element.click( dropdown.open );
 
 	// check all checkboxes
 	$('tbody').children().children('.check-column').find(':checkbox').click( function(e) {
@@ -346,13 +342,35 @@ $(document).ready( function() {
 	});
 
 	if ( pageInput.length ) {
-		currentPage = pageInput.val();
-		pageInput.closest('form').submit( function(){
-			// Reset paging var for new filters/searches. See #17685.
-			if ( pageInput.val() == currentPage )
+		pageInput.closest('form').submit( function(e){
+
+			// Reset paging var for new filters/searches but not for bulk actions. See #17685.
+			if ( $('select[name="action"]').val() == -1 && $('select[name="action2"]').val() == -1 && pageInput.val() == currentPage )
 				pageInput.val('1');
 		});
 	}
+
+	// auto-fold the menu when screen is under 800px
+	$(window).bind('resize.autofold', function(){
+		if ( getUserSetting('mfold') == 'f' )
+			return;
+
+		var width = $(window).width();
+
+		// fold admin menu
+		if ( width <= 800 ) {
+			if ( !folded ) {
+				$(document.body).addClass('folded');
+				folded = true;
+			}
+		} else {
+			if ( folded ) {
+				$(document.body).removeClass('folded');
+				folded = false;
+			}
+		}
+
+	}).triggerHandler('resize');
 
 });
 

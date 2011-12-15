@@ -24,11 +24,11 @@ if ( ! empty($link_id) ) {
 
 require_once('./includes/meta-boxes.php');
 
-add_meta_box('linksubmitdiv', __('Save'), 'link_submit_meta_box', 'link', 'side', 'core');
-add_meta_box('linkcategorydiv', __('Categories'), 'link_categories_meta_box', 'link', 'normal', 'core');
-add_meta_box('linktargetdiv', __('Target'), 'link_target_meta_box', 'link', 'normal', 'core');
-add_meta_box('linkxfndiv', __('Link Relationship (XFN)'), 'link_xfn_meta_box', 'link', 'normal', 'core');
-add_meta_box('linkadvanceddiv', __('Advanced'), 'link_advanced_meta_box', 'link', 'normal', 'core');
+add_meta_box('linksubmitdiv', __('Save'), 'link_submit_meta_box', null, 'side', 'core');
+add_meta_box('linkcategorydiv', __('Categories'), 'link_categories_meta_box', null, 'normal', 'core');
+add_meta_box('linktargetdiv', __('Target'), 'link_target_meta_box', null, 'normal', 'core');
+add_meta_box('linkxfndiv', __('Link Relationship (XFN)'), 'link_xfn_meta_box', null, 'normal', 'core');
+add_meta_box('linkadvanceddiv', __('Advanced'), 'link_advanced_meta_box', null, 'normal', 'core');
 
 do_action('add_meta_boxes', 'link', $link);
 do_action('add_meta_boxes_link', $link);
@@ -37,21 +37,27 @@ do_action('do_meta_boxes', 'link', 'normal', $link);
 do_action('do_meta_boxes', 'link', 'advanced', $link);
 do_action('do_meta_boxes', 'link', 'side', $link);
 
-add_screen_option('layout_columns', array('max' => 2) );
+add_screen_option('layout_columns', array('max' => 2, 'default' => 2) );
 
-add_contextual_help($current_screen,
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' =>
 	'<p>' . __( 'You can add or edit links on this screen by entering information in each of the boxes. Only the link&#8217;s web address and name (the text you want to display on your site as the link) are required fields.' ) . '</p>' .
 	'<p>' . __( 'The boxes for link name, web address, and description have fixed positions, while the others may be repositioned using drag and drop. You can also hide boxes you don&#8217;t use in the Screen Options tab, or minimize boxes by clicking on the title bar of the box.' ) . '</p>' .
-	'<p>' . __( 'XFN stands for <a href="http://gmpg.org/xfn/" target="_blank">XHTML Friends Network</a>, which is optional. WordPress allows the generation of XFN attributes to show how you are related to the authors/owners of the site to which you are linking.' ) . '</p>' .
+	'<p>' . __( 'XFN stands for <a href="http://gmpg.org/xfn/" target="_blank">XHTML Friends Network</a>, which is optional. WordPress allows the generation of XFN attributes to show how you are related to the authors/owners of the site to which you are linking.' ) . '</p>'
+) );
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
 	'<p>' . __( '<a href="http://codex.wordpress.org/Links_Add_New_Screen" target="_blank">Documentation on Creating Links</a>' ) . '</p>' .
 	'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
 );
 
 require_once ('admin-header.php');
-
 ?>
-<div class="wrap">
+
+<div class="wrap columns-<?php echo (int) $screen_layout_columns ? (int) $screen_layout_columns : 'auto'; ?>">
 <?php screen_icon(); ?>
 <h2><?php echo esc_html( $title ); ?>  <a href="link-add.php" class="add-new-h2"><?php echo esc_html_x('Add New', 'link'); ?></a></h2>
 
@@ -69,14 +75,13 @@ wp_nonce_field( $nonce_action );
 wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false ); ?>
 
-<div id="poststuff" class="metabox-holder<?php echo 2 == $screen_layout_columns ? ' has-right-sidebar' : ''; ?>">
-
+<div id="poststuff" class="metabox-holder<?php echo 1 != $screen_layout_columns ? ' has-right-sidebar' : ''; ?>">
 <div id="side-info-column" class="inner-sidebar">
 <?php
-
-do_action('submitlink_box');
-$side_meta_boxes = do_meta_boxes( 'link', 'side', $link );
-
+if ( 1 != $screen_layout_columns ) {
+	do_action('submitlink_box');
+	$side_meta_boxes = do_meta_boxes( 'link', 'side', $link );
+}
 ?>
 </div>
 
@@ -108,9 +113,14 @@ $side_meta_boxes = do_meta_boxes( 'link', 'side', $link );
 
 <?php
 
-do_meta_boxes('link', 'normal', $link);
+if ( 1 == $screen_layout_columns ) {
+	do_action('submitlink_box');
+	$side_meta_boxes = do_meta_boxes( 'link', 'side', $link );
+}
 
-do_meta_boxes('link', 'advanced', $link);
+do_meta_boxes(null, 'normal', $link);
+
+do_meta_boxes(null, 'advanced', $link);
 
 if ( $link_id ) : ?>
 <input type="hidden" name="action" value="save" />

@@ -160,9 +160,9 @@ function get_the_guid( $id = 0 ) {
  * @since 0.71
  *
  * @param string $more_link_text Optional. Content for when there is more text.
- * @param string $stripteaser Optional. Teaser content before the more text.
+ * @param bool $stripteaser Optional. Strip teaser content before the more text. Default is false.
  */
-function the_content($more_link_text = null, $stripteaser = 0) {
+function the_content($more_link_text = null, $stripteaser = false) {
 	$content = get_the_content($more_link_text, $stripteaser);
 	$content = apply_filters('the_content', $content);
 	$content = str_replace(']]>', ']]&gt;', $content);
@@ -175,10 +175,10 @@ function the_content($more_link_text = null, $stripteaser = 0) {
  * @since 0.71
  *
  * @param string $more_link_text Optional. Content for when there is more text.
- * @param string $stripteaser Optional. Teaser content before the more text.
+ * @param bool $stripteaser Optional. Strip teaser content before the more text. Default is false.
  * @return string
  */
-function get_the_content($more_link_text = null, $stripteaser = 0) {
+function get_the_content($more_link_text = null, $stripteaser = false) {
 	global $post, $more, $page, $pages, $multipage, $preview;
 
 	if ( null === $more_link_text )
@@ -207,9 +207,9 @@ function get_the_content($more_link_text = null, $stripteaser = 0) {
 		$content = array($content);
 	}
 	if ( (false !== strpos($post->post_content, '<!--noteaser-->') && ((!$multipage) || ($page==1))) )
-		$stripteaser = 1;
+		$stripteaser = true;
 	$teaser = $content[0];
-	if ( ($more) && ($stripteaser) && ($hasTeaser) )
+	if ( $more && $stripteaser && $hasTeaser )
 		$teaser = '';
 	$output .= $teaser;
 	if ( count($content) > 1 ) {
@@ -329,9 +329,9 @@ function get_post_class( $class = '', $post_id = null ) {
 	$classes[] = 'status-' . $post->post_status;
 
 	// Post Format
-	$post_format = get_post_format( $post->ID );
-
 	if ( post_type_supports( $post->post_type, 'post-formats' ) ) {
+		$post_format = get_post_format( $post->ID );
+
 		if ( $post_format && !is_wp_error($post_format) )
 			$classes[] = 'format-' . sanitize_html_class( $post_format );
 		else
@@ -432,12 +432,14 @@ function get_body_class( $class = '' ) {
 		$classes[] = 'postid-' . $post_id;
 
 		// Post Format
-		$post_format = get_post_format( $post->ID );
+		if ( post_type_supports( $post->post_type, 'post-formats' ) ) {
+			$post_format = get_post_format( $post->ID );
 
-		if ( $post_format && !is_wp_error($post_format) )
-			$classes[] = 'single-format-' . sanitize_html_class( $post_format );
-		else
-			$classes[] = 'single-format-standard';
+			if ( $post_format && !is_wp_error($post_format) )
+				$classes[] = 'single-format-' . sanitize_html_class( $post_format );
+			else
+				$classes[] = 'single-format-standard';
+		}
 
 		if ( is_attachment() ) {
 			$mime_type = get_post_mime_type($post_id);
@@ -505,6 +507,9 @@ function get_body_class( $class = '' ) {
 	if ( is_admin_bar_showing() )
 		$classes[] = 'admin-bar';
 
+	if ( get_background_image() || get_background_color() )
+		$classes[] = 'custom-background';
+
 	$page = $wp_query->get( 'page' );
 
 	if ( !$page || $page < 2)
@@ -562,7 +567,7 @@ function post_password_required( $post = null ) {
 	if ( !isset($_COOKIE['wp-postpass_' . COOKIEHASH]) )
 		return true;
 
-	if ( $_COOKIE['wp-postpass_' . COOKIEHASH] != $post->post_password )
+	if ( stripslashes( $_COOKIE['wp-postpass_' . COOKIEHASH] ) != $post->post_password )
 		return true;
 
 	return false;
@@ -737,7 +742,7 @@ function the_meta() {
 		echo "<ul class='post-meta'>\n";
 		foreach ( (array) $keys as $key ) {
 			$keyt = trim($key);
-			if ( '_' == $keyt[0] )
+			if ( is_protected_meta( $keyt, 'post' ) )
 				continue;
 			$values = array_map('trim', get_post_custom_values($key));
 			$value = implode($values,', ');
@@ -773,13 +778,12 @@ function wp_dropdown_pages($args = '') {
 
 	$pages = get_pages($r);
 	$output = '';
-	$name = esc_attr($name);
 	// Back-compat with old system where both id and name were based on $name argument
 	if ( empty($id) )
 		$id = $name;
 
 	if ( ! empty($pages) ) {
-		$output = "<select name=\"$name\" id=\"$id\">\n";
+		$output = "<select name='" . esc_attr( $name ) . "' id='" . esc_attr( $id ) . "'>\n";
 		if ( $show_option_no_change )
 			$output .= "\t<option value=\"-1\">$show_option_no_change</option>";
 		if ( $show_option_none )
@@ -1038,9 +1042,9 @@ class Walker_Page extends Walker {
 			$css_class[] = 'current_page_parent';
 		}
 
-		$css_class = implode(' ', apply_filters('page_css_class', $css_class, $page));
+		$css_class = implode( ' ', apply_filters( 'page_css_class', $css_class, $page, $depth, $args, $current_page ) );
 
-		$output .= $indent . '<li class="' . $css_class . '"><a href="' . get_permalink($page->ID) . '" title="' . esc_attr( wp_strip_all_tags( apply_filters( 'the_title', $page->post_title, $page->ID ) ) ) . '">' . $link_before . apply_filters( 'the_title', $page->post_title, $page->ID ) . $link_after . '</a>';
+		$output .= $indent . '<li class="' . $css_class . '"><a href="' . get_permalink($page->ID) . '">' . $link_before . apply_filters( 'the_title', $page->post_title, $page->ID ) . $link_after . '</a>';
 
 		if ( !empty($show_date) ) {
 			if ( 'modified' == $show_date )
@@ -1105,7 +1109,7 @@ class Walker_PageDropdown extends Walker {
 		if ( $page->ID == $args['selected'] )
 			$output .= ' selected="selected"';
 		$output .= '>';
-		$title = apply_filters( 'list_pages', $page->post_title );
+		$title = apply_filters( 'list_pages', $page->post_title, $page );
 		$output .= $pad . esc_html( $title );
 		$output .= "</option>\n";
 	}
@@ -1148,27 +1152,26 @@ function the_attachment_link( $id = 0, $fullsize = false, $deprecated = false, $
  * @param string $text Optional, default is false. If string, then will be link text.
  * @return string HTML content.
  */
-function wp_get_attachment_link($id = 0, $size = 'thumbnail', $permalink = false, $icon = false, $text = false) {
-	$id = intval($id);
+function wp_get_attachment_link( $id = 0, $size = 'thumbnail', $permalink = false, $icon = false, $text = false ) {
+	$id = intval( $id );
 	$_post = & get_post( $id );
 
-	if ( ('attachment' != $_post->post_type) || !$url = wp_get_attachment_url($_post->ID) )
-		return __('Missing Attachment');
+	if ( empty( $_post ) || ( 'attachment' != $_post->post_type ) || ! $url = wp_get_attachment_url( $_post->ID ) )
+		return __( 'Missing Attachment' );
 
 	if ( $permalink )
-		$url = get_attachment_link($_post->ID);
+		$url = get_attachment_link( $_post->ID );
 
-	$post_title = esc_attr($_post->post_title);
+	$post_title = esc_attr( $_post->post_title );
 
-	if ( $text ) {
-		$link_text = esc_attr($text);
-	} elseif ( ( is_int($size) && $size != 0 ) or ( is_string($size) && $size != 'none' ) or $size != false ) {
-		$link_text = wp_get_attachment_image($id, $size, $icon);
-	} else {
+	if ( $text )
+		$link_text = esc_attr( $text );
+	elseif ( $size && 'none' != $size )
+		$link_text = wp_get_attachment_image( $id, $size, $icon );
+	else
 		$link_text = '';
-	}
 
-	if( trim($link_text) == '' )
+	if ( trim( $link_text ) == '' )
 		$link_text = $_post->post_title;
 
 	return apply_filters( 'wp_get_attachment_link', "<a href='$url' title='$post_title'>$link_text</a>", $id, $size, $permalink, $icon, $text );

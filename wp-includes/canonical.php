@@ -14,7 +14,7 @@
  *
  * Search engines consider www.somedomain.com and somedomain.com to be two
  * different URLs when they both go to the same location. This SEO enhancement
- * prevents penality for duplicate content by redirecting all incoming links to
+ * prevents penalty for duplicate content by redirecting all incoming links to
  * one or the other.
  *
  * Prevents redirection for feeds, trackbacks, searches, comment popup, and
@@ -175,10 +175,10 @@ function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 
 						// Create the destination url for this taxonomy
 						$tax_url = parse_url($tax_url);
-						if ( ! empty($tax_url['query']) ) { // Taxonomy accessable via ?taxonomy=..&term=.. or any custom qv..
+						if ( ! empty($tax_url['query']) ) { // Taxonomy accessible via ?taxonomy=..&term=.. or any custom qv..
 							parse_str($tax_url['query'], $query_vars);
 							$redirect['query'] = add_query_arg($query_vars, $redirect['query']);
-						} else { // Taxonomy is accessable via a "pretty-URL"
+						} else { // Taxonomy is accessible via a "pretty-URL"
 							$redirect['path'] = $tax_url['path'];
 						}
 
@@ -218,8 +218,25 @@ function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 				$addl_path = !empty( $addl_path ) ? trailingslashit($addl_path) : '';
 				if ( get_query_var( 'withcomments' ) )
 					$addl_path .= 'comments/';
-				$addl_path .= user_trailingslashit( 'feed/' . ( ( get_default_feed() ==  get_query_var('feed') || 'feed' == get_query_var('feed') ) ? '' : get_query_var('feed') ), 'feed' );
+				if ( ( 'rss' == get_default_feed() && 'feed' == get_query_var('feed') ) || 'rss' == get_query_var('feed') )
+					$addl_path .= user_trailingslashit( 'feed/' . ( ( get_default_feed() == 'rss2' ) ? '' : 'rss2' ), 'feed' );
+				else
+					$addl_path .= user_trailingslashit( 'feed/' . ( ( get_default_feed() ==  get_query_var('feed') || 'feed' == get_query_var('feed') ) ? '' : get_query_var('feed') ), 'feed' );
 				$redirect['query'] = remove_query_arg( 'feed', $redirect['query'] );
+			} elseif ( is_feed() && 'old' == get_query_var('feed') ) {
+				$old_feed_files = array(
+					'wp-atom.php'         => 'atom',
+					'wp-commentsrss2.php' => 'comments_rss2',
+					'wp-feed.php'         => get_default_feed(),
+					'wp-rdf.php'          => 'rdf',
+					'wp-rss.php'          => 'rss2',
+					'wp-rss2.php'         => 'rss2',
+				);
+				if ( isset( $old_feed_files[ basename( $redirect['path'] ) ] ) ) {
+					$redirect_url = get_feed_link( $old_feed_files[ basename( $redirect['path'] ) ] );
+					wp_redirect( $redirect_url, 301 );
+					die();
+				}
 			}
 
 			if ( get_query_var('paged') > 0 ) {
@@ -263,6 +280,7 @@ function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 				unset( $_parsed_query['name'] );
 		}
 
+		$_parsed_query = array_map( 'rawurlencode', $_parsed_query );
 		$redirect_url = add_query_arg( $_parsed_query, $redirect_url );
 	}
 
@@ -294,6 +312,9 @@ function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 
 		// Clean up empty query strings
 		$redirect['query'] = trim(preg_replace( '#(^|&)(p|page_id|cat|tag)=?(&|$)#', '&', $redirect['query']), '&');
+
+		// Redirect obsolete feeds
+		$redirect['query'] = preg_replace( '#(^|&)feed=rss(&|$)#', '$1feed=rss2$3', $redirect['query'] );
 
 		// Remove redundant leading ampersands
 		$redirect['query'] = preg_replace( '#^\??&*?#', '', $redirect['query'] );

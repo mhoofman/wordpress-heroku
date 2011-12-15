@@ -8,7 +8,7 @@
 /**
  * WordPress XMLRPC server implementation.
  *
- * Implements compatability for Blogger API, MetaWeblog API, MovableType, and
+ * Implements compatibility for Blogger API, MetaWeblog API, MovableType, and
  * pingback. Additional WordPress API for managing comments, pages, posts,
  * options, etc.
  *
@@ -234,9 +234,8 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		foreach ( (array) has_meta($post_id) as $meta ) {
 			// Don't expose protected fields.
-			if ( strpos($meta['meta_key'], '_wp_') === 0 ) {
+			if ( ! current_user_can( 'edit_post_meta', $post_id , $meta['meta_key'] ) )
 				continue;
-			}
 
 			$custom_fields[] = array(
 				"id"    => $meta['meta_id'],
@@ -262,18 +261,19 @@ class wp_xmlrpc_server extends IXR_Server {
 		foreach ( (array) $fields as $meta ) {
 			if ( isset($meta['id']) ) {
 				$meta['id'] = (int) $meta['id'];
-
+				$pmeta = get_metadata_by_mid( 'post', $meta['id'] );
+				$meta['value'] = stripslashes_deep( $meta['value'] );
 				if ( isset($meta['key']) ) {
-					update_meta($meta['id'], $meta['key'], $meta['value']);
+					$meta['key'] = stripslashes( $meta['key'] );
+					if ( $meta['key'] != $pmeta->meta_key )
+						continue;
+					if ( current_user_can( 'edit_post_meta', $post_id, $meta['key'] ) )
+						update_metadata_by_mid( 'post', $meta['id'], $meta['value'] );
+				} elseif ( current_user_can( 'delete_post_meta', $post_id, $pmeta->meta_key ) ) {
+					delete_metadata_by_mid( 'post', $meta['id'] );
 				}
-				else {
-					delete_meta($meta['id']);
-				}
-			}
-			else {
-				$_POST['metakeyinput'] = $meta['key'];
-				$_POST['metavalue'] = $meta['value'];
-				add_meta($post_id);
+			} elseif ( current_user_can( 'add_post_meta', $post_id, stripslashes( $meta['key'] ) ) ) {
+				add_post_meta( $post_id, $meta['key'], $meta['value'] );
 			}
 		}
 	}
@@ -527,7 +527,7 @@ class wp_xmlrpc_server extends IXR_Server {
 				'wp_page_parent_id'		=> $page->post_parent,
 				'wp_page_parent_title'	=> $parent_title,
 				'wp_page_order'			=> $page->menu_order,
-				'wp_author_id'			=> $author->ID,
+				'wp_author_id'			=> (string) $author->ID,
 				'wp_author_display_name'	=> $author->display_name,
 				'date_created_gmt'		=> new IXR_Date($page_date_gmt),
 				'custom_fields'			=> $this->get_custom_fields($page_id),
@@ -747,7 +747,7 @@ class wp_xmlrpc_server extends IXR_Server {
 			ORDER BY ID
 		");
 
-		// The date needs to be formated properly.
+		// The date needs to be formatted properly.
 		$num_pages = count($page_list);
 		for ( $i = 0; $i < $num_pages; $i++ ) {
 			$post_date = mysql2date('Ymd\TH:i:s', $page_list[$i]->post_date, false);
@@ -1134,13 +1134,13 @@ class wp_xmlrpc_server extends IXR_Server {
 		if ( !current_user_can( 'moderate_comments' ) )
 			return new IXR_Error( 403, __( 'You are not allowed to moderate comments on this site.' ) );
 
+		if ( ! get_comment($comment_ID) )
+			return new IXR_Error( 404, __( 'Invalid comment ID.' ) );
+
 		if ( !current_user_can( 'edit_comment', $comment_ID ) )
 			return new IXR_Error( 403, __( 'You are not allowed to moderate comments on this site.' ) );
 
 		do_action('xmlrpc_call', 'wp.deleteComment');
-
-		if ( ! get_comment($comment_ID) )
-			return new IXR_Error( 404, __( 'Invalid comment ID.' ) );
 
 		return wp_delete_comment($comment_ID);
 	}
@@ -1184,13 +1184,13 @@ class wp_xmlrpc_server extends IXR_Server {
 		if ( !current_user_can( 'moderate_comments' ) )
 			return new IXR_Error( 403, __( 'You are not allowed to moderate comments on this site.' ) );
 
+		if ( ! get_comment($comment_ID) )
+			return new IXR_Error( 404, __( 'Invalid comment ID.' ) );
+
 		if ( !current_user_can( 'edit_comment', $comment_ID ) )
 			return new IXR_Error( 403, __( 'You are not allowed to moderate comments on this site.' ) );
 
 		do_action('xmlrpc_call', 'wp.editComment');
-
-		if ( ! get_comment($comment_ID) )
-			return new IXR_Error( 404, __( 'Invalid comment ID.' ) );
 
 		if ( isset($content_struct['status']) ) {
 			$statuses = get_comment_statuses();
@@ -1551,7 +1551,7 @@ class wp_xmlrpc_server extends IXR_Server {
 	 *  - username
 	 *  - password
 	 *  - attachment_id
-	 * @return array. Assocciative array containing:
+	 * @return array. Associative array containing:
 	 *  - 'date_created_gmt'
 	 *  - 'parent'
 	 *  - 'link'
@@ -1661,7 +1661,7 @@ class wp_xmlrpc_server extends IXR_Server {
 	}
 
 	/**
-	  * Retrives a list of post formats used by the site
+	  * Retrieves a list of post formats used by the site
 	  *
 	  * @since 3.1
 	  *
@@ -2394,15 +2394,9 @@ class wp_xmlrpc_server extends IXR_Server {
 			}
 		}
 
-		// We've got all the data -- post it:
 		$postdata = compact('post_author', 'post_date', 'post_date_gmt', 'post_content', 'post_title', 'post_category', 'post_status', 'post_excerpt', 'comment_status', 'ping_status', 'to_ping', 'post_type', 'post_name', 'post_password', 'post_parent', 'menu_order', 'tags_input', 'page_template');
 
-		$post_ID = wp_insert_post($postdata, true);
-		if ( is_wp_error( $post_ID ) )
-			return new IXR_Error(500, $post_ID->get_error_message());
-
-		if ( !$post_ID )
-			return new IXR_Error(500, __('Sorry, your entry could not be posted. Something wrong happened.'));
+		$post_ID = $postdata['ID'] = get_default_post_to_edit( $post_type, true )->ID;
 
 		// Only posts can be sticky
 		if ( $post_type == 'post' && isset( $content_struct['sticky'] ) ) {
@@ -2425,6 +2419,13 @@ class wp_xmlrpc_server extends IXR_Server {
 		// in this function
 		if ( isset( $content_struct['wp_post_format'] ) )
 			wp_set_post_terms( $post_ID, array( 'post-format-' . $content_struct['wp_post_format'] ), 'post_format' );
+
+		$post_ID = wp_insert_post( $postdata, true );
+		if ( is_wp_error( $post_ID ) )
+			return new IXR_Error(500, $post_ID->get_error_message());
+
+		if ( !$post_ID )
+			return new IXR_Error(500, __('Sorry, your entry could not be posted. Something wrong happened.'));
 
 		logIO('O', "Posted ! ID: $post_ID");
 
@@ -2849,7 +2850,7 @@ class wp_xmlrpc_server extends IXR_Server {
 				'mt_keywords' => $tagnames,
 				'wp_slug' => $postdata['post_name'],
 				'wp_password' => $postdata['post_password'],
-				'wp_author_id' => $author->ID,
+				'wp_author_id' => (string) $author->ID,
 				'wp_author_display_name'	=> $author->display_name,
 				'date_created_gmt' => new IXR_Date($post_date_gmt),
 				'post_status' => $postdata['post_status'],
@@ -2959,7 +2960,7 @@ class wp_xmlrpc_server extends IXR_Server {
 				'mt_keywords' => $tagnames,
 				'wp_slug' => $entry['post_name'],
 				'wp_password' => $entry['post_password'],
-				'wp_author_id' => $author->ID,
+				'wp_author_id' => (string) $author->ID,
 				'wp_author_display_name' => $author->display_name,
 				'date_created_gmt' => new IXR_Date($post_date_gmt),
 				'post_status' => $entry['post_status'],
@@ -3445,7 +3446,7 @@ class wp_xmlrpc_server extends IXR_Server {
 		} elseif ( isset($urltest['fragment']) ) {
 			// an #anchor is there, it's either...
 			if ( intval($urltest['fragment']) ) {
-				// ...an integer #XXXX (simpliest case)
+				// ...an integer #XXXX (simplest case)
 				$post_ID = (int) $urltest['fragment'];
 				$way = 'from the fragment (numeric)';
 			} elseif ( preg_match('/post-[0-9]+/',$urltest['fragment']) ) {

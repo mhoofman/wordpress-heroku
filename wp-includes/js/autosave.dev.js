@@ -1,4 +1,4 @@
-var autosave, autosaveLast = '', autosavePeriodical, autosaveOldMessage = '', autosaveDelayPreview = false, notSaved = true, blockSave = false, fullscreen;
+var autosave, autosaveLast = '', autosavePeriodical, autosaveOldMessage = '', autosaveDelayPreview = false, notSaved = true, blockSave = false, fullscreen, autosaveLockRelease = true;
 
 jQuery(document).ready( function($) {
 	var dotabkey = true;
@@ -9,6 +9,7 @@ jQuery(document).ready( function($) {
 	//Disable autosave after the form has been submitted
 	$("#post").submit(function() {
 		$.cancel(autosavePeriodical);
+		autosaveLockRelease = false;
 	});
 
 	$('input[type="submit"], a.submitdelete', '#submitpost').click(function(){
@@ -47,6 +48,27 @@ jQuery(document).ready( function($) {
 		}
 	};
 
+	$(window).unload( function(e) {
+		if ( ! autosaveLockRelease )
+			return;
+
+		// unload fires (twice) on removing the Thickbox iframe. Make sure we process only the main document unload.
+		if ( e.target && e.target.nodeName != '#document' )
+			return;
+
+		$.ajax({
+			type: 'POST',
+			url: ajaxurl,
+			async: false,
+			data: {
+				action: 'wp-remove-post-lock',
+				_wpnonce: $('#_wpnonce').val(),
+				post_ID: $('#post_ID').val(),
+				active_post_lock: $('#active_post_lock').val()
+			}
+		});
+	} );
+
 	// preview
 	$('#post-preview').click(function(){
 		if ( $('#auto_draft').val() == '1' && notSaved ) {
@@ -61,6 +83,17 @@ jQuery(document).ready( function($) {
 	doPreview = function() {
 		$('input#wp-preview').val('dopreview');
 		$('form#post').attr('target', 'wp-preview').submit().attr('target', '');
+
+		/*
+		 * Workaround for WebKit bug preventing a form submitting twice to the same action.
+		 * https://bugs.webkit.org/show_bug.cgi?id=28633
+		 */
+		if ( $.browser.safari ) {
+			$('form#post').attr('action', function(index, value) {
+				return value + '?t=' + new Date().getTime();
+			});
+		}
+
 		$('input#wp-preview').val('');
 	}
 
@@ -99,7 +132,12 @@ function autosave_parse_response(response) {
 			sup = res.responses[0].supplemental;
 			if ( 'disable' == sup['disable_autosave'] ) {
 				autosave = function() {};
+				autosaveLockRelease = false;
 				res = { errors: true };
+			}
+
+			if ( sup['active-post-lock'] ) {
+				jQuery('#active_post_lock').val( sup['active-post-lock'] );
 			}
 
 			if ( sup['alert'] ) {
@@ -245,11 +283,11 @@ autosave = function() {
 	}
 
 	if ( fullscreen && fullscreen.settings.visible ) {
-		post_data["post_title"] = jQuery('#wp-fullscreen-title').val();
-		post_data["content"] = jQuery("#wp_mce_fullscreen").val();
+		post_data["post_title"] = jQuery('#wp-fullscreen-title').val() || '';
+		post_data["content"] = jQuery("#wp_mce_fullscreen").val() || '';
 	} else {
-		post_data["post_title"] = jQuery("#title").val()
-		post_data["content"] = jQuery("#content").val();
+		post_data["post_title"] = jQuery("#title").val() || '';
+		post_data["content"] = jQuery("#content").val() || '';
 	}
 
 	if ( jQuery('#post_name').val() )

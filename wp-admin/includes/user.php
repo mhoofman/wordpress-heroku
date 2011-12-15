@@ -119,7 +119,6 @@ function edit_user( $user_id = 0 ) {
 		$user->rich_editing = isset( $_POST['rich_editing'] ) && 'false' == $_POST['rich_editing'] ? 'false' : 'true';
 		$user->admin_color = isset( $_POST['admin_color'] ) ? sanitize_text_field( $_POST['admin_color'] ) : 'fresh';
 		$user->show_admin_bar_front = isset( $_POST['admin_bar_front'] ) ? 'true' : 'false';
-		$user->show_admin_bar_admin = isset( $_POST['admin_bar_admin'] ) ? 'true' : 'false';
 	}
 
 	$user->comment_shortcuts = isset( $_POST['comment_shortcuts'] ) && 'true' == $_POST['comment_shortcuts'] ? 'true' : '';
@@ -196,7 +195,7 @@ function edit_user( $user_id = 0 ) {
  *
  * Simple function who's main purpose is to allow filtering of the
  * list of roles in the $wp_roles object so that plugins can remove
- * innappropriate ones depending on the situation or user making edits.
+ * inappropriate ones depending on the situation or user making edits.
  * Specifically because without filtering anyone with the edit_users
  * capability can edit others to be administrators, even if they are
  * only editors or authors. This filter allows admins to delegate
@@ -226,16 +225,7 @@ function get_editable_roles() {
 function get_user_to_edit( $user_id ) {
 	$user = new WP_User( $user_id );
 
-	$user_contactmethods = _wp_get_user_contactmethods( $user );
-	foreach ($user_contactmethods as $method => $name) {
-		if ( empty( $user->{$method} ) )
-			$user->{$method} = '';
-	}
-
-	if ( empty($user->description) )
-		$user->description = '';
-
-	$user = sanitize_user_object($user, 'edit');
+	$user->filter = 'edit';
 
 	return $user;
 }
@@ -338,7 +328,7 @@ function default_password_nag_handler($errors = false) {
 	if ( ! get_user_option('default_password_nag') ) //Short circuit it.
 		return;
 
-	//get_user_setting = JS saved UI setting. else no-js-falback code.
+	//get_user_setting = JS saved UI setting. else no-js-fallback code.
 	if ( 'hide' == get_user_setting('default_password_nag') || isset($_GET['default_password_nag']) && '0' == $_GET['default_password_nag'] ) {
 		delete_user_setting('default_password_nag');
 		update_user_option($user_ID, 'default_password_nag', false, true);

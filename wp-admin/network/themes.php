@@ -34,46 +34,74 @@ $_SERVER['REQUEST_URI'] = remove_query_arg( $temp_args, $_SERVER['REQUEST_URI'] 
 $referer = remove_query_arg( $temp_args, wp_get_referer() );
 
 if ( $action ) {
-	$allowed_themes = get_site_option( 'allowedthemes' );	
+	$allowed_themes = get_site_option( 'allowedthemes' );
 	switch ( $action ) {
 		case 'enable':
 			check_admin_referer('enable-theme_' . $_GET['theme']);
 			$allowed_themes[ $_GET['theme'] ] = true;
 			update_site_option( 'allowedthemes', $allowed_themes );
-			wp_redirect( add_query_arg( 'enabled', '1', $referer ) );
+			wp_redirect( network_admin_url( 'themes.php?enabled=1' ) );
 			exit;
 			break;
 		case 'disable':
 			check_admin_referer('disable-theme_' . $_GET['theme']);
 			unset( $allowed_themes[ $_GET['theme'] ] );
 			update_site_option( 'allowedthemes', $allowed_themes );
-			wp_redirect( add_query_arg( 'disabled', '1', $referer ) );
+			wp_safe_redirect( add_query_arg( 'disabled', '1', $referer ) );
 			exit;
 			break;
 		case 'enable-selected':
 			check_admin_referer('bulk-themes');
 			$themes = isset( $_POST['checked'] ) ? (array) $_POST['checked'] : array();
 			if ( empty($themes) ) {
-				wp_redirect( add_query_arg( 'error', 'none', $referer ) );
+				wp_safe_redirect( add_query_arg( 'error', 'none', $referer ) );
 				exit;
 			}
 			foreach( (array) $themes as $theme )
 				$allowed_themes[ $theme ] = true;
 			update_site_option( 'allowedthemes', $allowed_themes );
-			wp_redirect( add_query_arg( 'enabled', count( $themes ), $referer ) );
+			wp_safe_redirect( add_query_arg( 'enabled', count( $themes ), $referer ) );
 			exit;
 			break;
 		case 'disable-selected':
 			check_admin_referer('bulk-themes');
 			$themes = isset( $_POST['checked'] ) ? (array) $_POST['checked'] : array();
 			if ( empty($themes) ) {
-				wp_redirect( add_query_arg( 'error', 'none', $referer ) );
+				wp_safe_redirect( add_query_arg( 'error', 'none', $referer ) );
 				exit;
 			}
 			foreach( (array) $themes as $theme )
 				unset( $allowed_themes[ $theme ] );
 			update_site_option( 'allowedthemes', $allowed_themes );
-			wp_redirect( add_query_arg( 'disabled', count( $themes ), $referer ) );
+			wp_safe_redirect( add_query_arg( 'disabled', count( $themes ), $referer ) );
+			exit;
+			break;
+		case 'update-selected' :
+			check_admin_referer( 'bulk-themes' );
+
+			if ( isset( $_GET['themes'] ) )
+				$themes = explode( ',', $_GET['themes'] );
+			elseif ( isset( $_POST['checked'] ) )
+				$themes = (array) $_POST['checked'];
+			else
+				$themes = array();
+
+			$title = __( 'Update Themes' );
+			$parent_file = 'themes.php';
+
+			require_once(ABSPATH . 'wp-admin/admin-header.php');
+
+			echo '<div class="wrap">';
+			screen_icon();
+			echo '<h2>' . esc_html( $title ) . '</h2>';
+
+
+			$url = self_admin_url('update.php?action=update-selected-themes&amp;themes=' . urlencode( join(',', $themes) ));
+			$url = wp_nonce_url($url, 'bulk-update-themes');
+
+			echo "<iframe src='$url' style='width: 100%; height:100%; min-height:850px;'></iframe>";
+			echo '</div>';
+			require_once(ABSPATH . 'wp-admin/admin-footer.php');
 			exit;
 			break;
 		case 'delete-selected':
@@ -89,7 +117,7 @@ if ( $action ) {
 				unset( $themes[ get_option( 'stylesheet' ) ] );
 
 			if ( empty( $themes ) ) {
-				wp_redirect( add_query_arg( 'error', 'none', $referer ) );
+				wp_safe_redirect( add_query_arg( 'error', 'none', $referer ) );
 				exit;
 			}
 
@@ -100,13 +128,13 @@ if ( $action ) {
 				if ( $data['Name'] == $main_theme ) {
 					unset( $themes[$key] );
 				} else {
-					$files_to_delete = array_merge( $files_to_delete, list_files( WP_CONTENT_DIR . "/themes/$theme" ) );					
+					$files_to_delete = array_merge( $files_to_delete, list_files( WP_CONTENT_DIR . "/themes/$theme" ) );
 					$theme_info[ $theme ] = $data;
 				}
 			}
-			
+
 			if ( empty( $themes ) ) {
-				wp_redirect( add_query_arg( 'error', 'main', $referer ) );
+				wp_safe_redirect( add_query_arg( 'error', 'main', $referer ) );
 				exit;
 			}
 
@@ -162,7 +190,7 @@ if ( $action ) {
 
 			foreach ( $themes as $theme )
 				$delete_result = delete_theme( $theme, esc_url( add_query_arg( array('verify-delete' => 1), $_SERVER['REQUEST_URI'] ) ) );
-			$paged = ( $_REQUEST['paged'] ) ? $_REQUEST['paged'] : 1; 
+			$paged = ( $_REQUEST['paged'] ) ? $_REQUEST['paged'] : 1;
 			wp_redirect( network_admin_url( "themes.php?deleted=".count( $themes )."&paged=$paged&s=$s" ) );
 			exit;
 			break;
@@ -175,10 +203,16 @@ add_thickbox();
 
 add_screen_option( 'per_page', array('label' => _x( 'Themes', 'themes per page (screen options)' )) );
 
-add_contextual_help($current_screen,
-	'<p>' . __('This screen enables and disables the inclusion of themes available to choose in the Appearance menu for each site. It does not activate or deactivate which theme a site is currently using.') . '</p>' .
-	'<p>' . __('If the network admin disables a theme that is in use, it can still remain selected on that site. If another theme is chosen, the disabled theme will not appear in the site&#8217;s Appearance > Themes screen.') . '</p>' .
-	'<p>' . __('Themes can be enabled on a site by site basis by the network admin on the Edit Site screen (which has a Themes tab); get there via the Edit action link on the All Sites screen. Only network admins are able to install or edit themes.') . '</p>' .
+get_current_screen()->add_help_tab( array(
+	'id'      => 'overview',
+	'title'   => __('Overview'),
+	'content' =>
+		'<p>' . __('This screen enables and disables the inclusion of themes available to choose in the Appearance menu for each site. It does not activate or deactivate which theme a site is currently using.') . '</p>' .
+		'<p>' . __('If the network admin disables a theme that is in use, it can still remain selected on that site. If another theme is chosen, the disabled theme will not appear in the site&#8217;s Appearance > Themes screen.') . '</p>' .
+		'<p>' . __('Themes can be enabled on a site by site basis by the network admin on the Edit Site screen (which has a Themes tab); get there via the Edit action link on the All Sites screen. Only network admins are able to install or edit themes.') . '</p>'
+) );
+
+get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Themes_Screen" target="_blank">Documentation on Network Themes</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
@@ -194,8 +228,8 @@ require_once(ABSPATH . 'wp-admin/admin-header.php');
 <div class="wrap">
 <?php screen_icon('themes'); ?>
 <h2><?php echo esc_html( $title ); if ( current_user_can('install_themes') ) { ?> <a href="theme-install.php" class="add-new-h2"><?php echo esc_html_x('Add New', 'theme'); ?></a><?php }
-if ( $s ) 
-	printf( '<span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', esc_html( $s ) ); ?> 
+if ( $s )
+	printf( '<span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', esc_html( $s ) ); ?>
 </h2>
 
 <?php

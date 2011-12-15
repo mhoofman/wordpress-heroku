@@ -39,7 +39,7 @@ if ( get_option('db_upgraded') ) {
 	 * @since 2.8
 	 */
 	do_action('after_db_upgrade');
-} elseif ( get_option('db_version') != $wp_db_version ) {
+} elseif ( get_option('db_version') != $wp_db_version && empty($_POST) ) {
 	if ( !is_multisite() ) {
 		wp_redirect(admin_url('upgrade.php?_wp_http_referer=' . urlencode(stripslashes($_SERVER['REQUEST_URI']))));
 		exit;
@@ -88,13 +88,13 @@ if ( isset($_GET['page']) ) {
 	$plugin_page = plugin_basename($plugin_page);
 }
 
-if ( isset($_GET['post_type']) )
-	$typenow = sanitize_key($_GET['post_type']);
+if ( isset( $_REQUEST['post_type'] ) && post_type_exists( $_REQUEST['post_type'] ) )
+	$typenow = $_REQUEST['post_type'];
 else
 	$typenow = '';
 
-if ( isset($_GET['taxonomy']) )
-	$taxnow = sanitize_key($_GET['taxonomy']);
+if ( isset( $_REQUEST['taxonomy'] ) && taxonomy_exists( $_REQUEST['taxonomy'] ) )
+	$taxnow = $_REQUEST['taxonomy'];
 else
 	$taxnow = '';
 
@@ -183,13 +183,9 @@ if ( isset($plugin_page) ) {
 		exit;
 	}
 
-	// Allow plugins to define importers as well
-	if ( !isset($wp_importers) || !isset($wp_importers[$importer]) || ! is_callable($wp_importers[$importer][2])) {
-		if (! file_exists(ABSPATH . "wp-admin/import/$importer.php")) {
-			wp_redirect( admin_url( 'import.php?invalid=' . $importer ) );
-			exit;
-		}
-		include(ABSPATH . "wp-admin/import/$importer.php");
+	if ( ! isset($wp_importers[$importer]) || ! is_callable($wp_importers[$importer][2]) ) {
+		wp_redirect( admin_url( 'import.php?invalid=' . $importer ) );
+		exit;
 	}
 
 	$parent_file = 'tools.php';
@@ -211,8 +207,7 @@ if ( isset($plugin_page) ) {
 	include(ABSPATH . 'wp-admin/admin-footer.php');
 
 	// Make sure rules are flushed
-	global $wp_rewrite;
-	$wp_rewrite->flush_rules(false);
+	flush_rewrite_rules(false);
 
 	exit();
 } else {

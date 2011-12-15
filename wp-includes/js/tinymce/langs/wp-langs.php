@@ -1,16 +1,13 @@
 <?php
 
-// escape text only if it needs translating
 function mce_escape($text) {
-	global $language;
-
-	if ( 'en' == $language )
-		return $text;
-	else
-		return esc_js($text);
+	return esc_js($text);
 }
 
-$lang = 'tinyMCE.addI18n({' . $language . ':{
+if ( ! class_exists( '_WP_Editors' ) )
+	require( ABSPATH . WPINC . '/class-wp-editor.php' );
+
+$lang = 'tinyMCE.addI18n({' . _WP_Editors::$mce_locale . ':{
 common:{
 edit_confirm:"' . mce_escape( __('Do you want to use the WYSIWYG mode for this textarea?') ) . '",
 apply:"' . mce_escape( __('Apply') ) . '",
@@ -24,7 +21,7 @@ not_set:"' . mce_escape( __('-- Not set --') ) . '",
 clipboard_msg:"' . mce_escape( __('Copy/Cut/Paste is not available in Mozilla and Firefox.') ) . '",
 clipboard_no_support:"' . mce_escape( __('Currently not supported by your browser, use keyboard shortcuts instead.') ) . '",
 popup_blocked:"' . mce_escape( __('Sorry, but we have noticed that your popup-blocker has disabled a window that provides application functionality. You will need to disable popup blocking on this site in order to fully utilize this tool.') ) . '",
-invalid_data:"' . mce_escape( __('Error: Invalid values entered, these are marked in red.') ) . '",
+invalid_data:"' . mce_escape( __('ERROR: Invalid values entered, these are marked in red.') ) . '",
 invalid_data_number:"' . mce_escape( __('{#field} must be a number') ) . '",
 invalid_data_min:"' . mce_escape( __('{#field} must be a number greater than {#min}') ) . '",
 invalid_data_size:"' . mce_escape( __('{#field} must be a number or percentage') ) . '",
@@ -182,7 +179,7 @@ autosave:{
 unload_msg:"' . mce_escape( __('The changes you made will be lost if you navigate away from this page.') ) . '"
 },
 fullscreen:{
-desc:"' . mce_escape( __('Toggle fullscreen mode') ) . ' (Alt+Shift+G)"
+desc:"' . mce_escape( __('Toggle fullscreen mode (Alt + Shift + G)') ) . '"
 },
 media:{
 desc:"' . mce_escape( __('Insert / edit embedded media') ) . '",
@@ -198,7 +195,7 @@ visualchars:{
 desc:"' . mce_escape( __('Visual control characters on/off.') ) . '"
 },
 spellchecker:{
-desc:"' . mce_escape( __('Toggle spellchecker') ) . ' (Alt+Shift+N)",
+desc:"' . mce_escape( __('Toggle spellchecker (Alt + Shift + N)') ) . '",
 menu:"' . mce_escape( __('Spellchecker settings') ) . '",
 ignore_word:"' . mce_escape( __('Ignore word') ) . '",
 ignore_words:"' . mce_escape( __('Ignore all') ) . '",
@@ -232,7 +229,7 @@ words:"' . mce_escape( __('Words:') ) . ' "
 }
 }});
 
-tinyMCE.addI18n("' . $language . '.advanced",{
+tinyMCE.addI18n("' . _WP_Editors::$mce_locale . '.advanced",{
 style_select:"' . mce_escape( /* translators: TinyMCE font styles */ _x('Styles', 'TinyMCE font styles') ) . '",
 font_size:"' . mce_escape( __('Font size') ) . '",
 fontdefault:"' . mce_escape( __('Font family') ) . '",
@@ -252,23 +249,23 @@ code:"' . mce_escape( __('Code') ) . '",
 samp:"' . mce_escape( __('Code sample') ) . '",
 dt:"' . mce_escape( __('Definition term ') ) . '",
 dd:"' . mce_escape( __('Definition description') ) . '",
-bold_desc:"' . mce_escape( __('Bold') ) . ' (Ctrl / Alt+Shift + B)",
-italic_desc:"' . mce_escape( __('Italic') ) . ' (Ctrl / Alt+Shift + I)",
+bold_desc:"' . mce_escape( __('Bold (Ctrl + B)') ) . '",
+italic_desc:"' . mce_escape( __('Italic (Ctrl + I)') ) . '",
 underline_desc:"' . mce_escape( __('Underline') ) . '",
-striketrough_desc:"' . mce_escape( __('Strikethrough') ) . ' (Alt+Shift+D)",
-justifyleft_desc:"' . mce_escape( __('Align Left') ) . ' (Alt+Shift+L)",
-justifycenter_desc:"' . mce_escape( __('Align Center') ) . ' (Alt+Shift+C)",
-justifyright_desc:"' . mce_escape( __('Align Right') ) . ' (Alt+Shift+R)",
-justifyfull_desc:"' . mce_escape( __('Align Full') ) . ' (Alt+Shift+J)",
-bullist_desc:"' . mce_escape( __('Unordered list') ) . ' (Alt+Shift+U)",
-numlist_desc:"' . mce_escape( __('Ordered list') ) . ' (Alt+Shift+O)",
+striketrough_desc:"' . mce_escape( __('Strikethrough (Alt + Shift + D)') ) . '",
+justifyleft_desc:"' . mce_escape( __('Align Left (Alt + Shift + L)') ) . '",
+justifycenter_desc:"' . mce_escape( __('Align Center (Alt + Shift + C)') ) . '",
+justifyright_desc:"' . mce_escape( __('Align Right (Alt + Shift + R)') ) . '",
+justifyfull_desc:"' . mce_escape( __('Align Full (Alt + Shift + J)') ) . '",
+bullist_desc:"' . mce_escape( __('Unordered list (Alt + Shift + U)') ) . '",
+numlist_desc:"' . mce_escape( __('Ordered list (Alt + Shift + O)') ) . '",
 outdent_desc:"' . mce_escape( __('Outdent') ) . '",
 indent_desc:"' . mce_escape( __('Indent') ) . '",
-undo_desc:"' . mce_escape( __('Undo') ) . ' (Ctrl+Z)",
-redo_desc:"' . mce_escape( __('Redo') ) . ' (Ctrl+Y)",
-link_desc:"' . mce_escape( __('Insert/edit link') ) . ' (Alt+Shift+A)",
-unlink_desc:"' . mce_escape( __('Unlink') ) . ' (Alt+Shift+S)",
-image_desc:"' . mce_escape( __('Insert/edit image') ) . ' (Alt+Shift+M)",
+undo_desc:"' . mce_escape( __('Undo (Ctrl + Z)') ) . '",
+redo_desc:"' . mce_escape( __('Redo (Ctrl + Y)') ) . '",
+link_desc:"' . mce_escape( __('Insert/edit link (Alt + Shift + A)') ) . '",
+unlink_desc:"' . mce_escape( __('Unlink (Alt + Shift + S)') ) . '",
+image_desc:"' . mce_escape( __('Insert/edit image (Alt + Shift + M)') ) . '",
 cleanup_desc:"' . mce_escape( __('Cleanup messy code') ) . '",
 code_desc:"' . mce_escape( __('Edit HTML Source') ) . '",
 sub_desc:"' . mce_escape( __('Subscript') ) . '",
@@ -286,7 +283,7 @@ paste_desc:"' . mce_escape( __('Paste') ) . '",
 image_props_desc:"' . mce_escape( __('Image properties') ) . '",
 newdocument_desc:"' . mce_escape( __('New document') ) . '",
 help_desc:"' . mce_escape( __('Help') ) . '",
-blockquote_desc:"' . mce_escape( __('Blockquote') ) . ' (Alt+Shift+Q)",
+blockquote_desc:"' . mce_escape( __('Blockquote (Alt + Shift + Q)') ) . '",
 clipboard_msg:"' . mce_escape( __('Copy/Cut/Paste is not available in Mozilla and Firefox.') ) . '",
 path:"' . mce_escape( __('Path') ) . '",
 newdocument:"' . mce_escape( __('Are you sure you want to clear all contents?') ) . '",
@@ -298,7 +295,7 @@ rich_text_area:"' . mce_escape( __('Rich Text Area') ) . '",
 toolbar:"' . mce_escape( __('Toolbar') ) . '"
 });
 
-tinyMCE.addI18n("' . $language . '.advanced_dlg",{
+tinyMCE.addI18n("' . _WP_Editors::$mce_locale . '.advanced_dlg",{
 about_title:"' . mce_escape( __('About TinyMCE') ) . '",
 about_general:"' . mce_escape( __('About') ) . '",
 about_help:"' . mce_escape( __('Help') ) . '",
@@ -352,7 +349,7 @@ accessibility_help:"' . mce_escape( __('Accessibility Help') ) . '",
 accessibility_usage_title:"' . mce_escape( __('General Usage') ) . '"
 });
 
-tinyMCE.addI18n("' . $language . '.media_dlg",{
+tinyMCE.addI18n("' . _WP_Editors::$mce_locale . '.media_dlg",{
 title:"' . mce_escape( __('Insert / edit embedded media') ) . '",
 general:"' . mce_escape( __('General') ) . '",
 advanced:"' . mce_escape( __('Advanced') ) . '",
@@ -462,11 +459,11 @@ poster:"' . mce_escape( __('Poster') ) . '",
 source:"' . mce_escape( __('Source') ) . '"
 });
 
-tinyMCE.addI18n("' . $language . '.wordpress",{
-wp_adv_desc:"' . mce_escape( __('Show/Hide Kitchen Sink') )  . ' (Alt+Shift+Z)",
-wp_more_desc:"' . mce_escape( __('Insert More Tag') ) . ' (Alt+Shift+T)",
-wp_page_desc:"' . mce_escape( __('Insert Page break') ) . ' (Alt+Shift+P)",
-wp_help_desc:"' . mce_escape( __('Help') ) . ' (Alt+Shift+H)",
+tinyMCE.addI18n("' . _WP_Editors::$mce_locale . '.wordpress",{
+wp_adv_desc:"' . mce_escape( __('Show/Hide Kitchen Sink (Alt + Shift + Z)') )  . '",
+wp_more_desc:"' . mce_escape( __('Insert More Tag (Alt + Shift + T)') ) . '",
+wp_page_desc:"' . mce_escape( __('Insert Page break (Alt + Shift + P)') ) . '",
+wp_help_desc:"' . mce_escape( __('Help (Alt + Shift + H)') ) . '",
 wp_more_alt:"' . mce_escape( __('More...') ) . '",
 wp_page_alt:"' . mce_escape( __('Next page...') ) . '",
 add_media:"' . mce_escape( __('Add Media') ) . '",
@@ -477,7 +474,7 @@ editgallery:"' . mce_escape( __('Edit Gallery') ) . '",
 delgallery:"' . mce_escape( __('Delete Gallery') ) . '"
 });
 
-tinyMCE.addI18n("' . $language . '.wpeditimage",{
+tinyMCE.addI18n("' . _WP_Editors::$mce_locale . '.wpeditimage",{
 edit_img:"' . mce_escape( __('Edit Image') )  . '",
 del_img:"' . mce_escape( __('Delete Image') )  . '",
 adv_settings:"' . mce_escape( __('Advanced Settings') )  . '",

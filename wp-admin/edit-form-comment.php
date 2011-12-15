@@ -54,7 +54,7 @@ $comment->comment_author_email = esc_attr($comment->comment_author_email);
 
 <div class="misc-pub-section curtime misc-pub-section-last">
 <?php
-// translators: Publish box date formt, see http://php.net/date
+// translators: Publish box date format, see http://php.net/date
 $datef = __( 'M j, Y @ G:i' );
 $stamp = __('Submitted on: <b>%1$s</b>');
 $date = date_i18n( $datef, strtotime( $comment->comment_date ) );
@@ -71,7 +71,7 @@ $date = date_i18n( $datef, strtotime( $comment->comment_date ) );
 <?php echo "<a class='submitdelete deletion' href='" . wp_nonce_url("comment.php?action=" . ( !EMPTY_TRASH_DAYS ? 'deletecomment' : 'trashcomment' ) . "&amp;c=$comment->comment_ID&amp;_wp_original_http_referer=" . urlencode(wp_get_referer()), 'delete-comment_' . $comment->comment_ID) . "'>" . ( !EMPTY_TRASH_DAYS ? __('Delete Permanently') : __('Move to Trash') ) . "</a>\n"; ?>
 </div>
 <div id="publishing-action">
-<?php submit_button( __( 'Update Comment' ), 'primary', 'save', false, array( 'tabindex' => '4' ) ); ?>
+<?php submit_button( __( 'Update' ), 'primary', 'save', false, array( 'tabindex' => '4' ) ); ?>
 </div>
 <div class="clear"></div>
 </div>
@@ -120,15 +120,17 @@ $date = date_i18n( $datef, strtotime( $comment->comment_date ) );
 </div>
 
 <div id="postdiv" class="postarea">
-<?php the_editor($comment->comment_content, 'content', 'newcomment_author_url', false, 4, false); ?>
-<?php wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false ); ?>
+<?php
+	$quicktags_settings = array( 'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,spell,close' );
+	wp_editor( $comment->comment_content, 'content', array( 'media_buttons' => false, 'tinymce' => false, 'quicktags' => $quicktags_settings ) );
+	wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false ); ?>
 </div>
 
 <?php
 do_action('add_meta_boxes', 'comment', $comment);
 do_action('add_meta_boxes_comment', $comment);
 
-do_meta_boxes('comment', 'normal', $comment);
+do_meta_boxes(null, 'normal', $comment);
 ?>
 <input type="hidden" name="c" value="<?php echo esc_attr($comment->comment_ID) ?>" />
 <input type="hidden" name="p" value="<?php echo esc_attr($comment->comment_post_ID) ?>" />

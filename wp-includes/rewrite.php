@@ -306,12 +306,20 @@ function url_to_postid($url) {
 	// Look for matches.
 	$request_match = $request;
 	foreach ( (array)$rewrite as $match => $query) {
+
 		// If the requesting file is the anchor of the match, prepend it
 		// to the path info.
 		if ( !empty($url) && ($url != $request) && (strpos($match, $url) === 0) )
 			$request_match = $url . '/' . $request;
 
 		if ( preg_match("!^$match!", $request_match, $matches) ) {
+
+			if ( $wp_rewrite->use_verbose_page_rules && preg_match( '/pagename=\$matches\[([0-9]+)\]/', $query, $varmatch ) ) {
+				// this is a verbose page match, lets check to be sure about it
+				if ( ! get_page_by_path( $matches[ $varmatch[1] ] ) )
+					continue;
+			}
+
 			// Got a match.
 			// Trim the query of everything up to the '?'.
 			$query = preg_replace("!^.+\?!", '', $query);
@@ -813,29 +821,9 @@ class WP_Rewrite {
 		$rewrite_rules = array();
 		$page_structure = $this->get_page_permastruct();
 
-		if ( ! $this->use_verbose_page_rules ) {
-			$this->add_rewrite_tag('%pagename%', "(.+?)", 'pagename=');
-			$rewrite_rules = array_merge($rewrite_rules, $this->generate_rewrite_rules($page_structure, EP_PAGES));
-			return $rewrite_rules;
-		}
-
-		$page_uris = $this->page_uri_index();
-		$uris = $page_uris[0];
-		$attachment_uris = $page_uris[1];
-
-		if ( is_array( $attachment_uris ) ) {
-			foreach ( $attachment_uris as $uri => $pagename ) {
-				$this->add_rewrite_tag('%pagename%', "($uri)", 'attachment=');
-				$rewrite_rules = array_merge($rewrite_rules, $this->generate_rewrite_rules($page_structure, EP_PAGES));
-			}
-		}
-		if ( is_array( $uris ) ) {
-			foreach ( $uris as $uri => $pagename ) {
-				$this->add_rewrite_tag('%pagename%', "($uri)", 'pagename=');
-				$rewrite_rules = array_merge($rewrite_rules, $this->generate_rewrite_rules($page_structure, EP_PAGES));
-			}
-		}
-
+		// the extra .? at the beginning prevents clashes with other regular expressions in the rules array
+		$this->add_rewrite_tag('%pagename%', "(.?.+?)", 'pagename=');
+		$rewrite_rules = array_merge($rewrite_rules, $this->generate_rewrite_rules($page_structure, EP_PAGES));
 		return $rewrite_rules;
 	}
 
@@ -1276,7 +1264,7 @@ class WP_Rewrite {
 			$num_toks = preg_match_all('/%.+?%/', $struct, $toks);
 
 			//get the 'tagname=$matches[i]'
-			$query = ( isset($queries) && is_array($queries) ) ? $queries[$num_toks - 1] : '';
+			$query = ( isset($queries) && is_array($queries) && !empty($num_toks) ) ? $queries[$num_toks - 1] : '';
 
 			//set up $ep_mask_specific which is used to match more specific URL types
 			switch ( $dirs[$j] ) {
@@ -1498,13 +1486,8 @@ class WP_Rewrite {
 		$home_path = parse_url( home_url() );
 		$robots_rewrite = ( empty( $home_path['path'] ) || '/' == $home_path['path'] ) ? array( 'robots\.txt$' => $this->index . '?robots=1' ) : array();
 
-		// Default Feed rules - These are require to allow for the direct access files to work with permalink structure starting with %category%
-		$default_feeds = array(	'.*wp-atom.php$'	=>	$this->index . '?feed=atom',
-								'.*wp-rdf.php$'		=>	$this->index . '?feed=rdf',
-								'.*wp-rss.php$'		=>	$this->index . '?feed=rss',
-								'.*wp-rss2.php$'	=>	$this->index . '?feed=rss2',
-								'.*wp-feed.php$'	=>	$this->index . '?feed=feed',
-								'.*wp-commentsrss2.php$'	=>	$this->index . '?feed=rss2&withcomments=1');
+		// Old feed files
+		$old_feed_files = array( '.*wp-(atom|rdf|rss|rss2|feed|commentsrss2)\.php$' => $this->index . '?feed=old' );
 
 		// Registration rules
 		$registration_pages = array();
@@ -1558,9 +1541,9 @@ class WP_Rewrite {
 
 		// Put them together.
 		if ( $this->use_verbose_page_rules )
-			$this->rules = array_merge($this->extra_rules_top, $robots_rewrite, $default_feeds, $registration_pages, $page_rewrite, $root_rewrite, $comments_rewrite, $search_rewrite,  $author_rewrite, $date_rewrite, $post_rewrite, $this->extra_rules);
+			$this->rules = array_merge($this->extra_rules_top, $robots_rewrite, $old_feed_files, $registration_pages, $root_rewrite, $comments_rewrite, $search_rewrite,  $author_rewrite, $date_rewrite, $page_rewrite, $post_rewrite, $this->extra_rules);
 		else
-			$this->rules = array_merge($this->extra_rules_top, $robots_rewrite, $default_feeds, $registration_pages, $root_rewrite, $comments_rewrite, $search_rewrite,  $author_rewrite, $date_rewrite, $post_rewrite, $page_rewrite, $this->extra_rules);
+			$this->rules = array_merge($this->extra_rules_top, $robots_rewrite, $old_feed_files, $registration_pages, $root_rewrite, $comments_rewrite, $search_rewrite,  $author_rewrite, $date_rewrite, $post_rewrite, $page_rewrite, $this->extra_rules);
 
 		do_action_ref_array('generate_rewrite_rules', array(&$this));
 		$this->rules = apply_filters('rewrite_rules_array', $this->rules);
@@ -1756,7 +1739,7 @@ class WP_Rewrite {
 				</rule>
 				<rule name="wordpress - Rule 5" stopProcessing="true">
 					<match url="^([_0-9a-zA-Z-]+/)?(wp-(content|admin|includes).*)" ignoreCase="false" />
-					<action type="Rewrite" url="{R:2}" />
+					<action type="Rewrite" url="{R:1}" />
 				</rule>
 				<rule name="wordpress - Rule 6" stopProcessing="true">
 					<match url="^([_0-9a-zA-Z-]+/)?(.*\.php)$" ignoreCase="false" />

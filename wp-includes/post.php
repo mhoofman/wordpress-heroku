@@ -51,6 +51,7 @@ function create_initial_post_types() {
 	register_post_type( 'attachment', array(
 		'labels' => array(
 			'name' => __( 'Media' ),
+			'edit_item' => __( 'Edit Media' ),
 		),
 		'public' => true,
 		'show_ui' => false,
@@ -380,6 +381,8 @@ function &get_post(&$post, $output = OBJECT, $filter = 'raw') {
 		_get_post_ancestors($post);
 		$_post = sanitize_post($post, 'raw');
 		wp_cache_add($post->ID, $_post, 'posts');
+	} elseif ( is_object($post) && 'raw' == $post->filter ) {
+		$_post = $post;
 	} else {
 		if ( is_object($post) )
 			$post_id = $post->ID;
@@ -433,7 +436,7 @@ function get_post_ancestors($post) {
 /**
  * Retrieve data from a post field based on Post ID.
  *
- * Examples of the post field will be, 'post_type', 'post_status', 'content',
+ * Examples of the post field will be, 'post_type', 'post_status', 'post_content',
  * etc and based off of the post object property or key names.
  *
  * The context values are based off of the taxonomy filter functions and
@@ -985,7 +988,7 @@ function register_post_type($post_type, $args = array()) {
 		$wp->add_query_var($args->query_var);
 	}
 
-	if ( false !== $args->rewrite && '' != get_option('permalink_structure') ) {
+	if ( false !== $args->rewrite && ( is_admin() || '' != get_option('permalink_structure') ) ) {
 		if ( ! is_array( $args->rewrite ) )
 			$args->rewrite = array();
 		if ( empty( $args->rewrite['slug'] ) )
@@ -1035,6 +1038,8 @@ function register_post_type($post_type, $args = array()) {
 	foreach ( $args->taxonomies as $taxonomy ) {
 		register_taxonomy_for_object_type( $taxonomy, $post_type );
 	}
+
+	do_action( 'registered_post_type', $post_type, $args );
 
 	return $args;
 }
@@ -1154,7 +1159,7 @@ function _post_type_meta_capabilities( $capabilities = null ) {
  * Builds an object with all post type labels out of a post type object
  *
  * Accepted keys of the label array in the post type object:
- * - name - general name for the post type, usually plural. The same and overriden by $post_type_object->label. Default is Posts/Pages
+ * - name - general name for the post type, usually plural. The same and overridden by $post_type_object->label. Default is Posts/Pages
  * - singular_name - name for one object of this post type. Default is Post/Page
  * - add_new - Default is Add New for both hierarchical and non-hierarchical types. When internationalizing this string, please use a {@link http://codex.wordpress.org/I18n_for_WordPress_Developers#Disambiguation_by_context gettext context} matching your post type. Example: <code>_x('Add New', 'product');</code>
  * - add_new_item - Default is Add New Post/Add New Page
@@ -1165,6 +1170,8 @@ function _post_type_meta_capabilities( $capabilities = null ) {
  * - not_found - Default is No posts found/No pages found
  * - not_found_in_trash - Default is No posts found in Trash/No pages found in Trash
  * - parent_item_colon - This string isn't used on non-hierarchical types. In hierarchical ones the default is Parent Page:
+ * - all_items - String for the submenu. Default is All Posts/All Pages
+ * - menu_name - Default is the same as <code>name</code>
  *
  * Above, the first default value is for non-hierarchical post types (like posts) and the second one is for hierarchical post types (like pages).
  *
@@ -1246,7 +1253,7 @@ add_action( 'admin_menu', '_add_post_type_submenus' );
  * 'excerpt', 'page-attributes', 'thumbnail', and 'custom-fields'.
  *
  * Additionally, the 'revisions' feature dictates whether the post type will store revisions,
- * and the 'comments' feature dicates whether the comments count will show on the edit screen.
+ * and the 'comments' feature dictates whether the comments count will show on the edit screen.
  *
  * @since 3.0.0
  * @param string $post_type The post type for which to add the feature
@@ -1495,22 +1502,7 @@ function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
  * @return bool Whether the post meta key was deleted from the database
  */
 function delete_post_meta_by_key($post_meta_key) {
-	if ( !$post_meta_key )
-		return false;
-
-	global $wpdb;
-	$post_ids = $wpdb->get_col($wpdb->prepare("SELECT DISTINCT post_id FROM $wpdb->postmeta WHERE meta_key = %s", $post_meta_key));
-	if ( $post_ids ) {
-		$postmetaids = $wpdb->get_col( $wpdb->prepare( "SELECT meta_id FROM $wpdb->postmeta WHERE meta_key = %s", $post_meta_key ) );
-		$in = implode( ',', array_fill(1, count($postmetaids), '%d'));
-		do_action( 'delete_postmeta', $postmetaids );
-		$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->postmeta WHERE meta_id IN($in)", $postmetaids ));
-		do_action( 'deleted_postmeta', $postmetaids );
-		foreach ( $post_ids as $post_id )
-			wp_cache_delete($post_id, 'post_meta');
-		return true;
-	}
-	return false;
+	return delete_metadata( 'post', null, $post_meta_key, '', true );
 }
 
 /**
@@ -2083,7 +2075,7 @@ function wp_trash_post($post_id = 0) {
 	if ( $post['post_status'] == 'trash' )
 		return false;
 
-	do_action('trash_post', $post_id);
+	do_action('wp_trash_post', $post_id);
 
 	add_post_meta($post_id,'_wp_trash_meta_status', $post['post_status']);
 	add_post_meta($post_id,'_wp_trash_meta_time', time());
@@ -2447,9 +2439,11 @@ function wp_insert_post($postarr, $wp_error = false) {
 		$previous_status = 'new';
 	}
 
-	if ( ('' == $post_content) && ('' == $post_title) && ('' == $post_excerpt) && ('attachment' != $post_type) ) {
+	$maybe_empty = ! $post_content && ! $post_title && ! $post_excerpt && post_type_supports( $post_type, 'editor' )
+		&& post_type_supports( $post_type, 'title' ) && post_type_supports( $post_type, 'excerpt' );
+	if ( apply_filters( 'wp_insert_post_empty_content', $maybe_empty, $postarr ) ) {
 		if ( $wp_error )
-			return new WP_Error('empty_content', __('Content, title, and excerpt are empty.'));
+			return new WP_Error( 'empty_content', __( 'Content, title, and excerpt are empty.' ) );
 		else
 			return 0;
 	}
@@ -2496,7 +2490,12 @@ function wp_insert_post($postarr, $wp_error = false) {
 		else
 			$post_name = '';
 	} else {
-		$post_name = sanitize_title($post_name);
+		// On updates, we need to check to see if it's using the old, fixed sanitization context.
+		$check_name = sanitize_title( $post_name, '', 'old-save' );
+		if ( $update && strtolower( urlencode( $post_name ) ) == $check_name && get_post_field( 'post_name', $ID ) == $check_name )
+			$post_name = $check_name;
+		else // new post, or slug has changed.
+			$post_name = sanitize_title($post_name);
 	}
 
 	// If the post date is empty (due to having been new or a draft) and status is not 'draft' or 'pending', set date to now
@@ -2739,12 +2738,6 @@ function wp_publish_post($post_id) {
 	$post->post_status = 'publish';
 	wp_transition_post_status('publish', $old_status, $post);
 
-	// Update counts for the post's terms.
-	foreach ( (array) get_object_taxonomies('post') as $taxonomy ) {
-		$tt_ids = wp_get_object_terms($post_id, $taxonomy, array('fields' => 'tt_ids'));
-		wp_update_term_count($tt_ids, $taxonomy);
-	}
-
 	do_action('edit_post', $post_id, $post);
 	do_action('save_post', $post_id, $post);
 	do_action('wp_insert_post', $post_id, $post);
@@ -2853,7 +2846,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		}
 	}
 
-	return $slug;
+	return apply_filters( 'wp_unique_post_slug', $slug, $post_ID, $post_status, $post_type, $post_parent );
 }
 
 /**
@@ -3159,38 +3152,45 @@ function &get_page(&$page, $output = OBJECT, $filter = 'raw') {
  */
 function get_page_by_path($page_path, $output = OBJECT, $post_type = 'page') {
 	global $wpdb;
-	$null = null;
+
 	$page_path = rawurlencode(urldecode($page_path));
 	$page_path = str_replace('%2F', '/', $page_path);
 	$page_path = str_replace('%20', ' ', $page_path);
-	$page_paths = '/' . trim($page_path, '/');
-	$leaf_path  = sanitize_title(basename($page_paths));
-	$page_paths = explode('/', $page_paths);
-	$full_path = '';
-	foreach ( (array) $page_paths as $pathdir )
-		$full_path .= ( $pathdir != '' ? '/' : '' ) . sanitize_title($pathdir);
+	$parts = explode( '/', trim( $page_path, '/' ) );
+	$parts = array_map( 'esc_sql', $parts );
+	$parts = array_map( 'sanitize_title_for_query', $parts );
 
-	$pages = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_name, post_parent FROM $wpdb->posts WHERE post_name = %s AND (post_type = %s OR post_type = 'attachment')", $leaf_path, $post_type ));
+	$in_string = "'". implode( "','", $parts ) . "'";
+	$post_type_sql = $post_type;
+	$wpdb->escape_by_ref( $post_type_sql );
+	$pages = $wpdb->get_results( "SELECT ID, post_name, post_parent FROM $wpdb->posts WHERE post_name IN ($in_string) AND (post_type = '$post_type_sql' OR post_type = 'attachment')", OBJECT_K );
 
-	if ( empty($pages) )
-		return $null;
+	$revparts = array_reverse( $parts );
 
-	foreach ( $pages as $page ) {
-		$path = '/' . $leaf_path;
-		$curpage = $page;
-		while ( $curpage->post_parent != 0 ) {
-			$post_parent = $curpage->post_parent;
-			$curpage = wp_cache_get( $post_parent, 'posts' );
-			if ( false === $curpage )
-				$curpage = $wpdb->get_row( $wpdb->prepare( "SELECT ID, post_name, post_parent FROM $wpdb->posts WHERE ID = %d and post_type = %s", $post_parent, $post_type ) );
-			$path = '/' . $curpage->post_name . $path;
+	$foundid = 0;
+	foreach ( (array) $pages as $page ) {
+		if ( $page->post_name == $revparts[0] ) {
+			$count = 0;
+			$p = $page;
+			while ( $p->post_parent != 0 && isset( $pages[ $p->post_parent ] ) ) {
+				$count++;
+				$parent = $pages[ $p->post_parent ];
+				if ( ! isset( $revparts[ $count ] ) || $parent->post_name != $revparts[ $count ] )
+					break;
+				$p = $parent;
+			}
+
+			if ( $p->post_parent == 0 && $count+1 == count( $revparts ) && $p->post_name == $revparts[ $count ] ) {
+				$foundid = $page->ID;
+				break;
+			}
 		}
-
-		if ( $path == $full_path )
-			return get_page($page->ID, $output, $post_type);
 	}
 
-	return $null;
+	if ( $foundid )
+		return get_page( $foundid, $output );
+
+	return null;
 }
 
 /**
@@ -3270,7 +3270,7 @@ function &get_page_hierarchy( &$pages, $page_id = 0 ) {
 
 /**
  * function to traverse and return all the nested children post names of a root page.
- * $children contains parent-chilren relations
+ * $children contains parent-children relations
  *
  * @since 2.9.0
  */
@@ -3408,7 +3408,7 @@ function &get_pages($args = '') {
 			foreach ( $post_authors as $post_author ) {
 				//Do we have an author id or an author login?
 				if ( 0 == intval($post_author) ) {
-					$post_author = get_userdatabylogin($post_author);
+					$post_author = get_user_by('login', $post_author);
 					if ( empty($post_author) )
 						continue;
 					if ( empty($post_author->ID) )
@@ -3452,7 +3452,7 @@ function &get_pages($args = '') {
 	}
 
 	$orderby_array = array();
-	$allowed_keys = array('author', 'post_author', 'date', 'post_date', 'title', 'post_title', 'modified',
+	$allowed_keys = array('author', 'post_author', 'date', 'post_date', 'title', 'post_title', 'name', 'post_name', 'modified',
 						  'post_modified', 'modified_gmt', 'post_modified_gmt', 'menu_order', 'parent', 'post_parent',
 						  'ID', 'rand', 'comment_count');
 	foreach ( explode( ',', $sort_column ) as $orderby ) {
@@ -3727,9 +3727,6 @@ function wp_insert_attachment($object, $file = false, $parent = 0) {
 
 	clean_post_cache($post_ID);
 
-	if ( isset($post_parent) && $post_parent < 0 )
-		add_post_meta($post_ID, '_wp_attachment_temp_parent', $post_parent, true);
-
 	if ( ! empty( $context ) )
 		add_post_meta( $post_ID, '_wp_attachment_context', $context, true );
 
@@ -3900,6 +3897,9 @@ function wp_get_attachment_url( $post_id = 0 ) {
 	if ( !$post =& get_post( $post_id ) )
 		return false;
 
+	if ( 'attachment' != $post->post_type )
+		return false;
+
 	$url = '';
 	if ( $file = get_post_meta( $post->ID, '_wp_attached_file', true) ) { //Get attached file
 		if ( ($uploads = wp_upload_dir()) && false === $uploads['error'] ) { //Get upload directory
@@ -3912,12 +3912,12 @@ function wp_get_attachment_url( $post_id = 0 ) {
 		}
 	}
 
-	if ( empty($url) ) //If any of the above options failed, Fallback on the GUID as used pre-2.7, not recomended to rely upon this.
+	if ( empty($url) ) //If any of the above options failed, Fallback on the GUID as used pre-2.7, not recommended to rely upon this.
 		$url = get_the_guid( $post->ID );
 
 	$url = apply_filters( 'wp_get_attachment_url', $url, $post->ID );
 
-	if ( 'attachment' != $post->post_type || empty( $url ) )
+	if ( empty( $url ) )
 		return false;
 
 	return $url;
@@ -4037,7 +4037,8 @@ function wp_mime_type_icon( $mime = 0 ) {
 			$dirs = apply_filters( 'icon_dirs', array($icon_dir => $icon_dir_uri) );
 			$icon_files = array();
 			while ( $dirs ) {
-				$dir = array_shift($keys = array_keys($dirs));
+				$keys = array_keys( $dirs );
+				$dir = array_shift( $keys );
 				$uri = array_shift($dirs);
 				if ( $dh = opendir($dir) ) {
 					while ( false !== $file = readdir($dh) ) {
@@ -4159,7 +4160,7 @@ function get_posts_by_author_sql( $post_type, $full = true, $post_author = null 
 	// Private posts
 	$post_type_obj = get_post_type_object( $post_type );
 	if ( ! $post_type_obj )
-		return ' 1 = 0 ';
+		return $full ? 'WHERE 1 = 0' : ' 1 = 0 ';
 
 	// This hook is deprecated. Why you'd want to use it, I dunno.
 	if ( ! $cap = apply_filters( 'pub_priv_sql_capability', '' ) )
@@ -4467,7 +4468,7 @@ function update_postmeta_cache($post_ids) {
 /**
  * Will clean the attachment in the cache.
  *
- * Cleaning means delete from the cache. Optionaly will clean the term
+ * Cleaning means delete from the cache. Optionally will clean the term
  * object cache associated with the attachment ID.
  *
  * This function will not run if $_wp_suspend_cache_invalidation is not empty. See
@@ -4665,7 +4666,7 @@ function _get_post_ancestors(&$_post) {
  * Determines which fields of posts are to be saved in revisions.
  *
  * Does two things. If passed a post *array*, it will return a post array ready
- * to be insterted into the posts table as a post revision. Otherwise, returns
+ * to be inserted into the posts table as a post revision. Otherwise, returns
  * an array whose keys are the post fields to be saved for post revisions.
  *
  * @package WordPress
@@ -5190,11 +5191,26 @@ function set_post_thumbnail( $post, $thumbnail_id ) {
 }
 
 /**
+ * Removes a post thumbnail.
+ *
+ * @since 3.3.0
+ *
+ * @param int|object $post Post ID or object where thumbnail should be removed from.
+ * @return bool True on success, false on failure.
+ */
+function delete_post_thumbnail( $post ) {
+	$post = get_post( $post );
+	if ( $post )
+		return delete_post_meta( $post->ID, '_thumbnail_id' );
+	return false;
+}
+
+/**
  * Returns a link to a post format index.
  *
  * @since 3.1.0
  *
- * @param $format string Post format
+ * @param string $format Post format
  * @return string Link
  */
 function get_post_format_link( $format ) {
@@ -5217,7 +5233,8 @@ function _post_format_request( $qvs ) {
 	if ( isset( $slugs[ $qvs['post_format'] ] ) )
 		$qvs['post_format'] = 'post-format-' . $slugs[ $qvs['post_format'] ];
 	$tax = get_taxonomy( 'post_format' );
-	$qvs['post_type'] = $tax->object_type;
+	if ( ! is_admin() )
+		$qvs['post_type'] = $tax->object_type;
 	return $qvs;
 }
 add_filter( 'request', '_post_format_request' );
@@ -5295,4 +5312,20 @@ function _post_format_wp_get_object_terms( $terms ) {
 }
 add_filter( 'wp_get_object_terms', '_post_format_wp_get_object_terms' );
 
+/**
+ * Update the custom taxonomies' term counts when a post's status is changed. For example, default posts term counts (for custom taxonomies) don't include private / draft posts.
+ *
+ * @access private
+ * @param string $new_status
+ * @param string $old_status
+ * @param object $post
+ * @since 3.3.0
+ */
+function _update_term_count_on_transition_post_status( $new_status, $old_status, $post ) {
+	// Update counts for the post's terms.
+	foreach ( (array) get_object_taxonomies( $post->post_type ) as $taxonomy ) {
+		$tt_ids = wp_get_object_terms( $post->ID, $taxonomy, array( 'fields' => 'tt_ids' ) );
+		wp_update_term_count( $tt_ids, $taxonomy );
+	}
+}
 ?>

@@ -29,12 +29,19 @@ setCommentsList = function() {
 
 		$('span.pending-count').each( function() {
 			var a = $(this), n, dif;
+
 			n = a.html().replace(/[^0-9]+/g, '');
-			n = parseInt(n,10);
-			if ( isNaN(n) ) return;
+			n = parseInt(n, 10);
+
+			if ( isNaN(n) )
+				return;
+
 			dif = $('#' + settings.element).is('.' + settings.dimClass) ? 1 : -1;
 			n = n + dif;
-			if ( n < 0 ) { n = 0; }
+
+			if ( n < 0 )
+				n = 0;
+
 			a.closest('.awaiting-mod')[ 0 == n ? 'addClass' : 'removeClass' ]('count-0');
 			updateCount(a, n);
 			dashboardTotals();
@@ -96,7 +103,7 @@ setCommentsList = function() {
 		return settings;
 	};
 
-	// Updates the current total (as displayed visibly)
+	// Updates the current total (stored in the _total input)
 	updateTotalCount = function( total, time, setConfidentTime ) {
 		if ( time < lastConfidentTime )
 			return;
@@ -105,9 +112,6 @@ setCommentsList = function() {
 			lastConfidentTime = time;
 
 		totalInput.val( total.toString() );
-		$('span.total-type-count').each( function() {
-			updateCount( $(this), total );
-		});
 	};
 
 	dashboardTotals = function(n) {
@@ -165,8 +169,9 @@ setCommentsList = function() {
 
 	// In admin-ajax.php, we send back the unix time stamp instead of 1 on success
 	delAfter = function( r, settings ) {
-		var total, N, untrash = $(settings.target).parent().is('span.untrash'),
-			unspam = $(settings.target).parent().is('span.unspam'), spam, trash, pending,
+		var total, N, spam, trash, pending,
+			untrash = $(settings.target).parent().is('span.untrash'),
+			unspam = $(settings.target).parent().is('span.unspam'),
 			unapproved = $('#' + settings.element).is('.unapproved');
 
 		function getUpdate(s) {
@@ -178,13 +183,15 @@ setCommentsList = function() {
 			return 0;
 		}
 
-		spam = getUpdate('spam');
-		trash = getUpdate('trash');
-
 		if ( untrash )
 			trash = -1;
+		else
+			trash = getUpdate('trash');
+
 		if ( unspam )
 			spam = -1;
+		else
+			spam = getUpdate('spam');
 
 		pending = getCount( $('span.pending-count').eq(0) );
 
@@ -211,7 +218,11 @@ setCommentsList = function() {
 			dashboardTotals(N);
 		} else {
 			total = totalInput.val() ? parseInt( totalInput.val(), 10 ) : 0;
-			total = total - spam - trash;
+			if ( $(settings.target).parent().is('span.undo') )
+				total++;
+			else
+				total--;
+
 			if ( total < 0 )
 				total = 0;
 
@@ -356,6 +367,9 @@ commentReply = {
 		if ( this.cid ) {
 			c = $('#comment-' + this.cid);
 
+			if ( typeof QTags != 'undefined' )
+				QTags.closeAllTags('replycontent');
+
 			if ( this.act == 'edit-comment' )
 				c.fadeIn(300, function(){ c.show() }).css('backgroundColor', '');
 
@@ -365,18 +379,14 @@ commentReply = {
 			$('input', '#edithead').val('');
 			$('.error', '#replysubmit').html('').hide();
 			$('.waiting', '#replysubmit').hide();
-
-			if ( $.browser.msie )
-				$('#replycontainer, #replycontent').css('height', '120px');
-			else
-				$('#replycontainer').resizable('destroy').css('height', '120px');
+			$('#replycontent').css('height', '');
 
 			this.cid = '';
 		}
 	},
 
 	open : function(id, p, a) {
-		var t = this, editRow, rowData, act, h, c = $('#comment-' + id), replyButton;
+		var t = this, editRow, rowData, act, c = $('#comment-' + id), h = c.height(), replyButton;
 
 		t.close();
 		t.cid = id;
@@ -389,6 +399,9 @@ commentReply = {
 		$('#comment_post_ID', editRow).val(p);
 		$('#comment_ID', editRow).val(id);
 
+		if ( h > 120 )
+			$('#replycontent', editRow).css('height', (35+h) + 'px');
+
 		if ( a == 'edit' ) {
 			$('#author', editRow).val( $('div.author', rowData).text() );
 			$('#author-email', editRow).val( $('div.author-email', rowData).text() );
@@ -397,13 +410,6 @@ commentReply = {
 			$('#replycontent', editRow).val( $('textarea.comment', rowData).val() );
 			$('#edithead, #savebtn', editRow).show();
 			$('#replyhead, #replybtn', editRow).hide();
-
-			h = c.height();
-			if ( h > 220 )
-				if ( $.browser.msie )
-					$('#replycontainer, #replycontent', editRow).height(h-105);
-				else
-					$('#replycontainer', editRow).height(h-105);
 
 			c.after( editRow ).fadeOut('fast', function(){
 				$('#replyrow').fadeIn(300, function(){ $(this).show() });
@@ -478,8 +484,6 @@ commentReply = {
 	show : function(xml) {
 		var t = this, r, c, id, bg, pid;
 
-		t.revert();
-
 		if ( typeof(xml) == 'string' ) {
 			t.error({'responseText': xml});
 			return false;
@@ -490,6 +494,8 @@ commentReply = {
 			t.error({'responseText': wpAjax.broken});
 			return false;
 		}
+
+		t.revert();
 
 		r = r.responses[0];
 		c = r.data;
@@ -513,7 +519,7 @@ commentReply = {
 		$('#replyrow').after(c);
 		id = $(id);
 		t.addEvents(id);
-		bg = id.hasClass('unapproved') ? '#FFFFE0' : id.closest('.widefat').css('backgroundColor');
+		bg = id.hasClass('unapproved') ? '#FFFFE0' : id.closest('.widefat, .postbox').css('backgroundColor');
 
 		id.animate( { 'backgroundColor':'#CCEEBB' }, 300 )
 			.animate( { 'backgroundColor': bg }, 300, function() {
@@ -548,8 +554,6 @@ $(document).ready(function(){
 	commentReply.init();
 	$(document).delegate('span.delete a.delete', 'click', function(){return false;});
 
-	if ( typeof QTags != 'undefined' )
-		ed_reply = new QTags('ed_reply', 'replycontent', 'replycontainer', 'more,fullscreen');
 
 	if ( typeof $.table_hotkeys != 'undefined' ) {
 		make_hotkeys_redirect = function(which) {

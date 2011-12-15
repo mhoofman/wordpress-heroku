@@ -1,8 +1,8 @@
 /**
  * popup.js
- * 
+ *
  * An altered version of tinyMCEPopup to work in the same window as tinymce.
- * 
+ *
  * ------------------------------------------------------------------
  *
  * Copyright 2009, Moxiecode Systems AB
@@ -67,7 +67,7 @@ var tinyMCEPopup = {
 	 * Returns a window argument/parameter by name.
 	 *
 	 * @method getWindowArg
-	 * @param {String} n Name of the window argument to retrive.
+	 * @param {String} n Name of the window argument to retrieve.
 	 * @param {String} dv Optional default value to return.
 	 * @return {String} Argument value or default value if it wasn't found.
 	 */
@@ -81,7 +81,7 @@ var tinyMCEPopup = {
 	 * Returns a editor parameter/config option value.
 	 *
 	 * @method getParam
-	 * @param {String} n Name of the editor config option to retrive.
+	 * @param {String} n Name of the editor config option to retrieve.
 	 * @param {String} dv Optional default value to return.
 	 * @return {String} Parameter value or default value if it wasn't found.
 	 */
@@ -278,7 +278,7 @@ var tinyMCEPopup = {
 			close();
 	},
 
-	// Internal functions	
+	// Internal functions
 
 	_restoreSelection : function() {
 		var e = window.event.srcElement;
