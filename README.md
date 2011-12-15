@@ -75,3 +75,24 @@ Deploy to Heroku
     > * [new branch]    production -> master 
 
 After deployment WordPress has a few more steps to setup and thats it!
+
+Updating
+========
+
+Updating your WordPress version is just a matter of merging the updates into
+the branch created from the installation.
+
+    $ git pull # Get the latest
+
+Using the same branch name from our installation:
+
+    $ git checkout production
+    $ git merge master # Merge latest
+    $ git push heroku production:master
+
+WordPress needs to update the database. After push, navigate to:
+
+    http://your-app-url.herokuapp.com/wp-admin
+
+WordPress will prompt for updating the database. After that you'll be good
+to go.
