@@ -21,36 +21,15 @@ Add a database to your app
 
     $ heroku addons:add shared-database:5mb
     > -----> Adding shared-database:5mb to strange-turtle-1234... done, v3 (free)
+
+Create a new branch for any configuration/setup changes needed
+
+    $ git checkout -b production
     
-Retrieve database info (You'll need this info when setting up the WordPress config)
-
-    $ heroku config
-    > DATABASE_URL          => postgres://username:password@host/database_name
-    > SHARED_DATABASE_URL   => postgres://username:password@host/database_name
-
-Create a new branch to modify and save database configuration
-
-    $ git checkout -b "production"
-    
-Copy and edit the `wp-config.php` with the database info from the previous step
+Copy the `wp-config.php`
 
     $ cp wp-config-sample.php wp-config.php
-    $ mate wp-config.php # input and save database info
 
-Enter in database info from `heroku config`
-
-    /** The name of the database for WordPress */
-    define('DB_NAME', 'database_name');
-
-    /** Database username */
-    define('DB_USER', 'username');
-
-    /** Database password */
-    define('DB_PASSWORD', 'password');
-
-    /** Database hostname */
-    define('DB_HOST', 'host');
-    
 Clear `.gitignore` and commit `wp-config.php`
 
     $ >.gitignore
