@@ -1,0 +1,415 @@
+# Copyright (C) 2010 Marcel Bokhorst
+# This file is distributed under the same license as the Add Link to Facebook package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Add Link to Facebook\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/add-link-to-facebook\n"
+"POT-Creation-Date: 2011-02-07 15:02:41+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2012-01-18 09:22+0100\n"
+"Last-Translator: Marcel Bokhorst\n"
+"Language-Team: Pinto Lopes Alberto\n"
+"X-Poedit-Language: French\n"
+"X-Poedit-Country: FRANCE\n"
+
+msgid "Settings updated"
+msgstr "Options enregistrées"
+
+msgid "Authorized, go posting!"
+msgstr "Autorisé, allez poster!"
+
+msgid "needs configuration"
+msgstr "nécessite une configuration"
+
+msgid "needs authorization"
+msgstr "nécessite une autorisation"
+
+msgid "Add Link to Facebook"
+msgstr "Publier sur Facebook"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "Your server may not allow external connections"
+msgstr "Votre serveur peut ne pas autoriser les connexions externes"
+
+msgid "Easy setup"
+msgstr "Installation facile"
+
+msgid "Use shared Facebook application:"
+msgstr "Utiliser application Facebook partagée:"
+
+msgid "Simple, but less secure"
+msgstr "Simple, mais moins sécurisé"
+
+msgid "To get an App ID and App Secret you have to create a Facebook application"
+msgstr "Pour obtenir un App ID et un App Secret, vous devez créer une application sur Facebook"
+
+msgid "You have to fill in the following:"
+msgstr "Vous devez remplir le formulaire suivant:"
+
+msgid "Click here to create"
+msgstr "Cliquez ici pour créer"
+
+msgid "Anything you like, will appear as \"via ...\" below the message"
+msgstr "le nom que vous souhaitez, apparaîtra comme \"via ... \" en dessous du message"
+
+msgid "Web Site > Site URL:"
+msgstr "Site Web > URL de votre site:"
+
+msgid "App ID:"
+msgstr "App ID:"
+
+msgid "App Secret:"
+msgstr "App Secret:"
+
+msgid "Access token:"
+msgstr "Access token:"
+
+msgid "App Name:"
+msgstr "Nom de l'Application:"
+
+msgid "Share with all users on this site:"
+msgstr "Partager avec tous les utilisateurs de votre site:"
+
+msgid "Additional settings"
+msgstr "Paramètres supplémentaires"
+
+msgid "Link picture:"
+msgstr "Lien de l'image:"
+
+msgid "WordPress logo"
+msgstr "Logo WordPress"
+
+msgid "First attached image"
+msgstr "Première image en pièce jointe"
+
+msgid "Featured post image"
+msgstr "Image à la une"
+
+msgid "Let Facebook select"
+msgstr "Laisser Facebook sélectionner"
+
+msgid "First image in the post"
+msgstr "Première image dans l'article"
+
+msgid "Custom picture below"
+msgstr "Image personnalisé ci-dessous"
+
+msgid "Custom picture URL:"
+msgstr "URL de l'image personnalisé:"
+
+msgid "At least 50 x 50 pixels"
+msgstr "Au moins 50 x 50 pixels"
+
+msgid "Add to page:"
+msgstr "Ajouter à la page:"
+
+msgid "Add as page owner:"
+msgstr "Ajouter comme propriétaire de la page:"
+
+msgid "Requires manage pages permission"
+msgstr "Requiert l'autorisation de gérer les pages"
+
+msgid "Use groups:"
+msgstr "Utilisez les groupes:"
+
+msgid "Requires user groups permission"
+msgstr "Requiert l'autorisation du groupe d'utilisateurs"
+
+msgid "Add to group:"
+msgstr "Ajouter au groupe:"
+
+msgid "Use site title as caption:"
+msgstr "Utiliser le titre du site comme légende:"
+
+msgid "Use excerpt as message:"
+msgstr "Utiliser un extrait comme message:"
+
+msgid "Clean on deactivate:"
+msgstr "Nettoyer à la désactivation:"
+
+msgid "All data, except link id's"
+msgstr "Toutes les données, sauf l'ID du lien"
+
+msgid "I have donated to this plugin:"
+msgstr "J'ai fait une don pour ce plugin:"
+
+msgid "Administrator options"
+msgstr "Options administrateur"
+
+msgid "Do not display notices:"
+msgstr "Ne pas afficher les avis:"
+
+msgid "Except on this page"
+msgstr "Sauf sur cette page"
+
+msgid "Required capability to use plugin:"
+msgstr "Requiert la capacité d'utiliser le plugin:"
+
+msgid "Debug options"
+msgstr "Options de débogage"
+
+msgid "Use site URL as request URI:"
+msgstr "Utiliser l'URL du site comme requète URI:"
+
+msgid "Do not use cURL:"
+msgstr "Ne pas utiliser cURL:"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Authorization"
+msgstr "Autorisation"
+
+msgid "Links will be added to"
+msgstr "Les liens seront ajoutés à"
+
+msgid "Authorize"
+msgstr "Autoriser"
+
+msgid "Privacy in the Sustainable Plugins Sponsorship Network"
+msgstr "Politique de confidentialité sur les données privés du réseau Plugins Sponsorship"
+
+msgid "Resources"
+msgstr "Ressources"
+
+msgid "Frequently asked questions"
+msgstr "Foire aux questions"
+
+msgid "Facebook wall"
+msgstr "Mur Facebook"
+
+msgid "Support page"
+msgstr "Page Support"
+
+msgid "About the author"
+msgstr "A propos de l'auteur"
+
+msgid "Other plugins"
+msgstr "Autres plugins"
+
+msgid "Do not add link to Facebook"
+msgstr "Ne pas publier sur Facebook"
+
+msgid "Debug information"
+msgstr "Informations de débogage"
+
+msgid "Yes"
+msgstr "Oui"
+
+msgid "No"
+msgstr "Non"
+
+msgid "No images in the media library for this post"
+msgstr "Pas d'image dans la médiathèque pour cet article"
+
+msgid "Select link image:"
+msgstr "Sélectionner le lien d'une Image:"
+
+msgid "None"
+msgstr "Aucun"
+
+msgid "Name:"
+msgstr "Nom:"
+
+msgid "E-mail:"
+msgstr "E-mail:"
+
+msgid "Message:"
+msgstr "Message:"
+
+msgid "Send"
+msgstr "Envoyer"
+
+msgid "Debug information sent"
+msgstr "Informations de débogage envoyées"
+
+msgid "Sending debug information failed"
+msgstr "L'envoi des informations de débogage a échoué"
+
+msgid "Use short URL:"
+msgstr "Utiliser les URL courtes:"
+
+msgid "If available"
+msgstr "Si disponible"
+
+msgid "Delete existing Facebook link"
+msgstr "Supprimer le lien Facebook existant "
+
+msgid "Number of sentences to use:"
+msgstr "Nombre de phrases à utiliser:"
+
+msgid "Leave blank to let Facebook choose"
+msgstr "Laissez vide pour permettre à Facebook de choisir"
+
+msgid "Text trailer:"
+msgstr "Texte d'introduction:"
+
+msgid "For example \"Read more ...\""
+msgstr "Par exemple «Lire la suite ...»"
+
+msgid "Keep hyperlinks:"
+msgstr "Attribuer le lien hypertexte:"
+
+msgid "The hyperlink title will be removed"
+msgstr "Le lien hypertext du titre sera retiré"
+
+msgid "Integrate comments from Facebook:"
+msgstr "Intégrer les commentaires de Facebook:"
+
+msgid "Integrate likes from Facebook:"
+msgstr "Intégrer les «J'aime» de Facebook:"
+
+msgid "Show likers below the post text:"
+msgstr "Afficher ceux qui aiment en dessous de l'article:"
+
+msgid "Show Facebook like button:"
+msgstr "Afficher le bouton Facebook «J'aime»:"
+
+msgid "Use Open Graph protocol:"
+msgstr "Utiliser le protocole Open Graph:"
+
+msgid "Documentation"
+msgstr "Documentation"
+
+msgid "on Facebook"
+msgstr "sur Facebook"
+
+msgid "Liked this post"
+msgstr "Aime cet article"
+
+msgid "Refresh Facebook comments every:"
+msgstr "Actualiser les commentaires de Facebook toutes les:"
+
+msgid "Minutes"
+msgstr "Minutes"
+
+msgid "Default every 10 minutes"
+msgstr "Par défaut toutes les 10 minutes"
+
+msgid "Maximum Facebook text length:"
+msgstr "Longueur maximale du texte de Facebook:"
+
+msgid "Characters"
+msgstr "Charactères"
+
+msgid "Default 256 characters"
+msgstr "256 charactères par défaut"
+
+msgid "Add 'Share' link:"
+msgstr "Ajouter «Partager» un lien:"
+
+msgid "Share"
+msgstr "Partager"
+
+msgid "Default picture URL:"
+msgstr "URL de l'image par défaut:"
+
+msgid "Default WordPress logo"
+msgstr "Logo WordPress par défaut"
+
+msgid "Layout:"
+msgstr "Mise en page:"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Button with count"
+msgstr "Bouton avec compteur"
+
+msgid "Box with count"
+msgstr "Boîte avec compteur"
+
+msgid "Faces:"
+msgstr "Faces:"
+
+msgid "Width:"
+msgstr "Largeur:"
+
+msgid "Pixels"
+msgstr "Pixels"
+
+msgid "Action:"
+msgstr "Action:"
+
+msgid "Like"
+msgstr "Aime"
+
+msgid "Recommend"
+msgstr "Recommander"
+
+msgid "Font:"
+msgstr "Police:"
+
+msgid "Color scheme:"
+msgstr "Jeu de couleurs:"
+
+msgid "Light"
+msgstr "Clair"
+
+msgid "Dark"
+msgstr "Sombre"
+
+msgid "Use publish_post action:"
+msgstr "Utiliser l'action publish_post:"
+
+msgid "Link to:"
+msgstr "Lien vers:"
+
+msgid "Default the post or page"
+msgstr "Article ou page par défaut:"
+
+msgid "Do not show on the home page:"
+msgstr "Ne pas afficher sur la page d'accueil:"
+
+msgid "Do not show on posts:"
+msgstr "Ne pas afficher sur les articles:"
+
+msgid "Do not show on pages:"
+msgstr "Ne pas afficher sur les pages:"
+
+msgid "Exclude these custom post types:"
+msgstr "Exclure ces types d'articles personnalisés:"
+
+msgid "Separate by commas"
+msgstr "Séparer par des virgules"
+
+msgid "Do not verify the peer's certificate:"
+msgstr "Ne pas vérifier le certificat du peer:"
+
+msgid "Try this in case of cURL error 60"
+msgstr "A essayer en cas d'erreur cURL 60"
+
+msgid "Add links for new pages:"
+msgstr "Ajouter des liens pour les nouvelles pages:"
+
+msgid "Do not show in archives:"
+msgstr "Ne pas afficher dans les archives:"
+
+msgid "Do not show in categories:"
+msgstr "Ne pas afficher dans les catégories:"
+
+msgid "Show at the top of the post:"
+msgstr "Afficher au dessus de l'article:"
+
+msgid "Open Graph protocol <em>og:type</em>:"
+msgstr "Open Graph protocol <em>og:type</em>:"
+
+msgid "Do not add link by default:"
+msgstr "Ne pas ajouter de lien par défaut:"
+
+msgid "Don't show a summary in the post list:"
+msgstr "Ne pas afficher de résumé dans la liste d'article:"
+
+msgid "comments"
+msgstr "commentaires"
+
+msgid "likes"
+msgstr "aime"
+
+msgid "Exclude these categories:"
+msgstr "Exclure ces catégories:"
+

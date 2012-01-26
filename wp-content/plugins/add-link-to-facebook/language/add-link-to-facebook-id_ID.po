@@ -1,0 +1,619 @@
+# Copyright (C) 2010 Marcel Bokhorst
+# This file is distributed under the same license as the Add Link to Facebook package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Add Link to Facebook\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/add-link-to-facebook\n"
+"POT-Creation-Date: 2011-02-07 15:02:41+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2012-01-18 09:22+0100\n"
+"Last-Translator: Marcel Bokhorst\n"
+"Language-Team: Marcel Bokhorst\n"
+"X-Poedit-Language: Dutch\n"
+"X-Poedit-Country: NETHERLANDS\n"
+"Plural-Forms: Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+msgid "Settings updated"
+msgstr "Pengaturan Diperbaharui"
+
+msgid "Authorized, go posting!"
+msgstr "Diotorisasi, Silahkan posting!"
+
+msgid "needs configuration"
+msgstr "butuh konfugurasi"
+
+msgid "needs authorization"
+msgstr "butuh otorisasi"
+
+msgid "Add Link to Facebook"
+msgstr "Add Link to Facebook"
+
+msgid "Administration"
+msgstr "Administrasi"
+
+msgid "Your server may not allow external connections"
+msgstr "Server kamu mungkin tidak mengijinkan koneksi luar"
+
+msgid "Easy setup"
+msgstr "Instalasi mudah"
+
+msgid "Use shared Facebook application:"
+msgstr "Gunakan aplikasi Facebook berbagi"
+
+msgid "Simple, but less secure"
+msgstr "Simpel, tapi kurang aman"
+
+msgid "To get an App ID and App Secret you have to create a Facebook application"
+msgstr "Untuk mendapat App ID dan App Secret kamu harus membuat aplikasi Facebook"
+
+msgid "You have to fill in the following:"
+msgstr "Kamu harus mengisi di kolom berikut:"
+
+msgid "Click here to create"
+msgstr "Klik disini untuk membuat"
+
+msgid "Anything you like, will appear as \"via ...\" below the message"
+msgstr "Apapun kau suka, akan terlihat menjadi \"via ... \" dibawah pesannya"
+
+msgid "Web Site > Site URL:"
+msgstr "Website > URL Situs:"
+
+msgid "App ID:"
+msgstr "App ID:"
+
+msgid "App Secret:"
+msgstr "App Secret:"
+
+msgid "Access token:"
+msgstr "Akses token:"
+
+msgid "App Name:"
+msgstr "Nama App:"
+
+msgid "Share with all users on this site:"
+msgstr "Berbagi dengan pengguna di situs ini:"
+
+msgid "Additional settings"
+msgstr "Pengaturan tambahan"
+
+msgid "Link picture:"
+msgstr "Tautan gambar:"
+
+msgid "WordPress logo"
+msgstr "Logo WordPress "
+
+msgid "First attached image"
+msgstr "Gambar pertama yang ditambahkan"
+
+msgid "Featured post image"
+msgstr "Gambar Post Feature"
+
+msgid "Let Facebook select"
+msgstr "Biarkan Facebook memilih"
+
+msgid "First image in the post"
+msgstr "Gambar pertama di post"
+
+msgid "Custom picture below"
+msgstr "Gambar lain berikut"
+
+msgid "Custom picture URL:"
+msgstr "URL Gambar lain :"
+
+msgid "At least 50 x 50 pixels"
+msgstr "minimal 50 x 50 pixels"
+
+msgid "Add to page:"
+msgstr "tambahkan ke halaman:"
+
+msgid "Add as page owner:"
+msgstr "Tambahkan sebagai pemilik halaman:"
+
+msgid "Requires manage pages permission"
+msgstr "Diperlukan pengaturan izin pages"
+
+msgid "Use groups:"
+msgstr "Gunakan groups:"
+
+msgid "Requires user groups permission"
+msgstr "Diperlukan pengaturan izin group"
+
+msgid "Add to group:"
+msgstr "tambahkan ke group:"
+
+msgid "Use site title as caption:"
+msgstr "Gunakan judul situs sebagai keterangan:"
+
+msgid "Use excerpt as message:"
+msgstr "Gunakan kutipan sebagai pesan:"
+
+msgid "Clean on deactivate:"
+msgstr "Bersihkan saat dimatikan:"
+
+msgid "All data, except link id's"
+msgstr "Semua data, kecuali id tautan"
+
+msgid "I have donated to this plugin:"
+msgstr "Saya telah berdonasi untuk plugin ini:"
+
+msgid "Administrator options"
+msgstr "Opsi Administrator"
+
+msgid "Do not display notices:"
+msgstr "Jangan tampilkan pemberitahuan:"
+
+msgid "Except on this page"
+msgstr "Kecuali halaman ini"
+
+msgid "Required capability to use plugin:"
+msgstr "Dibutuhkan kemampuan untuk menggunakan plugin:"
+
+msgid "Debug options"
+msgstr "Opsi Debug"
+
+msgid "Use site URL as request URI:"
+msgstr "Gunakan URL situs sebagai URI request:"
+
+msgid "Do not use cURL:"
+msgstr "Jangan gunakan cURL:"
+
+msgid "Save"
+msgstr "Simpan"
+
+msgid "Authorization"
+msgstr "Otorisasi"
+
+msgid "Links will be added to"
+msgstr "Tautan akan ditambahkan ke"
+
+msgid "Authorize"
+msgstr "Terotorisasi"
+
+msgid "Privacy in the Sustainable Plugins Sponsorship Network"
+msgstr "Privasi di Jaringan Pensponsor Plugin Berkelanjutan"
+
+msgid "Resources"
+msgstr "Sumber"
+
+msgid "Frequently asked questions"
+msgstr "Pertanyaan yang sering ditanyakan"
+
+msgid "Facebook wall"
+msgstr "Dinding Facebook"
+
+msgid "Support page"
+msgstr "Halaman Bantuan"
+
+msgid "About the author"
+msgstr "Tentang penulis"
+
+msgid "Other plugins"
+msgstr "Plugin lain"
+
+msgid "Do not add link to Facebook"
+msgstr "Jangan tambahkan tautan ke Facebook"
+
+msgid "Debug information"
+msgstr "Informasi Debug"
+
+msgid "Yes"
+msgstr "Ya"
+
+msgid "No"
+msgstr "Tidak"
+
+msgid "No images in the media library for this post"
+msgstr "Tidak ada gambar di pustaka media untuk post ini"
+
+msgid "Select link image:"
+msgstr "Pilih tautan gambar:"
+
+msgid "None"
+msgstr "Kosong"
+
+msgid "Name:"
+msgstr "Nama:"
+
+msgid "E-mail:"
+msgstr "Surel:"
+
+msgid "Message:"
+msgstr "Pesan:"
+
+msgid "Send"
+msgstr "Kirim"
+
+msgid "Debug information sent"
+msgstr "Informasi debug terkirim"
+
+msgid "Sending debug information failed"
+msgstr "Informasi debug gagal terkirim"
+
+msgid "Use short URL:"
+msgstr "Gunakan pemendek URL:"
+
+msgid "If available"
+msgstr "Jika tersedia"
+
+msgid "Delete existing Facebook link"
+msgstr "Hapus tautan Facebook yang ada"
+
+msgid "Number of sentences to use:"
+msgstr "Jumlah kalimat yang digunakan:"
+
+msgid "Leave blank to let Facebook choose"
+msgstr "Kosongkan untuk membiarkan Facebook memilih"
+
+msgid "Text trailer:"
+msgstr "Trailer Text:"
+
+msgid "For example \"Read more ...\""
+msgstr "Contohnya \"Baca Terus ...\""
+
+msgid "Keep hyperlinks:"
+msgstr "Biarkan hyperlinks:"
+
+msgid "The hyperlink title will be removed"
+msgstr "Judul hyperlink akan dihapus"
+
+msgid "Integrate comments from Facebook:"
+msgstr "Integrasikan komentar dari Facebook:"
+
+msgid "Integrate likes from Facebook:"
+msgstr "Integrasikan suka dari Facebook:"
+
+msgid "Show likers below the post text:"
+msgstr "Tampilkan penyuka dibawah teks postingan:"
+
+msgid "Show Facebook like button:"
+msgstr "Tampilkan tombol 'suka' Facebook:"
+
+msgid "Use Open Graph protocol:"
+msgstr "Gunakan protokol Open Graph:"
+
+msgid "Documentation"
+msgstr "Dokumentasi"
+
+msgid "on Facebook"
+msgstr "di Facebook"
+
+msgid "Liked this post"
+msgstr "Menyukai post ini"
+
+msgid "Refresh Facebook comments every:"
+msgstr "Perbaharui komentar Facebook setiap:"
+
+msgid "Minutes"
+msgstr "Menit"
+
+msgid "Default every 10 minutes"
+msgstr "Standar setiap 10 menit"
+
+msgid "Maximum Facebook text length:"
+msgstr "Maksimal panjang teks Facebook:"
+
+msgid "Characters"
+msgstr "Karakter"
+
+msgid "Default 256 characters"
+msgstr "Standar 256 karakter"
+
+msgid "liked this post"
+msgid_plural "liked this post"
+msgstr[0] "Menyukai post ini"
+msgstr[1] "Menyukai post ini"
+
+msgid "Add 'Share' link:"
+msgstr "Tambahkan tautan 'Berbagi':"
+
+msgid "Share"
+msgstr "'Berbagi"
+
+msgid "Default picture URL:"
+msgstr "Standar URL gambar:"
+
+msgid "Default WordPress logo"
+msgstr "Standar logo WordPress"
+
+msgid "Layout:"
+msgstr "Tampilan:"
+
+msgid "Standard"
+msgstr "Standar"
+
+msgid "Button with count"
+msgstr "Tombol dengan jumlah"
+
+msgid "Box with count"
+msgstr "Kotak dengan jumlah"
+
+msgid "Faces:"
+msgstr "Wajah:"
+
+msgid "Width:"
+msgstr "Lebar:"
+
+msgid "Pixels"
+msgstr "Pixel"
+
+msgid "Action:"
+msgstr "Aksi:"
+
+msgid "Like"
+msgstr "Suka"
+
+msgid "Recommend"
+msgstr "Direkomendasikan"
+
+msgid "Font:"
+msgstr "Huruf:"
+
+msgid "Color scheme:"
+msgstr "Skema Warna:"
+
+msgid "Light"
+msgstr "Cerah"
+
+msgid "Dark"
+msgstr "Gelap"
+
+msgid "Use publish_post action:"
+msgstr "Gunakan aksi publish_post:"
+
+msgid "Link to:"
+msgstr "Tautan ke:"
+
+msgid "Default the post or page"
+msgstr "Standar postingan atau halaman"
+
+msgid "Do not show on the home page:"
+msgstr "Jangan tampilkan di halaman awal:"
+
+msgid "Do not show on posts:"
+msgstr "Jangan tampilkan di postingan:"
+
+msgid "Do not show on pages:"
+msgstr "Jangan tampilkan di halaman:"
+
+msgid "Exclude these custom post types:"
+msgstr "Pengecualian tipe posting berikut:"
+
+msgid "Separate by commas"
+msgstr "Dipisahkan oleh koma"
+
+msgid "Do not verify the peer's certificate:"
+msgstr "Jangan memverifikasi sertifikat peer:"
+
+msgid "Try this in case of cURL error 60"
+msgstr "Coba ini jika cURL mengalami error 60"
+
+msgid "Add links for new pages:"
+msgstr "Tambahkan tautan untuk halaman baru:"
+
+msgid "Do not show in archives:"
+msgstr "Jangan tampilkan di arsip:"
+
+msgid "Do not show in categories:"
+msgstr "Jangan tampilkan di kategori"
+
+msgid "Show at the top of the post:"
+msgstr "Tampilkan diatas postingan"
+
+msgid "Open Graph protocol <em>og:type</em>:"
+msgstr "Protokol Open Graph <em>og:type</em>:"
+
+msgid "Do not add link by default:"
+msgstr "Jangan tambah tautan secara standar:"
+
+msgid "Don't show a summary in the post list:"
+msgstr "Jangan tampilkan ringkasan di daftar post:"
+
+msgid "comments"
+msgstr "Komentar"
+
+msgid "likes"
+msgstr "Suka"
+
+msgid "Exclude these categories:"
+msgstr "Kecuali kategori ini:"
+
+msgid "Image from User Photo plugin"
+msgstr "Gambar dari plugin User Photo"
+
+msgid "Facebook character encoding:"
+msgstr "Karakter encoding Facebook:"
+
+msgid "Default UTF-8; do not change if no need"
+msgstr "Standar UTF-8; jangan diganti jika tidak perlu"
+
+msgid "Do not add like button"
+msgstr "Jangan tambahkan tombol suka"
+
+msgid "I have rated this plugin:"
+msgstr "Saya telah menilai plugin ini:"
+
+msgid "If you like the Add Link to Facebook plugin, please rate it on <a href=\"[wordpress]\" target=\"_blank\">wordpress.org</a>.<br />If the average rating is low, it makes no sense to support this plugin any longer.<br />You can disable this notice by checking the option \"I have rated this plugin\" on the <a href=\"[settings]\">settings page</a>."
+msgstr "Jika kamu menyukai plugin Add Link to Facebook, Tolong nilai di <a href=\"[wordpress]\" target=\"_blank\">wordpress.org</a>.<br />Jika nilainya rendah, akan sia-sia untuk melanjutkan plugin ini<br />Kamu bisa menutup peringatan ini dengan menceklist opsi \"Saya telah menilai plugin ini:\" di <a href=\"[settings]\">halaman setting</a>."
+
+msgid "Custom excerpt"
+msgstr "Kutipan kostum"
+
+msgid "Use iframe in stead of XFBML:"
+msgstr "Gunakan iframe daripada XFBML:"
+
+msgid "Post WordPress comments back to Facebook:"
+msgstr "Posting komentar WordPress kembali ke Facebook:"
+
+msgid "commented on"
+msgstr "berkomentar di"
+
+msgid "Show Facebook send button:"
+msgstr "Tampilkan tombol kirim Facebook:"
+
+msgid "Do not integrate comments"
+msgstr "Jangan mengintegrasi komentar"
+
+msgid "Copy comments from Facebook to WordPress:"
+msgstr "Salin komentar dari Facebook ke WordPress:"
+
+msgid "Enables for example editing of Facebook comments"
+msgstr "Aktifkan untuk contoh mengedit komentar Facebook"
+
+msgid "Show Facebook like button"
+msgstr "Tampilkan tombol suka Facebook:"
+
+msgid "Show Facebook send button"
+msgstr "Tampilkan tombol kirim Facebook"
+
+msgid "Combine Facebook like and send buttons:"
+msgstr "Kombinasikan tombol kirim dan suka Facebook:"
+
+msgid "Clear error messages"
+msgstr "Bersihkan pesan error"
+
+msgid "Show Facebook image/link"
+msgstr "Tampilkan gambar/tautan Facebook"
+
+msgid "Do not link to Facebook comment author:"
+msgstr "Jangan menunjukan tautan ke Facebook pengomentar:"
+
+msgid "Disables displaying of Facebook avatars too"
+msgstr "Jangan tampilkan avatar Facebook juga"
+
+msgid "and navigate to '<em>My Apps</em>' and then to '<em>Set Up New App</em>'"
+msgstr "dan pergi ke '<em>My Apps</em>' en dan naar '<em>Set Up New App</em>'"
+
+msgid "Facebook locale"
+msgstr "Facebook locale"
+
+msgid "Do not change if no need"
+msgstr "Jangan diganti jika tidak perlu"
+
+msgid "Link Facebook comment to:"
+msgstr "Tautkan komentar Facebook ke:"
+
+msgid "Profile author"
+msgstr "Profil Penulis"
+
+msgid "Added link"
+msgstr "Tautan yang ditambahkan"
+
+msgid "Link on Facebook"
+msgstr "Tautan di Facebook"
+
+msgid "Link picture"
+msgstr "Tautan gambar"
+
+msgid "Facebook page"
+msgstr "Halaman Facebook"
+
+msgid "Facebook group"
+msgstr "Grup Facebook"
+
+msgid "Link appearance"
+msgstr "Tampilan tautan"
+
+msgid "Facebook comments"
+msgstr "Komentar Facebook"
+
+msgid "Facebook like button"
+msgstr "Tombol suka Facebook"
+
+msgid "Miscelaneous settings"
+msgstr "Pengaturan lain"
+
+msgid "Maximum text length with trailer:"
+msgstr "Maksimal teks dengan trailer:"
+
+msgid "Default 10,000 characters"
+msgstr "Standar 10.0000 karakter"
+
+msgid "Facebook communication timeout:"
+msgstr "Waktu jeda komunikasi Facebook:"
+
+msgid "Seconds"
+msgstr "Detik"
+
+msgid "Default 30 seconds"
+msgstr "Standar 30 detik"
+
+msgid "Please check if this is a correct, reachable e-mail address"
+msgstr "Harap periksa jika benar, alamat surel yang benar"
+
+msgid "Please describe your problem, even if you did before"
+msgstr "Harap jelaskan permasalahan anda, bahkan jika sebelumnya anda lakukan"
+
+msgid "Show Facebook comments"
+msgstr "Tampilkan komentar Facebook"
+
+msgid "Show Facebook messages"
+msgstr "Tampilkan pesan Facebook"
+
+msgid "Appearance depends on your theme!"
+msgstr "Tampilan tergantung tema kamu!"
+
+msgid "Additional styling rules (CSS):"
+msgstr "Tambahan aturan tampilan (CSS):"
+
+msgid "Please be aware that comment integration or showing Facebook messages in the widget could harm the privacy of other Facebook users!"
+msgstr "Harap diingat bahwa integrasi komentar atau menampilkan pesan Facebook dapan membahayakan privasi pengguna Facebook lain!"
+
+msgid "should be authorized again to show Facebook messages in the widget"
+msgstr "Harus di otorisasi ulang untuk menampilkan pesan Facebook di widget"
+
+msgid "Plugin is authorized"
+msgstr "Plugin terotorisasi"
+
+msgid "Show comments on messages"
+msgstr "Tampilkan komentar di pesan"
+
+msgid "Update existing Facebook link"
+msgstr "Perbaharui tautan Facebook yang ada"
+
+msgid "Comments and likes will be lost!"
+msgstr "Komentar dan suka akan hilang!"
+
+msgid "Show Facebook like box"
+msgstr "Tampilkan kotak suka Facebook"
+
+msgid "Disable like box header:"
+msgstr "Nonaktifkan header kotak suka:"
+
+msgid "Disable like box stream:"
+msgstr "Nonaktifkan aliran kotak suka:"
+
+msgid "Avatar of author"
+msgstr "Avatar penulis"
+
+msgid "Facebook administrators:"
+msgstr "Administrator Facebook:"
+
+msgid "Separate multiple administrators by a comma without spaces"
+msgstr "Pisahkan banyak administrator dengan koma tanpa spasi"
+
+msgid "Facebook like box"
+msgstr "Kotak suka Facebook"
+
+msgid "Border color:"
+msgstr "Warna garis pinggir:"
+
+msgid "Facebook common"
+msgstr "Facebook umum"
+
+msgid "Facebook comments plugin"
+msgstr "Plugin komentar Facebook"
+
+msgid "Number of posts:"
+msgstr "Jumlah postingan:"
+
+msgid "Show Facebook comments plugin"
+msgstr "Tampilkan plugin komentar Facebook"
+
+msgid "Go to dashboard"
+msgstr "Menuju beranda"
+
+msgid "Do not collect statistics:"
+msgstr "Jangan kumpulkan statistik:"
+

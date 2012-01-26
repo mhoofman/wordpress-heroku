@@ -1,0 +1,877 @@
+# Copyright (C) 2010 Marcel Bokhorst
+# This file is distributed under the same license as the Add Link to Facebook package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Add Link to Facebook\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/add-link-to-facebook\n"
+"POT-Creation-Date: 2011-02-07 15:02:41+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2012-01-18 16:15+0100\n"
+"Last-Translator: Marcel Bokhorst\n"
+"Language-Team: Marcel Bokhorst\n"
+"X-Poedit-Language: Norwegian\n"
+"X-Poedit-Country: NORWAY\n"
+"Plural-Forms: Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+msgid "Settings updated"
+msgstr "Innstillinger oppdatert"
+
+msgid "Authorized, go posting!"
+msgstr "Autorisert. Du kan postere!"
+
+msgid "needs configuration"
+msgstr "trenger konfigurering"
+
+msgid "needs authorization"
+msgstr "trenger autorisasjon"
+
+msgid "Add Link to Facebook"
+msgstr "Tilføy link til Facebook"
+
+msgid "Administration"
+msgstr "Administrasjon"
+
+msgid "Your server may not allow external connections"
+msgstr "Din server tillater ikke eksterne tilkoblinger"
+
+msgid "Easy setup"
+msgstr "Enkelt oppsett"
+
+msgid "Use shared Facebook application:"
+msgstr "Bruk delt Facebook applikasjon:"
+
+msgid "Simple, but less secure"
+msgstr "Enkelt, men mindre sikker"
+
+msgid "To get an App ID and App Secret you have to create a Facebook application"
+msgstr "For å få en App-ID og App Secret må du lage en Facebook applikasjon"
+
+msgid "You have to fill in the following:"
+msgstr "Du må fylle ut følgende:"
+
+msgid "Click here to create"
+msgstr "Klikk her for å lage"
+
+msgid "Anything you like, will appear as \"via ...\" below the message"
+msgstr "Noe du liker, vil vises som \"via ... \" under meldingen"
+
+msgid "Website > Site URL:"
+msgstr "Webside > Side URL:"
+
+msgid "App ID:"
+msgstr "App ID:"
+
+msgid "App Secret:"
+msgstr "App Secret:"
+
+msgid "Access token:"
+msgstr "Adgangstegn:"
+
+msgid "App Name:"
+msgstr "App Navn:"
+
+msgid "Share with all users on this site:"
+msgstr "Del med alle brukere på dette nettstedet:"
+
+msgid "Additional settings"
+msgstr "Flere innstillinger"
+
+msgid "Link picture:"
+msgstr "Link bilde:"
+
+msgid "WordPress logo"
+msgstr "WordPress logo"
+
+msgid "First attached image"
+msgstr "Første vedlagt bilde"
+
+msgid "Featured post image"
+msgstr "Utvalgt innlegg bilde"
+
+msgid "Let Facebook select"
+msgstr "La Facebook velge"
+
+msgid "First image in the post"
+msgstr "Første bilde i innlegget"
+
+msgid "Custom picture below"
+msgstr "Selvvalgt bilde nedenfor"
+
+msgid "Custom picture URL:"
+msgstr "Selvvalgt bilde URL:"
+
+msgid "At least 50 x 50 pixels"
+msgstr "Minst 50 x 50 piksler"
+
+msgid "Add to page:"
+msgstr "Legg til side:"
+
+msgid "Add as page owner:"
+msgstr "Legg til som side eier:"
+
+msgid "Requires manage pages permission"
+msgstr "Krever administrere sider tillatelse"
+
+msgid "Use groups:"
+msgstr "Bruk grupper:"
+
+msgid "Requires user groups permission"
+msgstr "Krever brukergrupper tillatelse"
+
+msgid "Add to group:"
+msgstr "Legg til i gruppe:"
+
+msgid "Use site title as caption:"
+msgstr "Bruk site tittel som bildetekst:"
+
+msgid "Use excerpt as message:"
+msgstr "Bruk utdrag som melding:"
+
+msgid "Clean on deactivate:"
+msgstr "Rens ved deaktivering:"
+
+msgid "All data, except link id's"
+msgstr "Alle data, utenom link id's"
+
+msgid "I have donated to this plugin:"
+msgstr "Jeg har donert til denne plugin:"
+
+msgid "Administrator options"
+msgstr "Administrator alternativer"
+
+msgid "Do not display notices:"
+msgstr "Ikke vis merknader:"
+
+msgid "Except on this page"
+msgstr "Bortsett fra på denne siden"
+
+msgid "Required capability to use plugin:"
+msgstr "Nødvendig tilgang til å bruke plugin:"
+
+msgid "Debug options"
+msgstr "Debug alternativer"
+
+msgid "Use site URL as request URI:"
+msgstr "Bruk nettstedets nettadresse som forespørsel URI:"
+
+msgid "Do not use cURL:"
+msgstr "Ikke bruk cURL:"
+
+msgid "Save"
+msgstr "Lagre"
+
+msgid "Authorization"
+msgstr "Autorisasjon"
+
+msgid "Links will be added to"
+msgstr "Linker vil bli lagt til"
+
+msgid "Authorize"
+msgstr "Autoriser"
+
+msgid "Privacy in the Sustainable Plugins Sponsorship Network"
+msgstr "Personvern i Sustainable Plugins Sponsing Network"
+
+msgid "Resources"
+msgstr "Ressurser"
+
+msgid "Frequently asked questions"
+msgstr "Ofte stilte spørsmål"
+
+msgid "Facebook wall"
+msgstr "Facebook vegg"
+
+msgid "Support page"
+msgstr "Support side"
+
+msgid "About the author"
+msgstr "Om forfatteren"
+
+msgid "Other plugins"
+msgstr "Andre innstikk"
+
+msgid "Do not add link to Facebook"
+msgstr "Ikke legg til link til Facebook"
+
+msgid "Debug information"
+msgstr "Debug informasjon"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "No"
+msgstr "Nei"
+
+msgid "No images in the media library for this post"
+msgstr "Ingen bilder i media biblioteket for dette innlegget"
+
+msgid "Select link image:"
+msgstr "Velg link bildet:"
+
+msgid "None"
+msgstr "Ingen"
+
+msgid "Name:"
+msgstr "Navn:"
+
+msgid "E-mail:"
+msgstr "E-post:"
+
+msgid "Forum topic link:"
+msgstr "Forum emne link:"
+
+msgid "Mandatory"
+msgstr "Obligatorisk"
+
+msgid "Message:"
+msgstr "Melding:"
+
+msgid "Send"
+msgstr "Send"
+
+msgid "Forum topic link is mandatory"
+msgstr "Forumemne koblingen er obligatorisk"
+
+msgid "Debug information sent"
+msgstr "Debug informasjon sent"
+
+msgid "Sending debug information failed"
+msgstr "Sending av debug informasjon feilet"
+
+msgid "Use short URL:"
+msgstr "Bruk kort URL:"
+
+msgid "If available"
+msgstr "Hvis tilgjengelig"
+
+msgid "Delete existing Facebook link"
+msgstr "Slett eksisterende Facebook link"
+
+msgid "Number of sentences to use:"
+msgstr "Antall setninger å bruke:"
+
+msgid "Leave blank to let Facebook choose"
+msgstr "La stå tomt for å la Facebook velge"
+
+msgid "Text trailer:"
+msgstr "Tekst trailer:"
+
+msgid "For example \"Read more ...\""
+msgstr "For eksempel \"Les mer ...\""
+
+msgid "Keep hyperlinks:"
+msgstr "Behold hyperkoblinger:"
+
+msgid "The hyperlink title will be removed"
+msgstr "Hyperkobling tittelen vil bli fjernet"
+
+msgid "Integrate comments from Facebook:"
+msgstr "Integrer kommentarer fra Facebook:"
+
+msgid "Integrate likes from Facebook:"
+msgstr "Integrer liker fra Facebook:"
+
+msgid "Show likers below the post text:"
+msgstr "Vis likere under innlegg teksten:"
+
+msgid "Show Facebook like button:"
+msgstr "Vis Facebook liker knapp:"
+
+msgid "Use Open Graph protocol:"
+msgstr "Bruk Open Graph protokollen:"
+
+msgid "Documentation"
+msgstr "Dokumentasjon"
+
+msgid "on Facebook"
+msgstr "på Facebook"
+
+msgid "Liked this post"
+msgstr "Likte dette innlegget"
+
+msgid "Refresh Facebook comments every:"
+msgstr "Oppdater Facebook kommentarer hvert:"
+
+msgid "Minutes"
+msgstr "Minutt"
+
+msgid "Default every 10 minutes"
+msgstr "Standard hvert 10. minutt"
+
+msgid "Maximum Facebook text length:"
+msgstr "Maksimal Facebook tekst lengde:"
+
+msgid "Characters"
+msgstr "Tegn"
+
+msgid "Default 256 characters"
+msgstr "Standard 256 tegn"
+
+msgid "liked this post"
+msgid_plural "liked this post"
+msgstr[0] "likte dette innlegget"
+msgstr[1] "likte dette innlegget"
+
+msgid "Add 'Share' link:"
+msgstr "Legg til 'Del' link:"
+
+msgid "Share"
+msgstr "Del"
+
+msgid "Default picture URL:"
+msgstr "Standard bilde URL:"
+
+msgid "Default WordPress logo"
+msgstr "Standard WordPress logo"
+
+msgid "Layout:"
+msgstr "Layout:"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Button with count"
+msgstr "Knapp med telling"
+
+msgid "Box with count"
+msgstr "Boks med telling"
+
+msgid "Faces:"
+msgstr "Ansikter:"
+
+msgid "Width:"
+msgstr "Bredde:"
+
+msgid "Pixels"
+msgstr "Piksler"
+
+msgid "Action:"
+msgstr "Handling:"
+
+msgid "Like"
+msgstr "Liker"
+
+msgid "Recommend"
+msgstr "Anbefaler"
+
+msgid "Font:"
+msgstr "Skrifttype:"
+
+msgid "Color scheme:"
+msgstr "Fargekart:"
+
+msgid "Light"
+msgstr "Lys"
+
+msgid "Dark"
+msgstr "Mørk"
+
+msgid "Use publish_post action:"
+msgstr "Bruk publish_post handling:"
+
+msgid "Link to:"
+msgstr "Link til:"
+
+msgid "Default the post or page"
+msgstr "Standard innlegget eller side"
+
+msgid "Do not show on the home page:"
+msgstr "Ikke vis på hjemmesiden:"
+
+msgid "Do not show on posts:"
+msgstr "Ikke vis på innlegg:"
+
+msgid "Do not show on pages:"
+msgstr "Ikke vis på sidene:"
+
+msgid "Exclude these custom post types:"
+msgstr "Utelukke disse tilpassede innleggstypene:"
+
+msgid "Separate by commas"
+msgstr "Avskille med komma"
+
+msgid "Do not verify the peer's certificate:"
+msgstr "Ikke verifisere peer sertifikat:"
+
+msgid "Try this in case of cURL error 60"
+msgstr "Prøv dette i tilfelle av cURL feil 60"
+
+msgid "Add links for new pages:"
+msgstr "Legg til linker for nye sider:"
+
+msgid "Do not show in archives:"
+msgstr "Ikke vis i arkiver:"
+
+msgid "Do not show in categories:"
+msgstr "Ikke vis i kategorier:"
+
+msgid "Show at the top of the post:"
+msgstr "Vis på toppen av innlegget:"
+
+msgid "Open Graph protocol <em>og:type</em>:"
+msgstr "Open Graph protokoll <em>og:type</em>:"
+
+msgid "Do not add link by default:"
+msgstr "Ikke legg til link som standard:"
+
+msgid "Don't show a summary in the post list:"
+msgstr "Ikke vis en oppsummering i post listen:"
+
+msgid "comments"
+msgstr "kommentarer"
+
+msgid "likes"
+msgstr "liker"
+
+msgid "Exclude these categories:"
+msgstr "Utelukk disse kategoriene:"
+
+msgid "Exclude these tags:"
+msgstr "Utelukke disse taggene:"
+
+msgid "Exclude these authors:"
+msgstr "Utelukke disse forfatterne:"
+
+msgid "Image from User Photo plugin"
+msgstr "Bilde fra User Photo innstikk"
+
+msgid "Facebook character encoding:"
+msgstr "Facebook tegnkoding:"
+
+msgid "Default UTF-8; do not change if no need"
+msgstr "Standard UTF-8; ikke forandre om ikke nødvendig"
+
+msgid "Do not add like button"
+msgstr "Ikke legg til liker knapp"
+
+msgid "I have rated this plugin:"
+msgstr "Jeg har klassifisert dette innstikk:"
+
+msgid "If you like the Add Link to Facebook plugin, please rate it on <a href=\"[wordpress]\" target=\"_blank\">wordpress.org</a>.<br />If the average rating is low, it makes no sense to support this plugin any longer.<br />You can disable this notice by checking the option \"I have rated this plugin\" on the <a href=\"[settings]\">settings page</a>."
+msgstr "Hvis du liker Tilføy link til Facebook innstikk, kan du klassifisere den på <a href=\"[wordpress]\" target=\"_blank\">wordpress.org</a>.<br />Hvis den gjennomsnittlige rating er lav, er det ingen mening å supportere dette innstikk lenger.<br />Du kan deaktivere denne notisen ved å merke av alternativet \"Jeg har klassifisert denne plugin\" på  <a href=\"[settings]\">innstillings siden</a>."
+
+msgid "Through a mishap on the WordPress.org systems, previous ratings for the plugin were lost.<br />If you've rated the plugin in the past, your rating was accidentally removed.<br />So if you would be so kind as to rate the plugin again, I'd appreciate it. Thanks!"
+msgstr "Ved et uhell på WordPress.org systemene, gikk tidligere rangeringer for dette innstikket tapt. <br /> Hvis du har rangert innstikket i det siste, er rangeringen din ved et uhell fjernet. <br /> Så hvis du ville være så snill å rangere innstikket igjen, vil jeg sette pris på det. Takk!"
+
+msgid "Generated excerpt"
+msgstr "Generert utdrag"
+
+msgid "Custom exerpt"
+msgstr "Tilpasset utdrag"
+
+msgid "Use iframe in stead of XFBML:"
+msgstr "Bruk iframe i stedet for XFBML:"
+
+msgid "Post WordPress comments back to Facebook:"
+msgstr "Poster WordPress kommentarer tilbake til Facebook:"
+
+msgid "commented on"
+msgstr "kommenterte på"
+
+msgid "Show Facebook send button:"
+msgstr "Vis Facebook send knapp:"
+
+msgid "Do not integrate comments"
+msgstr "Ikke integrer kommentarer"
+
+msgid "Copy comments from Facebook to WordPress:"
+msgstr "Kopier kommentarer fra Facebook til WordPress:"
+
+msgid "Enables for example editing of Facebook comments"
+msgstr "Aktiverer for eksempel redigering av Facebook kommentar"
+
+msgid "Show Facebook like button"
+msgstr "Vis Facebook liker knapp"
+
+msgid "Show Facebook send button"
+msgstr "Vis Facebook send knapp"
+
+msgid "Combine Facebook like and send buttons:"
+msgstr "Kombiner Facebook liker og send knapper:"
+
+msgid "Clear error messages"
+msgstr "Slett feilmeldinger"
+
+msgid "Show Facebook image/link"
+msgstr "Vis Facebook bilde/link"
+
+msgid "Do not link to Facebook comment author:"
+msgstr "Ikke link til Facebook kommentar forfatteren:"
+
+msgid "Disables displaying of Facebook avatars too"
+msgstr "Deaktiverer visning av Facebook avatarer også"
+
+msgid "and navigate to '<em>My Apps</em>' and then to '<em>Set Up New App</em>'"
+msgstr "og naviger til '<em>Mine Apps</em>' og deretter til '<em>Sett opp ny App</em>'"
+
+msgid "Facebook locale:"
+msgstr "Facebook locale:"
+
+msgid "Do not change if no need"
+msgstr "Ikke endre om ikke nødvendig"
+
+msgid "Link Facebook comment to:"
+msgstr "Link Facebook kommentar til:"
+
+msgid "Profile author"
+msgstr "Profil forfatter"
+
+msgid "Added link"
+msgstr "Lagt til link"
+
+msgid "Link on Facebook"
+msgstr "Link på Facebook"
+
+msgid "Link picture"
+msgstr "Link bilde"
+
+msgid "Facebook page"
+msgstr "Facebook side"
+
+msgid "Facebook group"
+msgstr "Facebook gruppe"
+
+msgid "Link appearance"
+msgstr "Link utseende"
+
+msgid "Facebook comments"
+msgstr "Facebook komentarer"
+
+msgid "Facebook like button"
+msgstr "Facebook liker knapp"
+
+msgid "Miscelaneous settings"
+msgstr "Diverse innstillinger"
+
+msgid "Maximum text length with trailer:"
+msgstr "Maksimal tekst lengde med trailer:"
+
+msgid "Default 10,000 characters"
+msgstr "Standard 10.000 tegn"
+
+msgid "Facebook communication timeout:"
+msgstr "Facebook kommunikasjon tidsavbrudd:"
+
+msgid "Seconds"
+msgstr "Sekunder"
+
+msgid "Default 15 seconds"
+msgstr "Standard 15 sekunder"
+
+msgid "Please check if this is a correct, reachable e-mail address"
+msgstr "Vennligst sjekk om dette er en korrekt, tilgjengelig e-postadresse"
+
+msgid "Please describe your problem, even if you did before"
+msgstr "Beskriv ditt problem, selv om du har gjort det før"
+
+msgid "Show Facebook comments"
+msgstr "Vis Facebook kommentarer"
+
+msgid "Show Facebook messages"
+msgstr "Vis Facebook meldinger"
+
+msgid "Appearance depends on your theme!"
+msgstr "Utseende avhenger av ditt tema!"
+
+msgid "Additional styling rules (CSS):"
+msgstr "Ekstra styling regler (CSS):"
+
+msgid "Please be aware that comment integration or showing Facebook messages in the widget could harm the privacy of other Facebook users!"
+msgstr "Vær oppmerksom på at kommentar integrering eller visning av Facebook-meldinger i widgeten kan skade privatlivet til andre Facebook-brukere!"
+
+msgid "should be authorized again to show Facebook messages in the widget"
+msgstr "må bli autorisert igjen for å vise Facebook meldinger i widget"
+
+msgid "Plugin is authorized"
+msgstr "Innstikk er autorisert"
+
+msgid "Show comments on messages"
+msgstr "Vis kommentarer på meldinger"
+
+msgid "Update existing Facebook link"
+msgstr "Oppdatere eksisterende Facebook link"
+
+msgid "Comments and likes will be lost!"
+msgstr "Kommentarer og liker vil gå tapt!"
+
+msgid "Show Facebook like box"
+msgstr "Vis Facebook liker boks"
+
+msgid "Disable like box header:"
+msgstr "Deaktiver liker boks overskrift:"
+
+msgid "Disable like box stream:"
+msgstr "Deaktiver liker boks strøm:"
+
+msgid "Avatar of author"
+msgstr "Avatar av forfatter"
+
+msgid "Facebook administrators:"
+msgstr "Facebook administratorer:"
+
+msgid "Separate multiple administrators by a comma without spaces"
+msgstr "Skill flere administratorer med komma uten mellomrom"
+
+msgid "Facebook like box"
+msgstr "Facebook liker boks"
+
+msgid "Border color:"
+msgstr "Kantfarge:"
+
+msgid "Facebook common"
+msgstr "Facebook felles"
+
+msgid "Facebook comments plugin"
+msgstr "Facebook kommentarer innstikk"
+
+msgid "Number of posts:"
+msgstr "Antall innlegg:"
+
+msgid "Show Facebook comments plugin"
+msgstr "Vis Facebook kommentarer innstikk"
+
+msgid "Go to dashboard"
+msgstr "Gå til kontrollpanel"
+
+msgid "Do not collect statistics:"
+msgstr "Ikke samle statistikk:"
+
+msgid "Execute shortcodes in widgets:"
+msgstr "Bruk kortkoder i widgets:"
+
+msgid "Show Facebook face pile"
+msgstr "Vis Facebook ansikt stabel"
+
+msgid "Facebook face pile"
+msgstr "Facebook ansikt stabel"
+
+msgid "Size:"
+msgstr "Størrelse:"
+
+msgid "Small"
+msgstr "Liten"
+
+msgid "Large"
+msgstr "Stor"
+
+msgid "Maximum count of rows:"
+msgstr "Maksimum antall rader:"
+
+msgid "Show Facebook registration"
+msgstr "Vis Facebook registrering"
+
+msgid "Show Facebook login"
+msgstr "Vis Facebook logg inn"
+
+msgid "WordPress user name"
+msgstr "WordPress brukernavn"
+
+msgid "Facebook registration failed"
+msgstr "Facebook registrering feilet"
+
+msgid "E-mail address in use"
+msgstr "E-mail adresse i bruk"
+
+msgid "User not found"
+msgstr "Bruker ikke funnet"
+
+msgid "Could not verify Facebook login"
+msgstr "Kunne ikke verifisere Facebook logg inn"
+
+msgid "Facebook login"
+msgstr "Facebook logg inn"
+
+msgid "Registration width:"
+msgstr "Registrering bredde:"
+
+msgid "Login width:"
+msgstr "Logg inn bredde:"
+
+msgid "Login registration URL:"
+msgstr "Logg inn registrering URL:"
+
+msgid "Login redirect URL:"
+msgstr "Logg inn videresend URL:"
+
+msgid "User registration disabled"
+msgstr "Bruker registrering deaktivert"
+
+msgid "Facebook e-mail address missing"
+msgstr "Facebook e-post adresse mangler"
+
+msgid "Facebook ID"
+msgstr "Facebook ID"
+
+msgid "Facebook user ID missing"
+msgstr "Facebook bruker ID mangler"
+
+msgid "Disable"
+msgstr "Deaktiver"
+
+msgid "I don't want to support this plugin with the Sustainable Plugins Sponsorship Network:"
+msgstr "Jeg ønsker ikke å støtte dette innstikk med Sustainable Plugins Sponsing Nettverk:"
+
+msgid "What is my Facebook ID?"
+msgstr "Hva er min Facebook-ID?"
+
+msgid "Do not execute shortcodes for texts:"
+msgstr "Ikke utføre kortkoder for tekster:"
+
+msgid "Do not execute filters for texts:"
+msgstr "Ikke utføre filtre for tekster:"
+
+msgid "Do not execute filters for comments:"
+msgstr "Ikke utføre filtre for kommentarer:"
+
+msgid "Only this user can access the settings:"
+msgstr "Bare denne brukeren kan få tilgang til innstillinger:"
+
+msgid "Facebook activity feed"
+msgstr "Facebook aktivitet feed"
+
+msgid "Height:"
+msgstr "Høyde:"
+
+msgid "Show header:"
+msgstr "Vis overskrift:"
+
+msgid "Show recommendations:"
+msgstr "Vis anbefalinger:"
+
+msgid "Show Facebook activity feed"
+msgstr "Vis Facebook aktivitet feed"
+
+msgid "Text or HTML when logged in:"
+msgstr "Tekst eller HTML når logget inn:"
+
+msgid "Custom text"
+msgstr "Tilpasset tekst"
+
+msgid "Refresh Facebook comments for:"
+msgstr "Oppdater Facebook kommentarer for:"
+
+msgid "Days"
+msgstr "Dager"
+
+msgid "Default 7 days"
+msgstr "Standard 7 dager"
+
+msgid "Required capability to view Facebook comments:"
+msgstr "Nødvendig evne til å vise Facebook-kommentarer:"
+
+msgid "Add meta box for these custom post types:"
+msgstr "Legg til meta boks for disse egendefinerte post typene:"
+
+msgid "Use Heise social share privacy:"
+msgstr "Bruk Heise sosial dele personvern:"
+
+msgid "Information"
+msgstr "Informasjon"
+
+msgid "Refresh Facebook comments in the background:"
+msgstr "Oppdatere Facebook-kommentarer i bakgrunnen:"
+
+msgid "Using Wordress cron"
+msgstr "Bruk Wordress cron"
+
+msgid "Heise privacy policy URL:"
+msgstr "Heise personvern URL:"
+
+msgid "Display automatically after post:"
+msgstr "Vis automatisk etter innlegg:"
+
+msgid "Priority filter 'the_content':"
+msgstr "Prioritet filter 'the_content':"
+
+msgid "Upgrade deactivates the plugin!"
+msgstr "Oppgradering deaktiverer innstikk!"
+
+msgid "See all pages:"
+msgstr "Se alle sider:"
+
+msgid "Check this too if you want to add as page owner"
+msgstr "Sjekk denne også hvis du vil legge til som sideeier"
+
+msgid "Do not include Facebook script:"
+msgstr "Ikke inkluder Facebook skript:"
+
+msgid "In case of conflicts with other Facebook plugins"
+msgstr "I tilfelle konflikt med andre Facebook innstikk"
+
+msgid "Picture"
+msgstr "Bilde"
+
+msgid "Page/group"
+msgstr "Side/Gruppe"
+
+msgid "Appearance"
+msgstr "Utseende"
+
+msgid "Comments"
+msgstr "Kommentarer"
+
+msgid "Like button"
+msgstr "Liker knapp"
+
+msgid "Like box"
+msgstr "Liker boks"
+
+msgid "Comments plugin"
+msgstr "Kommentar innstikk"
+
+msgid "Face pile"
+msgstr "Face pile"
+
+msgid "Login"
+msgstr "Logg inn"
+
+msgid "Activity feed"
+msgstr "Aktivitet feed"
+
+msgid "Common"
+msgstr "Felles"
+
+msgid "Misc."
+msgstr "Diverse"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "First authorize the plugin"
+msgstr "Autoriser innstikket først"
+
+msgid "Only for administrators"
+msgstr "Kun for administratorer"
+
+msgid "Setup guide & user manual"
+msgstr "Veiledninger"
+
+msgid "No tab pages"
+msgstr "Ingen tab sider"
+
+msgid "Debug:"
+msgstr "Debug:"
+
+msgid "Use category ID's"
+msgstr "Bruk kategori ID'er"
+
+msgid "Use login names"
+msgstr "Bruk logg inn navn"
+
+msgid "Donate in EUR"
+msgstr "Doner i EUR"
+
+msgid "Show"
+msgstr "Vis"
+
+msgid "Did you check if your problem is described in <a href=\"[FAQ]\" target=\"_blank\">the FAQ</a> ?"
+msgstr "Har du sjekket om ditt problem er beskrevet i <a href=\"[FAQ]\" target=\"_blank\">FAQ</a> ?"
+
+msgid "Default 'article'"
+msgstr "Standard artikkel'"
+
+msgid "Maximum number:"
+msgstr "Maksimum antall:"
+

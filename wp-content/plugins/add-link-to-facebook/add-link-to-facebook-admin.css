@@ -1,0 +1,185 @@
+
+/*
+	Style sheet Add Link to Facebook plugin
+	Copyright (c) 2011, 2012 by Marcel Bokhorst
+*/
+
+/* Error/warning messages */
+.al2fb_error {
+	font-weight: bold;
+}
+
+/* Informational messages */
+.al2fb_notice {
+	font-weight: bold;
+}
+
+/* Resources panel right */
+.al2fb_resources {
+	float: right;
+	padding: 10px;
+	width: 180px;
+	margin-top: 30px;
+	border: 1px solid #CCCCCC;
+	background-color: #FFFEEB;
+}
+
+/* Options panel left */
+.al2fb_options {
+	float: left;
+}
+
+/* Application setup instructions */
+.al2fb_instructions {
+	margin-top: 20px;
+	margin-bottom: 20px;
+	padding: 10px;
+	border: 1px solid #CCCCCC;
+	background-color: #FFFEEB;
+}
+
+.al2fb_instructions h4 {
+	text-decoration: underline;
+}
+
+.al2fb_instructions table {
+	margin-left: 20px;
+}
+
+.al2fb_label {
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+.al2fb_data {
+	text-decoration: italic;
+}
+
+/* Text options */
+.al2fb_text {
+	width: 350px;
+}
+
+/* Numeric options */
+.al2fb_numeric {
+	width: 50px;
+	text-align: right;
+}
+
+.al2fb_select {
+}
+
+/* Option explanation */
+.al2fb_explanation {
+	font-size: smaller;
+}
+
+/* Debug info */
+#al2fb_debug_topic, #al2fb_debug_msg {
+	width: 420px;
+}
+
+/* Option borders */
+.al2fb_border {
+	border-width: 1px;
+	border-color: gray;
+	border-style: outset;
+	margin-bottom: 10px;
+}
+
+/* Debug information */
+.al2fb_debug table {
+	border-width: 1px;
+	border-spacing: 2px;
+	border-style: outset;
+	border-color: gray;
+	border-collapse: collapse;
+	margin: 20px 0;
+}
+
+.al2fb_debug th, .al2fb_debug td {
+	border-width: 1px;
+	padding: 1px;
+	border-style: inset;
+	border-color: gray;
+	font-size: smaller;
+}
+
+/* Post meta images */
+.al2fb_image {
+	cursor: pointer;
+	display: inline-block;
+	vertical-align: top;
+	border: 1px solid gray;
+	margin-left: 10px;
+	margin-bottom: 10px;
+	padding: 5px;
+}
+
+.al2fb_image input {
+	margin: 0 0 5px 0;
+}
+
+/* Extra CSS */
+#al2fb_css {
+	font-family: monospace;
+}
+
+/* Tabs */
+ul.al2fb_tabs {
+	margin: 0;
+	padding: 0;
+	float: left;
+	list-style: none;
+	height: 32px;
+	border-bottom: 1px solid #999;
+	border-left: 1px solid #999;
+	width: 100%;
+}
+
+ul.al2fb_tabs li {
+	float: left;
+	margin: 0;
+	padding: 0;
+	height: 31px;
+	line-height: 31px;
+	border: 1px solid #999;
+	border-left: none;
+	margin-bottom: -1px;
+	overflow: hidden;
+	position: relative;
+	background: #e0e0e0;
+}
+
+ul.al2fb_tabs li a {
+	text-decoration: none;
+	color: #000;
+	display: block;
+	padding: 0 5px;
+	border: 1px solid #fff;
+	outline: none;
+	font-size: smaller;
+}
+
+ul.al2fb_tabs li a:hover {
+	background: #ccc;
+}
+
+html ul.al2fb_tabs li.active, html ul.al2fb_tabs li.active a:hover {
+	background: #fff;
+	border-bottom: 1px solid #fff;
+}
+
+/* Tab content */
+.al2fb_tab_container {
+	border: 1px solid #999;
+	border-top: none;
+	overflow: hidden;
+	clear: both;
+	float: left; width: 100%;
+	background: #fff;
+}
+
+.al2fb_tab_content {
+	padding: 0 10px;
+}

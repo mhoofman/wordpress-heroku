@@ -1,0 +1,178 @@
+# Copyright (C) 2010 Marcel Bokhorst
+# This file is distributed under the same license as the Add Link to Facebook package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Add Link to Facebook\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/add-link-to-facebook\n"
+"POT-Creation-Date: 2011-02-07 15:02:41+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2012-01-18 09:22+0100\n"
+"Last-Translator: Marcel Bokhorst\n"
+"Language-Team: yavuz\n"
+"X-Poedit-Language: Turkish\n"
+"X-Poedit-Country: TURKEY\n"
+
+msgid "Settings updated"
+msgstr "Ayarlar Güncellendi"
+
+msgid "Authorized, go posting!"
+msgstr "İzin Alındı, Mesaj Gönderebilirsiniz!"
+
+msgid "needs configuration"
+msgstr "Ayara İhtiyaç Var"
+
+msgid "needs authorization"
+msgstr "İzin Alınması Gerekiyor"
+
+msgid "Add Link to Facebook"
+msgstr "Add Link to Facebook"
+
+msgid "Administration"
+msgstr "Yönetim"
+
+msgid "Your server may not allow external connections"
+msgstr "Sunucunuz harici bağlantıya izin vermiyor olabilir"
+
+msgid "Easy setup"
+msgstr "Kolay Kurulum"
+
+msgid "To get an App ID and App Secret you have to create a Facebook application"
+msgstr "Uygulama Kimliğine ve Application Secret (Uygulama Gizli Anahtarı) edinmek için Facebook uygulaması oluşturmanız gerekmektedir."
+
+msgid "Click here to create"
+msgstr "Oluşturmak İçin Tıklayınız"
+
+msgid "Anything you like, will appear as \"via ...\" below the message"
+msgstr "İsteğiniz neyse \"via ... \" şeklinde gösterilecektir."
+
+msgid "Web Site > Site URL:"
+msgstr "Web Sayfa > Site URL Adresi:"
+
+msgid "App ID:"
+msgstr "Uygulama Kimliği:"
+
+msgid "App Secret:"
+msgstr "App Secret:"
+
+msgid "App Name:"
+msgstr "Uygulama Adı:"
+
+msgid "Additional settings"
+msgstr "Ek Ayarlar"
+
+msgid "Link picture:"
+msgstr "Bağlantı Resmi:"
+
+msgid "WordPress logo"
+msgstr "WordPress logosu"
+
+msgid "Featured post image"
+msgstr "Özel Mesaj Resmi"
+
+msgid "Let Facebook select"
+msgstr "Facebook Seçsin"
+
+msgid "Custom picture below"
+msgstr "Aşağıdaki özel resim"
+
+msgid "Custom picture URL:"
+msgstr "Özel Resim URL Adresi:"
+
+msgid "At least 50 x 50 pixels"
+msgstr "En az 50 x 50 olmalı"
+
+msgid "Add to page:"
+msgstr "Sayfaya Ekle"
+
+msgid "Add as page owner:"
+msgstr "Sayfa sahibi olarak ekle:"
+
+msgid "Requires manage pages permission"
+msgstr "'Manage Permissions' haklarına ihtiyaç duyar"
+
+msgid "Use site title as caption:"
+msgstr "Site başlığını başlık olarak kullan"
+
+msgid "Use excerpt as message:"
+msgstr "Alıntıyı mesaj olarak kullan:"
+
+msgid "Clean on deactivate:"
+msgstr "Etkisizleştirdiğinde ayarları temizle:"
+
+msgid "All data, except link id's"
+msgstr "Bağlantı ID'leri hariç tüm veri"
+
+msgid "I have donated to this plugin:"
+msgstr "Bu eklentiye katkıda bulundum:"
+
+msgid "Administrator options"
+msgstr "Yönetici Ayarları"
+
+msgid "Do not display notices:"
+msgstr "Uyarıları Gösterme"
+
+msgid "Except on this page"
+msgstr "Bu sayfa hariç"
+
+msgid "Required capability to use plugin:"
+msgstr "Eklentiyi kullanmak için gerekli olan kullanıcı hakkı:"
+
+msgid "Use site URL as request URI:"
+msgstr "Site URL'sini istem URI olarak kullan:"
+
+msgid "Do not use cURL:"
+msgstr "cURL Kullanma:"
+
+msgid "Save"
+msgstr "Kaydet"
+
+msgid "Authorization"
+msgstr "İzin Verme"
+
+msgid "Links will be added to"
+msgstr "Linklerin ekleneceği yer"
+
+msgid "Authorize"
+msgstr "İzin Ver"
+
+msgid "Privacy in the Sustainable Plugins Sponsorship Network"
+msgstr "Plugins Sponsorship Network Gizlilik Bilgisi"
+
+msgid "Resources"
+msgstr "Kaynak"
+
+msgid "Frequently asked questions"
+msgstr "Sıkça Sorulan Sorular"
+
+msgid "Support page"
+msgstr "Destek Sayfası"
+
+msgid "About the author"
+msgstr "Geliştirici Hakkında"
+
+msgid "Other plugins"
+msgstr "Diğer Eklentiler"
+
+msgid "Do not add link to Facebook"
+msgstr "Facebook'a Link Gönderme"
+
+msgid "Debug information"
+msgstr "Debug Bilgileri"
+
+msgid "Yes"
+msgstr "Evet"
+
+msgid "No"
+msgstr "Hayır"
+
+msgid "No images in the media library for this post"
+msgstr "Medya Kütüphanesinde bu mesaj için resim bulunmamaktadır"
+
+msgid "Select link image:"
+msgstr "Bağlantı resmini seç:"
+
+msgid "None"
+msgstr "Hiç"
+

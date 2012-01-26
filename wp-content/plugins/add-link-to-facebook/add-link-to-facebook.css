@@ -1,0 +1,18 @@
+
+/*
+	Style sheet Add Link to Facebook plugin
+	Copyright (c) 2011, 2012 by Marcel Bokhorst
+*/
+
+/* Post text likers */
+.al2fb_likers {
+	display: block;
+	clear: both;
+	font-size: smaller;
+	margin-top: 10px;
+}
+
+/* Icon Facebook profile */
+.al2fb_profile img {
+	width: 80px;
+}
