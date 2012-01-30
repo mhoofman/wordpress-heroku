@@ -696,7 +696,7 @@ function get_blogs_of_user( $user_id, $all = false ) {
 	foreach ( $keys as $key ) {
 		if ( 'capabilities' !== substr( $key, -12 ) )
 			continue;
-		if ( 0 !== strpos( $key, $wpdb->base_prefix ) )
+		if ( $wpdb->base_prefix && 0 !== strpos( $key, $wpdb->base_prefix ) )
 			continue;
 		$blog_id = str_replace( array( $wpdb->base_prefix, '_capabilities' ), '', $key );
 		if ( ! is_numeric( $blog_id ) )
@@ -931,7 +931,7 @@ function setup_userdata($for_user_id = '') {
 	else
 		$user = new WP_User($for_user_id);
 
-	$userdata   = $user->data;
+	$userdata   = $user;
 	$user_ID    = (int) $user->ID;
 	$user_level = (int) isset($user->user_level) ? $user->user_level : 0;
 
