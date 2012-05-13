@@ -55,6 +55,12 @@ Deploy to Heroku
 
 After deployment WordPress has a few more steps to setup and thats it!
 
+Usage
+========
+
+Updating and installing plugins should be done locally and then pushed to production.
+On OSX you can use [MAMP](http://codex.wordpress.org/Installing_WordPress_Locally_on_Your_Mac_With_MAMP) to run Wordpress locally
+
 Updating
 ========
 
