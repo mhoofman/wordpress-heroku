@@ -196,17 +196,15 @@ function update_recently_edited( $file ) {
  *
  * @since 2.1.0
  *
- * @param unknown_type $old_value
- * @param unknown_type $value
+ * @param string $old_value
+ * @param string $value
  */
 function update_home_siteurl( $old_value, $value ) {
-	global $wp_rewrite;
-
 	if ( defined( "WP_INSTALLING" ) )
 		return;
 
 	// If home changed, write rewrite rules to new location.
-	$wp_rewrite->flush_rules();
+	flush_rewrite_rules();
 }
 
 add_action( 'update_option_home', 'update_home_siteurl', 10, 2 );
@@ -339,7 +337,6 @@ function set_screen_options() {
 			$map_option = 'edit_per_page';
 		if ( in_array( $type, get_taxonomies()) )
 			$map_option = 'edit_tags_per_page';
-
 
 		switch ( $map_option ) {
 			case 'edit_per_page':
@@ -586,10 +583,10 @@ foreach ( $_wp_admin_css_colors as $color => $color_info ): ?>
 }
 
 function _ipad_meta() {
-	if ( strpos($_SERVER['HTTP_USER_AGENT'], 'iPad') !== false ) { ?>
-		<meta name="viewport" id="ipad-viewportmeta" content="width=device-width, initial-scale=1">
-	<?php
+	if ( wp_is_mobile() ) {
+		?>
+		<meta name="viewport" id="viewport-meta" content="width=device-width, initial-scale=1">
+		<?php
 	}
 }
 add_action('admin_head', '_ipad_meta');
-

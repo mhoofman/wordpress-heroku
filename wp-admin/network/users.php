@@ -40,7 +40,7 @@ function confirm_delete_users( $users ) {
 				wp_die( sprintf( __( 'Warning! User %s cannot be deleted.' ), $delete_user->user_login ) );
 
 			if ( in_array( $delete_user->user_login, $site_admins ) )
-				wp_die( sprintf( __( 'Warning! User cannot be deleted. The user %s is a network admnistrator.' ), $delete_user->user_login ) );
+				wp_die( sprintf( __( 'Warning! User cannot be deleted. The user %s is a network administrator.' ), $delete_user->user_login ) );
 
 			echo "<input type='hidden' name='user[]' value='{$val}'/>\n";
 			$blogs = get_blogs_of_user( $val, true );
@@ -119,9 +119,7 @@ if ( isset( $_GET['action'] ) ) {
 			if ( ( isset( $_POST['action']) || isset($_POST['action2'] ) ) && isset( $_POST['allusers'] ) ) {
 				check_admin_referer( 'bulk-users-network' );
 
-				if ( $_GET['action'] != -1 || $_POST['action2'] != -1 )
-					$doaction = $_POST['action'] != -1 ? $_POST['action'] : $_POST['action2'];
-
+				$doaction = $_POST['action'] != -1 ? $_POST['action'] : $_POST['action2'];
 				$userfunction = '';
 
 				foreach ( (array) $_POST['allusers'] as $key => $val ) {
@@ -136,9 +134,9 @@ if ( isset( $_GET['action'] ) ) {
 								echo '<div class="wrap">';
 								confirm_delete_users( $_POST['allusers'] );
 								echo '</div>';
-					            require_once( '../admin-footer.php' );
-					            exit();
-	       					break;
+								require_once( '../admin-footer.php' );
+								exit();
+							break;
 
 							case 'spam':
 								$user = new WP_User( $val );
@@ -290,7 +288,7 @@ if ( isset( $_REQUEST['updated'] ) && $_REQUEST['updated'] == 'true' && ! empty(
 	<?php $wp_list_table->views(); ?>
 
 	<form action="" method="get" class="search-form">
-		<?php $wp_list_table->search_box( __( 'Search Users' ), 'user' ); ?>
+		<?php $wp_list_table->search_box( __( 'Search Users' ), 'all-user' ); ?>
 	</form>
 
 	<form id="form-user-list" action='users.php?action=allusers' method='post'>

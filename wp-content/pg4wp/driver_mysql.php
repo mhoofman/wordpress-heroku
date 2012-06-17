@@ -32,7 +32,9 @@
 	function wpsql_fetch_assoc($result)
 		{ return mysql_fetch_assoc($result); }
 	function wpsql_escape_string($s)
-		{ return mysql_escape_string($s); }
+		{ return mysql_real_escape_string($s); }
+	function wpsql_real_escape_string($s,$c=NULL)
+		{ return mysql_real_escape_string($s,$c); }
 	function wpsql_get_server_info()
 		{ return mysql_get_server_info(); }
 	function wpsql_result($result, $i, $fieldname)

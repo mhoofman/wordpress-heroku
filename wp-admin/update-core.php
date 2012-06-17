@@ -36,7 +36,7 @@ function list_core_update( $update ) {
 	$mysql_version  = $wpdb->db_version();
 	$show_buttons = true;
 	if ( 'development' == $update->response ) {
-		$message = __('You are using a development version of WordPress.  You can update to the latest nightly build automatically or download the nightly build and install it manually:');
+		$message = __('You are using a development version of WordPress. You can update to the latest nightly build automatically or download the nightly build and install it manually:');
 		$download = __('Download nightly build');
 	} else {
 		if ( $current ) {
@@ -180,7 +180,7 @@ function core_upgrade_preamble() {
 		echo '<p>' . __( 'While your site is being updated, it will be in maintenance mode. As soon as your updates are complete, your site will return to normal.' ) . '</p>';
 	} else {
 		list( $normalized_version ) = explode( '-', $wp_version );
-		echo '<p>' . sprintf( __( '<a href="%s">Learn more about WordPress %s</a>.' ), esc_url( admin_url( 'about.php' ) ), $normalized_version ) . '</p>';
+		echo '<p>' . sprintf( __( '<a href="%s">Learn more about WordPress %s</a>.' ), esc_url( self_admin_url( 'about.php' ) ), $normalized_version ) . '</p>';
 	}
 	dismissed_updates();
 
@@ -260,7 +260,7 @@ function list_plugin_updates() {
 			$upgrade_notice = '';
 		}
 
-		$details_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $plugin_data->update->slug . '&TB_iframe=true&width=640&height=662');
+		$details_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $plugin_data->update->slug . '&section=changelog&TB_iframe=true&width=640&height=662');
 		$details_text = sprintf(__('View version %1$s details'), $plugin_data->update->new_version);
 		$details = sprintf('<a href="%1$s" class="thickbox" title="%2$s">%3$s</a>.', esc_url($details_url), esc_attr($plugin_data->Name), $details_text);
 
@@ -311,13 +311,11 @@ function list_theme_updates() {
 	</tfoot>
 	<tbody class="plugins">
 <?php
-	foreach ( (array) $themes as $stylesheet => $theme_data) {
-		$screenshot = $theme_data->{'Theme Root URI'} . '/' . $stylesheet . '/' . $theme_data->Screenshot;
-
+	foreach ( $themes as $stylesheet => $theme ) {
 		echo "
 	<tr class='active'>
-		<th scope='row' class='check-column'><input type='checkbox' name='checked[]' value='" . esc_attr($stylesheet) . "' /></th>
-		<td class='plugin-title'><img src='$screenshot' width='64' height='64' style='float:left; padding: 0 5px 5px' /><strong>{$theme_data->Name}</strong>" .  sprintf(__('You have version %1$s installed. Update to %2$s.'), $theme_data->Version, $theme_data->update['new_version']) . "</td>
+		<th scope='row' class='check-column'><input type='checkbox' name='checked[]' value='" . esc_attr( $stylesheet ) . "' /></th>
+		<td class='plugin-title'><img src='" . esc_url( $theme->get_screenshot() ) . "' width='64' height='64' style='float:left; padding: 0 5px 5px' /><strong>" . $theme->display('Name') . '</strong> ' . sprintf( __( 'You have version %1$s installed. Update to %2$s.' ), $theme->display('Version'), $theme->update['new_version'] ) . "</td>
 	</tr>";
 	}
 ?>
@@ -352,7 +350,6 @@ function do_core_upgrade( $reinstall = false ) {
 	if ( !$update )
 		return;
 
-
 	if ( ! WP_Filesystem($credentials, ABSPATH) ) {
 		request_filesystem_credentials($url, '', true, ABSPATH); //Failed to connect, Error and request again
 		return;
@@ -383,12 +380,12 @@ function do_core_upgrade( $reinstall = false ) {
 	}
 
 	show_message( __('WordPress updated successfully') );
-	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%s">here</a>.' ), $result, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
-	show_message( '<span class="hide-if-js">' . sprintf( __( 'Welcome to WordPress %1$s. <a href="%2$s">Learn more</a>.' ), $result, esc_url( admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%s">here</a>.' ), $result, esc_url( self_admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	show_message( '<span class="hide-if-js">' . sprintf( __( 'Welcome to WordPress %1$s. <a href="%2$s">Learn more</a>.' ), $result, esc_url( self_admin_url( 'about.php?updated' ) ) ) . '</span>' );
 	?>
 	</div>
 	<script type="text/javascript">
-	window.location = '<?php echo admin_url( 'about.php?upgraded' ); ?>';
+	window.location = '<?php echo self_admin_url( 'about.php?updated' ); ?>';
 	</script>
 	<?php
 }
@@ -446,7 +443,6 @@ get_current_screen()->add_help_tab( array(
 	'<p>' . __('Updating your WordPress installation is a simple one-click procedure; just click on the Update button when it says a new version is available.') . '</p>' .
 	'<p>' . __('To update themes or plugins from this screen, use the checkboxes to make your selection and click on the appropriate Update button. Check the box at the top of the Themes or Plugins section to select all and update them all at once.') . '</p>'
 ) );
-
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .

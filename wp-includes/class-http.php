@@ -98,7 +98,6 @@ class WP_Http {
 			'filename' => null
 		);
 
-
 		// Pre-parse for the HEAD checks.
 		$args = wp_parse_args( $args );
 
@@ -201,7 +200,7 @@ class WP_Http {
 	 * @param array $args Request arguments
 	 * @param string $url URL to Request
 	 *
-	 * @return string|false Class name for the first transport that claims to support the request.  False if no transport claims to support the request.
+	 * @return string|false Class name for the first transport that claims to support the request. False if no transport claims to support the request.
 	 */
 	public function _get_first_available_transport( $args, $url = null ) {
 		$request_order = array( 'curl', 'streams', 'fsockopen' );
@@ -535,8 +534,55 @@ class WP_Http {
 		else
 			return !in_array( $check['host'], $accessible_hosts ); //Inverse logic, If its in the array, then we can't access it.
 
+	}
 
+	static function make_absolute_url( $maybe_relative_path, $url ) {
+		if ( empty( $url ) )
+			return $maybe_relative_path;
 
+		// Check for a scheme
+		if ( false !== strpos( $maybe_relative_path, '://' ) )
+			return $maybe_relative_path;
+
+		if ( ! $url_parts = @parse_url( $url ) )
+			return $maybe_relative_path;
+
+		if ( ! $relative_url_parts = @parse_url( $maybe_relative_path ) )
+			return $maybe_relative_path;
+
+		$absolute_path = $url_parts['scheme'] . '://' . $url_parts['host'];
+		if ( isset( $url_parts['port'] ) )
+			$absolute_path .= ':' . $url_parts['port'];
+
+		// Start off with the Absolute URL path
+		$path = ! empty( $url_parts['path'] ) ? $url_parts['path'] : '/';
+
+		// If the it's a root-relative path, then great
+		if ( ! empty( $relative_url_parts['path'] ) && '/' == $relative_url_parts['path'][0] ) {
+			$path = $relative_url_parts['path'];
+
+		// Else it's a relative path
+		} elseif ( ! empty( $relative_url_parts['path'] ) ) {
+			// Strip off any file components from the absolute path
+			$path = substr( $path, 0, strrpos( $path, '/' ) + 1 );
+
+			// Build the new path
+			$path .= $relative_url_parts['path'];
+
+			// Strip all /path/../ out of the path
+			while ( strpos( $path, '../' ) > 1 ) {
+				$path = preg_replace( '![^/]+/\.\./!', '', $path );
+			}
+
+			// Strip any final leading ../ from the path
+			$path = preg_replace( '!^/(\.\./)+!', '', $path );
+		}
+
+		// Add the Query string
+		if ( ! empty( $relative_url_parts['query'] ) )
+			$path .= '?' . $relative_url_parts['query'];
+
+		return $absolute_path . '/' . ltrim( $path, '/' );
 	}
 }
 
@@ -733,7 +779,7 @@ class WP_Http_Fsockopen {
 		// If location is found, then assume redirect and redirect to location.
 		if ( isset($arrHeaders['headers']['location']) && 0 !== $r['_redirection'] ) {
 			if ( $r['redirection']-- > 0 ) {
-				return $this->request($arrHeaders['headers']['location'], $r);
+				return $this->request( WP_HTTP::make_absolute_url( $arrHeaders['headers']['location'], $url ), $r);
 			} else {
 				return new WP_Error('http_request_failed', __('Too many redirects.'));
 			}
@@ -1023,15 +1069,14 @@ class WP_Http_Curl {
 			}
 		}
 
-		$is_local = isset($args['local']) && $args['local'];
-		$ssl_verify = isset($args['sslverify']) && $args['sslverify'];
+		$is_local = isset($r['local']) && $r['local'];
+		$ssl_verify = isset($r['sslverify']) && $r['sslverify'];
 		if ( $is_local )
 			$ssl_verify = apply_filters('https_local_ssl_verify', $ssl_verify);
 		elseif ( ! $is_local )
 			$ssl_verify = apply_filters('https_ssl_verify', $ssl_verify);
 
-
-		// CURLOPT_TIMEOUT and CURLOPT_CONNECTTIMEOUT expect integers.  Have to use ceil since
+		// CURLOPT_TIMEOUT and CURLOPT_CONNECTTIMEOUT expect integers. Have to use ceil since
 		// a value of 0 will allow an unlimited timeout.
 		$timeout = (int) ceil( $r['timeout'] );
 		curl_setopt( $handle, CURLOPT_CONNECTTIMEOUT, $timeout );
@@ -1042,7 +1087,9 @@ class WP_Http_Curl {
 		curl_setopt( $handle, CURLOPT_SSL_VERIFYHOST, ( $ssl_verify === true ) ? 2 : false );
 		curl_setopt( $handle, CURLOPT_SSL_VERIFYPEER, $ssl_verify );
 		curl_setopt( $handle, CURLOPT_USERAGENT, $r['user-agent'] );
-		curl_setopt( $handle, CURLOPT_MAXREDIRS, $r['redirection'] );
+		// The option doesn't work with safe mode or when open_basedir is set, and there's a
+		// bug #17490 with redirected POST requests, so handle redirections outside Curl.
+		curl_setopt( $handle, CURLOPT_FOLLOWLOCATION, false );
 
 		switch ( $r['method'] ) {
 			case 'HEAD':
@@ -1055,6 +1102,11 @@ class WP_Http_Curl {
 			case 'PUT':
 				curl_setopt( $handle, CURLOPT_CUSTOMREQUEST, 'PUT' );
 				curl_setopt( $handle, CURLOPT_POSTFIELDS, $r['body'] );
+				break;
+			default:
+				curl_setopt( $handle, CURLOPT_CUSTOMREQUEST, $r['method'] );
+				if ( ! empty( $r['body'] ) )
+					curl_setopt( $handle, CURLOPT_POSTFIELDS, $r['body'] );
 				break;
 		}
 
@@ -1073,10 +1125,6 @@ class WP_Http_Curl {
 				return new WP_Error( 'http_request_failed', sprintf( __( 'Could not open handle for fopen() to %s' ), $r['filename'] ) );
 			curl_setopt( $handle, CURLOPT_FILE, $stream_handle );
 		}
-
-		// The option doesn't work with safe mode or when open_basedir is set.
-		if ( !ini_get('safe_mode') && !ini_get('open_basedir') && 0 !== $r['_redirection'] )
-			curl_setopt( $handle, CURLOPT_FOLLOWLOCATION, true );
 
 		if ( !empty( $r['headers'] ) ) {
 			// cURL expects full header strings in each element
@@ -1110,12 +1158,12 @@ class WP_Http_Curl {
 		if ( strlen($theResponse) > 0 && ! is_bool( $theResponse ) ) // is_bool: when using $args['stream'], curl_exec will return (bool)true
 			$theBody = $theResponse;
 
-		// If no response, and It's not a HEAD request with valid headers returned
-		if ( 0 == strlen($theResponse) && ('HEAD' != $args['method'] || empty($this->headers)) ) {
-			if ( $curl_error = curl_error($handle) )
-				return new WP_Error('http_request_failed', $curl_error);
-			if ( in_array( curl_getinfo( $handle, CURLINFO_HTTP_CODE ), array(301, 302) ) )
-				return new WP_Error('http_request_failed', __('Too many redirects.'));
+		// If no response
+		if ( 0 == strlen( $theResponse ) && empty( $theHeaders['headers'] ) ) {
+			if ( $curl_error = curl_error( $handle ) )
+				return new WP_Error( 'http_request_failed', $curl_error );
+			if ( in_array( curl_getinfo( $handle, CURLINFO_HTTP_CODE ), array( 301, 302 ) ) )
+				return new WP_Error( 'http_request_failed', __( 'Too many redirects.' ) );
 		}
 
 		$this->headers = '';
@@ -1130,9 +1178,9 @@ class WP_Http_Curl {
 			fclose( $stream_handle );
 
 		// See #11305 - When running under safe mode, redirection is disabled above. Handle it manually.
-		if ( ! empty( $theHeaders['headers']['location'] ) && ( ini_get( 'safe_mode' ) || ini_get( 'open_basedir' ) ) && 0 !== $r['_redirection'] ) {
+		if ( ! empty( $theHeaders['headers']['location'] ) && 0 !== $r['_redirection'] ) { // _redirection: The requested number of redirections
 			if ( $r['redirection']-- > 0 ) {
-				return $this->request( $theHeaders['headers']['location'], $r );
+				return $this->request( WP_HTTP::make_absolute_url( $theHeaders['headers']['location'], $url ), $r );
 			} else {
 				return new WP_Error( 'http_request_failed', __( 'Too many redirects.' ) );
 			}
@@ -1494,7 +1542,7 @@ class WP_Http_Cookie {
 	 * @since 2.8.0
 	 *
 	 * @param string $url URL you intend to send this cookie to
-	 * @return boolean TRUE if allowed, FALSE otherwise.
+	 * @return boolean true if allowed, false otherwise.
 	 */
 	function test( $url ) {
 		// Expires - if expired then nothing else matters
@@ -1541,7 +1589,7 @@ class WP_Http_Cookie {
 		if ( empty( $this->name ) || empty( $this->value ) )
 			return '';
 
-		return $this->name . '=' . urlencode( $this->value );
+		return $this->name . '=' . apply_filters( 'wp_http_cookie_value', $this->value, $this->name );
 	}
 
 	/**

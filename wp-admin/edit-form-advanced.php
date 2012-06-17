@@ -12,6 +12,9 @@ if ( !defined('ABSPATH') )
 
 wp_enqueue_script('post');
 
+if ( wp_is_mobile() )
+	wp_enqueue_script( 'jquery-touch-punch' );
+
 if ( post_type_supports($post_type, 'editor') || post_type_supports($post_type, 'thumbnail') ) {
 	add_thickbox();
 	wp_enqueue_script('media-upload');
@@ -87,7 +90,7 @@ $form_extra .= "<input type='hidden' id='post_ID' name='post_ID' value='" . esc_
 if ( $autosave && mysql2date( 'U', $autosave->post_modified_gmt, false ) > mysql2date( 'U', $post->post_modified_gmt, false ) ) {
 	foreach ( _wp_post_revision_fields() as $autosave_field => $_autosave_field ) {
 		if ( normalize_whitespace( $autosave->$autosave_field ) != normalize_whitespace( $post->$autosave_field ) ) {
-			$notice = sprintf( __( 'There is an autosave of this post that is more recent than the version below.  <a href="%s">View the autosave</a>' ), get_edit_post_link( $autosave->ID ) );
+			$notice = sprintf( __( 'There is an autosave of this post that is more recent than the version below. <a href="%s">View the autosave</a>' ), get_edit_post_link( $autosave->ID ) );
 			break;
 		}
 	}
@@ -240,7 +243,7 @@ if ( 'post' == $post_type ) {
 require_once('./admin-header.php');
 ?>
 
-<div class="wrap columns-<?php echo (int) $screen_layout_columns ? (int) $screen_layout_columns : 'auto'; ?>">
+<div class="wrap">
 <?php screen_icon(); ?>
 <h2><?php echo esc_html( $title ); ?><?php if ( isset( $post_new_file ) ) : ?> <a href="<?php echo esc_url( $post_new_file ) ?>" class="add-new-h2"><?php echo esc_html($post_type_object->labels->add_new); ?></a><?php endif; ?></h2>
 <?php if ( $notice ) : ?>
@@ -272,17 +275,9 @@ wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false );
 wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 ?>
 
-<div id="poststuff" class="metabox-holder<?php echo 1 != $screen_layout_columns ? ' has-right-sidebar' : ''; ?>">
-<div id="side-info-column" class="inner-sidebar">
-<?php
-if ( 1 != $screen_layout_columns ) {
-	('page' == $post_type) ? do_action('submitpage_box') : do_action('submitpost_box');
-	$side_meta_boxes = do_meta_boxes($post_type, 'side', $post);
-}
-?>
-</div>
+<div id="poststuff">
 
-<div id="post-body">
+<div id="post-body" class="metabox-holder columns-<?php echo 1 == get_current_screen()->get_columns() ? '1' : '2'; ?>">
 <div id="post-body-content">
 <?php if ( post_type_supports($post_type, 'title') ) { ?>
 <div id="titlediv">
@@ -338,25 +333,41 @@ wp_nonce_field( 'samplepermalink', 'samplepermalinknonce', false );
 </tr></tbody></table>
 
 </div>
+<?php } ?>
+</div><!-- /post-body-content -->
 
+<div id="postbox-container-1" class="postbox-container">
 <?php
-}
 
-if ( 1 == $screen_layout_columns ) {
-	('page' == $post_type) ? do_action('submitpage_box') : do_action('submitpost_box');
-	$side_meta_boxes = do_meta_boxes($post_type, 'side', $post);
-}
+if ( 'page' == $post_type )
+	do_action('submitpage_box');
+else
+	do_action('submitpost_box');
+
+do_meta_boxes($post_type, 'side', $post);
+
+?>
+</div>
+<div id="postbox-container-2" class="postbox-container">
+<?php
 
 do_meta_boxes(null, 'normal', $post);
 
-( 'page' == $post_type ) ? do_action('edit_page_form') : do_action('edit_form_advanced');
+if ( 'page' == $post_type )
+	do_action('edit_page_form');
+else
+	do_action('edit_form_advanced');
 
 do_meta_boxes(null, 'advanced', $post);
 
-do_action('dbx_post_sidebar'); ?>
+?>
+</div>
+<?php
 
-</div>
-</div>
+do_action('dbx_post_sidebar');
+
+?>
+</div><!-- /post-body -->
 <br class="clear" />
 </div><!-- /poststuff -->
 </form>

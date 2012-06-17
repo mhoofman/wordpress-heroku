@@ -105,17 +105,17 @@ else :
 <tr valign="top">
 <th scope="row"><label for="posts_per_page"><?php _e( 'Blog pages show at most' ); ?></label></th>
 <td>
-<input name="posts_per_page" type="text" id="posts_per_page" value="<?php form_option( 'posts_per_page' ); ?>" class="small-text" /> <?php _e( 'posts' ); ?>
+<input name="posts_per_page" type="number" step="1" min="1" id="posts_per_page" value="<?php form_option( 'posts_per_page' ); ?>" class="small-text" /> <?php _e( 'posts' ); ?>
 </td>
 </tr>
 <tr valign="top">
 <th scope="row"><label for="posts_per_rss"><?php _e( 'Syndication feeds show the most recent' ); ?></label></th>
-<td><input name="posts_per_rss" type="text" id="posts_per_rss" value="<?php form_option( 'posts_per_rss' ); ?>" class="small-text" /> <?php _e( 'items' ); ?></td>
+<td><input name="posts_per_rss" type="number" step="1" min="1" id="posts_per_rss" value="<?php form_option( 'posts_per_rss' ); ?>" class="small-text" /> <?php _e( 'items' ); ?></td>
 </tr>
 <tr valign="top">
 <th scope="row"><?php _e( 'For each article in a feed, show' ); ?> </th>
 <td><fieldset><legend class="screen-reader-text"><span><?php _e( 'For each article in a feed, show' ); ?> </span></legend>
-<p><label><input name="rss_use_excerpt"  type="radio" value="0" <?php checked( 0, get_option( 'rss_use_excerpt' ) ); ?>	/> <?php _e( 'Full text' ); ?></label><br />
+<p><label><input name="rss_use_excerpt" type="radio" value="0" <?php checked( 0, get_option( 'rss_use_excerpt' ) ); ?>	/> <?php _e( 'Full text' ); ?></label><br />
 <label><input name="rss_use_excerpt" type="radio" value="1" <?php checked( 1, get_option( 'rss_use_excerpt' ) ); ?> /> <?php _e( 'Summary' ); ?></label></p>
 </fieldset></td>
 </tr>
@@ -123,7 +123,7 @@ else :
 <tr valign="top">
 <th scope="row"><label for="blog_charset"><?php _e( 'Encoding for pages and feeds' ); ?></label></th>
 <td><input name="blog_charset" type="text" id="blog_charset" value="<?php form_option( 'blog_charset' ); ?>" class="regular-text" />
-<span class="description"><?php _e( 'The <a href="http://codex.wordpress.org/Glossary#Character_set">character encoding</a> of your site (UTF-8 is recommended, if you are adventurous there are some <a href="http://en.wikipedia.org/wiki/Character_set">other encodings</a>)' ); ?></span></td>
+<p class="description"><?php _e( 'The <a href="http://codex.wordpress.org/Glossary#Character_set">character encoding</a> of your site (UTF-8 is recommended, if you are adventurous there are some <a href="http://en.wikipedia.org/wiki/Character_set">other encodings</a>)' ); ?></p></td>
 </tr>
 <?php do_settings_fields( 'reading', 'default' ); ?>
 </table>

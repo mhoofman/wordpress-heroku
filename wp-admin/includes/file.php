@@ -65,7 +65,7 @@ function get_file_description( $file ) {
 			return sprintf( __( '%s Page Template' ), _cleanup_header_comment($name[1]) );
 	}
 
-	return basename( $file );
+	return trim( basename( $file ) );
 }
 
 /**
@@ -81,7 +81,7 @@ function get_home_path() {
 	$siteurl = get_option( 'siteurl' );
 	if ( $home != '' && $home != $siteurl ) {
 		$wp_path_rel_to_home = str_replace($home, '', $siteurl); /* $siteurl - $home */
-		$pos = strpos($_SERVER["SCRIPT_FILENAME"], $wp_path_rel_to_home);
+		$pos = strrpos($_SERVER["SCRIPT_FILENAME"], $wp_path_rel_to_home);
 		$home_path = substr($_SERVER["SCRIPT_FILENAME"], 0, $pos);
 		$home_path = trailingslashit( $home_path );
 	} else {
@@ -157,7 +157,7 @@ function list_files( $folder = '', $levels = 100 ) {
  * Please note that the calling function must unlink() this itself.
  *
  * The filename is based off the passed parameter or defaults to the current unix timestamp,
- * while the directory can either be passed as well, or by leaving  it blank, default to a writable temporary directory.
+ * while the directory can either be passed as well, or by leaving it blank, default to a writable temporary directory.
  *
  * @since 2.6.0
  *
@@ -240,7 +240,7 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 	// You may define your own function and pass the name in $overrides['upload_error_handler']
 	$upload_error_handler = 'wp_handle_upload_error';
 
-	// You may have had one or more 'wp_handle_upload_prefilter' functions error out the file.  Handle that gracefully.
+	// You may have had one or more 'wp_handle_upload_prefilter' functions error out the file. Handle that gracefully.
 	if ( isset( $file['error'] ) && !is_numeric( $file['error'] ) && $file['error'] )
 		return $upload_error_handler( $file, $file['error'] );
 
@@ -323,30 +323,10 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 
 	$filename = wp_unique_filename( $uploads['path'], $file['name'], $unique_filename_callback );
 
-	$tmp_file = wp_tempnam($filename);
-
 	// Move the file to the uploads dir
-	if ( false === @ move_uploaded_file( $file['tmp_name'], $tmp_file ) )
-		return $upload_error_handler( $file, sprintf( __('The uploaded file could not be moved to %s.' ), $uploads['path'] ) );
-
-	// If a resize was requested, perform the resize.
-	$image_resize = isset( $_POST['image_resize'] ) && 'true' == $_POST['image_resize'];
-	$do_resize = apply_filters( 'wp_upload_resize', $image_resize );
-	$size = @getimagesize( $tmp_file );
-	if ( $do_resize && $size ) {
-		$old_temp = $tmp_file;
-		$tmp_file = image_resize( $tmp_file, (int) get_option('large_size_w'), (int) get_option('large_size_h'), 0, 'resized');
-		if ( ! is_wp_error($tmp_file) ) {
-			unlink($old_temp);
-		} else {
-			$tmp_file = $old_temp;
-		}
-	}
-
-	// Copy the temporary file into its destination
 	$new_file = $uploads['path'] . "/$filename";
-	copy( $tmp_file, $new_file );
-	unlink($tmp_file);
+	if ( false === @ move_uploaded_file( $file['tmp_name'], $new_file ) )
+		return $upload_error_handler( $file, sprintf( __('The uploaded file could not be moved to %s.' ), $uploads['path'] ) );
 
 	// Set correct file permissions
 	$stat = stat( dirname( $new_file ));
@@ -364,7 +344,7 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 
 /**
  * Handle sideloads, which is the process of retrieving a media item from another server instead of
- * a traditional media upload.  This process involves sanitizing the filename, checking extensions
+ * a traditional media upload. This process involves sanitizing the filename, checking extensions
  * for mime type, and moving the file to the appropriate directory within the uploads directory.
  *
  * @since 2.6.0
@@ -486,7 +466,7 @@ function wp_handle_sideload( &$file, $overrides = false ) {
 
 /**
  * Downloads a url to a local temporary file using the WordPress HTTP Class.
- * Please note, That the calling function must unlink() the  file.
+ * Please note, That the calling function must unlink() the file.
  *
  * @since 2.5.0
  *
@@ -648,7 +628,7 @@ function _unzip_file_ziparchive($file, $to, $needed_dirs = array() ) {
 			return new WP_Error('extract_failed', __('Could not extract file from archive.'), $info['name']);
 
 		if ( ! $wp_filesystem->put_contents( $to . $info['name'], $contents, FS_CHMOD_FILE) )
-			return new WP_Error('copy_failed', __('Could not copy file.'), $to . $info['filename']);
+			return new WP_Error('copy_failed', __('Could not copy file.'), $to . $info['name']);
 	}
 
 	$z->close();
@@ -884,7 +864,7 @@ function get_filesystem_method($args = array(), $context = false) {
 }
 
 /**
- * Displays a form to the user to request for their FTP/SSH details in order to  connect to the filesystem.
+ * Displays a form to the user to request for their FTP/SSH details in order to connect to the filesystem.
  * All chosen/entered details are saved, Excluding the Password.
  *
  * Hostnames may be in the form of hostname:portnumber (eg: wordpress.org:2467) to specify an alternate FTP/SSH port.
@@ -896,7 +876,7 @@ function get_filesystem_method($args = array(), $context = false) {
  * @param string $form_post the URL to post the form to
  * @param string $type the chosen Filesystem method in use
  * @param boolean $error if the current request has failed to connect
- * @param string $context The directory which is needed access to, The write-test will be performed on  this directory by get_filesystem_method()
+ * @param string $context The directory which is needed access to, The write-test will be performed on this directory by get_filesystem_method()
  * @param string $extra_fields Extra POST fields which should be checked for to be included in the post.
  * @return boolean False on failure. True on success.
  */
@@ -1075,5 +1055,3 @@ submit_button( __( 'Proceed' ), 'button', 'upgrade' );
 <?php
 	return false;
 }
-
-?>

@@ -19,6 +19,9 @@ wp_enqueue_script( 'plugin-install' );
 wp_enqueue_script( 'media-upload' );
 add_thickbox();
 
+if ( wp_is_mobile() )
+	wp_enqueue_script( 'jquery-touch-punch' );
+
 $title = __('Dashboard');
 $parent_file = 'index.php';
 
@@ -26,7 +29,6 @@ if ( is_user_admin() )
 	add_screen_option('layout_columns', array('max' => 4, 'default' => 1) );
 else
 	add_screen_option('layout_columns', array('max' => 4, 'default' => 2) );
-
 
 $help = '<p>' . __( 'Welcome to your WordPress Dashboard! This is the screen you will see when you log in to your site, and gives you access to all the site management features of WordPress. You can get help for any screen by clicking the Help tab in the upper corner.' ) . '</p>';
 
@@ -59,14 +61,22 @@ get_current_screen()->add_help_tab( array(
 ) );
 
 $help  = '<p>' . __('The boxes on your Dashboard screen are:') . '</p>';
-$help .= '<p>' . __('<strong>Right Now</strong> - Displays a summary of the content on your site and identifies which theme and version of WordPress you are using.') . '</p>';
-$help .= '<p>' . __('<strong>Recent Comments</strong> - Shows the most recent comments on your posts (configurable, up to 30) and allows you to moderate them.') . '</p>';
-$help .= '<p>' . __('<strong>Incoming Links</strong> - Shows links to your site found by Google Blog Search.') . '</p>';
-$help .= '<p>' . __('<strong>QuickPress</strong> - Allows you to create a new post and either publish it or save it as a draft.') . '</p>';
-$help .= '<p>' . __('<strong>Recent Drafts</strong> - Displays links to the 5 most recent draft posts you&#8217;ve started.') . '</p>';
+if ( current_user_can( 'edit_posts' ) )
+	$help .= '<p>' . __('<strong>Right Now</strong> - Displays a summary of the content on your site and identifies which theme and version of WordPress you are using.') . '</p>';
+if ( current_user_can( 'moderate_comments' ) )
+	$help .= '<p>' . __('<strong>Recent Comments</strong> - Shows the most recent comments on your posts (configurable, up to 30) and allows you to moderate them.') . '</p>';
+if ( current_user_can( 'publish_posts' ) )
+	$help .= '<p>' . __('<strong>Incoming Links</strong> - Shows links to your site found by Google Blog Search.') . '</p>';
+if ( current_user_can( 'edit_posts' ) ) {
+	$help .= '<p>' . __('<strong>QuickPress</strong> - Allows you to create a new post and either publish it or save it as a draft.') . '</p>';
+	$help .= '<p>' . __('<strong>Recent Drafts</strong> - Displays links to the 5 most recent draft posts you&#8217;ve started.') . '</p>';
+}
 $help .= '<p>' . __('<strong>WordPress Blog</strong> - Latest news from the official WordPress project.') . '</p>';
 $help .= '<p>' . __('<strong>Other WordPress News</strong> - Shows the <a href="http://planet.wordpress.org" target="_blank">WordPress Planet</a> feed. You can configure it to show a different feed of your choosing.') . '</p>';
-$help .= '<p>' . __('<strong>Plugins</strong> - Features the most popular, newest, and recently updated plugins from the WordPress.org Plugin Directory.') . '</p>';
+if ( ! is_multisite() && current_user_can( 'install_plugins' ) )
+	$help .= '<p>' . __('<strong>Plugins</strong> - Features the most popular, newest, and recently updated plugins from the WordPress.org Plugin Directory.') . '</p>';
+if ( current_user_can( 'edit_theme_options' ) )
+	$help .= '<p>' . __('<strong>Welcome</strong> - Shows links for some of the most common tasks when setting up a new site.') . '</p>';
 
 get_current_screen()->add_help_tab( array(
 	'id'      => 'help-content',

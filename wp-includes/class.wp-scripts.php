@@ -31,15 +31,22 @@ class WP_Scripts extends WP_Dependencies {
 	var $default_dirs;
 
 	function __construct() {
+		if ( ! function_exists( 'did_action' ) || did_action( 'init' ) )
+			$this->init();
+		else
+			add_action( 'init', array( $this, 'init' ), 0 );
+	}
+
+	function init() {
 		do_action_ref_array( 'wp_default_scripts', array(&$this) );
 	}
 
 	/**
 	 * Prints scripts
 	 *
-	 * Prints the scripts passed to it or the print queue.  Also prints all necessary dependencies.
+	 * Prints the scripts passed to it or the print queue. Also prints all necessary dependencies.
 	 *
-	 * @param mixed $handles (optional) Scripts to be printed.  (void) prints queue, (string) prints that script, (array of strings) prints those scripts.
+	 * @param mixed $handles (optional) Scripts to be printed. (void) prints queue, (string) prints that script, (array of strings) prints those scripts.
 	 * @param int $group (optional) If scripts were queued in groups prints this group number.
 	 * @return array Scripts that have been printed
 	 */
@@ -143,12 +150,12 @@ class WP_Scripts extends WP_Dependencies {
 		$script = "var $object_name = " . json_encode($l10n) . ';';
 
 		if ( !empty($after) )
-			$script .= "\n$after";
+			$script .= "\n$after;";
 
 		$data = $this->get_data( $handle, 'data' );
 
 		if ( !empty( $data ) )
-			$script = "$data;\n$script";
+			$script = "$data\n$script";
 
 		return $this->add_data( $handle, 'data', $script );
 	}

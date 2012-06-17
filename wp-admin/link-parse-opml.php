@@ -11,7 +11,7 @@ if ( ! defined('ABSPATH') )
 
 global $opml, $map;
 
-// columns we wish to find are:  link_url, link_name, link_target, link_description
+// columns we wish to find are: link_url, link_name, link_target, link_description
 // we need to map XML attribute names to our columns
 $opml_map = array('URL'         => 'link_url',
 	'HTMLURL'     => 'link_url',
@@ -94,4 +94,3 @@ if (!xml_parse($xml_parser, $opml, true)) {
 
 // Free up memory used by the XML parser
 xml_parser_free($xml_parser);
-?>

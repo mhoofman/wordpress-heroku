@@ -162,7 +162,6 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 
 				$attributes = "$class$style";
 
-
 				switch ( $column_name ) {
 					case 'cb': ?>
 						<th scope="row" class="check-column">
@@ -242,7 +241,7 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 									if ( get_blog_status( $val->userblog_id, 'archived' ) == 1 )
 										$class .= 'site-archived ';
 
-									$actions['view'] = '<a class="' . $class . '" href="' .  esc_url( get_home_url( $val->userblog_id ) )  . '">' . __( 'View' ) . '</a>';
+									$actions['view'] = '<a class="' . $class . '" href="' . esc_url( get_home_url( $val->userblog_id ) ) . '">' . __( 'View' ) . '</a>';
 
 									$actions = apply_filters('ms_user_list_site_actions', $actions, $val->userblog_id);
 
@@ -274,5 +273,3 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 		}
 	}
 }
-
-?>

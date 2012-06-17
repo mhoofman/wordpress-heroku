@@ -95,7 +95,7 @@ function show_blog_form($blogname = '', $blog_title = '', $errors = '') {
 	<div id="privacy">
         <p class="privacy-intro">
             <label for="blog_public_on"><?php _e('Privacy:') ?></label>
-            <?php _e('Allow my site to appear in search engines like Google, Technorati, and in public listings around this network.'); ?>
+            <?php _e( 'Allow search engines to index this site.' ); ?>
             <br style="clear:both" />
             <label class="checkbox" for="blog_public_on">
                 <input type="radio" id="blog_public_on" name="blog_public" value="1" <?php if ( !isset( $_POST['blog_public'] ) || $_POST['blog_public'] == '1' ) { ?>checked="checked"<?php } ?> />
@@ -218,7 +218,7 @@ function confirm_another_blog_signup($domain, $path, $blog_title, $user_name, $u
 	?>
 	<h2><?php printf( __( 'The site %s is yours.' ), "<a href='http://{$domain}{$path}'>{$blog_title}</a>" ) ?></h2>
 	<p>
-		<?php printf( __( '<a href="http://%1$s">http://%2$s</a> is your new site.  <a href="%3$s">Log in</a> as &#8220;%4$s&#8221; using your existing password.' ), $domain.$path, $domain.$path, "http://" . $domain.$path . "wp-login.php", $user_name ) ?>
+		<?php printf( __( '<a href="http://%1$s">http://%2$s</a> is your new site. <a href="%3$s">Log in</a> as &#8220;%4$s&#8221; using your existing password.' ), $domain.$path, $domain.$path, "http://" . $domain.$path . "wp-login.php", $user_name ) ?>
 	</p>
 	<?php
 	do_action( 'signup_finished' );
@@ -229,13 +229,8 @@ function signup_user($user_name = '', $user_email = '', $errors = '') {
 
 	if ( !is_wp_error($errors) )
 		$errors = new WP_Error();
-	if ( isset( $_POST[ 'signup_for' ] ) )
-		$signup[ esc_html( $_POST[ 'signup_for' ] ) ] = 'checked="checked"';
-	else
-		$signup[ 'blog' ] = 'checked="checked"';
 
-	//TODO - This doesn't seem to do anything do we really need it?
-	$signup['user'] = isset( $signup['user'] ) ? $signup['user'] : '';
+	$signup_for = isset( $_POST[ 'signup_for' ] ) ? esc_html( $_POST[ 'signup_for' ] ) : 'blog';
 
 	// allow definition of default variables
 	$filtered_results = apply_filters('signup_user_init', array('user_name' => $user_name, 'user_email' => $user_email, 'errors' => $errors ));
@@ -257,10 +252,10 @@ function signup_user($user_name = '', $user_email = '', $errors = '') {
 		<?php } elseif ( $active_signup == 'user' ) { ?>
 			<input id="signupblog" type="hidden" name="signup_for" value="user" />
 		<?php } else { ?>
-			<input id="signupblog" type="radio" name="signup_for" value="blog" <?php echo $signup['blog'] ?> />
+			<input id="signupblog" type="radio" name="signup_for" value="blog" <?php checked( $signup_for, 'blog' ); ?> />
 			<label class="checkbox" for="signupblog"><?php _e('Gimme a site!') ?></label>
 			<br />
-			<input id="signupuser" type="radio" name="signup_for" value="user" <?php echo $signup['user'] ?> />
+			<input id="signupuser" type="radio" name="signup_for" value="user" <?php checked( $signup_for, 'user' ); ?> />
 			<label class="checkbox" for="signupuser"><?php _e('Just a username, please.') ?></label>
 		<?php } ?>
 		</p>
@@ -294,7 +289,7 @@ function confirm_user_signup($user_name, $user_email) {
 	?>
 	<h2><?php printf( __( '%s is your new username' ), $user_name) ?></h2>
 	<p><?php _e( 'But, before you can start using your new username, <strong>you must activate it</strong>.' ) ?></p>
-	<p><?php printf(__( 'Check your inbox at <strong>%1$s</strong> and click the link given.' ),  $user_email) ?></p>
+	<p><?php printf( __( 'Check your inbox at <strong>%s</strong> and click the link given.' ), $user_email ); ?></p>
 	<p><?php _e( 'If you do not activate your username within two days, you will have to sign up again.' ); ?></p>
 	<?php
 	do_action( 'signup_finished' );

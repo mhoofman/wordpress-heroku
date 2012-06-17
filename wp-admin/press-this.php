@@ -304,7 +304,7 @@ die;
 //<![CDATA[
 addLoadEvent = function(func){if(typeof jQuery!="undefined")jQuery(document).ready(func);else if(typeof wpOnload!='function'){wpOnload=func;}else{var oldonload=wpOnload;wpOnload=function(){oldonload();func();}}};
 var userSettings = {'url':'<?php echo SITECOOKIEPATH; ?>','uid':'<?php if ( ! isset($current_user) ) $current_user = wp_get_current_user(); echo $current_user->ID; ?>','time':'<?php echo time() ?>'};
-var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>', pagenow = 'press-this', isRtl = <?php echo (int) is_rtl(); ?>;
+var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>', pagenow = 'press-this', isRtl = <?php echo (int) is_rtl(); ?>;
 var photostorage = false;
 //]]>
 </script>
@@ -314,20 +314,6 @@ var photostorage = false;
 	do_action('admin_print_scripts');
 	do_action('admin_head');
 ?>
-	<style type="text/css">
-	#message {
-		margin: 10px 0;
-	}
-	#title,
-	.press-this #wphead {
-		margin-left: 0;
-		margin-right: 0;
-	}
-	.rtl.press-this #header-logo,
-	.rtl.press-this #wphead h1 {
-		float: right;
-	}
-	</style>
 	<script type="text/javascript">
 	var wpActiveEditor = 'content';
 
@@ -365,12 +351,12 @@ var photostorage = false;
 					<?php
 					$content = '';
 					if ( preg_match("/youtube\.com\/watch/i", $url) ) {
-						list($domain, $video_id) = split("v=", $url);
+						list($domain, $video_id) = explode("v=", $url);
 						$video_id = esc_attr($video_id);
 						$content = '<object width="425" height="350"><param name="movie" value="http://www.youtube.com/v/' . $video_id . '"></param><param name="wmode" value="transparent"></param><embed src="http://www.youtube.com/v/' . $video_id . '" type="application/x-shockwave-flash" wmode="transparent" width="425" height="350"></embed></object>';
 
 					} elseif ( preg_match("/vimeo\.com\/[0-9]+/i", $url) ) {
-						list($domain, $video_id) = split(".com/", $url);
+						list($domain, $video_id) = explode(".com/", $url);
 						$video_id = esc_attr($video_id);
 						$content = '<object width="400" height="225"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://www.vimeo.com/moogaloop.swf?clip_id=' . $video_id . '&amp;server=www.vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=&amp;fullscreen=1" />	<embed src="http://www.vimeo.com/moogaloop.swf?clip_id=' . $video_id . '&amp;server=www.vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=&amp;fullscreen=1" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="400" height="225"></embed></object>';
 
@@ -437,7 +423,7 @@ var photostorage = false;
 			show('video');
 		<?php } elseif ( preg_match("/vimeo\.com\/[0-9]+/i", $url) ) { ?>
 			show('video');
-		<?php  } elseif ( preg_match("/flickr\.com/i", $url) ) { ?>
+		<?php } elseif ( preg_match("/flickr\.com/i", $url) ) { ?>
 			show('photo');
 		<?php } ?>
 		jQuery('#title').unbind();
@@ -449,7 +435,11 @@ var photostorage = false;
 	});
 </script>
 </head>
-<body class="press-this wp-admin<?php if ( is_rtl() ) echo ' rtl'; ?>">
+<?php
+$admin_body_class = ( is_rtl() ) ? 'rtl' : '';
+$admin_body_class .= ' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
+?>
+<body class="press-this wp-admin <?php echo $admin_body_class; ?>">
 <form action="press-this.php?action=post" method="post">
 <div id="poststuff" class="metabox-holder">
 	<div id="side-sortables" class="press-this-sidebar">
@@ -538,7 +528,7 @@ var photostorage = false;
 									<?php echo $tax->labels->parent_item_colon; ?>
 								</label>
 								<?php wp_dropdown_categories( array( 'taxonomy' => 'category', 'hide_empty' => 0, 'name' => 'newcategory_parent', 'orderby' => 'name', 'hierarchical' => 1, 'show_option_none' => '&mdash; ' . $tax->labels->parent_item . ' &mdash;', 'tab_index' => 3 ) ); ?>
-								<input type="button" id="category-add-submit" class="add:categorychecklist:category-add button category-add-sumbit" value="<?php echo esc_attr( $tax->labels->add_new_item ); ?>" tabindex="3" />
+								<input type="button" id="category-add-submit" class="add:categorychecklist:category-add button category-add-submit" value="<?php echo esc_attr( $tax->labels->add_new_item ); ?>" tabindex="3" />
 								<?php wp_nonce_field( 'add-category', '_ajax_nonce-add-category', false ); ?>
 								<span id="category-ajax-response"></span>
 							</p>
@@ -610,7 +600,7 @@ var photostorage = false;
 
 		$content = '';
 		if ( $selection )
-			$content .=  $selection;
+			$content .= $selection;
 
 		if ( $url ) {
 			$content .= '<p>';

@@ -140,19 +140,18 @@ if ( $wp_rewrite->using_index_permalinks() )
 else
 	$usingpi = false;
 
-$wp_rewrite->flush_rules();
-
+flush_rewrite_rules();
 
 if (isset($_POST['submit'])) : ?>
 <div id="message" class="updated"><p><?php
 if ( ! is_multisite() ) {
 	if ( $iis7_permalinks ) {
 		if ( $permalink_structure && ! $usingpi && ! $writable )
-			_e('You should update your web.config now');
+			_e('You should update your web.config now.');
 		else if ( $permalink_structure && ! $usingpi && $writable )
 			_e('Permalink structure updated. Remove write access on web.config file now!');
 		else
-			_e('Permalink structure updated');
+			_e('Permalink structure updated.');
 	} else {
 		if ( $permalink_structure && ! $usingpi && ! $writable )
 			_e('You should update your .htaccess now.');
@@ -226,11 +225,14 @@ $structures = array(
 </table>
 
 <h3><?php _e('Optional'); ?></h3>
-<?php if ( $is_apache || $iis7_permalinks ) : ?>
-	<p><?php _e('If you like, you may enter custom structures for your category and tag <abbr title="Universal Resource Locator">URL</abbr>s here. For example, using <kbd>topics</kbd> as your category base would make your category links like <code>http://example.org/topics/uncategorized/</code>. If you leave these blank the defaults will be used.') ?></p>
-<?php else : ?>
-	<p><?php _e('If you like, you may enter custom structures for your category and tag <abbr title="Universal Resource Locator">URL</abbr>s here. For example, using <code>topics</code> as your category base would make your category links like <code>http://example.org/index.php/topics/uncategorized/</code>. If you leave these blank the defaults will be used.') ?></p>
-<?php endif; ?>
+<?php
+$suffix = '';
+if ( ! $is_apache && ! $iis7_permalinks )
+	$suffix = 'index.php/';
+?>
+<p><?php
+/* translators: %s is a placeholder that must come at the start of the URL path. */
+printf( __('If you like, you may enter custom structures for your category and tag <abbr title="Universal Resource Locator">URL</abbr>s here. For example, using <code>topics</code> as your category base would make your category links like <code>http://example.org/%stopics/uncategorized/</code>. If you leave these blank the defaults will be used.'), $suffix ); ?></p>
 
 <table class="form-table">
 	<tr>
@@ -257,14 +259,14 @@ $structures = array(
 <?php wp_nonce_field('update-permalink') ?>
 	<p><textarea rows="9" class="large-text readonly" name="rules" id="rules" readonly="readonly"><?php echo esc_textarea( $wp_rewrite->iis7_url_rewrite_rules() ); ?></textarea></p>
 </form>
-<p><?php _e('If you temporarily make your <code>web.config</code> file writable for us to generate rewrite rules automatically, do not forget to revert the permissions after rule has been saved.')  ?></p>
+<p><?php _e('If you temporarily make your <code>web.config</code> file writable for us to generate rewrite rules automatically, do not forget to revert the permissions after rule has been saved.') ?></p>
 		<?php else : ?>
 <p><?php _e('If the root directory of your site were <a href="http://codex.wordpress.org/Changing_File_Permissions">writable</a>, we could do this automatically, but it isn&#8217;t so this is the url rewrite rule you should have in your <code>web.config</code> file. Create a new file, called <code>web.config</code> in the root directory of your site. Click in the field and press <kbd>CTRL + a</kbd> to select all. Then insert this code into the <code>web.config</code> file.') ?></p>
 <form action="options-permalink.php" method="post">
 <?php wp_nonce_field('update-permalink') ?>
 	<p><textarea rows="18" class="large-text readonly" name="rules" id="rules" readonly="readonly"><?php echo esc_textarea( $wp_rewrite->iis7_url_rewrite_rules(true) ); ?></textarea></p>
 </form>
-<p><?php _e('If you temporarily make your site&#8217;s root directory writable for us to generate the <code>web.config</code> file automatically, do not forget to revert the permissions after the file has been created.')  ?></p>
+<p><?php _e('If you temporarily make your site&#8217;s root directory writable for us to generate the <code>web.config</code> file automatically, do not forget to revert the permissions after the file has been created.') ?></p>
 		<?php endif; ?>
 	<?php endif; ?>
 <?php else :

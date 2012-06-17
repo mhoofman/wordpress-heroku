@@ -56,8 +56,7 @@ $menu[5] = array( __('Posts'), 'edit_posts', 'edit.php', '', 'open-if-no-js menu
 $menu[10] = array( __('Media'), 'upload_files', 'upload.php', '', 'menu-top menu-icon-media', 'menu-media', 'div' );
 	$submenu['upload.php'][5] = array( __('Library'), 'upload_files', 'upload.php');
 	/* translators: add new file */
-	if ( !$is_iphone )
-		$submenu['upload.php'][10] = array( _x('Add New', 'file'), 'upload_files', 'media-new.php');
+	$submenu['upload.php'][10] = array( _x('Add New', 'file'), 'upload_files', 'media-new.php');
 
 $menu[15] = array( __('Links'), 'manage_links', 'link-manager.php', '', 'menu-top menu-icon-links', 'menu-links', 'div' );
 	$submenu['link-manager.php'][5] = array( _x('All Links', 'admin menu'), 'manage_links', 'link-manager.php' );
@@ -232,5 +231,3 @@ $compat = array(
 	);
 
 require_once(ABSPATH . 'wp-admin/includes/menu.php');
-
-?>

@@ -1229,7 +1229,6 @@ function get_calendar($initial = true, $echo = true) {
 		}
 	}
 
-
 	// See how much we should pad in the beginning
 	$pad = calendar_week_mod(date('w', $unixmonth)-$week_begins);
 	if ( 0 != $pad )
@@ -1747,15 +1746,14 @@ function rich_edit_exists() {
  * @return bool
  */
 function user_can_richedit() {
-	global $wp_rich_edit, $is_gecko, $is_opera, $is_safari, $is_chrome, $is_iphone, $is_IE;
+	global $wp_rich_edit, $is_gecko, $is_opera, $is_safari, $is_chrome, $is_IE;
 
 	if ( !isset($wp_rich_edit) ) {
 		$wp_rich_edit = false;
 
-		if ( get_user_option( 'rich_editing' ) == 'true' || !is_user_logged_in() ) { // default to 'true' for logged out users
+		if ( get_user_option( 'rich_editing' ) == 'true' || ! is_user_logged_in() ) { // default to 'true' for logged out users
 			if ( $is_safari ) {
-				if ( !$is_iphone || ( preg_match( '!AppleWebKit/(\d+)!', $_SERVER['HTTP_USER_AGENT'], $match ) && intval($match[1]) >= 534 ) )
-					$wp_rich_edit = true;
+				$wp_rich_edit = ! wp_is_mobile() || ( preg_match( '!AppleWebKit/(\d+)!', $_SERVER['HTTP_USER_AGENT'], $match ) && intval( $match[1] ) >= 534 );
 			} elseif ( $is_gecko || $is_opera || $is_chrome || $is_IE ) {
 				$wp_rich_edit = true;
 			}
@@ -1797,7 +1795,7 @@ function wp_default_editor() {
  * See http://core.trac.wordpress.org/ticket/19173 for more information.
  *
  * @see wp-includes/class-wp-editor.php
- * @since 3.3
+ * @since 3.3.0
  *
  * @param string $content Initial content for the editor.
  * @param string $editor_id HTML ID attribute value for the textarea and TinyMCE. Can only be /[a-z]+/.
@@ -2037,7 +2035,7 @@ function register_admin_color_schemes() {
 	wp_admin_css_color( 'classic', _x( 'Blue', 'admin color scheme' ), admin_url( 'css/colors-classic.css' ),
 		array( '#5589aa', '#cfdfe9', '#d1e5ee', '#eff8ff' ) );
 	wp_admin_css_color( 'fresh', _x( 'Gray', 'admin color scheme' ), admin_url( 'css/colors-fresh.css' ),
-		array( '#7c7976', '#c6c6c6', '#e0e0e0', '#f1f1f1' ) );
+		array( '#555', '#a0a0a0', '#ccc', '#f1f1f1' ) );
 }
 
 /**
@@ -2066,7 +2064,7 @@ function wp_admin_css_uri( $file = 'wp-admin' ) {
  * "Intelligently" decides to enqueue or to print the CSS file. If the
  * 'wp_print_styles' action has *not* yet been called, the CSS file will be
  * enqueued. If the wp_print_styles action *has* been called, the CSS link will
- * be printed. Printing may be forced by passing TRUE as the $force_echo
+ * be printed. Printing may be forced by passing true as the $force_echo
  * (second) parameter.
  *
  * For backward compatibility with WordPress 2.3 calling method: If the $file
@@ -2080,7 +2078,7 @@ function wp_admin_css_uri( $file = 'wp-admin' ) {
  *
  * @param string $file Optional. Style handle name or file name (without ".css" extension) relative
  * 	 to wp-admin/. Defaults to 'wp-admin'.
- * @param bool $force_echo Optional.  Force the stylesheet link to be printed rather than enqueued.
+ * @param bool $force_echo Optional. Force the stylesheet link to be printed rather than enqueued.
  */
 function wp_admin_css( $file = 'wp-admin', $force_echo = false ) {
 	global $wp_styles;
@@ -2091,7 +2089,7 @@ function wp_admin_css( $file = 'wp-admin', $force_echo = false ) {
 	$handle = 0 === strpos( $file, 'css/' ) ? substr( $file, 4 ) : $file;
 
 	if ( $wp_styles->query( $handle ) ) {
-		if ( $force_echo || did_action( 'wp_print_styles' ) ) // we already printed the style queue.  Print this one immediately
+		if ( $force_echo || did_action( 'wp_print_styles' ) ) // we already printed the style queue. Print this one immediately
 			wp_print_styles( $handle );
 		else // Add to style queue
 			wp_enqueue_style( $handle );
@@ -2099,7 +2097,7 @@ function wp_admin_css( $file = 'wp-admin', $force_echo = false ) {
 	}
 
 	echo apply_filters( 'wp_admin_css', "<link rel='stylesheet' href='" . esc_url( wp_admin_css_uri( $file ) ) . "' type='text/css' />\n", $file );
-	if ( is_rtl() )
+	if ( function_exists( 'is_rtl' ) && is_rtl() )
 		echo apply_filters( 'wp_admin_css', "<link rel='stylesheet' href='" . esc_url( wp_admin_css_uri( "$file-rtl" ) ) . "' type='text/css' />\n", "$file-rtl" );
 }
 
@@ -2107,7 +2105,7 @@ function wp_admin_css( $file = 'wp-admin', $force_echo = false ) {
  * Enqueues the default ThickBox js and css.
  *
  * If any of the settings need to be changed, this can be done with another js
- * file similar to media-upload.js and theme-preview.js. That file should
+ * file similar to media-upload.js. That file should
  * require array('thickbox') to ensure it is loaded after.
  *
  * @since 2.5.0
@@ -2283,5 +2281,3 @@ function __checked_selected_helper( $helper, $current, $echo, $type ) {
 
 	return $result;
 }
-
-?>

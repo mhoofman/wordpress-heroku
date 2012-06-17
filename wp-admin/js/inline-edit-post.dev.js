@@ -117,7 +117,7 @@ inlineEditPost = {
 		if ( 'post' == type ) {
 			// support multi taxonomies?
 			tax = 'post_tag';
-			$('tr.inline-editor textarea[name="tax_input['+tax+']"]').suggest( 'admin-ajax.php?action=ajax-tag-search&tax='+tax, { delay: 500, minchars: 2, multiple: true, multipleSep: ", " } );
+			$('tr.inline-editor textarea[name="tax_input['+tax+']"]').suggest( ajaxurl + '?action=ajax-tag-search&tax=' + tax, { delay: 500, minchars: 2, multiple: true, multipleSep: inlineEditL10n.comma + ' ' } );
 		}
 		$('html, body').animate( { scrollTop: 0 }, 'fast' );
 	},
@@ -129,9 +129,9 @@ inlineEditPost = {
 		if ( typeof(id) == 'object' )
 			id = t.getId(id);
 
-		fields = ['post_title', 'post_name', 'post_author', '_status', 'jj', 'mm', 'aa', 'hh', 'mn', 'ss', 'post_password', 'post_format'];
+		fields = ['post_title', 'post_name', 'post_author', '_status', 'jj', 'mm', 'aa', 'hh', 'mn', 'ss', 'post_password', 'post_format', 'menu_order'];
 		if ( t.type == 'page' )
-			fields.push('post_parent', 'menu_order', 'page_template');
+			fields.push('post_parent', 'page_template');
 
 		// add the new blank row
 		editRow = $('#inline-edit').clone(true);
@@ -184,12 +184,16 @@ inlineEditPost = {
 		$('.tags_input', rowData).each(function(){
 			var terms = $(this).text(),
 				taxname = $(this).attr('id').replace('_' + id, ''),
-				textarea = $('textarea.tax_input_' + taxname, editRow);
+				textarea = $('textarea.tax_input_' + taxname, editRow),
+				comma = inlineEditL10n.comma;
 
-			if ( terms )
+			if ( terms ) {
+				if ( ',' !== comma )
+					terms = terms.replace(/,/g, comma);
 				textarea.val(terms);
+			}
 
-			textarea.suggest( 'admin-ajax.php?action=ajax-tag-search&tax='+taxname, { delay: 500, minchars: 2, multiple: true, multipleSep: ", " } );
+			textarea.suggest( ajaxurl + '?action=ajax-tag-search&tax=' + taxname, { delay: 500, minchars: 2, multiple: true, multipleSep: inlineEditL10n.comma + ' ' } );
 		});
 
 		// handle the post status
@@ -247,7 +251,7 @@ inlineEditPost = {
 		params = fields + '&' + $.param(params);
 
 		// make ajax request
-		$.post('admin-ajax.php', params,
+		$.post( ajaxurl, params,
 			function(r) {
 				$('table.widefat .inline-edit-save .waiting').hide();
 
