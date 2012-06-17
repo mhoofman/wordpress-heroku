@@ -13,13 +13,13 @@ $title = __( 'Freedoms' );
 
 list( $display_version ) = explode( '-', $wp_version );
 
-include( './admin-header.php' );
+include( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 <div class="wrap about-wrap">
 
 <h1><?php printf( __( 'Welcome to WordPress %s' ), $display_version ); ?></h1>
 
-<div class="about-text"><?php printf( __( 'Thank you for updating to the latest version! Using WordPress %s will improve your looks, personality, and web publishing experience. Okay, just the last one, but still. :)' ), $display_version ); ?></div>
+<div class="about-text"><?php printf( __( 'Thank you for updating to the latest version! WordPress %s is already making your website better, faster, and more attractive, just like you!' ), $display_version ); ?></div>
 
 <div class="wp-badge"><?php printf( __( 'Version %s' ), $display_version ); ?></div>
 
@@ -54,4 +54,4 @@ printf( __( 'Every plugin and theme in WordPress.org&#8217;s directory is 100%% 
 <p><?php _e( 'Don&#8217;t you wish all software came with these freedoms? So do we! For more information, check out the <a href="http://www.fsf.org/">Free Software Foundation</a>.' ); ?></p>
 
 </div>
-<?php include( './admin-footer.php' ); ?>
+<?php include( ABSPATH . 'wp-admin/admin-footer.php' ); ?>

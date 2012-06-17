@@ -507,7 +507,7 @@ function get_post_comments_feed_link($post_id = 0, $feed = '') {
  * @since 2.5.0
  *
  * @param string $link_text Descriptive text.
- * @param int $post_id Optional post ID.  Default to current post.
+ * @param int $post_id Optional post ID. Default to current post.
  * @param string $feed Optional. Feed format.
  * @return string Link to the comment feed for the current post.
 */
@@ -589,8 +589,6 @@ function get_category_feed_link($cat_id, $feed = '') {
  * @return string Link to the feed for the term specified by $term_id and $taxonomy.
 */
 function get_term_feed_link( $term_id, $taxonomy = 'category', $feed = '' ) {
-	global $wp_rewrite;
-
 	$term_id = ( int ) $term_id;
 
 	$term = get_term( $term_id, $taxonomy  );
@@ -629,7 +627,6 @@ function get_term_feed_link( $term_id, $taxonomy = 'category', $feed = '' ) {
 		$link = apply_filters( 'category_feed_link', $link, $feed );
 	else
 		$link = apply_filters( 'taxonomy_feed_link', $link, $feed, $taxonomy );
-
 
 	return $link;
 }
@@ -1375,9 +1372,11 @@ function adjacent_post_link($format, $link, $in_same_cat = false, $excluded_cate
  * @since 1.5.0
  *
  * @param int $pagenum Optional. Page ID.
+ * @param bool $escape Optional. Whether to escape the URL for display, with esc_url(). Defaults to true.
+* 	Otherwise, prepares the URL with esc_url_raw().
  * @return string
  */
-function get_pagenum_link($pagenum = 1) {
+function get_pagenum_link($pagenum = 1, $escape = true ) {
 	global $wp_rewrite;
 
 	$pagenum = (int) $pagenum;
@@ -1428,7 +1427,10 @@ function get_pagenum_link($pagenum = 1) {
 
 	$result = apply_filters('get_pagenum_link', $result);
 
-	return $result;
+	if ( $escape )
+		return esc_url( $result );
+	else
+		return esc_url_raw( $result );
 }
 
 /**
@@ -1566,7 +1568,7 @@ function get_previous_posts_link( $label = null ) {
 
 	if ( !is_single() && $paged > 1 ) {
 		$attr = apply_filters( 'previous_posts_link_attributes', '' );
-		return '<a href="' . previous_posts( false ) . "\" $attr>". preg_replace( '/&([^#])(?![a-z]{1,8};)/', '&#038;$1', $label ) .'</a>';
+		return '<a href="' . previous_posts( false ) . "\" $attr>". preg_replace( '/&([^#])(?![a-z]{1,8};)/i', '&#038;$1', $label ) .'</a>';
 	}
 }
 
@@ -1793,7 +1795,7 @@ function paginate_comments_links($args = array()) {
 }
 
 /**
- * Retrieve shortcut link.
+ * Retrieve the Press This bookmarklet link.
  *
  * Use this in 'a' element 'href' attribute.
  *
@@ -1802,6 +1804,7 @@ function paginate_comments_links($args = array()) {
  * @return string
  */
 function get_shortcut_link() {
+	// In case of breaking changes, version this. #WP20071
 	$link = "javascript:
 			var d=document,
 			w=window,
@@ -1835,7 +1838,7 @@ function get_shortcut_link() {
  * @uses get_home_url()
  *
  * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https'.
+ * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
  * @return string Home url link with optional path appended.
 */
 function home_url( $path = '', $scheme = null ) {
@@ -1854,13 +1857,13 @@ function home_url( $path = '', $scheme = null ) {
  *
  * @param  int $blog_id   (optional) Blog ID. Defaults to current blog.
  * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https'.
+ * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
  * @return string Home url link with optional path appended.
 */
 function get_home_url( $blog_id = null, $path = '', $scheme = null ) {
 	$orig_scheme = $scheme;
 
-	if ( !in_array( $scheme, array( 'http', 'https' ) ) )
+	if ( !in_array( $scheme, array( 'http', 'https', 'relative' ) ) )
 		$scheme = is_ssl() && !is_admin() ? 'https' : 'http';
 
 	if ( empty( $blog_id ) || !is_multisite() )
@@ -1868,7 +1871,9 @@ function get_home_url( $blog_id = null, $path = '', $scheme = null ) {
 	else
 		$url = get_blog_option( $blog_id, 'home' );
 
-	if ( 'http' != $scheme )
+	if ( 'relative' == $scheme )
+		$url = preg_replace( '#^.+://[^/]*#', '', $url );
+	elseif ( 'http' != $scheme )
 		$url = str_replace( 'http://', "$scheme://", $url );
 
 	if ( !empty( $path ) && is_string( $path ) && strpos( $path, '..' ) === false )
@@ -1890,7 +1895,7 @@ function get_home_url( $blog_id = null, $path = '', $scheme = null ) {
  * @uses get_site_url()
  *
  * @param string $path Optional. Path relative to the site url.
- * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', or 'admin'.
+ * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', 'admin', or 'relative'.
  * @return string Site url link with optional path appended.
 */
 function site_url( $path = '', $scheme = null ) {
@@ -1909,13 +1914,13 @@ function site_url( $path = '', $scheme = null ) {
  *
  * @param int $blog_id (optional) Blog ID. Defaults to current blog.
  * @param string $path Optional. Path relative to the site url.
- * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', or 'admin'.
+ * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', 'admin', or 'relative'.
  * @return string Site url link with optional path appended.
 */
 function get_site_url( $blog_id = null, $path = '', $scheme = null ) {
 	// should the list of allowed schemes be maintained elsewhere?
 	$orig_scheme = $scheme;
-	if ( !in_array( $scheme, array( 'http', 'https' ) ) ) {
+	if ( !in_array( $scheme, array( 'http', 'https', 'relative' ) ) ) {
 		if ( ( 'login_post' == $scheme || 'rpc' == $scheme ) && ( force_ssl_login() || force_ssl_admin() ) )
 			$scheme = 'https';
 		elseif ( ( 'login' == $scheme ) && force_ssl_admin() )
@@ -1931,7 +1936,9 @@ function get_site_url( $blog_id = null, $path = '', $scheme = null ) {
 	else
 		$url = get_blog_option( $blog_id, 'siteurl' );
 
-	if ( 'http' != $scheme )
+	if ( 'relative' == $scheme )
+		$url = preg_replace( '#^.+://[^/]*#', '', $url );
+	elseif ( 'http' != $scheme )
 		$url = str_replace( 'http://', "{$scheme}://", $url );
 
 	if ( !empty( $path ) && is_string( $path ) && strpos( $path, '..' ) === false )
@@ -2062,7 +2069,7 @@ function plugins_url($path = '', $plugin = '') {
  * @since 3.0.0
  *
  * @param string $path Optional. Path relative to the site url.
- * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', or 'admin'.
+ * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', 'admin', or 'relative'.
  * @return string Site url link with optional path appended.
 */
 function network_site_url( $path = '', $scheme = null ) {
@@ -2072,7 +2079,7 @@ function network_site_url( $path = '', $scheme = null ) {
 		return site_url($path, $scheme);
 
 	$orig_scheme = $scheme;
-	if ( !in_array($scheme, array('http', 'https')) ) {
+	if ( !in_array( $scheme, array( 'http', 'https', 'relative' ) ) ) {
 		if ( ( 'login_post' == $scheme || 'rpc' == $scheme ) && ( force_ssl_login() || force_ssl_admin() ) )
 			$scheme = 'https';
 		elseif ( ('login' == $scheme) && ( force_ssl_admin() ) )
@@ -2083,7 +2090,10 @@ function network_site_url( $path = '', $scheme = null ) {
 			$scheme = ( is_ssl() ? 'https' : 'http' );
 	}
 
-	$url = $scheme . '://' . $current_site->domain . $current_site->path;
+	if ( 'relative' == $scheme )
+		$url = $current_site->path;
+	else
+		$url = $scheme . '://' . $current_site->domain . $current_site->path;
 
 	if ( !empty($path) && is_string($path) && strpos($path, '..') === false )
 		$url .= ltrim($path, '/');
@@ -2102,7 +2112,7 @@ function network_site_url( $path = '', $scheme = null ) {
  * @since 3.0.0
  *
  * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https'.
+ * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
  * @return string Home url link with optional path appended.
 */
 function network_home_url( $path = '', $scheme = null ) {
@@ -2113,10 +2123,13 @@ function network_home_url( $path = '', $scheme = null ) {
 
 	$orig_scheme = $scheme;
 
-	if ( !in_array($scheme, array('http', 'https')) )
+	if ( !in_array( $scheme, array( 'http', 'https', 'relative' ) ) )
 		$scheme = is_ssl() && !is_admin() ? 'https' : 'http';
 
-	$url = $scheme . '://' . $current_site->domain . $current_site->path;
+	if ( 'relative' == $scheme )
+		$url = $current_site->path;
+	else
+		$url = $scheme . '://' . $current_site->domain . $current_site->path;
 
 	if ( !empty( $path ) && is_string( $path ) && strpos( $path, '..' ) === false )
 		$url .= ltrim( $path, '/' );
@@ -2185,9 +2198,39 @@ function self_admin_url($path = '', $scheme = 'admin') {
 }
 
 /**
+ * Set the scheme for a URL
+ *
+ * @since 3.4.0
+ *
+ * @param string $url Absolute url that includes a scheme
+ * @param string $scheme Optional. Scheme to give $url. Currently 'http', 'https', 'login', 'login_post', 'admin', or 'relative'.
+ * @return string $url URL with chosen scheme.
+ */
+function set_url_scheme( $url, $scheme = null ) {
+	$orig_scheme = $scheme;
+	if ( ! in_array( $scheme, array( 'http', 'https', 'relative' ) ) ) {
+		if ( ( 'login_post' == $scheme || 'rpc' == $scheme ) && ( force_ssl_login() || force_ssl_admin() ) )
+			$scheme = 'https';
+		elseif ( ( 'login' == $scheme ) && force_ssl_admin() )
+			$scheme = 'https';
+		elseif ( ( 'admin' == $scheme ) && force_ssl_admin() )
+			$scheme = 'https';
+		else
+			$scheme = ( is_ssl() ? 'https' : 'http' );
+	}
+
+	if ( 'relative' == $scheme )
+		$url = preg_replace( '#^.+://[^/]*#', '', $url );
+	else
+		$url = preg_replace( '#^.+://#', $scheme . '://', $url );
+
+	return apply_filters( 'set_url_scheme', $url, $scheme, $orig_scheme );
+}
+
+/**
  * Get the URL to the user's dashboard.
  *
- * If a user does not belong to any site, the global user dashboard is used.  If the user belongs to the current site,
+ * If a user does not belong to any site, the global user dashboard is used. If the user belongs to the current site,
  * the dashboard for the current site is returned. If the user cannot edit the current site, the dashboard to the user's
  * primary blog is returned.
  *
@@ -2364,7 +2407,7 @@ function the_shortlink( $text = '', $title = '', $before = '', $after = '' ) {
 		$text = __('This is the short link.');
 
 	if ( empty( $title ) )
-		$title = the_title_attribute( array( 'echo' => FALSE ) );
+		$title = the_title_attribute( array( 'echo' => false ) );
 
 	$shortlink = wp_get_shortlink( $post->ID );
 
@@ -2374,5 +2417,3 @@ function the_shortlink( $text = '', $title = '', $before = '', $after = '' ) {
 		echo $before, $link, $after;
 	}
 }
-
-?>

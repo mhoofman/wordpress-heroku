@@ -42,7 +42,7 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Sites_Screens" target="_blank">Documentation on Site Management</a>') . '</p>' .
+	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Sites_Screen" target="_blank">Documentation on Site Management</a>') . '</p>' .
 	'<p>' . __('<a href="http://wordpress.org/support/forum/multisite/" target="_blank">Support Forums</a>') . '</p>'
 );
 
@@ -78,9 +78,7 @@ if ( isset( $_GET['action'] ) ) {
 				if ( ! current_user_can( 'manage_sites' ) )
 					wp_die( __( 'You do not have permission to access this page.' ) );
 
-				if ( $_GET['action'] != -1 || $_POST['action2'] != -1 )
-					$doaction = $_POST['action'] != -1 ? $_POST['action'] : $_POST['action2'];
-
+				$doaction = $_POST['action'] != -1 ? $_POST['action'] : $_POST['action2'];
 				$blogfunction = '';
 
 				foreach ( (array) $_POST['allblogs'] as $key => $val ) {
@@ -210,7 +208,7 @@ if ( isset( $_GET['action'] ) ) {
 				wp_die( __( 'You are not allowed to change the current site.' ) );
 			?>
 			<!DOCTYPE html>
-			<html xmlns="http://www.w3.org/1999/xhtml" <?php if ( function_exists( 'language_attributes' ) ) language_attributes(); ?>>
+			<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 				<head>
 					<title><?php _e( 'WordPress &rsaquo; Confirm your action' ); ?></title>
 
@@ -221,7 +219,7 @@ if ( isset( $_GET['action'] ) ) {
 					?>
 				</head>
 				<body>
-					<h1 id="logo"><img alt="WordPress" src="<?php echo esc_attr( admin_url( 'images/wordpress-logo.png' ) ); ?>" /></h1>
+					<h1 id="logo"><img alt="WordPress" src="<?php echo esc_attr( admin_url( 'images/wordpress-logo.png?ver=20120216' ) ); ?>" /></h1>
 					<form action="sites.php?action=<?php echo esc_attr( $_GET['action2'] ) ?>" method="post">
 						<input type="hidden" name="action" value="<?php echo esc_attr( $_GET['action2'] ) ?>" />
 						<input type="hidden" name="id" value="<?php echo esc_attr( $id ); ?>" />

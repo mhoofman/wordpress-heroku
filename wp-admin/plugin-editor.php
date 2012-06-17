@@ -65,7 +65,8 @@ case 'update':
 			if ( is_plugin_active($file) )
 				deactivate_plugins($file, true);
 
-			update_option('recently_activated', array($file => time()) + (array)get_option('recently_activated'));
+			if ( ! is_network_admin() )
+				update_option( 'recently_activated', array( $file => time() ) + (array) get_option( 'recently_activated' ) );
 
 			wp_redirect(add_query_arg('_wpnonce', wp_create_nonce('edit-plugin-test_' . $file), "plugin-editor.php?file=$file&liveupdate=1&scrollto=$scrollto&networkwide=" . $network_wide));
 			exit;
@@ -236,7 +237,7 @@ foreach ( $plugin_files as $plugin_file ) :
 		<?php endif; ?>
 <?php if ( is_writeable($real_file) ) : ?>
 	<?php if ( in_array( $file, (array) get_option( 'active_plugins', array() ) ) ) { ?>
-		<p><?php _e('<strong>Warning:</strong> Making changes to active plugins is not recommended.  If your changes cause a fatal error, the plugin will be automatically deactivated.'); ?></p>
+		<p><?php _e('<strong>Warning:</strong> Making changes to active plugins is not recommended. If your changes cause a fatal error, the plugin will be automatically deactivated.'); ?></p>
 	<?php } ?>
 	<p class="submit">
 	<?php

@@ -1,5 +1,7 @@
-var theList, theExtraList, toggleWithKeyboard = false, getCount, updateCount, updatePending, dashboardTotals;
+var theList, theExtraList, toggleWithKeyboard = false;
+
 (function($) {
+var getCount, updateCount, updatePending, dashboardTotals;
 
 setCommentsList = function() {
 	var totalInput, perPageInput, pageInput, lastConfidentTime = 0, dimAfter, delBefore, updateTotalCount, delAfter, refillTheExtraList;
@@ -27,25 +29,8 @@ setCommentsList = function() {
 			c.find('div.comment_status').html('1');
 		}
 
-		$('span.pending-count').each( function() {
-			var a = $(this), n, dif;
-
-			n = a.html().replace(/[^0-9]+/g, '');
-			n = parseInt(n, 10);
-
-			if ( isNaN(n) )
-				return;
-
-			dif = $('#' + settings.element).is('.' + settings.dimClass) ? 1 : -1;
-			n = n + dif;
-
-			if ( n < 0 )
-				n = 0;
-
-			a.closest('.awaiting-mod')[ 0 == n ? 'addClass' : 'removeClass' ]('count-0');
-			updateCount(a, n);
-			dashboardTotals();
-		});
+		var diff = $('#' + settings.element).is('.' + settings.dimClass) ? 1 : -1;
+		updatePending( diff );
 	};
 
 	// Send current total, page, per_page and url
@@ -84,7 +69,7 @@ setCommentsList = function() {
 
 			el.before(h);
 
-			$('strong', '#undo-' + id).text(author + ' ');
+			$('strong', '#undo-' + id).text(author);
 			a = $('.undo a', '#undo-' + id);
 			a.attr('href', 'comment.php?action=un' + action + 'comment&c=' + id + '&_wpnonce=' + settings.data._ajax_nonce);
 			a.attr('class', 'delete:the-comment-list:comment-' + id + '::un' + action + '=1 vim-z vim-destructive');
@@ -129,7 +114,6 @@ setCommentsList = function() {
 		apprN = totalN - getCount( $('span.pending-count', dash) ) - getCount( $('span.spam-count', dash) );
 		updateCount(total, totalN);
 		updateCount(appr, apprN);
-
 	};
 
 	getCount = function(el) {
@@ -154,17 +138,16 @@ setCommentsList = function() {
 		el.html(n);
 	};
 
-	updatePending = function(n) {
-		$('span.pending-count').each( function() {
-			var a = $(this);
-
-			if ( n < 0 )
+	updatePending = function( diff ) {
+		$('span.pending-count').each(function() {
+			var a = $(this), n = getCount(a) + diff;
+			if ( n < 1 )
 				n = 0;
-
 			a.closest('.awaiting-mod')[ 0 == n ? 'addClass' : 'removeClass' ]('count-0');
-			updateCount(a, n);
-			dashboardTotals();
+			updateCount( a, n );
 		});
+
+		dashboardTotals();
 	};
 
 	// In admin-ajax.php, we send back the unix time stamp instead of 1 on success
@@ -193,15 +176,17 @@ setCommentsList = function() {
 		else
 			spam = getUpdate('spam');
 
-		pending = getCount( $('span.pending-count').eq(0) );
-
-		if ( $(settings.target).parent().is('span.unapprove') || ( ( untrash || unspam ) && unapproved ) ) { // we "deleted" an approved comment from the approved list by clicking "Unapprove"
-			pending = pending + 1;
-		} else if ( unapproved ) { // we deleted a formerly unapproved comment
-			pending = pending - 1;
+		if ( $(settings.target).parent().is('span.unapprove') || ( ( untrash || unspam ) && unapproved ) ) {
+			// a comment was 'deleted' from another list (e.g. approved, spam, trash) and moved to pending,
+			// or a trash/spam of a pending comment was undone
+			pending = 1;
+		} else if ( unapproved ) {
+			// a pending comment was trashed/spammed/approved
+			pending = -1;
 		}
 
-		updatePending(pending);
+		if ( pending )
+			updatePending(pending);
 
 		$('span.spam-count').each( function() {
 			var a = $(this), n = getCount(a) + spam;
@@ -238,7 +223,6 @@ setCommentsList = function() {
 				updateTotalCount( total, r, false );
 			}
 		}
-
 
 		if ( ! theExtraList || theExtraList.size() == 0 || theExtraList.children().size() == 0 || untrash || unspam ) {
 			return;
@@ -362,61 +346,72 @@ commentReply = {
 	},
 
 	close : function() {
-		var c;
+		var c, replyrow = $('#replyrow');
 
-		if ( this.cid ) {
+		// replyrow is not showing?
+		if ( replyrow.parent().is('#com-reply') )
+			return;
+
+		if ( this.cid && this.act == 'edit-comment' ) {
 			c = $('#comment-' + this.cid);
-
-			if ( typeof QTags != 'undefined' )
-				QTags.closeAllTags('replycontent');
-
-			if ( this.act == 'edit-comment' )
-				c.fadeIn(300, function(){ c.show() }).css('backgroundColor', '');
-
-			$('#replyrow').hide();
-			$('#com-reply').append( $('#replyrow') );
-			$('#replycontent').val('');
-			$('input', '#edithead').val('');
-			$('.error', '#replysubmit').html('').hide();
-			$('.waiting', '#replysubmit').hide();
-			$('#replycontent').css('height', '');
-
-			this.cid = '';
+			c.fadeIn(300, function(){ c.show() }).css('backgroundColor', '');
 		}
+
+		// reset the Quicktags buttons
+		if ( typeof QTags != 'undefined' )
+			QTags.closeAllTags('replycontent');
+
+		$('#add-new-comment').css('display', '');
+
+		replyrow.hide();
+		$('#com-reply').append( replyrow );
+		$('#replycontent').css('height', '').val('');
+		$('#edithead input').val('');
+		$('.error', replyrow).html('').hide();
+		$('.waiting', replyrow).hide();
+
+		this.cid = '';
 	},
 
-	open : function(id, p, a) {
-		var t = this, editRow, rowData, act, c = $('#comment-' + id), h = c.height(), replyButton;
+	open : function(comment_id, post_id, action) {
+		var t = this, editRow, rowData, act, c = $('#comment-' + comment_id), h = c.height(), replyButton;
 
 		t.close();
-		t.cid = id;
+		t.cid = comment_id;
 
 		editRow = $('#replyrow');
-		rowData = $('#inline-'+id);
-		act = t.act = (a == 'edit') ? 'edit-comment' : 'replyto-comment';
+		rowData = $('#inline-'+comment_id);
+		action = action || 'replyto';
+		act = 'edit' == action ? 'edit' : 'replyto';
+		act = t.act = act + '-comment';
 
 		$('#action', editRow).val(act);
-		$('#comment_post_ID', editRow).val(p);
-		$('#comment_ID', editRow).val(id);
+		$('#comment_post_ID', editRow).val(post_id);
+		$('#comment_ID', editRow).val(comment_id);
 
 		if ( h > 120 )
 			$('#replycontent', editRow).css('height', (35+h) + 'px');
 
-		if ( a == 'edit' ) {
+		if ( action == 'edit' ) {
 			$('#author', editRow).val( $('div.author', rowData).text() );
 			$('#author-email', editRow).val( $('div.author-email', rowData).text() );
 			$('#author-url', editRow).val( $('div.author-url', rowData).text() );
 			$('#status', editRow).val( $('div.comment_status', rowData).text() );
 			$('#replycontent', editRow).val( $('textarea.comment', rowData).val() );
 			$('#edithead, #savebtn', editRow).show();
-			$('#replyhead, #replybtn', editRow).hide();
+			$('#replyhead, #replybtn, #addhead, #addbtn', editRow).hide();
 
 			c.after( editRow ).fadeOut('fast', function(){
 				$('#replyrow').fadeIn(300, function(){ $(this).show() });
 			});
-		} else {
-			replyButton = $('#replybtn', editRow);
-			$('#edithead, #savebtn', editRow).hide();
+		} else if ( action == 'add' ) {
+			$('#addhead, #addbtn', editRow).show();
+			$('#replyhead, #replybtn, #edithead, #editbtn', editRow).hide();
+			$('#the-comment-list').prepend(editRow);
+			$('#replyrow').fadeIn(300);
+ 		} else {
+ 			replyButton = $('#replybtn', editRow);
+			$('#edithead, #savebtn, #addhead, #addbtn', editRow).hide();
 			$('#replyhead, #replybtn', editRow).show();
 			c.after(editRow);
 
@@ -459,7 +454,8 @@ commentReply = {
 		$('#replysubmit .waiting').show();
 
 		$('#replyrow input').not(':button').each(function() {
-			post[ $(this).attr('name') ] = $(this).val();
+			var t = $(this);
+			post[ t.attr('name') ] = t.val();
 		});
 
 		post.content = $('#replycontent').val();
@@ -500,12 +496,13 @@ commentReply = {
 		r = r.responses[0];
 		c = r.data;
 		id = '#comment-' + r.id;
+
 		if ( 'edit-comment' == t.act )
 			$(id).remove();
 
 		if ( r.supplemental.parent_approved ) {
 			pid = $('#comment-' + r.supplemental.parent_approved);
-			updatePending( getCount( $('span.pending-count').eq(0) ) - 1 );
+			updatePending( -1 );
 
 			if ( this.comments_listing == 'moderated' ) {
 				pid.animate( { 'backgroundColor':'#CCEEBB' }, 400, function(){
@@ -544,6 +541,16 @@ commentReply = {
 		if ( er )
 			$('#replysubmit .error').html(er).show();
 
+	},
+
+	addcomment: function(post_id) {
+		var t = this;
+
+		$('#add-new-comment').fadeOut(200, function(){
+			t.open(0, post_id, 'add');
+			$('table.comments-box').css('display', '');
+			$('#no-comments').remove();
+		});
 	}
 };
 
@@ -553,7 +560,6 @@ $(document).ready(function(){
 	setCommentsList();
 	commentReply.init();
 	$(document).delegate('span.delete a.delete', 'click', function(){return false;});
-
 
 	if ( typeof $.table_hotkeys != 'undefined' ) {
 		make_hotkeys_redirect = function(which) {

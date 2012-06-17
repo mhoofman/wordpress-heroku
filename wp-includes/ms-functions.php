@@ -185,7 +185,7 @@ function add_user_to_blog( $blog_id, $user_id, $role ) {
 
 	$user = new WP_User($user_id);
 
-	if ( empty( $user->ID ) ) {
+	if ( ! $user->exists() ) {
 		restore_current_blog();
 		return new WP_Error('user_does_not_exist', __('That user does not exist.'));
 	}
@@ -247,7 +247,7 @@ function remove_user_from_blog($user_id, $blog_id = '', $reassign = '') {
 
 	// wp_revoke_user($user_id);
 	$user = new WP_User($user_id);
-	if ( empty( $user->ID ) ) {
+	if ( ! $user->exists() ) {
 		restore_current_blog();
 		return new WP_Error('user_does_not_exist', __('That user does not exist.'));
 	}
@@ -279,8 +279,8 @@ function remove_user_from_blog($user_id, $blog_id = '', $reassign = '') {
  *
  * @param string $domain The new blog's domain.
  * @param string $path The new blog's path.
- * @param string $string The new blog's title.
- * @param int $site Optional. Defaults to 1.
+ * @param string $weblog_title The new blog's title.
+ * @param int $site_id Optional. Defaults to 1.
  * @return int The ID of the newly created blog
  */
 function create_empty_blog( $domain, $path, $weblog_title, $site_id = 1 ) {
@@ -436,10 +436,8 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 
 	$orig_username = $user_name;
 	$user_name = preg_replace( '/\s+/', '', sanitize_user( $user_name, true ) );
-	$maybe = array();
-	preg_match( '/[a-z0-9]+/', $user_name, $maybe );
 
-	if ( $user_name != $orig_username || $user_name != $maybe[0] ) {
+	if ( $user_name != $orig_username || preg_match( '/[^a-z0-9]/', $user_name ) ) {
 		$errors->add( 'user_name', __( 'Only lowercase letters (a-z) and numbers are allowed.' ) );
 		$user_name = $orig_username;
 	}
@@ -447,7 +445,7 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 	$user_email = sanitize_email( $user_email );
 
 	if ( empty( $user_name ) )
-	   	$errors->add('user_name', __('Please enter a username'));
+	   	$errors->add('user_name', __( 'Please enter a username.' ) );
 
 	$illegal_names = get_site_option( 'illegal_names' );
 	if ( is_array( $illegal_names ) == false ) {
@@ -455,13 +453,13 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 		add_site_option( 'illegal_names', $illegal_names );
 	}
 	if ( in_array( $user_name, $illegal_names ) == true )
-		$errors->add('user_name',  __('That username is not allowed'));
+		$errors->add('user_name',  __( 'That username is not allowed.' ) );
 
 	if ( is_email_address_unsafe( $user_email ) )
 		$errors->add('user_email',  __('You cannot use that email address to signup. We are having problems with them blocking some of our email. Please use another email provider.'));
 
 	if ( strlen( $user_name ) < 4 )
-		$errors->add('user_name',  __('Username must be at least 4 characters'));
+		$errors->add('user_name',  __( 'Username must be at least 4 characters.' ) );
 
 	if ( strpos( ' ' . $user_name, '_' ) != false )
 		$errors->add( 'user_name', __( 'Sorry, usernames may not contain the character &#8220;_&#8221;!' ) );
@@ -473,7 +471,7 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 		$errors->add('user_name', __('Sorry, usernames must have letters too!'));
 
 	if ( !is_email( $user_email ) )
-		$errors->add('user_email', __('Please enter a correct email address'));
+		$errors->add('user_email', __( 'Please enter a correct email address.' ) );
 
 	$limited_email_domains = get_site_option( 'limited_email_domains' );
 	if ( is_array( $limited_email_domains ) && empty( $limited_email_domains ) == false ) {
@@ -498,7 +496,7 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 		$diff = $now - $registered_at;
 		// If registered more than two days ago, cancel registration and let this signup go through.
 		if ( $diff > 172800 )
-			$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->signups WHERE user_login = %s", $user_name) );
+			$wpdb->delete( $wpdb->signups, array( 'user_login' => $user_name ) );
 		else
 			$errors->add('user_name', __('That username is currently reserved but may be available in a couple of days.'));
 
@@ -511,7 +509,7 @@ function wpmu_validate_user_signup($user_name, $user_email) {
 		$diff = current_time( 'timestamp', true ) - mysql2date('U', $signup->registered);
 		// If registered more than two days ago, cancel registration and let this signup go through.
 		if ( $diff > 172800 )
-			$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->signups WHERE user_email = %s", $user_email) );
+			$wpdb->delete( $wpdb->signups, array( 'user_email' => $user_email ) );
 		else
 			$errors->add('user_email', __('That email address has already been used. Please check your inbox for an activation email. It will become available in a couple of days if you do nothing.'));
 	}
@@ -561,16 +559,16 @@ function wpmu_validate_blog_signup($blogname, $blog_title, $user = '') {
 		$illegal_names = array_merge($illegal_names, apply_filters( 'subdirectory_reserved_names', array( 'page', 'comments', 'blog', 'files', 'feed' ) ) );
 
 	if ( empty( $blogname ) )
-		$errors->add('blogname', __('Please enter a site name'));
+		$errors->add('blogname', __( 'Please enter a site name.' ) );
 
 	if ( preg_match( '/[^a-z0-9]+/', $blogname ) )
-		$errors->add('blogname', __('Only lowercase letters and numbers allowed'));
+		$errors->add('blogname', __( 'Only lowercase letters and numbers allowed.' ) );
 
 	if ( in_array( $blogname, $illegal_names ) == true )
-		$errors->add('blogname',  __('That name is not allowed'));
+		$errors->add('blogname',  __( 'That name is not allowed.' ) );
 
 	if ( strlen( $blogname ) < 4 && !is_super_admin() )
-		$errors->add('blogname',  __('Site name must be at least 4 characters'));
+		$errors->add('blogname',  __( 'Site name must be at least 4 characters.' ) );
 
 	if ( strpos( ' ' . $blogname, '_' ) != false )
 		$errors->add( 'blogname', __( 'Sorry, site names may not contain the character &#8220;_&#8221;!' ) );
@@ -590,7 +588,7 @@ function wpmu_validate_blog_signup($blogname, $blog_title, $user = '') {
 	$blog_title = stripslashes(  $blog_title );
 
 	if ( empty( $blog_title ) )
-		$errors->add('blog_title', __('Please enter a site title'));
+		$errors->add('blog_title', __( 'Please enter a site title.' ) );
 
 	// Check if the domain/path has been used already.
 	if ( is_subdomain_install() ) {
@@ -614,7 +612,7 @@ function wpmu_validate_blog_signup($blogname, $blog_title, $user = '') {
 		$diff = current_time( 'timestamp', true ) - mysql2date('U', $signup->registered);
 		// If registered more than two days ago, cancel registration and let this signup go through.
 		if ( $diff > 172800 )
-			$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->signups WHERE domain = %s AND path = %s", $mydomain, $path) );
+			$wpdb->delete( $wpdb->signups, array( 'domain' => $mydomain , 'path' => $path ) );
 		else
 			$errors->add('blogname', __('That site is currently reserved but may be available in a couple days.'));
 	}
@@ -845,7 +843,7 @@ function wpmu_activate_signup($key) {
 			return new WP_Error( 'already_active', __( 'The site is already active.' ), $signup );
 	}
 
-	$meta = unserialize($signup->meta);
+	$meta = maybe_unserialize($signup->meta);
 	$user_login = $wpdb->escape($signup->user_login);
 	$user_email = $wpdb->escape($signup->user_email);
 	$password = wp_generate_password( 12, false );
@@ -880,7 +878,7 @@ function wpmu_activate_signup($key) {
 	// TODO: What to do if we create a user but cannot create a blog?
 	if ( is_wp_error($blog_id) ) {
 		// If blog is taken, that means a previous attempt to activate this blog failed in between creating the blog and
-		// setting the activation flag.  Let's just set the active flag and instruct the user to reset their password.
+		// setting the activation flag. Let's just set the active flag and instruct the user to reset their password.
 		if ( 'blog_taken' == $blog_id->get_error_code() ) {
 			$blog_id->add_data( $signup );
 			$wpdb->update( $wpdb->signups, array( 'active' => 1, 'activated' => $now ), array( 'activation_key' => $key ) );
@@ -1044,6 +1042,7 @@ Disable these notifications: %4s' ), $blogname, $siteurl, $_SERVER['REMOTE_ADDR'
  * the notification email.
  *
  * @since MU
+ * @uses apply_filters() Filter newuser_notify_siteadmin to change the content of the email message
  *
  * @param int $user_id The new user's ID.
  * @return bool
@@ -1065,7 +1064,7 @@ Remote IP: %2s
 
 Disable these notifications: %3s'), $user->user_login, $_SERVER['REMOTE_ADDR'], $options_site_url);
 
-	$msg = apply_filters( 'newuser_notify_siteadmin', $msg );
+	$msg = apply_filters( 'newuser_notify_siteadmin', $msg, $user );
 	wp_mail( $email, sprintf(__('New User Registration: %s'), $user->user_login), $msg );
 	return true;
 }
@@ -1161,8 +1160,9 @@ function install_blog($blog_id, $blog_title = '') {
 	$wpdb->update( $wpdb->options, array('option_value' => ''), array('option_name' => 'admin_email') );
 
 	// remove all perms
-	$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->usermeta WHERE meta_key = %s", $table_prefix.'user_level') );
-	$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->usermeta WHERE meta_key = %s", $table_prefix.'capabilities') );
+	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => $table_prefix.'user_level' ) );
+
+	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => $table_prefix.'capabilities' ) );
 
 	$wpdb->suppress_errors( false );
 }
@@ -1368,7 +1368,8 @@ function get_most_recent_post_of_user( $user_id ) {
 	// Walk through each blog and get the most recent post
 	// published by $user_id
 	foreach ( (array) $user_blogs as $blog ) {
-		$recent_post = $wpdb->get_row( $wpdb->prepare("SELECT ID, post_date_gmt FROM {$wpdb->base_prefix}{$blog->userblog_id}_posts WHERE post_author = %d AND post_type = 'post' AND post_status = 'publish' ORDER BY post_date_gmt DESC LIMIT 1", $user_id ), ARRAY_A);
+		$prefix = $wpdb->get_blog_prefix( $blog->userblog_id );
+		$recent_post = $wpdb->get_row( $wpdb->prepare("SELECT ID, post_date_gmt FROM {$prefix}posts WHERE post_author = %d AND post_type = 'post' AND post_status = 'publish' ORDER BY post_date_gmt DESC LIMIT 1", $user_id ), ARRAY_A);
 
 		// Make sure we found a post
 		if ( isset($recent_post['ID']) ) {
@@ -1458,9 +1459,6 @@ function recurse_dirsize( $directory ) {
 
 /**
  * Check whether a blog has used its allotted upload space.
- *
- * Used by get_dirsize() to get a directory's size when it contains
- * other directories.
  *
  * @since MU
  * @uses get_dirsize()
@@ -1734,9 +1732,9 @@ function maybe_add_existing_user_to_blog() {
 		delete_option( 'new_user_' . $key );
 
 	if ( empty( $details ) || is_wp_error( add_existing_user_to_blog( $details ) ) )
-		wp_die( sprintf(__('An error occurred adding you to this site. Back to the <a href="%s">homepage</a>.'), site_url() ) );
+		wp_die( sprintf(__('An error occurred adding you to this site. Back to the <a href="%s">homepage</a>.'), home_url() ) );
 
-	wp_die( sprintf(__('You have been added to this site. Please visit the <a href="%s">homepage</a> or <a href="%s">log in</a> using your username and password.'), site_url(), admin_url() ), __('Success') );
+	wp_die( sprintf(__('You have been added to this site. Please visit the <a href="%s">homepage</a> or <a href="%s">log in</a> using your username and password.'), home_url(), admin_url() ), __('Success') );
 }
 
 /**
@@ -1862,7 +1860,7 @@ function is_user_option_local( $key, $user_id = 0, $blog_id = 0 ) {
 	if ( $blog_id == 0 )
 		$blog_id = $wpdb->blogid;
 
-	$local_key = $wpdb->base_prefix . $blog_id . '_' . $key;
+	$local_key = $wpdb->get_blog_prefix( $blog_id ) . $key;
 
 	if ( isset( $current_user->$local_key ) )
 		return true;
@@ -1948,7 +1946,7 @@ function filter_SSL( $url ) {
 	$arrURL = parse_url( $url );
 
 	if ( force_ssl_content() && is_ssl() ) {
-		if ( 'http' === $arrURL['scheme'] && 'https' !== $arrURL['scheme'] )
+		if ( 'http' === $arrURL['scheme'] )
 			$url = str_replace( $arrURL['scheme'], 'https', $url );
 	}
 
@@ -1982,5 +1980,3 @@ function wp_update_network_counts() {
 	$count = $wpdb->get_var( $wpdb->prepare("SELECT COUNT(ID) as c FROM $wpdb->users WHERE spam = '0' AND deleted = '0'") );
 	update_site_option( 'user_count', $count );
 }
-
-?>

@@ -17,7 +17,9 @@ function wp_credits() {
 
 	$results = get_site_transient( 'wordpress_credits_' . $locale );
 
-	if ( ! is_array( $results ) ) {
+	if ( ! is_array( $results )
+		|| ( isset( $results['data']['version'] ) && strpos( $wp_version, $results['data']['version'] ) !== 0 )
+	) {
 		$response = wp_remote_get( "http://api.wordpress.org/core/credits/1.0/?version=$wp_version&locale=$locale" );
 
 		if ( is_wp_error( $response ) || 200 != wp_remote_retrieve_response_code( $response ) )
@@ -44,13 +46,13 @@ function _wp_credits_build_object_link( &$data ) {
 
 list( $display_version ) = explode( '-', $wp_version );
 
-include( './admin-header.php' );
+include( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 <div class="wrap about-wrap">
 
 <h1><?php printf( __( 'Welcome to WordPress %s' ), $display_version ); ?></h1>
 
-<div class="about-text"><?php printf( __( 'Thank you for updating to the latest version! Using WordPress %s will improve your looks, personality, and web publishing experience. Okay, just the last one, but still. :)' ), $display_version ); ?></div>
+<div class="about-text"><?php printf( __( 'Thank you for updating to the latest version! WordPress %s is already making your website better, faster, and more attractive, just like you!' ), $display_version ); ?></div>
 
 <div class="wp-badge"><?php printf( __( 'Version %s' ), $display_version ); ?></div>
 
@@ -73,7 +75,7 @@ if ( ! $credits ) {
 		'http://wordpress.org/about/',
 		/* translators: Url to the codex documentation on contributing to WordPress used on the credits page */
 		__( 'http://codex.wordpress.org/Contributing_to_WordPress' ) ) . '</p>';
-	include( './admin-footer.php' );
+	include( ABSPATH . 'wp-admin/admin-footer.php' );
 	exit;
 }
 
@@ -134,7 +136,7 @@ foreach ( $credits['groups'] as $group_slug => $group_data ) {
 </div>
 <?php
 
-include( './admin-footer.php' );
+include( ABSPATH . 'wp-admin/admin-footer.php' );
 
 return;
 
@@ -157,5 +159,3 @@ __( 'XML-RPC' );
 __( 'Internationalization' );
 __( 'External Libraries' );
 __( 'Icon Design' );
-
-?>

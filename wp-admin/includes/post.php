@@ -171,7 +171,7 @@ function edit_post( $post_data = null ) {
 	$post_data = _wp_translate_postdata( true, $post_data );
 	if ( is_wp_error($post_data) )
 		wp_die( $post_data->get_error_message() );
-	if ( 'autosave' != $post_data['action']  && 'auto-draft' == $post_data['post_status'] )
+	if ( 'autosave' != $post_data['action'] && 'auto-draft' == $post_data['post_status'] )
 		$post_data['post_status'] = 'draft';
 
 	if ( isset($post_data['visibility']) ) {
@@ -302,10 +302,12 @@ function bulk_edit_posts( $post_data = null ) {
 			if ( empty($terms) )
 				continue;
 			if ( is_taxonomy_hierarchical( $tax_name ) ) {
-				$tax_input[$tax_name] = array_map( 'absint', $terms );
+				$tax_input[ $tax_name ] = array_map( 'absint', $terms );
 			} else {
-				$tax_input[$tax_name] = preg_replace( '/\s*,\s*/', ',', rtrim( trim($terms), ' ,' ) );
-				$tax_input[$tax_name] = explode(',', $tax_input[$tax_name]);
+				$comma = _x( ',', 'tag delimiter' );
+				if ( ',' !== $comma )
+					$terms = str_replace( $comma, ',', $terms );
+				$tax_input[ $tax_name ] = explode( ',', trim( $terms, " \n\t\r\0\x0B," ) );
 			}
 		}
 	}
@@ -352,7 +354,7 @@ function bulk_edit_posts( $post_data = null ) {
 		$tax_names = get_object_taxonomies( $post );
 		foreach ( $tax_names as $tax_name ) {
 			$taxonomy_obj = get_taxonomy($tax_name);
-			if (  isset( $tax_input[$tax_name]) && current_user_can( $taxonomy_obj->cap->assign_terms ) )
+			if ( isset( $tax_input[$tax_name]) && current_user_can( $taxonomy_obj->cap->assign_terms ) )
 				$new_terms = $tax_input[$tax_name];
 			else
 				$new_terms = array();
@@ -415,10 +417,6 @@ function get_default_post_to_edit( $post_type = 'post', $create_in_db = false ) 
 		$post_excerpt = esc_html( stripslashes( $_REQUEST['excerpt'] ));
 
 	if ( $create_in_db ) {
-		// Cleanup old auto-drafts more than 7 days old
-		$old_posts = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_status = 'auto-draft' AND DATE_SUB( NOW(), INTERVAL 7 DAY ) > post_date" );
-		foreach ( (array) $old_posts as $delete )
-			wp_delete_post( $delete, true ); // Force delete
 		$post_id = wp_insert_post( array( 'post_title' => __( 'Auto Draft' ), 'post_type' => $post_type, 'post_status' => 'auto-draft' ) );
 		$post = get_post( $post_id );
 		if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post->post_type, 'post-formats' ) && get_option( 'default_post_format' ) )
@@ -747,50 +745,47 @@ function update_meta( $meta_id, $meta_key, $meta_value ) {
  * @return unknown
  */
 function _fix_attachment_links( $post_ID ) {
-	global $_fix_attachment_link_id;
-
 	$post = & get_post( $post_ID, ARRAY_A );
+	$content = $post['post_content'];
 
-	$search = "#<a[^>]+rel=('|\")[^'\"]*attachment[^>]*>#ie";
-
-	// See if we have any rel="attachment" links
-	if ( 0 == preg_match_all( $search, $post['post_content'], $anchor_matches, PREG_PATTERN_ORDER ) )
+	// quick sanity check, don't run if no pretty permalinks or post is not published
+	if ( !get_option('permalink_structure') || $post['post_status'] != 'publish' )
 		return;
 
-	$i = 0;
-	$search = "#[\s]+rel=(\"|')(.*?)wp-att-(\d+)\\1#i";
-	foreach ( $anchor_matches[0] as $anchor ) {
-		if ( 0 == preg_match( $search, $anchor, $id_matches ) )
+	// Short if there aren't any links or no '?attachment_id=' strings (strpos cannot be zero)
+	if ( !strpos($content, '?attachment_id=') || !preg_match_all( '/<a ([^>]+)>[\s\S]+?<\/a>/', $content, $link_matches ) )
+		return;
+
+	$site_url = get_bloginfo('url');
+	$site_url = substr( $site_url, (int) strpos($site_url, '://') ); // remove the http(s)
+	$replace = '';
+
+	foreach ( $link_matches[1] as $key => $value ) {
+		if ( !strpos($value, '?attachment_id=') || !strpos($value, 'wp-att-')
+			|| !preg_match( '/href=(["\'])[^"\']*\?attachment_id=(\d+)[^"\']*\\1/', $value, $url_match )
+			|| !preg_match( '/rel=["\'][^"\']*wp-att-(\d+)/', $value, $rel_match ) )
+				continue;
+
+		$quote = $url_match[1]; // the quote (single or double)
+		$url_id = (int) $url_match[2];
+		$rel_id = (int) $rel_match[1];
+
+		if ( !$url_id || !$rel_id || $url_id != $rel_id || strpos($url_match[0], $site_url) === false )
 			continue;
 
-		$id = (int) $id_matches[3];
+		$link = $link_matches[0][$key];
+		$replace = str_replace( $url_match[0], 'href=' . $quote . get_attachment_link( $url_id ) . $quote, $link );
 
-		// While we have the attachment ID, let's adopt any orphans.
-		$attachment = & get_post( $id, ARRAY_A );
-		if ( ! empty( $attachment) && ! is_object( get_post( $attachment['post_parent'] ) ) ) {
-			$attachment['post_parent'] = $post_ID;
-			// Escape data pulled from DB.
-			$attachment = add_magic_quotes( $attachment );
-			wp_update_post( $attachment );
-		}
-
-		$post_search[$i] = $anchor;
-		 $_fix_attachment_link_id = $id;
-		$post_replace[$i] = preg_replace_callback( "#href=(\"|')[^'\"]*\\1#", '_fix_attachment_links_replace_cb', $anchor );
-		++$i;
+		$content = str_replace( $link, $replace, $content );
 	}
 
-	$post['post_content'] = str_replace( $post_search, $post_replace, $post['post_content'] );
+	if ( $replace ) {
+		$post['post_content'] = $content;
+		// Escape data pulled from DB.
+		$post = add_magic_quotes($post);
 
-	// Escape data pulled from DB.
-	$post = add_magic_quotes( $post);
-
-	return wp_update_post( $post);
-}
-
-function _fix_attachment_links_replace_cb($match) {
-        global $_fix_attachment_link_id;
-        return stripslashes( 'href='.$match[1] ).get_attachment_link( $_fix_attachment_link_id ).stripslashes( $match[1] );
+		return wp_update_post($post);
+	}
 }
 
 /**
@@ -973,7 +968,8 @@ function wp_edit_attachments_query( $q = false ) {
 }
 
 function _edit_attachments_query_helper($where) {
-	return $where .= ' AND post_parent < 1';
+	global $wpdb;
+	return $where .= " AND {$wpdb->posts}.post_parent < 1";
 }
 
 /**
@@ -1140,12 +1136,18 @@ function get_sample_permalink_html( $id, $new_title = null, $new_slug = null ) {
  * @since 2.9.0
  *
  * @param int $thumbnail_id ID of the attachment used for thumbnail
+ * @param int $post_id ID of the post associated with the thumbnail, defaults to global $post_ID
  * @return string html
  */
-function _wp_post_thumbnail_html( $thumbnail_id = NULL ) {
+function _wp_post_thumbnail_html( $thumbnail_id = null, $post_id = null ) {
 	global $content_width, $_wp_additional_image_sizes, $post_ID;
-	$set_thumbnail_link = '<p class="hide-if-no-js"><a title="' . esc_attr__( 'Set featured image' ) . '" href="' . esc_url( get_upload_iframe_src('image') ) . '" id="set-post-thumbnail" class="thickbox">%s</a></p>';
-	$content = sprintf($set_thumbnail_link, esc_html__( 'Set featured image' ));
+
+	if ( empty( $post_id ) )
+		$post_id = $post_ID;
+
+	$upload_iframe_src = esc_url( get_upload_iframe_src('image', $post_id) );
+	$set_thumbnail_link = '<p class="hide-if-no-js"><a title="' . esc_attr__( 'Set featured image' ) . '" href="%s" id="set-post-thumbnail" class="thickbox">%s</a></p>';
+	$content = sprintf( $set_thumbnail_link, $upload_iframe_src, esc_html__( 'Set featured image' ) );
 
 	if ( $thumbnail_id && get_post( $thumbnail_id ) ) {
 		$old_content_width = $content_width;
@@ -1155,8 +1157,8 @@ function _wp_post_thumbnail_html( $thumbnail_id = NULL ) {
 		else
 			$thumbnail_html = wp_get_attachment_image( $thumbnail_id, 'post-thumbnail' );
 		if ( !empty( $thumbnail_html ) ) {
-			$ajax_nonce = wp_create_nonce( "set_post_thumbnail-$post_ID" );
-			$content = sprintf($set_thumbnail_link, $thumbnail_html);
+			$ajax_nonce = wp_create_nonce( "set_post_thumbnail-$post_id" );
+			$content = sprintf( $set_thumbnail_link, $upload_iframe_src, $thumbnail_html );
 			$content .= '<p class="hide-if-no-js"><a href="#" id="remove-post-thumbnail" onclick="WPRemoveThumbnail(\'' . $ajax_nonce . '\');return false;">' . esc_html__( 'Remove featured image' ) . '</a></p>';
 		}
 		$content_width = $old_content_width;
@@ -1259,7 +1261,7 @@ function wp_create_post_autosave( $post_id ) {
 	if ( is_wp_error( $translated ) )
 		return $translated;
 
-	// Only store one autosave.  If there is already an autosave, overwrite it.
+	// Only store one autosave. If there is already an autosave, overwrite it.
 	if ( $old_autosave = wp_get_post_autosave( $post_id ) ) {
 		$new_autosave = _wp_post_revision_fields( $_POST, true );
 		$new_autosave['ID'] = $old_autosave->ID;
@@ -1320,7 +1322,7 @@ function post_preview() {
 
 	if ( 'draft' == $post->post_status ) {
 		$id = edit_post();
-	} else { // Non drafts are not overwritten.  The autosave is stored in a special post revision.
+	} else { // Non drafts are not overwritten. The autosave is stored in a special post revision.
 		$id = wp_create_post_autosave( $post->ID );
 		if ( ! is_wp_error($id) )
 			$id = $post->ID;

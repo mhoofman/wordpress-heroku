@@ -30,7 +30,7 @@ if ( ! empty( $wpdb->collate ) )
  * @since 3.3.0
  *
  * @param string $scope Optional. The tables for which to retrieve SQL. Can be all, global, ms_global, or blog tables. Defaults to all.
- * @param int $blog_id Optional. The blog ID for which to retrieve SQL.  Default is the current blog ID.
+ * @param int $blog_id Optional. The blog ID for which to retrieve SQL. Default is the current blog ID.
  * @return string The SQL needed to create the requested tables.
  */
 function wp_get_db_schema( $scope = 'all', $blog_id = null ) {
@@ -103,7 +103,6 @@ CREATE TABLE $wpdb->comments (
   comment_parent bigint(20) unsigned NOT NULL default '0',
   user_id bigint(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (comment_ID),
-  KEY comment_approved (comment_approved),
   KEY comment_post_ID (comment_post_ID),
   KEY comment_approved_date_gmt (comment_approved,comment_date_gmt),
   KEY comment_date_gmt (comment_date_gmt),
@@ -128,7 +127,6 @@ CREATE TABLE $wpdb->links (
 ) $charset_collate;
 CREATE TABLE $wpdb->options (
   option_id bigint(20) unsigned NOT NULL auto_increment,
-  blog_id int(11) NOT NULL default '0',
   option_name varchar(64) NOT NULL default '',
   option_value longtext NOT NULL,
   autoload varchar(20) NOT NULL default 'yes',
@@ -161,7 +159,7 @@ CREATE TABLE $wpdb->posts (
   pinged text NOT NULL,
   post_modified datetime NOT NULL default '0000-00-00 00:00:00',
   post_modified_gmt datetime NOT NULL default '0000-00-00 00:00:00',
-  post_content_filtered text NOT NULL,
+  post_content_filtered longtext NOT NULL,
   post_parent bigint(20) unsigned NOT NULL default '0',
   guid varchar(255) NOT NULL default '',
   menu_order int(11) NOT NULL default '0',
@@ -345,12 +343,21 @@ function populate_options() {
 
 	$template = WP_DEFAULT_THEME;
 	// If default theme is a child theme, we need to get its template
-	foreach ( (array) get_themes() as $theme ) {
-		if ( WP_DEFAULT_THEME == $theme['Stylesheet'] ) {
-			$template = $theme['Template'];
-			break;
-		}
-	}
+	$theme = wp_get_theme( $template );
+	if ( ! $theme->errors() )
+		$template = $theme->get_template();
+
+	$timezone_string = '';
+	$gmt_offset = 0;
+	/* translators: default GMT offset or timezone string. Must be either a valid offset (-12 to 14)
+	   or a valid timezone string (America/New_York). See http://us3.php.net/manual/en/timezones.php
+	   for all timezone strings supported by PHP.
+	*/
+	$offset_or_tz = _x( '0', 'default GMT offset or timezone string' );
+	if ( is_numeric( $offset_or_tz ) )
+		$gmt_offset = $offset_or_tz;
+	elseif ( $offset_or_tz && in_array( $offset_or_tz, timezone_identifiers_list() ) )
+			$timezone_string = $offset_or_tz;
 
 	$options = array(
 	'siteurl' => $guessurl,
@@ -359,7 +366,8 @@ function populate_options() {
 	'blogdescription' => __('Just another WordPress site'),
 	'users_can_register' => 0,
 	'admin_email' => 'you@example.com',
-	'start_of_week' => 1,
+	/* translators: default start of the week. 0 = Sunday, 1 = Monday */
+	'start_of_week' => _x( '1', 'start of week' ),
 	'use_balanceTags' => 0,
 	'use_smilies' => 1,
 	'require_name_email' => 1,
@@ -398,7 +406,7 @@ function populate_options() {
 	'ping_sites' => 'http://rpc.pingomatic.com/',
 	'advanced_edit' => 0,
 	'comment_max_links' => 2,
-	'gmt_offset' => date('Z') / 3600,
+	'gmt_offset' => $gmt_offset,
 
 	// 1.5
 	'default_email_category' => 1,
@@ -408,7 +416,6 @@ function populate_options() {
 	'comment_whitelist' => 1,
 	'blacklist_keys' => '',
 	'comment_registration' => 0,
-	'rss_language' => 'en',
 	'html_type' => 'text/html',
 
 	// 1.5.1
@@ -463,9 +470,10 @@ function populate_options() {
 	'widget_categories' => array(),
 	'widget_text' => array(),
 	'widget_rss' => array(),
+	'uninstall_plugins' => array(),
 
 	// 2.8
-	'timezone_string' => '',
+	'timezone_string' => $timezone_string,
 
 	// 2.9
 	'embed_autourls' => 1,
@@ -494,7 +502,7 @@ function populate_options() {
 	}
 
 	// Set autoload to no for these options
-	$fat_options = array( 'moderation_keys', 'recently_edited', 'blacklist_keys' );
+	$fat_options = array( 'moderation_keys', 'recently_edited', 'blacklist_keys', 'uninstall_plugins' );
 
 	$existing_options = $wpdb->get_col("SELECT option_name FROM $wpdb->options");
 
@@ -523,7 +531,7 @@ function populate_options() {
 	if ( !__get_option('home') ) update_option('home', $guessurl);
 
 	// Delete unused options
-	$unusedoptions = array ('blodotgsping_url', 'bodyterminator', 'emailtestonly', 'phoneemail_separator', 'smilies_directory', 'subjectprefix', 'use_bbcode', 'use_blodotgsping', 'use_phoneemail', 'use_quicktags', 'use_weblogsping', 'weblogs_cache_file', 'use_preview', 'use_htmltrans', 'smilies_directory', 'fileupload_allowedusers', 'use_phoneemail', 'default_post_status', 'default_post_category', 'archive_mode', 'time_difference', 'links_minadminlevel', 'links_use_adminlevels', 'links_rating_type', 'links_rating_char', 'links_rating_ignore_zero', 'links_rating_single_image', 'links_rating_image0', 'links_rating_image1', 'links_rating_image2', 'links_rating_image3', 'links_rating_image4', 'links_rating_image5', 'links_rating_image6', 'links_rating_image7', 'links_rating_image8', 'links_rating_image9', 'weblogs_cacheminutes', 'comment_allowed_tags', 'search_engine_friendly_urls', 'default_geourl_lat', 'default_geourl_lon', 'use_default_geourl', 'weblogs_xml_url', 'new_users_can_blog', '_wpnonce', '_wp_http_referer', 'Update', 'action', 'rich_editing', 'autosave_interval', 'deactivated_plugins', 'can_compress_scripts', 'page_uris', 'update_core', 'update_plugins', 'update_themes', 'doing_cron', 'random_seed', 'rss_excerpt_length', 'secret', 'use_linksupdate', 'default_comment_status_page', 'wporg_popular_tags', 'what_to_show');
+	$unusedoptions = array ('blodotgsping_url', 'bodyterminator', 'emailtestonly', 'phoneemail_separator', 'smilies_directory', 'subjectprefix', 'use_bbcode', 'use_blodotgsping', 'use_phoneemail', 'use_quicktags', 'use_weblogsping', 'weblogs_cache_file', 'use_preview', 'use_htmltrans', 'smilies_directory', 'fileupload_allowedusers', 'use_phoneemail', 'default_post_status', 'default_post_category', 'archive_mode', 'time_difference', 'links_minadminlevel', 'links_use_adminlevels', 'links_rating_type', 'links_rating_char', 'links_rating_ignore_zero', 'links_rating_single_image', 'links_rating_image0', 'links_rating_image1', 'links_rating_image2', 'links_rating_image3', 'links_rating_image4', 'links_rating_image5', 'links_rating_image6', 'links_rating_image7', 'links_rating_image8', 'links_rating_image9', 'weblogs_cacheminutes', 'comment_allowed_tags', 'search_engine_friendly_urls', 'default_geourl_lat', 'default_geourl_lon', 'use_default_geourl', 'weblogs_xml_url', 'new_users_can_blog', '_wpnonce', '_wp_http_referer', 'Update', 'action', 'rich_editing', 'autosave_interval', 'deactivated_plugins', 'can_compress_scripts', 'page_uris', 'update_core', 'update_plugins', 'update_themes', 'doing_cron', 'random_seed', 'rss_excerpt_length', 'secret', 'use_linksupdate', 'default_comment_status_page', 'wporg_popular_tags', 'what_to_show', 'rss_language');
 	foreach ( $unusedoptions as $option )
 		delete_option($option);
 
@@ -879,7 +887,7 @@ We hope you enjoy your new site. Thanks!
 		'admin_user_id' => $site_user->ID,
 		'registration' => 'none',
 		'upload_filetypes' => 'jpg jpeg png gif mp3 mov avi wmv midi mid pdf',
-		'blog_upload_space' => 10,
+		'blog_upload_space' => 100,
 		'fileupload_maxk' => 1500,
 		'site_admins' => $site_admins,
 		'allowedthemes' => $allowed_themes,
@@ -928,11 +936,11 @@ We hope you enjoy your new site. Thanks!
 	}
 
 	if ( $subdomain_install )
-		update_option( 'permalink_structure', '/%year%/%monthnum%/%day%/%postname%/');
+		$wp_rewrite->set_permalink_structure( '/%year%/%monthnum%/%day%/%postname%/' );
 	else
-		update_option( 'permalink_structure', '/blog/%year%/%monthnum%/%day%/%postname%/');
+		$wp_rewrite->set_permalink_structure( '/blog/%year%/%monthnum%/%day%/%postname%/' );
 
-	$wp_rewrite->flush_rules();
+	flush_rewrite_rules();
 
 	if ( $subdomain_install ) {
 		$vhost_ok = false;
@@ -958,5 +966,3 @@ We hope you enjoy your new site. Thanks!
 
 	return true;
 }
-
-?>

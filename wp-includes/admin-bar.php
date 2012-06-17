@@ -64,7 +64,7 @@ function wp_admin_bar_render() {
 	do_action( 'wp_after_admin_bar_render' );
 }
 add_action( 'wp_footer', 'wp_admin_bar_render', 1000 );
-add_action( 'admin_footer', 'wp_admin_bar_render', 1000 );
+add_action( 'in_admin_header', 'wp_admin_bar_render', 0 );
 
 /**
  * Add the WordPress logo menu.
@@ -75,7 +75,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 	$wp_admin_bar->add_menu( array(
 		'id'    => 'wp-logo',
 		'title' => '<span class="ab-icon"></span>',
-		'href'  => admin_url( 'about.php' ),
+		'href'  => self_admin_url( 'about.php' ),
 		'meta'  => array(
 			'title' => __('About WordPress'),
 		),
@@ -87,7 +87,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 			'parent' => 'wp-logo',
 			'id'     => 'about',
 			'title'  => __('About WordPress'),
-			'href'   => admin_url('about.php'),
+			'href'  => self_admin_url( 'about.php' ),
 		) );
 	}
 
@@ -96,7 +96,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 		'parent'    => 'wp-logo-external',
 		'id'        => 'wporg',
 		'title'     => __('WordPress.org'),
-		'href'      => __('http://wordpress.org'),
+		'href'      => __('http://wordpress.org/'),
 	) );
 
 	// Add codex link
@@ -104,7 +104,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 		'parent'    => 'wp-logo-external',
 		'id'        => 'documentation',
 		'title'     => __('Documentation'),
-		'href'      => __('http://codex.wordpress.org'),
+		'href'      => __('http://codex.wordpress.org/'),
 	) );
 
 	// Add forums link
@@ -248,9 +248,17 @@ function wp_admin_bar_site_menu( $wp_admin_bar ) {
 			'href'   => home_url( '/' ),
 		) );
 
-	// We're on the front end, print a copy of the admin menu.
+		if ( is_blog_admin() && is_multisite() && current_user_can( 'manage_sites' ) ) {
+			$wp_admin_bar->add_menu( array(
+				'parent' => 'site-name',
+				'id'     => 'edit-site',
+				'title'  => __( 'Edit Site' ),
+				'href'   => network_admin_url( 'site-info.php?id=' . get_current_blog_id() ),
+			) );
+		}
+
 	} else {
-		// Add the dashboard item.
+		// We're on the front end, link to the Dashboard.
 		$wp_admin_bar->add_menu( array(
 			'parent' => 'site-name',
 			'id'     => 'dashboard',
@@ -568,6 +576,18 @@ function wp_admin_bar_appearance_menu( $wp_admin_bar ) {
 	if ( ! current_user_can( 'edit_theme_options' ) )
 		return;
 
+	$current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+	$wp_admin_bar->add_menu( array(
+		'parent' => 'appearance',
+		'id'     => 'customize',
+		'title'  => __('Customize'),
+		'href'   => add_query_arg( 'url', urlencode( $current_url ), wp_customize_url() ),
+		'meta'   => array(
+			'class' => 'hide-if-no-customize',
+		),
+	) );
+	add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+
 	if ( current_theme_supports( 'widgets' )  )
 		$wp_admin_bar->add_menu( array( 'parent' => 'appearance', 'id' => 'widgets', 'title' => __('Widgets'), 'href' => admin_url('widgets.php') ) );
 
@@ -680,7 +700,7 @@ function _admin_bar_bump_cb() { ?>
 /**
  * Set the display status of the admin bar.
  *
- * This can be called immediately upon plugin load.  It does not need to be called from a function hooked to the init action.
+ * This can be called immediately upon plugin load. It does not need to be called from a function hooked to the init action.
  *
  * @since 3.1.0
  *
@@ -741,5 +761,3 @@ function _get_admin_bar_pref( $context = 'front', $user = 0 ) {
 
 	return 'true' === $pref;
 }
-
-?>

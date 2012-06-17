@@ -48,7 +48,6 @@
 	background-image: linear-gradient(bottom, #373737, #464646 5px); /* proposed W3C Markup */
 }
 
-
 #wpadminbar .ab-sub-wrapper,
 #wpadminbar ul,
 #wpadminbar ul li {
@@ -127,6 +126,10 @@
 #wpadminbar.ie7 .shortlink-input {
 	top: 28px;
 	left: 0;
+}
+
+#wpadminbar .ab-top-menu > .menupop > .ab-sub-wrapper {
+	min-width: 100%;
 }
 
 #wpadminbar .ab-top-secondary .menupop .ab-sub-wrapper {
@@ -210,6 +213,8 @@
 	background: #fff;
 	color: #333;
 	text-shadow: none;
+	border-right-color: transparent;
+	border-left-color: transparent;
 }
 
 #wpadminbar .hover .ab-label,
@@ -347,6 +352,8 @@
 	position: absolute;
 	left: -72px;
 	top: 4px;
+	width: 64px;
+	height: 64px;
 }
 
 #wpadminbar #wp-admin-bar-user-info a {
@@ -365,6 +372,7 @@
 	text-shadow: none;
 	display: block;
 }
+
 #wpadminbar #wp-admin-bar-user-info .display-name {
 	color: #333;
 }
@@ -427,6 +435,7 @@
 	background-position: 3px 2px;
 	background-repeat: no-repeat;
 	outline: none;
+	cursor: pointer;
 
 	-webkit-border-radius: 3px;
 	border-radius: 3px;
@@ -461,6 +470,7 @@
 	text-shadow: 0 1px 0 #fff;
 	width: 200px;
 	background-color: rgba( 255, 255, 255, 0.9 );
+	cursor: text;
 }
 
 #wpadminbar.ie8 #adminbarsearch .adminbar-input {
@@ -569,6 +579,30 @@
 #wpadminbar.nojs #wp-admin-bar-new-content:hover > .ab-item .ab-icon,
 #wpadminbar #wp-admin-bar-new-content.hover > .ab-item .ab-icon {
 	background-position: -2px -203px;
+}
+
+/**
+ * Customize support classes
+ */
+.no-customize-support .hide-if-no-customize,
+.customize-support .hide-if-customize {
+	display: none;
+}
+
+/**
+ * Retina display 2x icons
+ */
+@media only screen and (-webkit-min-device-pixel-ratio: 1.5) {
+	#wpadminbar .menupop .menupop > .ab-item,
+	#wpadminbar .ab-top-secondary .menupop .menupop > .ab-item,
+	#wpadminbar #adminbarsearch .adminbar-input,
+	#wp-admin-bar-wp-logo > .ab-item .ab-icon,
+	#wp-admin-bar-updates > .ab-item .ab-icon,
+	#wp-admin-bar-comments > .ab-item .ab-icon,
+	#wpadminbar #wp-admin-bar-new-content > .ab-item .ab-icon {
+		background-image: url(../images/admin-bar-sprite-2x.png?d=20120516);
+		background-size: 20px 220px;
+	}
 }
 
 /**

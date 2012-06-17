@@ -96,25 +96,20 @@ function the_modified_author() {
  * @param int $user_id Optional. User ID.
  * @return string The author's field from the current author's DB object.
  */
-function get_the_author_meta($field = '', $user_id = false) {
-	if ( ! $user_id )
+function get_the_author_meta( $field = '', $user_id = false ) {
+	if ( ! $user_id ) {
 		global $authordata;
-	else
+		$user_id = isset( $authordata->ID ) ? $authordata->ID : 0;
+	} else {
 		$authordata = get_userdata( $user_id );
+	}
 
-	// Keys used as object vars cannot have dashes.
-	$field = str_replace('-', '', $field);
-	$field = strtolower($field);
-	$user_field = "user_$field";
+	if ( in_array( $field, array( 'login', 'pass', 'nicename', 'email', 'url', 'registered', 'activation_key', 'status' ) ) )
+		$field = 'user_' . $field;
 
-	if ( 'id' == $field )
-		$value = isset($authordata->ID) ? (int)$authordata->ID : 0;
-	elseif ( isset($authordata->$user_field) )
-		$value = $authordata->$user_field;
-	else
-		$value = isset($authordata->$field) ? $authordata->$field : '';
+	$value = isset( $authordata->$field ) ? $authordata->$field : '';
 
-	return apply_filters('get_the_author_' . $field, $value, $user_id);
+	return apply_filters( 'get_the_author_' . $field, $value, $user_id );
 }
 
 /**
@@ -140,7 +135,7 @@ function the_author_meta($field = '', $user_id = false) {
  */
 function get_the_author_link() {
 	if ( get_the_author_meta('url') ) {
-		return '<a href="' . get_the_author_meta('url') . '" title="' . esc_attr( sprintf(__("Visit %s&#8217;s website"), get_the_author()) ) . '" rel="external">' . get_the_author() . '</a>';
+		return '<a href="' . get_the_author_meta('url') . '" title="' . esc_attr( sprintf(__("Visit %s&#8217;s website"), get_the_author()) ) . '" rel="author external">' . get_the_author() . '</a>';
 	} else {
 		return get_the_author();
 	}
@@ -397,5 +392,3 @@ function __clear_multi_author_cache() {
 	wp_cache_delete('is_multi_author', 'posts');
 }
 add_action('transition_post_status', '__clear_multi_author_cache');
-
-?>

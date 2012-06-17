@@ -30,23 +30,24 @@ class WP_oEmbed {
 		// The WP_Embed class disables discovery for non-unfiltered_html users, so only providers in this array will be used for them.
 		// Add to this list using the wp_oembed_add_provider() function (see its PHPDoc for details).
 		$this->providers = apply_filters( 'oembed_providers', array(
-			'#http://(www\.)?youtube.com/watch.*#i'         => array( 'http://www.youtube.com/oembed',            true  ),
-			'http://youtu.be/*'                             => array( 'http://www.youtube.com/oembed',            false ),
-			'http://blip.tv/*'                              => array( 'http://blip.tv/oembed/',                   false ),
-			'#http://(www\.)?vimeo\.com/.*#i'               => array( 'http://vimeo.com/api/oembed.{format}',     true  ),
-			'#http://(www\.)?dailymotion\.com/.*#i'         => array( 'http://www.dailymotion.com/api/oembed',    true  ),
-			'#http://(www\.)?flickr\.com/.*#i'              => array( 'http://www.flickr.com/services/oembed/',   true  ),
-			'#http://(.+\.)?smugmug\.com/.*#i'              => array( 'http://api.smugmug.com/services/oembed/',  true  ),
-			'#http://(www\.)?hulu\.com/watch/.*#i'          => array( 'http://www.hulu.com/api/oembed.{format}',  true  ),
-			'#http://(www\.)?viddler\.com/.*#i'             => array( 'http://lab.viddler.com/services/oembed/',  true  ),
-			'http://qik.com/*'                              => array( 'http://qik.com/api/oembed.{format}',       false ),
-			'http://revision3.com/*'                        => array( 'http://revision3.com/api/oembed/',         false ),
-			'http://i*.photobucket.com/albums/*'            => array( 'http://photobucket.com/oembed',            false ),
-			'http://gi*.photobucket.com/groups/*'           => array( 'http://photobucket.com/oembed',            false ),
-			'#http://(www\.)?scribd\.com/.*#i'              => array( 'http://www.scribd.com/services/oembed',    true  ),
-			'http://wordpress.tv/*'                         => array( 'http://wordpress.tv/oembed/',              false ),
-			'#http://(.+\.)?polldaddy\.com/.*#i'            => array( 'http://polldaddy.com/oembed/',             true  ),
-			'#http://(www\.)?funnyordie\.com/videos/.*#i'   => array( 'http://www.funnyordie.com/oembed',         true  ),
+			'#http://(www\.)?youtube.com/watch.*#i'              => array( 'http://www.youtube.com/oembed',                     true  ),
+			'http://youtu.be/*'                                  => array( 'http://www.youtube.com/oembed',                     false ),
+			'http://blip.tv/*'                                   => array( 'http://blip.tv/oembed/',                            false ),
+			'#http://(www\.)?vimeo\.com/.*#i'                    => array( 'http://vimeo.com/api/oembed.{format}',              true  ),
+			'#http://(www\.)?dailymotion\.com/.*#i'              => array( 'http://www.dailymotion.com/services/oembed',        true  ),
+			'#http://(www\.)?flickr\.com/.*#i'                   => array( 'http://www.flickr.com/services/oembed/',            true  ),
+			'#http://(.+\.)?smugmug\.com/.*#i'                   => array( 'http://api.smugmug.com/services/oembed/',           true  ),
+			'#http://(www\.)?hulu\.com/watch/.*#i'               => array( 'http://www.hulu.com/api/oembed.{format}',           true  ),
+			'#http://(www\.)?viddler\.com/.*#i'                  => array( 'http://lab.viddler.com/services/oembed/',           true  ),
+			'http://qik.com/*'                                   => array( 'http://qik.com/api/oembed.{format}',                false ),
+			'http://revision3.com/*'                             => array( 'http://revision3.com/api/oembed/',                  false ),
+			'http://i*.photobucket.com/albums/*'                 => array( 'http://photobucket.com/oembed',                     false ),
+			'http://gi*.photobucket.com/groups/*'                => array( 'http://photobucket.com/oembed',                     false ),
+			'#http://(www\.)?scribd\.com/.*#i'                   => array( 'http://www.scribd.com/services/oembed',             true  ),
+			'http://wordpress.tv/*'                              => array( 'http://wordpress.tv/oembed/',                       false ),
+			'#http://(.+\.)?polldaddy\.com/.*#i'                 => array( 'http://polldaddy.com/oembed/',                      true  ),
+			'#http://(www\.)?funnyordie\.com/videos/.*#i'        => array( 'http://www.funnyordie.com/oembed',                  true  ),
+			'#https?://(www\.)?twitter.com/.+?/status(es)?/.*#i' => array( 'http://api.twitter.com/1/statuses/oembed.{format}', true  ),
 		) );
 
 		// Fix any embeds that contain new lines in the middle of the HTML which breaks wpautop().
@@ -226,28 +227,34 @@ class WP_oEmbed {
 	 * @return bool|string False on error, otherwise the HTML needed to embed.
 	 */
 	function data2html( $data, $url ) {
-		if ( !is_object($data) || empty($data->type) )
+		if ( ! is_object( $data ) || empty( $data->type ) )
 			return false;
+
+		$return = false;
 
 		switch ( $data->type ) {
 			case 'photo':
-				if ( empty($data->url) || empty($data->width) || empty($data->height) )
-					return false;
+				if ( empty( $data->url ) || empty( $data->width ) || empty( $data->height ) )
+					break;
+				if ( ! is_string( $data->url ) || ! is_numeric( $data->width ) || ! is_numeric( $data->height ) )
+					break;
 
-				$title = ( !empty($data->title) ) ? $data->title : '';
+				$title = ! empty( $data->title ) && is_string( $data->title ) ? $data->title : '';
 				$return = '<a href="' . esc_url( $url ) . '"><img src="' . esc_url( $data->url ) . '" alt="' . esc_attr($title) . '" width="' . esc_attr($data->width) . '" height="' . esc_attr($data->height) . '" /></a>';
 				break;
 
 			case 'video':
 			case 'rich':
-				$return = ( !empty($data->html) ) ? $data->html : false;
+				if ( ! empty( $data->html ) && is_string( $data->html ) )
+					$return = $data->html;
 				break;
 
 			case 'link':
-				$return = ( !empty($data->title) ) ? '<a href="' . esc_url($url) . '">' . esc_html($data->title) . '</a>' : false;
+				if ( ! empty( $data->title ) && is_string( $data->title ) )
+					$return = '<a href="' . esc_url( $url ) . '">' . esc_html( $data->title ) . '</a>';
 				break;
 
-			default;
+			default:
 				$return = false;
 		}
 
@@ -291,5 +298,3 @@ function &_wp_oembed_get_object() {
 
 	return $wp_oembed;
 }
-
-?>

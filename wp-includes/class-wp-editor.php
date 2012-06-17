@@ -3,7 +3,7 @@
  * Facilitates adding of the WordPress editor as used on the Write and Edit screens.
  *
  * @package WordPress
- * @since 3.3
+ * @since 3.3.0
  *
  * Private, not included by default. See wp_editor() in wp-includes/general-template.php.
  */
@@ -124,7 +124,7 @@ final class _WP_Editors {
 	}
 
 	public static function editor_settings($editor_id, $set) {
-		global $editor_styles;
+		global $editor_styles, $post;
 		$first_run = false;
 
 		if ( empty(self::$first_init) ) {
@@ -167,10 +167,10 @@ final class _WP_Editors {
 				$no_captions = (bool) apply_filters( 'disable_captions', '' );
 				$plugins = array( 'inlinepopups', 'spellchecker', 'tabfocus', 'paste', 'media', 'fullscreen', 'wordpress', 'wpeditimage', 'wpgallery', 'wplink', 'wpdialogs' );
 				$first_run = true;
+				$ext_plugins = '';
 
 				if ( $set['teeny'] ) {
 					self::$plugins = $plugins = apply_filters( 'teeny_mce_plugins', array('inlinepopups', 'fullscreen', 'wordpress', 'wplink', 'wpdialogs'), $editor_id );
-					$ext_plugins = '';
 				} else {
 					/*
 					The following filter takes an associative array of external plugins for TinyMCE in the form 'plugin_name' => 'url'.
@@ -181,7 +181,6 @@ final class _WP_Editors {
 					*/
 					$mce_external_plugins = apply_filters('mce_external_plugins', array());
 
-					$ext_plugins = '';
 					if ( ! empty($mce_external_plugins) ) {
 
 						/*
@@ -247,8 +246,6 @@ final class _WP_Editors {
 
 							$ext_plugins .= 'tinyMCEPreInit.load_ext("' . $plugurl . '", "' . $mce_locale . '");' . "\n";
 							$ext_plugins .= 'tinymce.PluginManager.load("' . $name . '", "' . $url . '");' . "\n";
-
-							self::$ext_plugins .= $ext_plugins;
 						}
 					}
 
@@ -259,14 +256,22 @@ final class _WP_Editors {
 					$plugins[] = 'wpfullscreen';
 
 				self::$plugins = $plugins;
+				self::$ext_plugins = $ext_plugins;
+
+				/*
+				translators: These languages show up in the spellchecker drop-down menu, in the order specified, and with the first
+				language listed being the default language. They must be comma-separated and take the format of name=code, where name
+				is the language name (which you may internationalize), and code is a valid ISO 639 language code. Please test the
+				spellchecker with your values.
+				*/
+				$mce_spellchecker_languages = __( 'English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv' );
 
 				/*
 				The following filter allows localization scripts to change the languages displayed in the spellchecker's drop-down menu.
 				By default it uses Google's spellchecker API, but can be configured to use PSpell/ASpell if installed on the server.
-				The + sign marks the default language. More information:
-				http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/spellchecker
+				The + sign marks the default language. More: http://www.tinymce.com/wiki.php/Plugin:spellchecker.
 				*/
-				$mce_spellchecker_languages = apply_filters('mce_spellchecker_languages', '+English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv');
+				$mce_spellchecker_languages = apply_filters( 'mce_spellchecker_languages', '+' . $mce_spellchecker_languages );
 
 				self::$first_init = array(
 					'mode' => 'exact',
@@ -301,15 +306,17 @@ final class _WP_Editors {
 					'convert_urls' => false,
 					'remove_linebreaks' => true,
 					'gecko_spellcheck' => true,
+					'fix_list_elements' => true,
 					'keep_styles' => false,
 					'entities' => '38,amp,60,lt,62,gt',
 					'accessibility_focus' => true,
-					'tabfocus_elements' => 'major-publishing-actions',
+					'tabfocus_elements' => 'title,publish',
 					'media_strict' => false,
 					'paste_remove_styles' => true,
 					'paste_remove_spans' => true,
 					'paste_strip_class_attributes' => 'all',
 					'paste_text_use_dialog' => true,
+					'spellchecker_rpc_url' => self::$baseurl . '/plugins/spellchecker/rpc.php',
 					'extended_valid_elements' => 'article[*],aside[*],audio[*],canvas[*],command[*],datalist[*],details[*],embed[*],figcaption[*],figure[*],footer[*],header[*],hgroup[*],keygen[*],mark[*],meter[*],nav[*],output[*],progress[*],section[*],source[*],summary,time[*],video[*],wbr',
 					'wpeditimage_disable_captions' => $no_captions,
 					'wp_fullscreen_content_css' => self::$baseurl . '/plugins/wpfullscreen/css/wp-fullscreen.css',
@@ -321,24 +328,25 @@ final class _WP_Editors {
 					$mce_css = array();
 					$editor_styles = array_unique($editor_styles);
 					$style_uri = get_stylesheet_directory_uri();
-					if ( ! is_child_theme() ) {
-						foreach ( $editor_styles as $file )
-							$mce_css[] = "$style_uri/$file";
-					} else {
-						$style_dir    = get_stylesheet_directory();
+					$style_dir = get_stylesheet_directory();
+
+					if ( is_child_theme() ) {
 						$template_uri = get_template_directory_uri();
 						$template_dir = get_template_directory();
 
-						foreach ( $editor_styles as $file ) {
-							if ( file_exists( "$template_dir/$file" ) )
+						foreach ( $editor_styles as $key => $file ) {
+							if ( $file && file_exists( "$template_dir/$file" ) ) {
 								$mce_css[] = "$template_uri/$file";
-						}
-
-						foreach ( $editor_styles as $file ) {
-							if ( file_exists( "$style_dir/$file" ) )
-								$mce_css[] = "$style_uri/$file";
+								$editor_styles[$key] = '';
+							}
 						}
 					}
+
+					foreach ( $editor_styles as $file ) {
+						if ( $file && file_exists( "$style_dir/$file" ) )
+							$mce_css[] = "$style_uri/$file";
+					}
+
 					$mce_css = implode( ',', $mce_css );
 				} else {
 					$mce_css = '';
@@ -358,6 +366,16 @@ final class _WP_Editors {
 				$mce_buttons_2 = apply_filters('mce_buttons_2', array( 'formatselect', 'underline', 'justifyfull', 'forecolor', '|', 'pastetext', 'pasteword', 'removeformat', '|', 'charmap', '|', 'outdent', 'indent', '|', 'undo', 'redo', 'wp_help' ), $editor_id);
 				$mce_buttons_3 = apply_filters('mce_buttons_3', array(), $editor_id);
 				$mce_buttons_4 = apply_filters('mce_buttons_4', array(), $editor_id);
+			}
+
+			$body_class = $editor_id;
+
+			if ( isset($post) )
+				$body_class .= " post-type-$post->post_type";
+
+			if ( !empty($set['tinymce']['body_class']) ) {
+				$body_class .= ' ' . $set['tinymce']['body_class'];
+				unset($set['tinymce']['body_class']);
 			}
 
 			if ( $set['dfw'] ) {
@@ -380,7 +398,8 @@ final class _WP_Editors {
 				'theme_advanced_buttons1' => implode($mce_buttons, ','),
 				'theme_advanced_buttons2' => implode($mce_buttons_2, ','),
 				'theme_advanced_buttons3' => implode($mce_buttons_3, ','),
-				'theme_advanced_buttons4' => implode($mce_buttons_4, ',')
+				'theme_advanced_buttons4' => implode($mce_buttons_4, ','),
+				'body_class' => $body_class
 			);
 
 			if ( $first_run )
@@ -499,13 +518,15 @@ final class _WP_Editors {
 			'language' => self::$mce_locale
 		);
 
+		$suffix = ( defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ) ? '_src' : '';
+
 		do_action('before_wp_tiny_mce', self::$mce_settings);
 ?>
 
 	<script type="text/javascript">
 		tinyMCEPreInit = {
 			base : "<?php echo self::$baseurl; ?>",
-			suffix : "",
+			suffix : "<?php echo $suffix; ?>",
 			query : "<?php echo $version; ?>",
 			mceInit : <?php echo $mceInit; ?>,
 			qtInit : <?php echo $qtInit; ?>,
@@ -575,7 +596,7 @@ final class _WP_Editors {
 		}
 
 		if ( !is_admin() )
-			echo 'var ajaxurl = "' . admin_url('admin-ajax.php') . '";';
+			echo 'var ajaxurl = "' . admin_url( 'admin-ajax.php', 'relative' ) . '";';
 ?>
 	</script>
 <?php
@@ -597,7 +618,7 @@ final class _WP_Editors {
 		$dfw_width = get_user_setting( 'dfw_width', $width );
 		$save = isset($post->post_status) && $post->post_status == 'publish' ? __('Update') : __('Save');
 	?>
-	<div id="wp-fullscreen-body">
+	<div id="wp-fullscreen-body"<?php if ( is_rtl() ) echo ' class="rtl"'; ?>>
 	<div id="fullscreen-topbar">
 		<div id="wp-fullscreen-toolbar">
 			<div id="wp-fullscreen-close"><a href="#" onclick="fullscreen.off();return false;"><?php _e('Exit fullscreen'); ?></a></div>
@@ -648,7 +669,7 @@ final class _WP_Editors {
 
 			<div id="wp-fullscreen-save">
 				<span><?php if ( $post->post_status == 'publish' ) _e('Updated.'); else _e('Saved.'); ?></span>
-				<img src="images/wpspin_light.gif" alt="" />
+				<img src="<?php echo admin_url('images/wpspin_light.gif'); ?>" alt="" />
 				<input type="button" class="button-primary" value="<?php echo $save; ?>" onclick="fullscreen.save();" />
 			</div>
 
@@ -763,7 +784,7 @@ final class _WP_Editors {
 			<div class="link-search-wrapper">
 				<label>
 					<span><?php _e( 'Search' ); ?></span>
-					<input type="text" id="search-field" class="link-search-field" tabindex="60" autocomplete="off" />
+					<input type="search" id="search-field" class="link-search-field" tabindex="60" autocomplete="off" />
 					<img class="waiting" src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" alt="" />
 				</label>
 			</div>
@@ -795,4 +816,3 @@ final class _WP_Editors {
 	<?php
 	}
 }
-

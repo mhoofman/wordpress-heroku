@@ -360,7 +360,7 @@ class WP_Posts_List_Table extends WP_List_Table {
 				if ( $page->post_parent == $page->ID ) {
 					$page->post_parent = 0;
 					$wpdb->update( $wpdb->posts, array( 'post_parent' => 0 ), array( 'ID' => $page->ID ) );
-					clean_page_cache( $page->ID );
+					clean_post_cache( $page );
 				}
 
 				if ( 0 == $page->post_parent )
@@ -527,9 +527,8 @@ class WP_Posts_List_Table extends WP_List_Table {
 ?>
 			<td <?php echo $attributes ?>><strong><?php if ( $can_edit_post && $post->post_status != 'trash' ) { ?><a class="row-title" href="<?php echo $edit_link; ?>" title="<?php echo esc_attr( sprintf( __( 'Edit &#8220;%s&#8221;' ), $title ) ); ?>"><?php echo $title ?></a><?php } else { echo $title; }; _post_states( $post ); ?></strong>
 <?php
-					if ( 'excerpt' == $mode ) {
+					if ( 'excerpt' == $mode && current_user_can( 'read_post', $post->ID ) )
 						the_excerpt();
-					}
 				}
 
 				$actions = array();
@@ -609,7 +608,8 @@ class WP_Posts_List_Table extends WP_List_Table {
 							esc_html( sanitize_term_field( 'name', $c->name, $c->term_id, 'category', 'display' ) )
 						);
 					}
-					echo join( ', ', $out );
+					/* translators: used between list items, there is a space after the comma */
+					echo join( __( ', ' ), $out );
 				} else {
 					_e( 'Uncategorized' );
 				}
@@ -629,7 +629,8 @@ class WP_Posts_List_Table extends WP_List_Table {
 							esc_html( sanitize_term_field( 'name', $c->name, $c->term_id, 'tag', 'display' ) )
 						);
 					}
-					echo join( ', ', $out );
+					/* translators: used between list items, there is a space after the comma */
+					echo join( __( ', ' ), $out );
 				} else {
 					_e( 'No Tags' );
 				}
@@ -995,20 +996,23 @@ class WP_Posts_List_Table extends WP_List_Table {
 	<?php if ( post_type_supports( $screen->post_type, 'post-formats' ) && current_theme_supports( 'post-formats' ) ) :
 		$post_formats = get_theme_support( 'post-formats' );
 		if ( isset( $post_formats[0] ) && is_array( $post_formats[0] ) ) :
-			$all_post_formats = get_post_format_strings(); ?>
+			$all_post_formats = get_post_format_strings();
+			unset( $all_post_formats['standard'] ); ?>
 			<div class="inline-edit-group">
 				<label class="alignleft" for="post_format">
-				<span class="title"><?php _e( 'Post Format' ); ?></span>
+				<span class="title"><?php _ex( 'Format', 'post format' ); ?></span>
 				<select name="post_format">
 				<?php if ( $bulk ) : ?>
 					<option value="-1"><?php _e( '&mdash; No Change &mdash;' ); ?></option>
 				<?php endif; ?>
 					<option value="0"><?php _ex( 'Standard', 'Post format' ); ?></option>
-				<?php foreach ( $all_post_formats as $slug => $format ):
-					if ( $slug != 'standard' ) : ?>
-					<option value="<?php echo esc_attr( $slug ); ?>"<?php if ( ! in_array( $slug, $post_formats[0] ) ) echo ' class="unsupported"'; ?>><?php echo esc_html( $format ); ?></option>
-					<?php endif;
-				endforeach; ?>
+				<?php foreach ( $all_post_formats as $slug => $format ) :
+					$unsupported = ! in_array( $slug, $post_formats[0] );
+					if ( $bulk && $unsupported )
+						continue;
+					?>
+					<option value="<?php echo esc_attr( $slug ); ?>"<?php if ( $unsupported ) echo ' class="unsupported"'; ?>><?php echo esc_html( $format ); ?></option>
+				<?php endforeach; ?>
 				</select></label>
 			</div>
 		<?php endif; ?>
@@ -1050,5 +1054,3 @@ class WP_Posts_List_Table extends WP_List_Table {
 <?php
 	}
 }
-
-?>

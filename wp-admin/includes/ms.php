@@ -49,7 +49,7 @@ add_filter( 'wp_handle_upload_prefilter', 'check_upload_size' );
  * @since 3.0.0
  *
  * @param int $blog_id Blog ID
- * @param bool $drop True if blog's table should be dropped.  Default is false.
+ * @param bool $drop True if blog's table should be dropped. Default is false.
  * @return void
  */
 function wpmu_delete_blog( $blog_id, $drop = false ) {
@@ -89,7 +89,8 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 			$wpdb->query( "DROP TABLE IF EXISTS `$table`" );
 		}
 
-		$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->blogs WHERE blog_id = %d", $blog_id ) );
+		$wpdb->delete( $wpdb->blogs, array( 'blog_id' => $blog_id ) );
+
 		$dir = apply_filters( 'wpmu_delete_blog_upload_dir', WP_CONTENT_DIR . "/blogs.dir/{$blog_id}/files/", $blog_id );
 		$dir = rtrim( $dir, DIRECTORY_SEPARATOR );
 		$top_dir = $dir;
@@ -115,7 +116,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 			$index++;
 		}
 
-		$stack = array_reverse( $stack );  // Last added dirs are deepest
+		$stack = array_reverse( $stack ); // Last added dirs are deepest
 		foreach( (array) $stack as $dir ) {
 			if ( $dir != $top_dir)
 			@rmdir( $dir );
@@ -131,6 +132,7 @@ function wpmu_delete_user( $id ) {
 	global $wpdb;
 
 	$id = (int) $id;
+	$user = new WP_User( $id );
 
 	do_action( 'wpmu_delete_user', $id );
 
@@ -158,44 +160,18 @@ function wpmu_delete_user( $id ) {
 		}
 	}
 
-	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->users WHERE ID = %d", $id ) );
-	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE user_id = %d", $id ) );
+	$meta = $wpdb->get_col( $wpdb->prepare( "SELECT umeta_id FROM $wpdb->usermeta WHERE user_id = %d", $id ) );
+	foreach ( $meta as $mid )
+		delete_metadata_by_mid( 'user', $mid );
 
-	clean_user_cache( $id );
+	$wpdb->delete( $wpdb->users, array( 'ID' => $id ) );
+
+	clean_user_cache( $user );
 
 	// allow for commit transaction
 	do_action( 'deleted_user', $id );
 
 	return true;
-}
-
-function wpmu_get_blog_allowedthemes( $blog_id = 0 ) {
-	$themes = get_themes();
-
-	if ( $blog_id != 0 )
-		switch_to_blog( $blog_id );
-
-	$blog_allowed_themes = get_option( 'allowedthemes' );
-	if ( !is_array( $blog_allowed_themes ) || empty( $blog_allowed_themes ) ) { // convert old allowed_themes to new allowedthemes
-		$blog_allowed_themes = get_option( 'allowed_themes' );
-
-		if ( is_array( $blog_allowed_themes ) ) {
-			foreach( (array) $themes as $key => $theme ) {
-				$theme_key = esc_html( $theme['Stylesheet'] );
-				if ( isset( $blog_allowed_themes[$key] ) == true ) {
-					$blog_allowedthemes[$theme_key] = 1;
-				}
-			}
-			$blog_allowed_themes = $blog_allowedthemes;
-			add_option( 'allowedthemes', $blog_allowed_themes );
-			delete_option( 'allowed_themes' );
-		}
-	}
-
-	if ( $blog_id != 0 )
-		restore_current_blog();
-
-	return $blog_allowed_themes;
 }
 
 function update_option_new_admin_email( $old_value, $value ) {
@@ -295,26 +271,6 @@ function new_user_email_admin_notice() {
 		echo "<div class='update-nag'>" . sprintf( __( "Your email address has not been updated yet. Please check your inbox at %s for a confirmation email." ), $email['newemail'] ) . "</div>";
 }
 add_action( 'admin_notices', 'new_user_email_admin_notice' );
-
-function get_site_allowed_themes() {
-	$themes = get_themes();
-	$allowed_themes = get_site_option( 'allowedthemes' );
-	if ( !is_array( $allowed_themes ) || empty( $allowed_themes ) ) {
-		$allowed_themes = get_site_option( 'allowed_themes' ); // convert old allowed_themes format
-		if ( !is_array( $allowed_themes ) ) {
-			$allowed_themes = array();
-		} else {
-			foreach( (array) $themes as $key => $theme ) {
-				$theme_key = esc_html( $theme['Stylesheet'] );
-				if ( isset( $allowed_themes[ $key ] ) == true ) {
-					$allowedthemes[ $theme_key ] = 1;
-				}
-			}
-			$allowed_themes = $allowedthemes;
-		}
-	}
-	return $allowed_themes;
-}
 
 /**
  * Determines if there is any upload space left in the current blog's quota.
@@ -423,7 +379,7 @@ function upload_space_setting( $id ) {
 	?>
 	<tr>
 		<th><?php _e( 'Site Upload Space Quota '); ?></th>
-		<td><input type="text" size="3" name="option[blog_upload_space]" value="<?php echo $quota; ?>" /> <?php _e( 'MB (Leave blank for network default)' ); ?></td>
+		<td><input type="number" step="1" min="0" style="width: 100px" name="option[blog_upload_space]" value="<?php echo $quota; ?>" /> <?php _e( 'MB (Leave blank for network default)' ); ?></td>
 	</tr>
 	<?php
 }
@@ -432,12 +388,13 @@ add_action( 'wpmueditblogaction', 'upload_space_setting' );
 function update_user_status( $id, $pref, $value, $deprecated = null ) {
 	global $wpdb;
 
-	if ( null !== $deprecated  )
+	if ( null !== $deprecated )
 		_deprecated_argument( __FUNCTION__, '3.1' );
 
 	$wpdb->update( $wpdb->users, array( $pref => $value ), array( 'ID' => $id ) );
 
-	clean_user_cache( $id );
+	$user = new WP_User( $id );
+	clean_user_cache( $user );
 
 	if ( $pref == 'spam' ) {
 		if ( $value == 1 )
@@ -455,7 +412,7 @@ function refresh_user_details( $id ) {
 	if ( !$user = get_userdata( $id ) )
 		return false;
 
-	clean_user_cache( $id );
+	clean_user_cache( $user );
 
 	return $id;
 }
@@ -551,7 +508,7 @@ function mu_dropdown_languages( $lang_files = array(), $current = '' ) {
 			$output[$be] = '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . $be . '</option>';
 		} else {
 			$translated = format_code_lang( $code_lang );
-			$output[$translated] =  '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . esc_html ( $translated ) . '</option>';
+			$output[$translated] = '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . esc_html ( $translated ) . '</option>';
 		}
 
 	}
@@ -636,7 +593,7 @@ function choose_primary_blog() {
 				<?php foreach( (array) $all_blogs as $blog ) {
 					if ( $primary_blog == $blog->userblog_id )
 						$found = true;
-					?><option value="<?php echo $blog->userblog_id ?>"<?php selected( $primary_blog,  $blog->userblog_id ); ?>><?php echo esc_url( get_home_url( $blog->userblog_id ) ) ?></option><?php
+					?><option value="<?php echo $blog->userblog_id ?>"<?php selected( $primary_blog, $blog->userblog_id ); ?>><?php echo esc_url( get_home_url( $blog->userblog_id ) ) ?></option><?php
 				} ?>
 			</select>
 			<?php
@@ -773,10 +730,10 @@ var tb_closeImage = "../../wp-includes/js/thickbox/tb-close.png";
  * Whether or not we have a large network.
  *
  * The default criteria for a large network is either more than 10,000 users or more than 10,000 sites.
- * Plugins can alter this criteria  using the 'wp_is_large_network' filter.
+ * Plugins can alter this criteria using the 'wp_is_large_network' filter.
  *
  * @since 3.3.0
- * @param string $using 'sites or 'users'.  Default is 'sites'.
+ * @param string $using 'sites or 'users'. Default is 'sites'.
  * @return bool True if the network meets the criteria for large. False otherwise.
  */
 function wp_is_large_network( $using = 'sites' ) {
@@ -788,4 +745,3 @@ function wp_is_large_network( $using = 'sites' ) {
 	$count = get_blog_count();
 	return apply_filters( 'wp_is_large_network', $count > 10000, 'sites', $count );
 }
-?>

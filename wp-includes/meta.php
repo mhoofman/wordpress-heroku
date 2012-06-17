@@ -2,8 +2,8 @@
 /**
  * Metadata API
  *
- * Functions for retrieving and manipulating metadata of various WordPress object types.  Metadata
- * for an object is a represented by a simple key-value pair.  Objects may contain multiple
+ * Functions for retrieving and manipulating metadata of various WordPress object types. Metadata
+ * for an object is a represented by a simple key-value pair. Objects may contain multiple
  * metadata entries that share the same key and differ only in their value.
  *
  * @package WordPress
@@ -23,8 +23,8 @@
  * @param int $object_id ID of the object metadata is for
  * @param string $meta_key Metadata key
  * @param string $meta_value Metadata value
- * @param bool $unique Optional, default is false.  Whether the specified metadata key should be
- * 		unique for the object.  If true, and the object already has a value for the specified
+ * @param bool $unique Optional, default is false. Whether the specified metadata key should be
+ * 		unique for the object. If true, and the object already has a value for the specified
  * 		metadata key, no change will be made
  * @return bool The meta ID on successful update, false on failure.
  */
@@ -80,7 +80,7 @@ function add_metadata($meta_type, $object_id, $meta_key, $meta_value, $unique = 
 }
 
 /**
- * Update metadata for the specified object.  If no value already exists for the specified object
+ * Update metadata for the specified object. If no value already exists for the specified object
  * ID and metadata key, the metadata will be added.
  *
  * @since 2.9.0
@@ -94,8 +94,8 @@ function add_metadata($meta_type, $object_id, $meta_key, $meta_value, $unique = 
  * @param int $object_id ID of the object metadata is for
  * @param string $meta_key Metadata key
  * @param string $meta_value Metadata value
- * @param string $prev_value Optional.  If specified, only update existing metadata entries with
- * 		the specified value.  Otherwise, update all entries.
+ * @param string $prev_value Optional. If specified, only update existing metadata entries with
+ * 		the specified value. Otherwise, update all entries.
  * @return bool True on successful update, false on failure.
  */
 function update_metadata($meta_type, $object_id, $meta_key, $meta_value, $prev_value = '') {
@@ -174,10 +174,10 @@ function update_metadata($meta_type, $object_id, $meta_key, $meta_value, $prev_v
  * @param string $meta_type Type of object metadata is for (e.g., comment, post, or user)
  * @param int $object_id ID of the object metadata is for
  * @param string $meta_key Metadata key
- * @param string $meta_value Optional. Metadata value.  If specified, only delete metadata entries
- * 		with this value.  Otherwise, delete all entries with the specified meta_key.
- * @param bool $delete_all Optional, default is false.  If true, delete matching metadata entries
- * 		for all objects, ignoring the specified object_id.  Otherwise, only delete matching
+ * @param string $meta_value Optional. Metadata value. If specified, only delete metadata entries
+ * 		with this value. Otherwise, delete all entries with the specified meta_key.
+ * @param bool $delete_all Optional, default is false. If true, delete matching metadata entries
+ * 		for all objects, ignoring the specified object_id. Otherwise, only delete matching
  * 		metadata entries for the specified object_id.
  * @return bool True on successful delete, false on failure.
  */
@@ -223,6 +223,7 @@ function delete_metadata($meta_type, $object_id, $meta_key, $meta_value = '', $d
 
 	do_action( "delete_{$meta_type}_meta", $meta_ids, $object_id, $meta_key, $_meta_value );
 
+	// Old-style action.
 	if ( 'post' == $meta_type )
 		do_action( 'delete_postmeta', $meta_ids );
 
@@ -243,6 +244,7 @@ function delete_metadata($meta_type, $object_id, $meta_key, $meta_value = '', $d
 
 	do_action( "deleted_{$meta_type}_meta", $meta_ids, $object_id, $meta_key, $_meta_value );
 
+	// Old-style action.
 	if ( 'post' == $meta_type )
 		do_action( 'deleted_postmeta', $meta_ids );
 
@@ -256,10 +258,10 @@ function delete_metadata($meta_type, $object_id, $meta_key, $meta_value = '', $d
  *
  * @param string $meta_type Type of object metadata is for (e.g., comment, post, or user)
  * @param int $object_id ID of the object metadata is for
- * @param string $meta_key Optional.  Metadata key.  If not specified, retrieve all metadata for
+ * @param string $meta_key Optional. Metadata key. If not specified, retrieve all metadata for
  * 		the specified object.
- * @param bool $single Optional, default is false.  If true, return only the first value of the
- * 		specified meta_key.  This parameter has no effect if meta_key is not specified.
+ * @param bool $single Optional, default is false. If true, return only the first value of the
+ * 		specified meta_key. This parameter has no effect if meta_key is not specified.
  * @return string|array Single metadata value, or array of values
  */
 function get_metadata($meta_type, $object_id, $meta_key = '', $single = false) {
@@ -485,19 +487,21 @@ function delete_metadata_by_mid( $meta_type, $meta_id ) {
 
 		do_action( "delete_{$meta_type}_meta", (array) $meta_id, $object_id, $meta->meta_key, $meta->meta_value );
 
-		if ( 'post' == $meta_type )
-			do_action( 'delete_postmeta', $meta_id );
+		// Old-style action.
+		if ( 'post' == $meta_type || 'comment' == $meta_type )
+			do_action( "delete_{$meta_type}meta", $meta_id );
 
 		// Run the query, will return true if deleted, false otherwise
-		$result = (bool) $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE $id_column = %d LIMIT 1;", $meta_id ) );
+		$result = (bool) $wpdb->delete( $table, array( $id_column => $meta_id ) );
 
 		// Clear the caches.
 		wp_cache_delete($object_id, $meta_type . '_meta');
 
 		do_action( "deleted_{$meta_type}_meta", (array) $meta_id, $object_id, $meta->meta_key, $meta->meta_value );
 
-		if ( 'post' == $meta_type )
-			do_action( 'deleted_postmeta', $meta_id );
+		// Old-style action.
+		if ( 'post' == $meta_type || 'comment' == $meta_type )
+			do_action( "deleted_{$meta_type}meta", $meta_id );
 
 		return $result;
 
@@ -861,5 +865,3 @@ function register_meta( $meta_type, $meta_key, $sanitize_callback, $auth_callbac
 	if ( is_callable( $auth_callback ) )
 		add_filter( "auth_{$meta_type}_meta_{$meta_key}", $auth_callback, 10, 6 );
 }
-
-?>

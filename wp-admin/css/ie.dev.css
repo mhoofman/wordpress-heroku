@@ -1,4 +1,13 @@
-/* Fixes for IE bugs */
+/* Fixes for IE 7 bugs */
+
+.wp-editor-wrap .wp-editor-container textarea.wp-editor-area {
+	width: 97%;
+}
+
+#post-body.columns-2 #postbox-container-1 {
+	padding-left: 19px;
+}
+
 .welcome-panel .wp-badge {
 	position: absolute;
 }
@@ -277,8 +286,7 @@ form#template div {
 	width: 100%;
 }
 
-#ed_toolbar input,
-#ed_reply_toolbar input {
+.wp-editor-container .quicktags-toolbar input {
 	overflow: visible;
 	padding: 0 4px;
 }
@@ -371,8 +379,6 @@ table.ie-fixed {
 	position: relative;
 }
 
-
-
 #wpcontent .button-primary-disabled {
 	color: #9FD0D5;
 	background: #298CBA;
@@ -424,6 +430,22 @@ table.ie-fixed {
 	margin-left: 0;
 }
 
+.available-theme {
+	display: inline;
+}
+
+.available-theme ul {
+	margin: 0;
+}
+
+.about-wrap .three-col-images img {
+	margin: 0 0.6% 10px;
+}
+
+.about-wrap .three-col-images .last-feature,
+.about-wrap .three-col-images .first-feature {
+	float: none;
+}
 
 /* IE6 leftovers */
 * html .row-actions {
@@ -500,7 +522,6 @@ table.ie-fixed {
 	display: inline;
 }
 
-* html .inner-sidebar #side-sortables,
 * html .postbox-container .meta-box-sortables {
 	height: 300px;
 }
@@ -550,4 +571,3 @@ table.ie-fixed {
 * html #adminmenu div.wp-menu-image {
 	height: 29px;
 }
-

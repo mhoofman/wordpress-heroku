@@ -3,17 +3,7 @@ var tinymce = null, tinyMCEPopup, tinyMCE, wpImage;
 
 tinyMCEPopup = {
 	init: function() {
-		var t = this, w, li, q, i, it;
-
-		li = ('' + document.location.search).replace(/^\?/, '').split('&');
-		q = {};
-		for ( i = 0; i < li.length; i++ ) {
-			it = li[i].split('=');
-			q[unescape(it[0])] = unescape(it[1]);
-		}
-
-		if (q.mce_rdomain)
-			document.domain = q.mce_rdomain;
+		var t = this, w, ti;
 
 		// Find window & API
 		w = t.getWin();
@@ -21,6 +11,7 @@ tinyMCEPopup = {
 		tinyMCE = w.tinyMCE;
 		t.editor = tinymce.EditorManager.activeEditor;
 		t.params = t.editor.windowManager.params;
+		t.features = t.editor.windowManager.features;
 
 		// Setup local DOM
 		t.dom = t.editor.windowManager.createInstance('tinymce.dom.DOMUtils', document);
@@ -28,7 +19,7 @@ tinyMCEPopup = {
 	},
 
 	getWin : function() {
-		return window.dialogArguments || opener || parent || top;
+		return (!window.frameElement && window.dialogArguments) || opener || parent || top;
 	},
 
 	getParam : function(n, dv) {
@@ -36,16 +27,16 @@ tinyMCEPopup = {
 	},
 
 	close : function() {
-		var t = this, win = t.getWin();
+		var t = this;
 
 		// To avoid domain relaxing issue in Opera
 		function close() {
-			win.tb_remove();
-			tinymce = tinyMCE = t.editor = t.dom = t.dom.doc = null; // Cleanup
+			t.editor.windowManager.close(window);
+			tinymce = tinyMCE = t.editor = t.params = t.dom = t.dom.doc = null; // Cleanup
 		};
 
 		if (tinymce.isOpera)
-			win.setTimeout(close, 0);
+			t.getWin().setTimeout(close, 0);
 		else
 			close();
 	},
@@ -59,13 +50,13 @@ tinyMCEPopup = {
 	},
 
 	storeSelection : function() {
-		this.editor.windowManager.bookmark = tinyMCEPopup.editor.selection.getBookmark('simple');
+		this.editor.windowManager.bookmark = tinyMCEPopup.editor.selection.getBookmark(1);
 	},
 
 	restoreSelection : function() {
 		var t = tinyMCEPopup;
 
-		if (tinymce.isIE)
+		if ( tinymce.isIE )
 			t.editor.selection.moveToBookmark(t.editor.windowManager.bookmark);
 	}
 }
@@ -74,12 +65,14 @@ tinyMCEPopup.init();
 wpImage = {
 	preInit : function() {
 		// import colors stylesheet from parent
-		var win = tinyMCEPopup.getWin(), styles = win.document.styleSheets, url, i;
+		var ed = tinyMCEPopup.editor, win = tinyMCEPopup.getWin(), styles = win.document.styleSheets, url, i;
 
 		for ( i = 0; i < styles.length; i++ ) {
 			url = styles.item(i).href;
-			if ( url && url.indexOf('colors') != -1 )
-				document.write( '<link rel="stylesheet" href="'+url+'" type="text/css" media="all" />' );
+			if ( url && url.indexOf('colors') != -1 ) {
+				document.getElementsByTagName('head')[0].appendChild( ed.dom.create('link', {rel:'stylesheet', href: url}) );
+				break;
+			}
 		}
 	},
 
@@ -242,7 +235,7 @@ wpImage = {
 
 	setup : function() {
 		var t = this, c, el, link, fname, f = document.forms[0], ed = tinyMCEPopup.editor,
-			d = t.I('img_demo'), dom = tinyMCEPopup.dom, DL, caption = '', dlc, pa;
+			d = t.I('img_demo'), dom = tinyMCEPopup.dom, DL, DD, caption = '', dlc, pa;
 
 		document.dir = tinyMCEPopup.editor.getParam('directionality','');
 
@@ -267,15 +260,12 @@ wpImage = {
 				tinymce.trim(c);
 			}
 
-			tinymce.each(DL.childNodes, function(e) {
-				if ( e.nodeName == 'DD' && dom.hasClass(e, 'wp-caption-dd') ) {
-					caption = e.innerHTML;
-					return;
-				}
-			});
+			DD = ed.dom.select('dd.wp-caption-dd', DL);
+			if ( DD && DD[0] )
+				caption = ed.serializer.serialize(DD[0]).replace(/^<p>/, '').replace(/<\/p>$/, '');
 		}
 
-		f.img_cap.value = caption;
+		f.img_cap_text.value = caption;
 		f.img_title.value = ed.dom.getAttrib(el, 'title');
 		f.img_alt.value = ed.dom.getAttrib(el, 'alt');
 		f.border.value = ed.dom.getAttrib(el, 'border');
@@ -326,7 +316,9 @@ wpImage = {
 			d.className = t.align = "alignnone";
 		}
 
-		if ( t.width && t.preloadImg.width ) t.showSizeSet();
+		if ( t.width && t.preloadImg.width )
+			t.showSizeSet();
+		
 		document.body.style.display = '';
 	},
 
@@ -351,7 +343,7 @@ wpImage = {
 	update : function() {
 		var t = this, f = document.forms[0], ed = tinyMCEPopup.editor, el, b, fixSafari = null,
 			DL, P, A, DIV, do_caption = null, img_class = f.img_classes.value, html,
-			id, cap_id = '', cap, DT, DD, cap_width, div_cls, lnk = '', pa, aa;
+			id, cap_id = '', cap, DT, DD, cap_width, div_cls, lnk = '', pa, aa, caption;
 
 		tinyMCEPopup.restoreSelection();
 		el = ed.selection.getNode();
@@ -362,7 +354,7 @@ wpImage = {
 			return;
 		}
 
-		if ( f.img_cap.value != '' && f.width.value != '' ) {
+		if ( f.img_cap_text.value != '' && f.width.value != '' ) {
 			do_caption = 1;
 			img_class = img_class.replace( /align[^ "']+\s?/gi, '' );
 		}
@@ -393,16 +385,11 @@ wpImage = {
 				if ( ! f.link_href.value.match(/https?:\/\//i) )
 					f.link_href.value = tinyMCEPopup.editor.documentBaseURI.toAbsolute(f.link_href.value);
 
-				if ( tinymce.isWebKit && ed.dom.hasClass(el, 'aligncenter') ) {
-					ed.dom.removeClass(el, 'aligncenter');
-					fixSafari = 1;
-				}
-
-				tinyMCEPopup.execCommand("CreateLink", false, "#mce_temp_url#", {skip_undo : 1});
-				if ( fixSafari ) ed.dom.addClass(el, 'aligncenter');
+				ed.getDoc().execCommand("unlink", false, null);
+				tinyMCEPopup.execCommand("mceInsertLink", false, "#mce_temp_url#", {skip_undo : 1});
 
 				tinymce.each(ed.dom.select("a"), function(n) {
-					if (ed.dom.getAttrib(n, 'href') == '#mce_temp_url#') {
+					if ( ed.dom.getAttrib(n, 'href') == '#mce_temp_url#' ) {
 
 						ed.dom.setAttribs(n, {
 							href : f.link_href.value,
@@ -429,6 +416,13 @@ wpImage = {
 		if ( do_caption ) {
 			cap_width = 10 + parseInt(f.width.value);
 			div_cls = (t.align == 'aligncenter') ? 'mceTemp mceIEcenter' : 'mceTemp';
+			caption = f.img_cap_text.value;
+
+			caption = caption.replace(/\r\n|\r/g, '\n').replace(/<[a-zA-Z0-9]+( [^<>]+)?>/g, function(a){
+				return a.replace(/[\r\n\t]+/, ' ');
+			});
+
+			caption = caption.replace(/\s*\n\s*/g, '<br />');
 
 			if ( DL ) {
 				ed.dom.setAttribs(DL, {
@@ -440,24 +434,26 @@ wpImage = {
 					ed.dom.setAttrib(DIV, 'class', div_cls);
 
 				if ( (DT = ed.dom.getParent(el, 'dt')) && (DD = DT.nextSibling) && ed.dom.hasClass(DD, 'wp-caption-dd') )
-					ed.dom.setHTML(DD, f.img_cap.value);
+					ed.dom.setHTML(DD, caption);
 
 			} else {
 				if ( (id = f.img_classes.value.match( /wp-image-([0-9]{1,6})/ )) && id[1] )
 					cap_id = 'attachment_'+id[1];
 
 				if ( f.link_href.value && (lnk = ed.dom.getParent(el, 'a')) ) {
-					if ( lnk.childNodes.length == 1 )
+					if ( lnk.childNodes.length == 1 ) {
 						html = ed.dom.getOuterHTML(lnk);
-					else {
+					} else {
 						html = ed.dom.getOuterHTML(lnk);
-						html = html.match(/<a[^>]+>/i);
+						html = html.match(/<a [^>]+>/i);
 						html = html+ed.dom.getOuterHTML(el)+'</a>';
 					}
-				} else html = ed.dom.getOuterHTML(el);
+				} else {
+					html = ed.dom.getOuterHTML(el);
+				}
 
 				html = '<dl id="'+cap_id+'" class="wp-caption '+t.align+'" style="width: '+cap_width+
-				'px"><dt class="wp-caption-dt">'+html+'</dt><dd class="wp-caption-dd">'+f.img_cap.value+'</dd></dl>';
+				'px"><dt class="wp-caption-dt">'+html+'</dt><dd class="wp-caption-dd">'+caption+'</dd></dl>';
 
 				cap = ed.dom.create('div', {'class': div_cls}, html);
 
@@ -614,3 +610,4 @@ wpImage = {
 
 window.onload = function(){wpImage.init();}
 wpImage.preInit();
+
