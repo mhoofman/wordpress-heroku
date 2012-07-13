@@ -462,11 +462,20 @@ class WXR_Parser_Regex {
 	}
 
 	function get_tag( $string, $tag ) {
-		global $wpdb;
 		preg_match( "|<$tag.*?>(.*?)</$tag>|is", $string, $return );
 		if ( isset( $return[1] ) ) {
-			$return = preg_replace( '|^<!\[CDATA\[(.*)\]\]>$|s', '$1', $return[1] );
-			$return = $wpdb->escape( trim( $return ) );
+			if ( substr( $return[1], 0, 9 ) == '<![CDATA[' ) {
+				if ( strpos( $return[1], ']]]]><![CDATA[>' ) !== false ) {
+					preg_match_all( '|<!\[CDATA\[(.*?)\]\]>|s', $return[1], $matches );
+					$return = '';
+					foreach( $matches[1] as $match )
+						$return .= $match;
+				} else {
+					$return = preg_replace( '|^<!\[CDATA\[(.*)\]\]>$|s', '$1', $return[1] );
+				}
+			} else {
+				$return = $return[1];
+			}
 		} else {
 			$return = '';
 		}
@@ -527,7 +536,7 @@ class WXR_Parser_Regex {
 		$menu_order     = $this->get_tag( $post, 'wp:menu_order' );
 		$post_type      = $this->get_tag( $post, 'wp:post_type' );
 		$post_password  = $this->get_tag( $post, 'wp:post_password' );
-		$is_sticky		= $this->get_tag( $post, 'wp:is_sticky' );
+		$is_sticky      = $this->get_tag( $post, 'wp:is_sticky' );
 		$guid           = $this->get_tag( $post, 'guid' );
 		$post_author    = $this->get_tag( $post, 'dc:creator' );
 
