@@ -71,7 +71,7 @@ function akismet_caught() {
 			++$i;
 		endforeach;
 		$to = add_query_arg( 'recovered', $i, $_SERVER['HTTP_REFERER'] );
-		wp_redirect( $to );
+		wp_safe_redirect( $to );
 		exit;
 	}
 	if ('delete' == $_POST['action']) {
@@ -87,7 +87,7 @@ function akismet_caught() {
 			wp_cache_delete( 'akismet_spam_count', 'widget' );
 		}
 		$to = add_query_arg( 'deleted', 'all', $_SERVER['HTTP_REFERER'] );
-		wp_redirect( $to );
+		wp_safe_redirect( $to );
 		exit;
 	}
 
@@ -366,7 +366,7 @@ function redirect_old_akismet_urls( ) {
 	// 2.7 redirect for people who might have bookmarked the old page
 	if ( 8204 < $wp_db_version && ( 'edit-comments.php' == $script_name || 'edit.php' == $script_name ) && 'akismet-admin' == $page ) {
 		$new_url = esc_url( 'edit-comments.php?comment_status=spam' );
-		wp_redirect( $new_url, 301 );
+		wp_safe_redirect( $new_url, 301 );
 		exit;
 	}
 }

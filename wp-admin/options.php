@@ -151,7 +151,7 @@ if ( 'update' == $action ) {
 	}
 
 	/**
-	 *  Handle settings errors and return to options page
+	 * Handle settings errors and return to options page
 	 */
 	// If no settings errors were registered add a general 'updated' message.
 	if ( !count( get_settings_errors() ) )
@@ -221,7 +221,5 @@ endforeach;
   </form>
 </div>
 
-
 <?php
 include('./admin-footer.php');
-?>

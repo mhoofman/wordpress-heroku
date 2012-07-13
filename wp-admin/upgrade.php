@@ -27,7 +27,7 @@ if ( isset( $_GET['step'] ) )
 else
 	$step = 0;
 
-// Do it.  No output.
+// Do it. No output.
 if ( 'upgrade_db' === $step ) {
 	wp_upgrade();
 	die( '0' );
@@ -56,7 +56,7 @@ else
 	?>
 </head>
 <body>
-<h1 id="logo"><img alt="WordPress" src="images/wordpress-logo.png" /></h1>
+<h1 id="logo"><img alt="WordPress" src="images/wordpress-logo.png?ver=20120216" /></h1>
 
 <?php if ( get_option( 'db_version' ) == $wp_db_version || !is_blog_installed() ) : ?>
 
@@ -88,7 +88,7 @@ switch ( $step ) :
 	case 1:
 		wp_upgrade();
 
-			$backto = !empty($_GET['backto']) ? stripslashes( urldecode( $_GET['backto'] ) ) :  __get_option( 'home' ) . '/';
+			$backto = !empty($_GET['backto']) ? stripslashes( urldecode( $_GET['backto'] ) ) : __get_option( 'home' ) . '/';
 			$backto = esc_url( $backto );
 			$backto = wp_validate_redirect($backto, __get_option( 'home' ) . '/');
 ?>

@@ -30,7 +30,7 @@
 		'tinyint(2)'	=> 'smallint',
 		'tinyint(1)'	=> 'smallint',
 		"enum('0','1')"	=> 'smallint',
-		
+		'COLLATE utf8_general_ci'	=> '',
 	);
 	
 	function pg4wp_installing( $sql, &$logto)
@@ -152,7 +152,7 @@ $sql = "SELECT pg_attribute.attname AS \"Field\",
 		ELSE 'YES'
 	END AS \"Null\",
 	CASE pg_type.typname
-		WHEN 'varchar' THEN substring(pg_attrdef.adsrc FROM '^\'(.*)\'.*$')
+		WHEN 'varchar' THEN substring(pg_attrdef.adsrc FROM '^''(.*)''.*$')
 		WHEN 'timestamp' THEN CASE WHEN pg_attrdef.adsrc LIKE '%now()%' THEN '0000-00-00 00:00:00' ELSE pg_attrdef.adsrc END
 		ELSE pg_attrdef.adsrc
 	END AS \"Default\"
@@ -169,6 +169,7 @@ WHERE pg_class.relname='$table_name' AND pg_attribute.attnum>=1 AND NOT pg_attri
 		elseif( 0 === strpos($sql, 'CREATE TABLE'))
 		{
 			$logto = 'CREATE';
+			$sql = str_replace( 'CREATE TABLE IF NOT EXISTS ', 'CREATE TABLE ', $sql);
 			$pattern = '/CREATE TABLE [`]?(\w+)[`]?/';
 			preg_match($pattern, $sql, $matches);
 			$table = $matches[1];
@@ -206,6 +207,15 @@ WHERE pg_class.relname='$table_name' AND pg_attribute.attnum>=1 AND NOT pg_attri
 			// Now remove handled indexes
 			$sql = preg_replace( $pattern, '', $sql);
 		}// CREATE TABLE
+		elseif( 0 === strpos($sql, 'DROP TABLE'))
+		{
+			$logto = 'DROPTABLE';
+			$pattern = '/DROP TABLE.+ [`]?(\w+)[`]?$/';
+			preg_match($pattern, $sql, $matches);
+			$table = $matches[1];
+			$seq = $table . '_seq';
+			$sql .= ";\nDROP SEQUENCE IF EXISTS $seq;";
+		}// DROP TABLE
 		
 		return $sql;
 	}

@@ -13,7 +13,7 @@
  *
  * @since 2.5.0
  */
-define( 'WXR_VERSION', '1.1' );
+define( 'WXR_VERSION', '1.2' );
 
 /**
  * Generates the WXR export file for download
@@ -117,13 +117,14 @@ function export_wp( $args = array() ) {
 	 * @since 2.1.0
 	 *
 	 * @param string $str String to wrap in XML CDATA tag.
+	 * @return string
 	 */
 	function wxr_cdata( $str ) {
 		if ( seems_utf8( $str ) == false )
 			$str = utf8_encode( $str );
 
 		// $str = ent2ncr(esc_html($str));
-		$str = "<![CDATA[$str" . ( ( substr( $str, -1 ) == ']' ) ? ' ' : '' ) . ']]>';
+		$str = '<![CDATA[' . str_replace( ']]>', ']]]]><![CDATA[>', $str ) . ']]>';
 
 		return $str;
 	}
@@ -331,7 +332,7 @@ function export_wp( $args = array() ) {
 	<link><?php bloginfo_rss( 'url' ); ?></link>
 	<description><?php bloginfo_rss( 'description' ); ?></description>
 	<pubDate><?php echo date( 'D, d M Y H:i:s +0000' ); ?></pubDate>
-	<language><?php echo get_option( 'rss_language' ); ?></language>
+	<language><?php bloginfo_rss( 'language' ); ?></language>
 	<wp:wxr_version><?php echo WXR_VERSION; ?></wp:wxr_version>
 	<wp:base_site_url><?php echo wxr_site_url(); ?></wp:base_site_url>
 	<wp:base_blog_url><?php bloginfo_rss( 'url' ); ?></wp:base_blog_url>

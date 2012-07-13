@@ -7,7 +7,7 @@
  * @since 3.0.0
  * @uses Walker_Nav_Menu
  */
-class Walker_Nav_Menu_Edit extends Walker_Nav_Menu  {
+class Walker_Nav_Menu_Edit extends Walker_Nav_Menu {
 	/**
 	 * @see Walker_Nav_Menu::start_lvl()
 	 * @since 3.0.0
@@ -209,7 +209,7 @@ class Walker_Nav_Menu_Edit extends Walker_Nav_Menu  {
  * @since 3.0.0
  * @uses Walker_Nav_Menu
  */
-class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu  {
+class Walker_Nav_Menu_Checklist extends Walker_Nav_Menu {
 	function __construct( $fields = false ) {
 		if ( $fields ) {
 			$this->db_fields = $fields;
@@ -323,7 +323,6 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 			}
 
 		}
-
 
 	} elseif ( preg_match('/quick-search-(posttype|taxonomy)-([a-zA-Z_-]*\b)/', $type, $matches) ) {
 		if ( 'posttype' == $matches[1] && get_post_type_object( $matches[2] ) ) {
@@ -692,7 +691,7 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 			}
 			?>
 			<p class="quick-search-wrap">
-				<input type="text" class="quick-search input-with-default-title" title="<?php esc_attr_e('Search'); ?>" value="<?php echo $searched; ?>" name="quick-search-posttype-<?php echo $post_type_name; ?>" />
+				<input type="search" class="quick-search input-with-default-title" title="<?php esc_attr_e('Search'); ?>" value="<?php echo $searched; ?>" name="quick-search-posttype-<?php echo $post_type_name; ?>" />
 				<img class="waiting" src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" alt="" />
 				<?php submit_button( __( 'Search' ), 'quick-search-submit button-secondary hide-if-js', 'submit', false, array( 'id' => 'submit-quick-search-posttype-' . $post_type_name ) ); ?>
 			</p>
@@ -710,7 +709,6 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 			<?php endif; ?>
 			</ul>
 		</div><!-- /.tabs-panel -->
-
 
 		<div id="<?php echo $post_type_name; ?>-all" class="tabs-panel tabs-panel-view-all <?php
 			echo ( 'all' == $current_tab ? 'tabs-panel-active' : 'tabs-panel-inactive' );
@@ -767,7 +765,6 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 			<?php endif; ?>
 		</div><!-- /.tabs-panel -->
 
-
 		<p class="button-controls">
 			<span class="list-controls">
 				<a href="<?php
@@ -814,7 +811,6 @@ function wp_nav_menu_item_taxonomy_meta_box( $object, $taxonomy ) {
 		'hide_empty' => false,
 		'hierarchical' => 1,
 		'include' => '',
-		'include_last_update_time' => false,
 		'number' => $per_page,
 		'offset' => $offset,
 		'order' => 'ASC',
@@ -926,7 +922,7 @@ function wp_nav_menu_item_taxonomy_meta_box( $object, $taxonomy ) {
 			}
 			?>
 			<p class="quick-search-wrap">
-				<input type="text" class="quick-search input-with-default-title" title="<?php esc_attr_e('Search'); ?>" value="<?php echo $searched; ?>" name="quick-search-taxonomy-<?php echo $taxonomy_name; ?>" />
+				<input type="search" class="quick-search input-with-default-title" title="<?php esc_attr_e('Search'); ?>" value="<?php echo $searched; ?>" name="quick-search-taxonomy-<?php echo $taxonomy_name; ?>" />
 				<img class="waiting" src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" alt="" />
 				<?php submit_button( __( 'Search' ), 'quick-search-submit button-secondary hide-if-js', 'submit', false, array( 'id' => 'submit-quick-search-taxonomy-' . $taxonomy_name ) ); ?>
 			</p>
@@ -990,7 +986,7 @@ function wp_save_nav_menu_items( $menu_id = 0, $menu_data = array() ) {
 				(
 					! isset( $_item_object_data['menu-item-type'] ) || // and item type either isn't set
 					in_array( $_item_object_data['menu-item-url'], array( 'http://', '' ) ) || // or URL is the default
-					! ( 'custom' == $_item_object_data['menu-item-type'] && ! isset( $_item_object_data['menu-item-db-id'] ) ) ||  // or it's not a custom menu item (but not the custom home page)
+					! ( 'custom' == $_item_object_data['menu-item-type'] && ! isset( $_item_object_data['menu-item-db-id'] ) ) || // or it's not a custom menu item (but not the custom home page)
 					! empty( $_item_object_data['menu-item-db-id'] ) // or it *is* a custom menu item that already exists
 				)
 			) {
@@ -1125,7 +1121,6 @@ function wp_get_nav_menu_to_edit( $menu_id = 0 ) {
 		return $menu;
 	}
 
-
 }
 
 /**
@@ -1165,5 +1160,3 @@ function _wp_delete_orphaned_draft_menu_items() {
 }
 
 add_action('admin_head-nav-menus.php', '_wp_delete_orphaned_draft_menu_items');
-
-?>

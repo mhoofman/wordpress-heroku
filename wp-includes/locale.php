@@ -85,15 +85,6 @@ class WP_Locale {
 	var $text_direction = 'ltr';
 
 	/**
-	 * Imports the global version to the class property.
-	 *
-	 * @since 2.1.0
-	 * @var array
-	 * @access private
-	 */
-	var $locale_vars = array('text_direction');
-
-	/**
 	 * Sets up the translated strings and object properties.
 	 *
 	 * The method creates the translatable strings for various
@@ -113,7 +104,7 @@ class WP_Locale {
 		$this->weekday[5] = /* translators: weekday */ __('Friday');
 		$this->weekday[6] = /* translators: weekday */ __('Saturday');
 
-		// The first letter of each day.  The _%day%_initial suffix is a hack to make
+		// The first letter of each day. The _%day%_initial suffix is a hack to make
 		// sure the day initials are unique.
 		$this->weekday_initial[__('Sunday')]    = /* translators: one-letter abbreviation of the weekday */ __('S_Sunday_initial');
 		$this->weekday_initial[__('Monday')]    = /* translators: one-letter abbreviation of the weekday */ __('M_Monday_initial');
@@ -186,12 +177,12 @@ class WP_Locale {
 		$trans = __('number_format_decimal_point');
 		$this->number_format['decimal_point'] = ('number_format_decimal_point' == $trans) ? '.' : $trans;
 
-		// Import global locale vars set during inclusion of $locale.php.
-		foreach ( (array) $this->locale_vars as $var ) {
-			if ( isset($GLOBALS[$var]) )
-				$this->$var = $GLOBALS[$var];
-		}
-
+		// Set text direction.
+		if ( isset( $GLOBALS['text_direction'] ) )
+			$this->text_direction = $GLOBALS['text_direction'];
+		/* translators: 'rtl' or 'ltr'. This sets the text direction for WordPress. */
+		elseif ( 'rtl' == _x( 'ltr', 'text direction' ) )
+			$this->text_direction = 'rtl';
 	}
 
 	/**
@@ -326,15 +317,16 @@ class WP_Locale {
 		$this->init();
 		$this->register_globals();
 	}
+
 	/**
 	 * Checks if current locale is RTL.
 	 *
 	 * @since 3.0.0
 	 * @return bool Whether locale is RTL.
 	 */
-	 function is_rtl() {
-	 	return 'rtl' == $this->text_direction;
-	 }
+	function is_rtl() {
+		return 'rtl' == $this->text_direction;
+	}
 }
 
 /**
@@ -347,5 +339,3 @@ function is_rtl() {
 	global $wp_locale;
 	return $wp_locale->is_rtl();
 }
-
-?>

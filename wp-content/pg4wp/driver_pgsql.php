@@ -22,6 +22,7 @@
 	$GLOBALS['pg4wp_numrows_query'] = '';
 	$GLOBALS['pg4wp_ins_table'] = '';
 	$GLOBALS['pg4wp_ins_field'] = '';
+	$GLOBALS['pg4wp_last_insert'] = '';
 	$GLOBALS['pg4wp_connstr'] = '';
 	$GLOBALS['pg4wp_conn'] = false;
 	
@@ -52,6 +53,7 @@
 		{ if( $GLOBALS['pg4wp_conn']) return pg_last_error(); else return ''; }
 	function wpsql_fetch_assoc($result) { return pg_fetch_assoc($result); }
 	function wpsql_escape_string($s) { return pg_escape_string($s); }
+	function wpsql_real_escape_string($s,$c=NULL) { return pg_escape_string($s); }
 	function wpsql_get_server_info() { return '5.0.30'; } // Just want to fool wordpress ...
 	function wpsql_result($result, $i, $fieldname)
 		{ return pg_fetch_result($result, $i, $fieldname); }
@@ -60,8 +62,11 @@
 	function wpsql_connect($dbserver, $dbuser, $dbpass)
 	{
 		$GLOBALS['pg4wp_connstr'] = '';
-		if( !empty( $dbserver))
-			$GLOBALS['pg4wp_connstr'] .= ' host='.$dbserver;
+		$hostport = explode(':', $dbserver);
+		if( !empty( $hostport[0]))
+			$GLOBALS['pg4wp_connstr'] .= ' host='.$hostport[0];
+		if( !empty( $hostport[1]))
+			$GLOBALS['pg4wp_connstr'] .= ' port='.$hostport[1];
 		if( !empty( $dbuser))
 			$GLOBALS['pg4wp_connstr'] .= ' user='.$dbuser;
 		if( !empty( $dbpass))
@@ -122,36 +127,66 @@
 			return true;
 		}
 		
+		$initial = $sql;
 		$sql = pg4wp_rewrite( $sql);
 		
 		$GLOBALS['pg4wp_result'] = pg_query($sql);
 		if( (PG4WP_DEBUG || PG4WP_LOG_ERRORS) && $GLOBALS['pg4wp_result'] === false && $err = pg_last_error())
-			if( false === strpos($err, 'relation "'.$wpdb->options.'"'))
-				error_log("Error running :\n$initial\n---- converted to ----\n$sql\n----\n$err\n---------------------\n", 3, PG4WP_LOG.'pg4wp_errors.log');
-		
+		{
+			$ignore = false;
+			if( defined('WP_INSTALLING') && WP_INSTALLING)
+			{
+				global $table_prefix;
+				$ignore = strpos($err, 'relation "'.$table_prefix);
+			}
+			if( ! $ignore )
+				error_log('['.microtime(true)."] Error running :\n$initial\n---- converted to ----\n$sql\n----> $err\n---------------------\n", 3, PG4WP_LOG.'pg4wp_errors.log');
+		}
 		return $GLOBALS['pg4wp_result'];
 	}
 	
-	function wpsql_insert_id($table)
+	function wpsql_insert_id($lnk = NULL)
 	{
 		global $wpdb;
 		$ins_field = $GLOBALS['pg4wp_ins_field'];
+		$table = $GLOBALS['pg4wp_ins_table'];
+		$lastq = $GLOBALS['pg4wp_last_insert'];
 		
-		$tbls = split("\n", $GLOBALS['pg4wp_ins_table']); // Workaround for bad tablename
-		$t = $tbls[0] . '_seq';
+		$seq = $table . '_seq';
 		
-		if( in_array( $t, array( '_seq', $wpdb->prefix.'term_relationships_seq')))
-			return 0;
-		
-		if( $ins_field == '"cat_ID"' || $ins_field == 'rel_id' || $ins_field == 'term_id')
-			$sql = "SELECT MAX($ins_field) FROM ".$tbls[0];
+		// Table 'term_relationships' doesn't have a sequence
+		if( $table == $wpdb->term_relationships)
+		{
+			$sql = 'NO QUERY';
+			$data = 0;
+		}
+		// When using WP_Import plugin, ID is defined in the query
+		elseif('post_author' == $ins_field && false !== strpos($lastq,'ID'))
+		{
+			$sql = 'ID was in query ';
+			$pattern = '/.+\'(\d+).+$/';
+			preg_match($pattern, $lastq, $matches);
+			$data = $matches[1];
+			// We should update the sequence on the next non-INSERT query
+			$GLOBALS['pg4wp_queued_query'] = "SELECT SETVAL('$seq',(SELECT MAX(\"ID\") FROM $table)+1);";
+		}
 		else
-			$sql = "SELECT CURRVAL('$t')";
-		
-		$res = pg_query($sql);
-		$data = pg_fetch_result($res, 0, 0);
+		{
+			$sql = "SELECT CURRVAL('$seq')";
+			
+			$res = pg_query($sql);
+			if( false !== $res)
+				$data = pg_fetch_result($res, 0, 0);
+			elseif( PG4WP_DEBUG || PG4WP_ERROR_LOG)
+			{
+				$log = '['.microtime(true)."] wpsql_insert_id() was called with '$table' and '$ins_field'".
+						" and generated an error. The latest INSERT query was :\n'$lastq'\n";
+				error_log( $log, 3, PG4WP_LOG.'pg4wp_errors.log');
+			}
+		}
 		if( PG4WP_DEBUG && $sql)
-			error_log("Getting inserted ID for '$t' : $sql => $data\n", 3, PG4WP_LOG.'pg4wp_insertid.log');
+			error_log( '['.microtime(true)."] Getting inserted ID for '$table' ('$ins_field') : $sql => $data\n", 3, PG4WP_LOG.'pg4wp_insertid.log');
+			
 		return $data;
 	}
 	
@@ -175,7 +210,7 @@
 				$sql = str_replace('SQL_CALC_FOUND_ROWS', '', $sql);
 				$GLOBALS['pg4wp_numrows_query'] = $sql;
 				if( PG4WP_DEBUG)
-					error_log( "Number of rows required for :\n$sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_NUMROWS.log');
+					error_log( '['.microtime(true)."] Number of rows required for :\n$sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_NUMROWS.log');
 			}
 			elseif( false !== strpos($sql, 'FOUND_ROWS()'))
 			{
@@ -189,8 +224,11 @@
 				$sql = preg_replace( $pattern, 'SELECT COUNT($1) $2', $sql);
 			}
 			
+			// Handle CAST( ... AS CHAR)
+			$sql = preg_replace( '/CAST\((.+) AS CHAR\)/', 'CAST($1 AS TEXT)', $sql);
+			
 			// Handle COUNT(*)...ORDER BY...
-			$sql = preg_replace( '/COUNT(.+)ORDER BY.+/', 'COUNT$1', $sql);
+			$sql = preg_replace( '/COUNT(.+)ORDER BY.+/s', 'COUNT$1', $sql);
 			
 			// In order for users counting to work...
 			$matches = array();
@@ -254,16 +292,13 @@
 			$pattern = '/LIMIT[ ]+\d+/';
 			$sql = preg_replace($pattern, '', $sql);
 			
-			// For correct ID quoting
-			$pattern = '/[ ]*`([^`]*ID[^`]*)`[ ]*=/';
-			$sql = preg_replace( $pattern, ' "$1" =', $sql);
-			
 			// For correct bactick removal
 			$pattern = '/[ ]*`([^` ]+)`[ ]*=/';
 			$sql = preg_replace( $pattern, ' $1 =', $sql);
 
-			// WP 2.6.1 => 2.8 upgrade, removes a PostgreSQL error but there are some remaining
-			$sql = str_replace( "post_date = '0000-00-00 00:00:00'", "post_date IS NULL", $sql);
+			// For correct ID quoting
+			$pattern = '/[ ]*([^ ]*ID[^ ]*)[ ]*=/';
+			$sql = preg_replace( $pattern, ' "$1" =', $sql);
 			
 			// This will avoid modifications to anything following ' SET '
 			list($sql,$end) = explode( ' SET ', $sql, 2);
@@ -298,12 +333,17 @@
 			// consisting in deleting the row before inserting it
 			if( false !== $pos = strpos( $sql, 'ON DUPLICATE KEY'))
 			{
-				// Remove 'ON DUPLICATE KEY UPDATE...' and following
-				$sql = substr( $sql, 0, $pos);
 				// Get the elements we need (table name, first field, corresponding value)
 				$pattern = '/INSERT INTO\s+([^\(]+)\(([^,]+)[^\(]+VALUES\s*\(([^,]+)/';
 				preg_match($pattern, $sql, $matches);
-				$sql = 'DELETE FROM '.$matches[1].' WHERE '.$matches[2].' = '.$matches[3].';'.$sql;
+				$table = trim( $matches[1], ' `');
+				if( !in_array(trim($matches[1],'` '), array($wpdb->posts,$wpdb->comments)))
+				{
+					// Remove 'ON DUPLICATE KEY UPDATE...' and following
+					$sql = substr( $sql, 0, $pos);
+					// Add a delete query to handle the maybe existing data
+					$sql = 'DELETE FROM '.$table.' WHERE '.$matches[2].' = '.$matches[3].';'.$sql;
+				}
 			}
 			
 			// To avoid Encoding errors when inserting data coming from outside
@@ -313,6 +353,11 @@
 			// This will avoid modifications to anything following ' VALUES'
 			list($sql,$end) = explode( ' VALUES', $sql, 2);
 			$end = ' VALUES'.$end;
+			
+			// When installing, the sequence for table terms has to be updated
+			if( defined('WP_INSTALLING') && WP_INSTALLING && false !== strpos($sql, 'INSERT INTO `'.$wpdb->terms.'`'))
+				$end .= ';SELECT setval(\''.$wpdb->terms.'_seq\', (SELECT MAX(term_id) FROM '.$wpdb->terms.')+1);';
+			
 		} // INSERT
 		elseif( 0 === strpos( $sql, 'DELETE' ))
 		{
@@ -345,14 +390,14 @@
 			$sql = str_replace( 'OPTIMIZE TABLE', 'VACUUM', $sql);
 		}
 		// Handle 'SET NAMES ... COLLATE ...'
-		elseif( false !== strpos($sql, 'COLLATE'))
+		elseif( 0 === strpos($sql, 'SET NAMES') && false !== strpos($sql, 'COLLATE'))
 		{
 			$logto = 'SETNAMES';
 			$sql = "SET NAMES 'utf8'";
 		}
 		// Load up upgrade and install functions as required
 		$begin = substr( $sql, 0, 3);
-		$search = array( 'SHO', 'ALT', 'DES', 'CRE');
+		$search = array( 'SHO', 'ALT', 'DES', 'CRE', 'DRO');
 		if( in_array($begin, $search))
 		{
 			require_once( PG4WP_ROOT.'/driver_pgsql_install.php');
@@ -383,7 +428,7 @@
 				$sql = preg_replace($pattern, '( ID', $sql);
 			$pattern = '/,ID/';
 				$sql = preg_replace($pattern, ', ID', $sql);
-			$pattern = '/[a-zA-Z_]+ID/';
+			$pattern = '/[0-9a-zA-Z_]+ID/';
 				$sql = preg_replace($pattern, '"$0"', $sql);
 			$pattern = '/\.ID/';
 				$sql = preg_replace($pattern, '."ID"', $sql);
@@ -398,6 +443,9 @@
 		$sql = str_replace( 'IN ( \'\' )', 'IN (NULL)', $sql);
 		$sql = str_replace( 'IN ()', 'IN (NULL)', $sql);
 		
+		// Put back the end of the query if it was separated
+		$sql .= $end;
+		
 		// For insert ID catching
 		if( $logto == 'INSERT')
 		{
@@ -411,17 +459,24 @@
 				if(! $GLOBALS['pg4wp_ins_field'])
 					$GLOBALS['pg4wp_ins_field'] = trim($match_list[4],' ()	');
 			}
+			$GLOBALS['pg4wp_last_insert'] = $sql;
+		}
+		elseif( isset($GLOBALS['pg4wp_queued_query']))
+		{
+			pg_query($GLOBALS['pg4wp_queued_query']);
+			unset($GLOBALS['pg4wp_queued_query']);
 		}
 		
-		// Put back the end of the query if it was separated
-		$sql .= $end;
+		// Correct quoting for PostgreSQL 9.1+ compatibility
+		$sql = str_replace( "\\'", "''", $sql);
+		$sql = str_replace( '\"', '"', $sql);
 		
 		if( PG4WP_DEBUG)
 		{
 			if( $initial != $sql)
-				error_log("Converting :\n$initial\n---- to ----\n$sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_'.$logto.'.log');
+				error_log( '['.microtime(true)."] Converting :\n$initial\n---- to ----\n$sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_'.$logto.'.log');
 			else
-				error_log("$sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_unmodified.log');
+				error_log( '['.microtime(true)."] $sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_unmodified.log');
 		}
 		return $sql;
 	}

@@ -63,7 +63,6 @@ class MagpieRSS {
 		if ( !is_resource($parser) )
 			trigger_error( "Failed to create an instance of PHP's XML parser. http://www.php.net/manual/en/ref.xml.php");
 
-
 		$this->parser = $parser;
 
 		# pass in parser, and a reference to this object
@@ -167,7 +166,6 @@ class MagpieRSS {
 
 			$this->incontent = $el;
 
-
 		}
 
 		// if inside an Atom content construct (e.g. content or summary) field treat tags as text
@@ -205,8 +203,6 @@ class MagpieRSS {
 			array_unshift($this->stack, $el);
 		}
 	}
-
-
 
 	function feed_cdata ($p, $text) {
 
@@ -435,7 +431,6 @@ function fetch_rss ($url) {
 		if (MAGPIE_DEBUG and $cache->ERROR) {
 			debug($cache->ERROR, E_USER_WARNING);
 		}
-
 
 		$cache_status 	 = 0;		// response of check_cache
 		$request_headers = array(); // HTTP headers to send with fetch
@@ -935,5 +930,3 @@ function get_rss ($url, $num_items = 5) { // Like get posts, but for RSS
 	}
 }
 endif;
-
-?>

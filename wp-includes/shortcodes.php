@@ -235,7 +235,7 @@ function do_shortcode_tag( $m ) {
 		return $m[1] . call_user_func( $shortcode_tags[$tag], $attr, $m[5], $tag ) . $m[6];
 	} else {
 		// self-closing tag
-		return $m[1] . call_user_func( $shortcode_tags[$tag], $attr, NULL,  $tag ) . $m[6];
+		return $m[1] . call_user_func( $shortcode_tags[$tag], $attr, null,  $tag ) . $m[6];
 	}
 }
 
@@ -332,5 +332,3 @@ function strip_shortcode_tag( $m ) {
 }
 
 add_filter('the_content', 'do_shortcode', 11); // AFTER wpautop()
-
-?>

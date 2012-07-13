@@ -86,8 +86,8 @@ function wp_dashboard_setup() {
 	if ( !isset( $widget_options['dashboard_primary'] ) ) {
 		$update = true;
 		$widget_options['dashboard_primary'] = array(
-			'link' => apply_filters( 'dashboard_primary_link',  __( 'http://wordpress.org/news/' ) ),
-			'url' => apply_filters( 'dashboard_primary_feed',  __( 'http://wordpress.org/news/feed/' ) ),
+			'link' => apply_filters( 'dashboard_primary_link', __( 'http://wordpress.org/news/' ) ),
+			'url' => apply_filters( 'dashboard_primary_feed', __( 'http://wordpress.org/news/feed/' ) ),
 			'title' => apply_filters( 'dashboard_primary_title', __( 'WordPress Blog' ) ),
 			'items' => 2,
 			'show_summary' => 1,
@@ -101,8 +101,8 @@ function wp_dashboard_setup() {
 	if ( !isset( $widget_options['dashboard_secondary'] ) ) {
 		$update = true;
 		$widget_options['dashboard_secondary'] = array(
-			'link' => apply_filters( 'dashboard_secondary_link',  __( 'http://planet.wordpress.org/' ) ),
-			'url' => apply_filters( 'dashboard_secondary_feed',  __( 'http://planet.wordpress.org/feed/' ) ),
+			'link' => apply_filters( 'dashboard_secondary_link', __( 'http://planet.wordpress.org/' ) ),
+			'url' => apply_filters( 'dashboard_secondary_feed', __( 'http://planet.wordpress.org/feed/' ) ),
 			'title' => apply_filters( 'dashboard_secondary_title', __( 'Other WordPress News' ) ),
 			'items' => 5,
 			'show_summary' => 0,
@@ -193,54 +193,29 @@ function _wp_dashboard_control_callback( $dashboard, $meta_box ) {
  * @since 2.5.0
  */
 function wp_dashboard() {
-	global $screen_layout_columns;
-
 	$screen = get_current_screen();
+	$class = 'columns-' . get_current_screen()->get_columns();
 
-	$hide2 = $hide3 = $hide4 = '';
-	switch ( $screen_layout_columns ) {
-		case 4:
-			$width = 'width:25%;';
-			break;
-		case 3:
-			$width = 'width:33.333333%;';
-			$hide4 = 'display:none;';
-			break;
-		case 2:
-			$width = 'width:50%;';
-			$hide3 = $hide4 = 'display:none;';
-			break;
-		default:
-			$width = 'width:100%;';
-			$hide2 = $hide3 = $hide4 = 'display:none;';
-	}
 ?>
-<div id="dashboard-widgets" class="metabox-holder">
-<?php
-	echo "\t<div id='postbox-container-1' class='postbox-container' style='$width'>\n";
-	do_meta_boxes( $screen->id, 'normal', '' );
+<div id="dashboard-widgets" class="metabox-holder <?php echo $class; ?>">
+	<div id='postbox-container-1' class='postbox-container'>
+	<?php do_meta_boxes( $screen->id, 'normal', '' ); ?>
+	</div>
+	<div id='postbox-container-2' class='postbox-container'>
+	<?php do_meta_boxes( $screen->id, 'side', '' ); ?>
+	</div>
+	<div id='postbox-container-3' class='postbox-container'>
+	<?php do_meta_boxes( $screen->id, 'column3', '' ); ?>
+	</div>
+	<div id='postbox-container-4' class='postbox-container'>
+	<?php do_meta_boxes( $screen->id, 'column4', '' ); ?>
+	</div>
+</div>
 
-	echo "\t</div><div id='postbox-container-2' class='postbox-container' style='{$hide2}$width'>\n";
-	do_meta_boxes( $screen->id, 'side', '' );
-
-	echo "\t</div><div id='postbox-container-3' class='postbox-container' style='{$hide3}$width'>\n";
-	do_meta_boxes( $screen->id, 'column3', '' );
-
-	echo "\t</div><div id='postbox-container-4' class='postbox-container' style='{$hide4}$width'>\n";
-	do_meta_boxes( $screen->id, 'column4', '' );
-?>
-</div></div>
-
-<form style="display:none" method="get" action="">
-	<p>
 <?php
 	wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 	wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false );
-?>
-	</p>
-</form>
 
-<?php
 }
 
 /* Dashboard Widgets */
@@ -273,7 +248,7 @@ function wp_dashboard_right_now() {
 
 	echo '</tr><tr>';
 	/* TODO: Show status breakdown on hover
-	if ( $can_edit_pages && !empty($num_pages->publish) ) { // how many pages is not exposed in feeds.  Don't show if !current_user_can
+	if ( $can_edit_pages && !empty($num_pages->publish) ) { // how many pages is not exposed in feeds. Don't show if !current_user_can
 		$post_type_texts[] = '<a href="edit-pages.php">'.sprintf( _n( '%s page', '%s pages', $num_pages->publish ), number_format_i18n( $num_pages->publish ) ).'</a>';
 	}
 	if ( $can_edit_posts && !empty($num_posts->draft) ) {
@@ -326,7 +301,6 @@ function wp_dashboard_right_now() {
 	echo "</tr>";
 	do_action('right_now_content_table_end');
 	echo "\n\t</table>\n\t</div>";
-
 
 	echo "\n\t".'<div class="table table_discussion">';
 	echo "\n\t".'<p class="sub">' . __('Discussion') . '</p>'."\n\t".'<table>';
@@ -384,11 +358,11 @@ function wp_dashboard_right_now() {
 	echo "\n\t</table>\n\t</div>";
 
 	echo "\n\t".'<div class="versions">';
-	$ct = current_theme_info();
+	$theme = wp_get_theme();
 
 	echo "\n\t<p>";
 
-	if ( empty( $ct->stylesheet_dir ) ) {
+	if ( $theme->errors() ) {
 		if ( ! is_multisite() || is_super_admin() )
 			echo '<span class="error-message">' . __('ERROR: The themes directory is either empty or doesn&#8217;t exist. Please check your installation.') . '</span>';
 	} elseif ( ! empty($wp_registered_sidebars) ) {
@@ -402,7 +376,7 @@ function wp_dashboard_right_now() {
 		}
 		$num = number_format_i18n( $num_widgets );
 
-		$switch_themes = $ct->title;
+		$switch_themes = $theme->display('Name');
 		if ( current_user_can( 'switch_themes') )
 			$switch_themes = '<a href="themes.php">' . $switch_themes . '</a>';
 		if ( current_user_can( 'edit_theme_options' ) ) {
@@ -412,9 +386,9 @@ function wp_dashboard_right_now() {
 		}
 	} else {
 		if ( current_user_can( 'switch_themes' ) )
-			printf( __('Theme <span class="b"><a href="themes.php">%1$s</a></span>'), $ct->title );
+			printf( __('Theme <span class="b"><a href="themes.php">%1$s</a></span>'), $theme->display('Name') );
 		else
-			printf( __('Theme <span class="b">%1$s</span>'), $ct->title );
+			printf( __('Theme <span class="b">%1$s</span>'), $theme->display('Name') );
 	}
 	echo '</p>';
 
@@ -462,16 +436,16 @@ function wp_network_dashboard_right_now() {
 	<p class="youhave"><?php echo $sentence; ?></p>
 	<?php do_action( 'wpmuadminresult', '' ); ?>
 
-	<form name="searchform" action="<?php echo network_admin_url('users.php'); ?>" method="get">
+	<form action="<?php echo network_admin_url('users.php'); ?>" method="get">
 		<p>
-			<input type="text" name="s" value="" size="17" />
+			<input type="search" name="s" value="" size="30" autocomplete="off" />
 			<?php submit_button( __( 'Search Users' ), 'button', 'submit', false, array( 'id' => 'submit_users' ) ); ?>
 		</p>
 	</form>
 
-	<form name="searchform" action="<?php echo network_admin_url('sites.php'); ?>" method="get">
+	<form action="<?php echo network_admin_url('sites.php'); ?>" method="get">
 		<p>
-			<input type="text" name="s" value="" size="17" />
+			<input type="search" name="s" value="" size="30" autocomplete="off" />
 			<?php submit_button( __( 'Search Sites' ), 'button', 'submit', false, array( 'id' => 'submit_sites' ) ); ?>
 		</p>
 	</form>
@@ -615,11 +589,6 @@ function wp_dashboard_recent_drafts( $drafts = false ) {
 function wp_dashboard_recent_comments() {
 	global $wpdb;
 
-	if ( current_user_can('edit_posts') )
-		$allowed_states = array('0', '1');
-	else
-		$allowed_states = array('1');
-
 	// Select all comment types and filter out spam later for better query performance.
 	$comments = array();
 	$start = 0;
@@ -628,44 +597,36 @@ function wp_dashboard_recent_comments() {
 	$total_items = isset( $widgets['dashboard_recent_comments'] ) && isset( $widgets['dashboard_recent_comments']['items'] )
 		? absint( $widgets['dashboard_recent_comments']['items'] ) : 5;
 
-	while ( count( $comments ) < $total_items && $possible = $wpdb->get_results( "SELECT * FROM $wpdb->comments c LEFT JOIN $wpdb->posts p ON c.comment_post_ID = p.ID WHERE p.post_status != 'trash' ORDER BY c.comment_date_gmt DESC LIMIT $start, 50" ) ) {
+	$comments_query = array( 'number' => $total_items * 5, 'offset' => 0 );
+	if ( ! current_user_can( 'edit_posts' ) )
+		$comments_query['status'] = 'approve';
 
+	while ( count( $comments ) < $total_items && $possible = get_comments( $comments_query ) ) {
 		foreach ( $possible as $comment ) {
-			if ( count( $comments ) >= $total_items )
-				break;
-			if ( in_array( $comment->comment_approved, $allowed_states ) && current_user_can( 'read_post', $comment->comment_post_ID ) )
-				$comments[] = $comment;
+			if ( ! current_user_can( 'read_post', $comment->comment_post_ID ) )
+				continue;
+			$comments[] = $comment;
+			if ( count( $comments ) == $total_items )
+				break 2;
 		}
-
-		$start = $start + 50;
+		$comments_query['offset'] += $comments_query['number'];
+		$comments_query['number'] = $total_items * 10;
 	}
 
-	if ( $comments ) :
-?>
-
-		<div id="the-comment-list" class="list:comment">
-<?php
+	if ( $comments ) {
+		echo '<div id="the-comment-list" class="list:comment">';
 		foreach ( $comments as $comment )
 			_wp_dashboard_recent_comments_row( $comment );
-?>
+		echo '</div>';
 
-		</div>
-
-<?php
-		if ( current_user_can('edit_posts') ) { ?>
-			<?php _get_list_table('WP_Comments_List_Table')->views(); ?>
-<?php	}
+		if ( current_user_can('edit_posts') )
+			_get_list_table('WP_Comments_List_Table')->views();
 
 		wp_comment_reply( -1, false, 'dashboard', false );
 		wp_comment_trashnotice();
-
-	else :
-?>
-
-	<p><?php _e( 'No comments yet.' ); ?></p>
-
-<?php
-	endif; // $comments;
+	} else {
+		echo '<p>' . __( 'No comments yet.' ) . '</p>';
+	}
 }
 
 function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
@@ -700,7 +661,7 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 		$actions['unapprove'] = "<a href='$unapprove_url' class='dim:the-comment-list:comment-$comment->comment_ID:unapproved:e7e7d3:e7e7d3:new=unapproved vim-u' title='" . esc_attr__( 'Unapprove this comment' ) . "'>" . __( 'Unapprove' ) . '</a>';
 		$actions['edit'] = "<a href='comment.php?action=editcomment&amp;c={$comment->comment_ID}' title='" . esc_attr__('Edit comment') . "'>". __('Edit') . '</a>';
 		$actions['reply'] = '<a onclick="commentReply.open(\''.$comment->comment_ID.'\',\''.$comment->comment_post_ID.'\');return false;" class="vim-r hide-if-no-js" title="'.esc_attr__('Reply to this comment').'" href="#">' . __('Reply') . '</a>';
-		$actions['spam'] = "<a href='$spam_url' class='delete:the-comment-list:comment-$comment->comment_ID::spam=1 vim-s vim-destructive' title='" . esc_attr__( 'Mark this comment as spam' ) . "'>" . /* translators: mark as spam link */  _x( 'Spam', 'verb' ) . '</a>';
+		$actions['spam'] = "<a href='$spam_url' class='delete:the-comment-list:comment-$comment->comment_ID::spam=1 vim-s vim-destructive' title='" . esc_attr__( 'Mark this comment as spam' ) . "'>" . /* translators: mark as spam link */ _x( 'Spam', 'verb' ) . '</a>';
 		if ( !EMPTY_TRASH_DAYS )
 			$actions['delete'] = "<a href='$delete_url' class='delete:the-comment-list:comment-$comment->comment_ID::trash=1 delete vim-d vim-destructive'>" . __('Delete Permanently') . '</a>';
 		else
@@ -937,8 +898,7 @@ function wp_dashboard_secondary_output() {
 function wp_dashboard_plugins() {
 	wp_dashboard_cached_rss_widget( 'dashboard_plugins', 'wp_dashboard_plugins_output', array(
 		'http://wordpress.org/extend/plugins/rss/browse/popular/',
-		'http://wordpress.org/extend/plugins/rss/browse/new/',
-		'http://wordpress.org/extend/plugins/rss/browse/updated/'
+		'http://wordpress.org/extend/plugins/rss/browse/new/'
 	) );
 }
 
@@ -950,14 +910,13 @@ function wp_dashboard_plugins() {
 function wp_dashboard_plugins_output() {
 	$popular = fetch_feed( 'http://wordpress.org/extend/plugins/rss/browse/popular/' );
 	$new     = fetch_feed( 'http://wordpress.org/extend/plugins/rss/browse/new/' );
-	$updated = fetch_feed( 'http://wordpress.org/extend/plugins/rss/browse/updated/' );
 
 	if ( false === $plugin_slugs = get_transient( 'plugin_slugs' ) ) {
 		$plugin_slugs = array_keys( get_plugins() );
 		set_transient( 'plugin_slugs', $plugin_slugs, 86400 );
 	}
 
-	foreach ( array( 'popular' => __('Most Popular'), 'new' => __('Newest Plugins'), 'updated' => __('Recently Updated') ) as $feed => $label ) {
+	foreach ( array( 'popular' => __('Most Popular'), 'new' => __('Newest Plugins') ) as $feed => $label ) {
 		if ( is_wp_error($$feed) || !$$feed->get_item_quantity() )
 			continue;
 
@@ -1115,7 +1074,7 @@ function wp_dashboard_rss_control( $widget_id, $form_inputs = array() ) {
 	if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset($_POST['widget-rss'][$number]) ) {
 		$_POST['widget-rss'][$number] = stripslashes_deep( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id] = wp_widget_rss_process( $_POST['widget-rss'][$number] );
-		// title is optional.  If black, fill it if possible
+		// title is optional. If black, fill it if possible
 		if ( !$widget_options[$widget_id]['title'] && isset($_POST['widget-rss'][$number]['title']) ) {
 			$rss = fetch_feed($widget_options[$widget_id]['url']);
 			if ( is_wp_error($rss) ) {
@@ -1193,7 +1152,13 @@ function wp_dashboard_browser_nag() {
 			$browser_nag_class = ' has-browser-icon';
 		}
 		$notice .= "<p class='browser-update-nag{$browser_nag_class}'>{$msg}</p>";
-		$notice .= '<p>' . sprintf( __( '<a href="%1$s" class="update-browser-link">Update %2$s</a> or learn how to <a href="%3$s" class="browse-happy-link">browse happy</a>' ), esc_attr( $response['update_url'] ), esc_html( $response['name'] ), 'http://browsehappy.com/' ) . '</p>';
+
+		$browsehappy = 'http://browsehappy.com/';
+		$locale = get_locale();
+		if ( 'en_US' !== $locale )
+			$browsehappy = add_query_arg( 'locale', $locale, $browsehappy );
+
+		$notice .= '<p>' . sprintf( __( '<a href="%1$s" class="update-browser-link">Update %2$s</a> or learn how to <a href="%3$s" class="browse-happy-link">browse happy</a>' ), esc_attr( $response['update_url'] ), esc_html( $response['name'] ), esc_url( $browsehappy ) ) . '</p>';
 		$notice .= '<p class="hide-if-no-js"><a href="" class="dismiss">' . __( 'Dismiss' ) . '</a></p>';
 		$notice .= '<div class="clear"></div>';
 	}
@@ -1228,7 +1193,7 @@ function wp_check_browser_version() {
 
 		$options = array(
 			'body'			=> array( 'useragent' => $_SERVER['HTTP_USER_AGENT'] ),
-			'user-agent'	=> 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
+			'user-agent'	=> 'WordPress/' . $wp_version . '; ' . home_url()
 		);
 
 		$response = wp_remote_post( 'http://api.wordpress.org/core/browse-happy/1.0/', $options );
@@ -1247,9 +1212,9 @@ function wp_check_browser_version() {
 		 *  'img_src' - string - An image representing the browser
 		 *  'img_src_ssl' - string - An image (over SSL) representing the browser
 		 */
-		$response = unserialize( wp_remote_retrieve_body( $response ) );
+		$response = maybe_unserialize( wp_remote_retrieve_body( $response ) );
 
-		if ( ! $response )
+		if ( ! is_array( $response ) )
 			return false;
 
 		set_site_transient( 'browser_' . $key, $response, 604800 ); // cache for 1 week
@@ -1266,7 +1231,7 @@ function wp_dashboard_empty() {}
 /**
  * Displays a welcome panel to introduce users to WordPress.
  *
- * @since 3.3
+ * @since 3.3.0
  */
 function wp_welcome_panel() {
 	global $wp_version;
@@ -1290,7 +1255,7 @@ function wp_welcome_panel() {
 	<div class="wp-badge"><?php printf( __( 'Version %s' ), $display_version ); ?></div>
 
 	<div class="welcome-panel-content">
-	<h3><?php _e( 'Welcome to your new WordPress site! ' ); ?></h3>
+	<h3><?php _e( 'Welcome to your new WordPress site!' ); ?></h3>
 	<p class="about-description"><?php _e( 'If you need help getting started, check out our documentation on <a href="http://codex.wordpress.org/First_Steps_With_WordPress">First Steps with WordPress</a>. If you&#8217;d rather dive right in, here are a few things most people do first when they set up a new WordPress site. If you need help, use the Help tabs in the upper right corner to get information on how to use your current screen and where to go for more assistance.' ); ?></p>
 	<div class="welcome-panel-column-container">
 	<div class="welcome-panel-column">
@@ -1316,14 +1281,14 @@ function wp_welcome_panel() {
 	<div class="welcome-panel-column welcome-panel-last">
 		<h4><span class="icon16 icon-appearance"></span> <?php _e( 'Customize Your Site' ); ?></h4>
 		<?php
-		$ct = current_theme_info();
-		if ( empty ( $ct->stylesheet_dir ) ) :
+		$theme = wp_get_theme();
+		if ( $theme->errors() ) :
 			echo '<p>';
 			printf( __( '<a href="%s">Install a theme</a> to get started customizing your site.' ), esc_url( admin_url( 'themes.php' ) ) );
 			echo '</p>';
 		else:
 			$customize_links = array();
-			if ( 'twentyeleven' == $ct->stylesheet )
+			if ( 'twentyeleven' == $theme->get_stylesheet() )
 				$customize_links[] = sprintf( __( '<a href="%s">Choose light or dark</a>' ), esc_url( admin_url( 'themes.php?page=theme_options' ) ) );
 
 			if ( current_theme_supports( 'custom-background' ) )
@@ -1337,7 +1302,7 @@ function wp_welcome_panel() {
 
 			if ( ! empty( $customize_links ) ) {
 				echo '<p>';
-				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>. If you stick with %3$s, here are a few ways to make your site look unique.' ), $ct->title, esc_url( admin_url( 'themes.php' ) ), $ct->title );
+				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>. If you stick with %1$s, here are a few ways to make your site look unique.' ), $theme->display('Name'), esc_url( admin_url( 'themes.php' ) ) );
 				echo '</p>';
 			?>
 			<ul>
@@ -1348,7 +1313,7 @@ function wp_welcome_panel() {
 			<?php
 			} else {
 				echo '<p>';
-				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>.' ), $ct->title, esc_url( admin_url( 'themes.php' ) ) );
+				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>.' ), $theme->display('Name'), esc_url( admin_url( 'themes.php' ) ) );
 				echo '</p>';
 			}
 		endif; ?>
@@ -1359,5 +1324,3 @@ function wp_welcome_panel() {
 	</div>
 	<?php
 }
-
-?>

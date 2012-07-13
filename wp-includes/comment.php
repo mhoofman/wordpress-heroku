@@ -394,7 +394,6 @@ function get_comment_statuses( ) {
 	return $status;
 }
 
-
 /**
  * The date the last comment was modified.
  *
@@ -539,12 +538,12 @@ function delete_comment_meta($comment_id, $meta_key, $meta_value = '') {
  * @link http://codex.wordpress.org/Function_Reference/get_comment_meta
  *
  * @param int $comment_id Comment ID.
- * @param string $key The meta key to retrieve.
+ * @param string $key Optional. The meta key to retrieve. By default, returns data for all keys.
  * @param bool $single Whether to return a single value.
  * @return mixed Will be an array if $single is false. Will be value of meta data field if $single
  *  is true.
  */
-function get_comment_meta($comment_id, $key, $single = false) {
+function get_comment_meta($comment_id, $key = '', $single = false) {
 	return get_metadata('comment', $comment_id, $key, $single);
 }
 
@@ -568,6 +567,25 @@ function get_comment_meta($comment_id, $key, $single = false) {
  */
 function update_comment_meta($comment_id, $meta_key, $meta_value, $prev_value = '') {
 	return update_metadata('comment', $comment_id, $meta_key, $meta_value, $prev_value);
+}
+
+/**
+ * Sets the cookies used to store an unauthenticated commentator's identity. Typically used
+ * to recall previous comments by this commentator that are still held in moderation.
+ *
+ * @param object $comment Comment object.
+ * @param object $user Comment author's object.
+ *
+ * @since 3.4.0
+ */
+function wp_set_comment_cookies($comment, $user) {
+	if ( $user->exists() )
+		return;
+
+	$comment_cookie_lifetime = apply_filters('comment_cookie_lifetime', 30000000);
+	setcookie('comment_author_' . COOKIEHASH, $comment->comment_author, time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN);
+	setcookie('comment_author_email_' . COOKIEHASH, $comment->comment_author_email, time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN);
+	setcookie('comment_author_url_' . COOKIEHASH, esc_url($comment->comment_author_url), time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN);
 }
 
 /**
@@ -685,9 +703,9 @@ function check_comment_flood_db( $ip, $email, $date ) {
 			do_action('comment_flood_trigger', $time_lastcomment, $time_newcomment);
 
 			if ( defined('DOING_AJAX') )
-				die( __('You are posting comments too quickly.  Slow down.') );
+				die( __('You are posting comments too quickly. Slow down.') );
 
-			wp_die( __('You are posting comments too quickly.  Slow down.'), '', array('response' => 403) );
+			wp_die( __('You are posting comments too quickly. Slow down.'), '', array('response' => 403) );
 		}
 	}
 }
@@ -723,7 +741,7 @@ function &separate_comments(&$comments) {
  * @uses get_option() Used to fill in defaults for parameters.
  * @uses Walker_Comment
  *
- * @param array $comments Optional array of comment objects.  Defaults to $wp_query->comments
+ * @param array $comments Optional array of comment objects. Defaults to $wp_query->comments
  * @param int $per_page Optional comments per page.
  * @param boolean $threaded Optional control over flat or threaded comments.
  * @return int Number of comment pages.
@@ -962,15 +980,11 @@ function wp_delete_comment($comment_id, $force_delete = false) {
 	}
 
 	// Delete metadata
-	$meta_ids = $wpdb->get_col( $wpdb->prepare( "SELECT meta_id FROM $wpdb->commentmeta WHERE comment_id = %d ", $comment_id ) );
-	if ( !empty($meta_ids) ) {
-		do_action( 'delete_commentmeta', $meta_ids );
-		$in_meta_ids = "'" . implode("', '", $meta_ids) . "'";
-		$wpdb->query( "DELETE FROM $wpdb->commentmeta WHERE meta_id IN ($in_meta_ids)" );
-		do_action( 'deleted_commentmeta', $meta_ids );
-	}
+	$meta_ids = $wpdb->get_col( $wpdb->prepare( "SELECT meta_id FROM $wpdb->commentmeta WHERE comment_id = %d", $comment_id ) );
+	foreach ( $meta_ids as $mid )
+		delete_metadata_by_mid( 'comment', $mid );
 
-	if ( ! $wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments WHERE comment_ID = %d LIMIT 1", $comment_id) ) )
+	if ( ! $wpdb->delete( $wpdb->comments, array( 'comment_ID' => $comment_id ) ) )
 		return false;
 	do_action('deleted_comment', $comment_id);
 
@@ -1116,7 +1130,7 @@ function wp_get_comment_status($comment_id) {
 
 	$approved = $comment->comment_approved;
 
-	if ( $approved == NULL )
+	if ( $approved == null )
 		return false;
 	elseif ( $approved == '1' )
 		return 'approved';
@@ -1364,17 +1378,14 @@ function wp_new_comment( $commentdata ) {
 /**
  * Sets the status of a comment.
  *
- * The 'wp_set_comment_status' action is called after the comment is handled and
- * will only be called, if the comment status is either 'hold', 'approve', or
- * 'spam'. If the comment status is not in the list, then false is returned and
- * if the status is 'delete', then the comment is deleted without calling the
- * action.
+ * The 'wp_set_comment_status' action is called after the comment is handled.
+ * If the comment status is not in the list, then false is returned.
  *
  * @since 1.0.0
  * @uses wp_transition_comment_status() Passes new and old comment status along with $comment object
  *
  * @param int $comment_id Comment ID.
- * @param string $comment_status New comment status, either 'hold', 'approve', 'spam', or 'delete'.
+ * @param string $comment_status New comment status, either 'hold', 'approve', 'spam', or 'trash'.
  * @param bool $wp_error Whether to return a WP_Error object if there is a failure. Default is false.
  * @return bool False on failure or deletion and true on success.
  */
@@ -1568,10 +1579,7 @@ function wp_update_comment_count_now($post_id) {
 	$new = (int) $wpdb->get_var( $wpdb->prepare("SELECT COUNT(*) FROM $wpdb->comments WHERE comment_post_ID = %d AND comment_approved = '1'", $post_id) );
 	$wpdb->update( $wpdb->posts, array('comment_count' => $new), array('ID' => $post_id) );
 
-	if ( 'page' == $post->post_type )
-		clean_page_cache( $post_id );
-	else
-		clean_post_cache( $post_id );
+	clean_post_cache( $post );
 
 	do_action('wp_update_comment_count', $post_id, $new, $old);
 	do_action('edit_post', $post_id, $post);
@@ -1801,7 +1809,7 @@ function pingback($content, $post_ID) {
 		endif;
 	endforeach;
 
-	do_action_ref_array('pre_ping', array(&$post_links, &$pung));
+	do_action_ref_array( 'pre_ping', array( &$post_links, &$pung, $post_ID ) );
 
 	foreach ( (array) $post_links as $pagelinkedto ) {
 		$pingback_server_url = discover_pingback_server_uri( $pagelinkedto );
@@ -1947,7 +1955,7 @@ function update_comment_cache($comments) {
 //
 
 /**
- * Close comments on old posts on the fly, without any extra DB queries.  Hooked to the_posts.
+ * Close comments on old posts on the fly, without any extra DB queries. Hooked to the_posts.
  *
  * @access private
  * @since 2.7.0
@@ -1977,7 +1985,7 @@ function _close_comments_for_old_posts( $posts, $query ) {
 }
 
 /**
- * Close comments on an old post.  Hooked to comments_open and pings_open.
+ * Close comments on an old post. Hooked to comments_open and pings_open.
  *
  * @access private
  * @since 2.7.0
@@ -2008,5 +2016,3 @@ function _close_comments_for_old_post( $open, $post_id ) {
 
 	return $open;
 }
-
-?>

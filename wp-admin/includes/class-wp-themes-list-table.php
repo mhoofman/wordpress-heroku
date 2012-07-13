@@ -9,59 +9,55 @@
  */
 class WP_Themes_List_Table extends WP_List_Table {
 
-	var $search = array();
+	protected $search_terms = array();
 	var $features = array();
+
+	function __construct() {
+		parent::__construct( array(
+			'ajax' => true,
+		) );
+	}
 
 	function ajax_user_can() {
 		// Do not check edit_theme_options here. AJAX calls for available themes require switch_themes.
-		return current_user_can('switch_themes');
+		return current_user_can( 'switch_themes' );
 	}
 
 	function prepare_items() {
-		global $ct;
+		$themes = wp_get_themes( array( 'allowed' => true ) );
 
-		$ct = current_theme_info();
+		if ( ! empty( $_REQUEST['s'] ) )
+			$this->search_terms = array_unique( array_filter( array_map( 'trim', explode( ',', strtolower( stripslashes( $_REQUEST['s'] ) ) ) ) ) );
 
-		$themes = get_allowed_themes();
-
-		if ( ! empty( $_REQUEST['s'] ) ) {
-			$search = strtolower( stripslashes( $_REQUEST['s'] ) );
-			$this->search = array_merge( $this->search, array_filter( array_map( 'trim', explode( ',', $search ) ) ) );
-			$this->search = array_unique( $this->search );
-		}
-
-		if ( !empty( $_REQUEST['features'] ) ) {
+		if ( ! empty( $_REQUEST['features'] ) )
 			$this->features = $_REQUEST['features'];
-			$this->features = array_map( 'trim', $this->features );
-			$this->features = array_map( 'sanitize_title_with_dashes', $this->features );
-			$this->features = array_unique( $this->features );
-		}
 
-		if ( $this->search || $this->features ) {
+		if ( $this->search_terms || $this->features ) {
 			foreach ( $themes as $key => $theme ) {
-				if ( !$this->search_theme( $theme ) )
+				if ( ! $this->search_theme( $theme ) )
 					unset( $themes[ $key ] );
 			}
 		}
 
-		unset( $themes[$ct->name] );
-		uksort( $themes, "strnatcasecmp" );
+		unset( $themes[ get_option( 'stylesheet' ) ] );
+		WP_Theme::sort_by_name( $themes );
 
-		$per_page = 24;
+		$per_page = 999;
 		$page = $this->get_pagenum();
 
 		$start = ( $page - 1 ) * $per_page;
 
-		$this->items = array_slice( $themes, $start, $per_page );
+		$this->items = array_slice( $themes, $start, $per_page, true );
 
 		$this->set_pagination_args( array(
 			'total_items' => count( $themes ),
 			'per_page' => $per_page,
+			'infinite_scroll' => true,
 		) );
 	}
 
 	function no_items() {
-		if ( $this->search || $this->features ) {
+		if ( $this->search_terms || $this->features ) {
 			_e( 'No items found.' );
 			return;
 		}
@@ -101,7 +97,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 	}
 
 	function display() {
-		// wp_nonce_field( "fetch-list-" . get_class( $this ), '_ajax_fetch_list_nonce' );
+		wp_nonce_field( "fetch-list-" . get_class( $this ), '_ajax_fetch_list_nonce' );
 ?>
 		<?php $this->tablenav( 'top' ); ?>
 
@@ -119,104 +115,142 @@ class WP_Themes_List_Table extends WP_List_Table {
 
 	function display_rows() {
 		$themes = $this->items;
-		$theme_names = array_keys( $themes );
-		natcasesort( $theme_names );
 
-	foreach ( $theme_names as $theme_name ) {
-		$class = array( 'available-theme' );
-	?>
-	<div class="<?php echo join( ' ', $class ); ?>">
-	<?php if ( !empty( $theme_name ) ) :
-	$template = $themes[$theme_name]['Template'];
-	$stylesheet = $themes[$theme_name]['Stylesheet'];
-	$title = $themes[$theme_name]['Title'];
-	$version = $themes[$theme_name]['Version'];
-	$description = $themes[$theme_name]['Description'];
-	$author = $themes[$theme_name]['Author'];
-	$screenshot = $themes[$theme_name]['Screenshot'];
-	$stylesheet_dir = $themes[$theme_name]['Stylesheet Dir'];
-	$template_dir = $themes[$theme_name]['Template Dir'];
-	$parent_theme = $themes[$theme_name]['Parent Theme'];
-	$theme_root = $themes[$theme_name]['Theme Root'];
-	$theme_root_uri = $themes[$theme_name]['Theme Root URI'];
-	$preview_link = esc_url( get_option( 'home' ) . '/' );
-	if ( is_ssl() )
-		$preview_link = str_replace( 'http://', 'https://', $preview_link );
-	$preview_link = htmlspecialchars( add_query_arg( array( 'preview' => 1, 'template' => $template, 'stylesheet' => $stylesheet, 'preview_iframe' => true, 'TB_iframe' => 'true' ), $preview_link ) );
-	$preview_text = esc_attr( sprintf( __( 'Preview of &#8220;%s&#8221;' ), $title ) );
-	$tags = $themes[$theme_name]['Tags'];
-	$thickbox_class = 'thickbox thickbox-preview';
-	$activate_link = wp_nonce_url( "themes.php?action=activate&amp;template=".urlencode( $template )."&amp;stylesheet=".urlencode( $stylesheet ), 'switch-theme_' . $template );
-	$activate_text = esc_attr( sprintf( __( 'Activate &#8220;%s&#8221;' ), $title ) );
-	$actions = array();
-	$actions[] = '<a href="' . $activate_link .  '" class="activatelink" title="' . $activate_text . '">' . __( 'Activate' ) . '</a>';
-	$actions[] = '<a href="' . $preview_link . '" class="thickbox thickbox-preview" title="' . esc_attr( sprintf( __( 'Preview &#8220;%s&#8221;' ), $theme_name ) ) . '">' . __( 'Preview' ) . '</a>';
-	if ( ! is_multisite() && current_user_can( 'delete_themes' ) )
-		$actions[] = '<a class="submitdelete deletion" href="' . wp_nonce_url( "themes.php?action=delete&amp;template=$stylesheet", 'delete-theme_' . $stylesheet ) . '" onclick="' . "return confirm( '" . esc_js( sprintf( __( "You are about to delete this theme '%s'\n  'Cancel' to stop, 'OK' to delete." ), $theme_name ) ) . "' );" . '">' . __( 'Delete' ) . '</a>';
-	$actions = apply_filters( 'theme_action_links', $actions, $themes[$theme_name] );
+		foreach ( $themes as $theme ):
+			?><div class="available-theme"><?php
 
-	$actions = implode ( ' | ', $actions );
-?>
-		<a href="<?php echo $preview_link; ?>" class="<?php echo $thickbox_class; ?> screenshot">
-<?php if ( $screenshot ) : ?>
-			<img src="<?php echo $theme_root_uri . '/' . $stylesheet . '/' . $screenshot; ?>" alt="" />
-<?php endif; ?>
-		</a>
-<h3><?php
-	/* translators: 1: theme title, 2: theme version, 3: theme author */
-	printf( __( '%1$s %2$s by %3$s' ), $title, $version, $author ) ; ?></h3>
-<p class="description"><?php echo $description; ?></p>
-<span class='action-links'><?php echo $actions ?></span>
-	<?php if ( current_user_can( 'edit_themes' ) && $parent_theme ) {
-	/* translators: 1: theme title, 2:  template dir, 3: stylesheet_dir, 4: theme title, 5: parent_theme */ ?>
-	<p><?php printf( __( 'The template files are located in <code>%2$s</code>. The stylesheet files are located in <code>%3$s</code>. <strong>%4$s</strong> uses templates from <strong>%5$s</strong>. Changes made to the templates will affect both themes.' ), $title, str_replace( WP_CONTENT_DIR, '', $template_dir ), str_replace( WP_CONTENT_DIR, '', $stylesheet_dir ), $title, $parent_theme ); ?></p>
-<?php } else { ?>
-	<p><?php printf( __( 'All of this theme&#8217;s files are located in <code>%2$s</code>.' ), $title, str_replace( WP_CONTENT_DIR, '', $template_dir ), str_replace( WP_CONTENT_DIR, '', $stylesheet_dir ) ); ?></p>
-<?php } ?>
-<?php if ( $tags ) : ?>
-<p><?php _e( 'Tags:' ); ?> <?php echo join( ', ', $tags ); ?></p>
-<?php endif; ?>
-		<?php theme_update_available( $themes[$theme_name] ); ?>
-<?php endif; // end if not empty theme_name ?>
-	</div>
-<?php } // end foreach $theme_names
+			$template   = $theme->get_template();
+			$stylesheet = $theme->get_stylesheet();
+			$title      = $theme->display('Name');
+			$version    = $theme->display('Version');
+			$author     = $theme->display('Author');
+
+			$activate_link = wp_nonce_url( "themes.php?action=activate&amp;template=" . urlencode( $template ) . "&amp;stylesheet=" . urlencode( $stylesheet ), 'switch-theme_' . $stylesheet );
+
+			$preview_link = esc_url( add_query_arg(
+				array( 'preview' => 1, 'template' => $template, 'stylesheet' => $stylesheet, 'preview_iframe' => true, 'TB_iframe' => 'true' ),
+				home_url( '/' ) ) );
+
+			$actions = array();
+			$actions['activate'] = '<a href="' . $activate_link . '" class="activatelink" title="'
+				. esc_attr( sprintf( __( 'Activate &#8220;%s&#8221;' ), $title ) ) . '">' . __( 'Activate' ) . '</a>';
+
+			$actions['preview'] = '<a href="' . $preview_link . '" class="hide-if-customize" title="'
+				. esc_attr( sprintf( __( 'Preview &#8220;%s&#8221;' ), $title ) ) . '">' . __( 'Preview' ) . '</a>';
+
+			if ( current_user_can( 'edit_theme_options' ) )
+				$actions['preview'] .= '<a href="' . wp_customize_url( $stylesheet ) . '" class="load-customize hide-if-no-customize">'
+					. __( 'Live Preview' ) . '</a>';
+
+			if ( ! is_multisite() && current_user_can( 'delete_themes' ) )
+				$actions['delete'] = '<a class="submitdelete deletion" href="' . wp_nonce_url( "themes.php?action=delete&amp;stylesheet=$stylesheet", 'delete-theme_' . $stylesheet )
+					. '" onclick="' . "return confirm( '" . esc_js( sprintf( __( "You are about to delete this theme '%s'\n  'Cancel' to stop, 'OK' to delete." ), $title ) )
+					. "' );" . '">' . __( 'Delete' ) . '</a>';
+
+			$actions       = apply_filters( 'theme_action_links', $actions, $theme );
+			$delete_action = isset( $actions['delete'] ) ? '<div class="delete-theme">' . $actions['delete'] . '</div>' : '';
+			unset( $actions['delete'] );
+
+			?>
+
+			<a href="<?php echo $preview_link; ?>" class="screenshot hide-if-customize">
+				<?php if ( $screenshot = $theme->get_screenshot() ) : ?>
+					<img src="<?php echo esc_url( $screenshot ); ?>" alt="" />
+				<?php endif; ?>
+			</a>
+			<a href="<?php echo wp_customize_url( $stylesheet ); ?>" class="screenshot load-customize hide-if-no-customize">
+				<?php if ( $screenshot = $theme->get_screenshot() ) : ?>
+					<img src="<?php echo esc_url( $screenshot ); ?>" alt="" />
+				<?php endif; ?>
+			</a>
+
+			<h3><?php echo $title; ?></h3>
+			<div class="theme-author"><?php printf( __( 'By %s' ), $author ); ?></div>
+			<div class="action-links">
+				<ul>
+					<?php foreach ( $actions as $action ): ?>
+						<li><?php echo $action; ?></li>
+					<?php endforeach; ?>
+					<li class="hide-if-no-js"><a href="#" class="theme-detail" tabindex='4'><?php _e('Details') ?></a></li>
+				</ul>
+				<?php echo $delete_action; ?>
+
+				<?php theme_update_available( $theme ); ?>
+			</div>
+
+			<div class="themedetaildiv hide-if-js">
+				<p><strong><?php _e('Version: '); ?></strong><?php echo $version; ?></p>
+				<p><?php echo $theme->display('Description'); ?></p>
+				<?php if ( current_user_can( 'edit_themes' ) && $theme->parent() ) :
+					/* translators: 1: theme title, 2:  template dir, 3: stylesheet_dir, 4: theme title, 5: parent_theme */ ?>
+					<p><?php printf( __( 'The template files are located in <code>%2$s</code>. The stylesheet files are located in <code>%3$s</code>. <strong>%4$s</strong> uses templates from <strong>%5$s</strong>. Changes made to the templates will affect both themes.' ),
+						$title, str_replace( WP_CONTENT_DIR, '', $theme->get_template_directory() ), str_replace( WP_CONTENT_DIR, '', $theme->get_stylesheet_directory() ), $title, $theme->parent()->display('Name') ); ?></p>
+				<?php else :
+						/* translators: 1: theme title, 2:  template dir, 3: stylesheet_dir */ ?>
+					<p><?php printf( __( 'All of this theme&#8217;s files are located in <code>%2$s</code>.' ),
+						$title, str_replace( WP_CONTENT_DIR, '', $theme->get_template_directory() ), str_replace( WP_CONTENT_DIR, '', $theme->get_stylesheet_directory() ) ); ?></p>
+				<?php endif; ?>
+			</div>
+
+			</div>
+		<?php
+		endforeach;
 	}
 
 	function search_theme( $theme ) {
-		$matched = 0;
+		// Search the features
+		foreach ( $this->features as $word ) {
+			if ( ! in_array( $word, $theme->get('Tags') ) )
+				return false;
+		}
 
 		// Match all phrases
-		if ( count( $this->search ) > 0 ) {
-			foreach ( $this->search as $word ) {
-				$matched = 0;
+		foreach ( $this->search_terms as $word ) {
+			if ( in_array( $word, $theme->get('Tags') ) )
+				continue;
 
-				// In a tag?
-				if ( in_array( $word, array_map( 'sanitize_title_with_dashes', $theme['Tags'] ) ) )
-					$matched = 1;
-
-				// In one of the fields?
-				foreach ( array( 'Name', 'Title', 'Description', 'Author', 'Template', 'Stylesheet' ) AS $field ) {
-					if ( stripos( $theme[$field], $word ) !== false )
-						$matched++;
-				}
-
-				if ( $matched == 0 )
-					return false;
+			foreach ( array( 'Name', 'Description', 'Author', 'AuthorURI' ) as $header ) {
+				// Don't mark up; Do translate.
+				if ( false !== stripos( $theme->display( $header, false, true ), $word ) )
+					continue 2;
 			}
+
+			if ( false !== stripos( $theme->get_stylesheet(), $word ) )
+				continue;
+
+			if ( false !== stripos( $theme->get_template(), $word ) )
+				continue;
+
+			return false;
 		}
 
-		// Now search the features
-		if ( count( $this->features ) > 0 ) {
-			foreach ( $this->features as $word ) {
-				// In a tag?
-				if ( !in_array( $word, array_map( 'sanitize_title_with_dashes', $theme['Tags'] ) ) )
-					return false;
-			}
-		}
-
-		// Only get here if each word exists in the tags or one of the fields
 		return true;
 	}
-}
 
-?>
+	/**
+	 * Send required variables to JavaScript land
+	 *
+	 * @since 3.4
+	 * @access private
+	 *
+	 * @uses $this->features Array of all feature search terms.
+	 * @uses get_pagenum()
+	 * @uses _pagination_args['total_pages']
+	 */
+	 function _js_vars( $extra_args = array() ) {
+		$search_string = isset( $_REQUEST['s'] ) ? esc_attr( stripslashes( $_REQUEST['s'] ) ) : '';
+
+		$args = array(
+			'search' => $search_string,
+			'features' => $this->features,
+			'paged' => $this->get_pagenum(),
+			'total_pages' => ! empty( $this->_pagination_args['total_pages'] ) ? $this->_pagination_args['total_pages'] : 1,
+		);
+
+		if ( is_array( $extra_args ) )
+			$args = array_merge( $args, $extra_args );
+
+		printf( "<script type='text/javascript'>var theme_list_args = %s;</script>\n", json_encode( $args ) );
+		parent::_js_vars();
+	}
+}

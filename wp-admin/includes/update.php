@@ -142,7 +142,7 @@ function update_right_now_message() {
 	if ( current_user_can('update_core') ) {
 		$cur = get_preferred_from_update_core();
 
-		if ( isset( $cur->response ) && $cur->response == 'upgrade'  )
+		if ( isset( $cur->response ) && $cur->response == 'upgrade' )
 			$msg .= " <a href='" . network_admin_url( 'update-core.php' ) . "' class='button'>" . sprintf( __('Update to %s'), $cur->current ? $cur->current : __( 'Latest' ) ) . '</a>';
 	}
 
@@ -187,7 +187,7 @@ function wp_plugin_update_row( $file, $plugin_data ) {
 	$plugins_allowedtags = array('a' => array('href' => array(),'title' => array()),'abbr' => array('title' => array()),'acronym' => array('title' => array()),'code' => array(),'em' => array(),'strong' => array());
 	$plugin_name = wp_kses( $plugin_data['Name'], $plugins_allowedtags );
 
-	$details_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $r->slug . '&TB_iframe=true&width=600&height=800');
+	$details_url = self_admin_url('plugin-install.php?tab=plugin-information&plugin=' . $r->slug . '&section=changelog&TB_iframe=true&width=600&height=800');
 
 	$wp_list_table = _get_list_table('WP_Plugins_List_Table');
 
@@ -199,7 +199,7 @@ function wp_plugin_update_row( $file, $plugin_data ) {
 		else if ( empty($r->package) )
 			printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>. <em>Automatic update is unavailable for this plugin.</em>'), $plugin_name, esc_url($details_url), esc_attr($plugin_name), $r->new_version );
 		else
-			printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a> or <a href="%5$s">update automatically</a>.'), $plugin_name, esc_url($details_url), esc_attr($plugin_name), $r->new_version, wp_nonce_url( self_admin_url('update.php?action=upgrade-plugin&plugin=') . $file, 'upgrade-plugin_' . $file) );
+			printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a> or <a href="%5$s">update now</a>.'), $plugin_name, esc_url($details_url), esc_attr($plugin_name), $r->new_version, wp_nonce_url( self_admin_url('update.php?action=upgrade-plugin&plugin=') . $file, 'upgrade-plugin_' . $file) );
 
 		do_action( "in_plugin_update_message-$file", $plugin_data, $r );
 
@@ -217,16 +217,16 @@ function wp_update_plugin($plugin, $feedback = '') {
 }
 
 function get_theme_updates() {
-	$themes = get_themes();
+	$themes = wp_get_themes();
 	$current = get_site_transient('update_themes');
-	$update_themes = array();
 
-	foreach ( $themes as $theme ) {
-		$theme = (object) $theme;
-		if ( isset($current->response[ $theme->Stylesheet ]) ) {
-			$update_themes[$theme->Stylesheet] = $theme;
-			$update_themes[$theme->Stylesheet]->update = $current->response[ $theme->Stylesheet ];
-		}
+	if ( ! isset( $current->response ) )
+		return array();
+
+	$update_themes = array();
+	foreach ( $current->response as $stylesheet => $data ) {
+		$update_themes[ $stylesheet ] = wp_get_theme( $stylesheet );
+		$update_themes[ $stylesheet ]->update = $data;
 	}
 
 	return $update_themes;
@@ -272,9 +272,9 @@ function wp_theme_update_row( $theme_key, $theme ) {
 	if ( ! current_user_can('update_themes') )
 		printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>.'), $theme['Name'], esc_url($details_url), esc_attr($theme['Name']), $r->new_version );
 	else if ( empty( $r['package'] ) )
-		printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>. <em>Automatic update is unavailable for this plugin.</em>'), $theme['Name'], esc_url($details_url), esc_attr($theme['Name']), $r['new_version'] );
+		printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>. <em>Automatic update is unavailable for this theme.</em>'), $theme['Name'], esc_url($details_url), esc_attr($theme['Name']), $r['new_version'] );
 	else
-		printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a> or <a href="%5$s">update automatically</a>.'), $theme['Name'], esc_url($details_url), esc_attr($theme['Name']), $r['new_version'], wp_nonce_url( self_admin_url('update.php?action=upgrade-theme&theme=') . $theme_key, 'upgrade-theme_' . $theme_key) );
+		printf( __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a> or <a href="%5$s">update now</a>.'), $theme['Name'], esc_url($details_url), esc_attr($theme['Name']), $r['new_version'], wp_nonce_url( self_admin_url('update.php?action=upgrade-theme&theme=') . $theme_key, 'upgrade-theme_' . $theme_key) );
 
 	do_action( "in_theme_update_message-$theme_key", $theme, $r );
 
@@ -304,5 +304,3 @@ function maintenance_nag() {
 	echo "<div class='update-nag'>$msg</div>";
 }
 add_action( 'admin_notices', 'maintenance_nag' );
-
-?>
