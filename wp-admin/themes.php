@@ -20,7 +20,7 @@ if ( current_user_can( 'switch_themes' ) && isset($_GET['action'] ) ) {
 		$theme = wp_get_theme( $_GET['stylesheet'] );
 		if ( ! $theme->exists() || ! $theme->is_allowed() )
 			wp_die( __( 'Cheatin&#8217; uh?' ) );
-		switch_theme($_GET['template'], $_GET['stylesheet']);
+		switch_theme( $theme->get_template(), $theme->get_stylesheet() );
 		wp_redirect( admin_url('themes.php?activated=true') );
 		exit;
 	} elseif ( 'delete' == $_GET['action'] ) {
@@ -63,6 +63,8 @@ if ( current_user_can( 'install_themes' ) ) {
 		'content' => $help_install
 	) );
 }
+
+add_thickbox();
 
 endif; // switch_themes
 
