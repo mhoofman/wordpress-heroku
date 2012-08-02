@@ -42,7 +42,7 @@ Clear `.gitignore` and commit `wp-config.php`
 
     $ >.gitignore
     $ git add .
-    $ git commit -m "W"
+    $ git commit -m "Initial WordPress commit"
     
 Deploy to Heroku
 
