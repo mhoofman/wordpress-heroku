@@ -12,15 +12,23 @@ Clone the repository from Github
 With the [Heroku gem](http://devcenter.heroku.com/articles/heroku-command), create your app
 
     $ cd wordpress-heroku
-    $ heroku create --stack cedar
+    $ heroku create
     > Creating strange-turtle-1234... done, stack is cedar
     > http://strange-turtle-1234.herokuapp.com/ | git@heroku.com:strange-turtle-1234.git
     > Git remote heroku added
 
 Add a database to your app
 
-    $ heroku addons:add shared-database:5mb
-    > -----> Adding shared-database:5mb to strange-turtle-1234... done, v3 (free)
+    $ heroku addons:add heroku-postgresql:dev
+    > Adding heroku-postgresql:dev to strange-turtle-1234... done, v2 (free)
+	> Attached as HEROKU_POSTGRESQL_COLOR
+	> Database has been created and is available
+	> Use `heroku addons:docs heroku-postgresql:dev` to view documentation
+
+Promote the database (replace COLOR with the color name from the above output)
+
+	$ heroku pg:promote HEROKU_POSTGRESQL_COLOR
+	> Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
 
 Create a new branch for any configuration/setup changes needed
 
@@ -34,19 +42,19 @@ Clear `.gitignore` and commit `wp-config.php`
 
     $ >.gitignore
     $ git add .
-    $ git commit -m "zomg wordpress"
+    $ git commit -m "W"
     
 Deploy to Heroku
 
     $ git push heroku production:master
     > -----> Heroku receiving push
     > -----> PHP app detected
-    > -----> Bundling Apache v2.2.19
-    > -----> Bundling PHP v5.3.6
+    > -----> Bundling Apache v2.2.22
+    > -----> Bundling PHP v5.3.10
     > -----> Discovering process types
     >        Procfile declares types -> (none)
     >        Default types for PHP   -> web
-    > -----> Compiled slug size is 24.9MB
+    > -----> Compiled slug size is 13.8MB
     > -----> Launcing... done, v5
     >        http://strange-turtle-1234.herokuapp.com deployed to Heroku
     >
