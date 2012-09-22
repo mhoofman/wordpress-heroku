@@ -78,7 +78,7 @@ wpList = {
 		if ( !s )
 			return false;
 
-		if ( !e.is('[class^="add:' + list.id + ':"]') )
+		if ( !e.is('[id="' + s.what + '-add-submit"]') )
 			return !wpList.add.call( list, e, s );
 
 		if ( !s.element )
@@ -397,7 +397,7 @@ wpList = {
 			return list.wpList.add(this);
 		});
 
-		$el.delegate( '[class^="add:' + list.id + ':"]:not(form)', 'click', function(){
+		$el.delegate( 'a[class^="add:' + list.id + ':"], input[class^="add:' + list.id + ':"]', 'click', function(){
 			return list.wpList.add(this);
 		});
 
