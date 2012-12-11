@@ -131,6 +131,7 @@ function wp_dashboard_setup() {
 	}
 
 	if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset($_POST['widget_id']) ) {
+		check_admin_referer( 'edit-dashboard-widget_' . $_POST['widget_id'], 'dashboard-widget-nonce' );
 		ob_start(); // hack - but the same hack wp-admin/widgets.php uses
 		wp_dashboard_trigger_widget_control( $_POST['widget_id'] );
 		ob_end_clean();
@@ -182,6 +183,7 @@ function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_
 function _wp_dashboard_control_callback( $dashboard, $meta_box ) {
 	echo '<form action="" method="post" class="dashboard-widget-control-form">';
 	wp_dashboard_trigger_widget_control( $meta_box['id'] );
+	wp_nonce_field( 'edit-dashboard-widget_' . $meta_box['id'], 'dashboard-widget-nonce' );
 	echo '<input type="hidden" name="widget_id" value="' . esc_attr($meta_box['id']) . '" />';
 	submit_button( __('Submit') );
 	echo '</form>';
@@ -392,12 +394,12 @@ function wp_dashboard_right_now() {
 	}
 	echo '</p>';
 
-	// Check if search engines are blocked.
+	// Check if search engines are asked not to index this site.
 	if ( !is_network_admin() && !is_user_admin() && current_user_can('manage_options') && '1' != get_option('blog_public') ) {
 		$title = apply_filters('privacy_on_link_title', __('Your site is asking search engines not to index its content') );
-		$content = apply_filters('privacy_on_link_text', __('Search Engines Blocked') );
+		$content = apply_filters('privacy_on_link_text', __('Search Engines Discouraged') );
 
-		echo "<p><a href='options-privacy.php' title='$title'>$content</a></p>";
+		echo "<p><a href='options-reading.php' title='$title'>$content</a></p>";
 	}
 
 	update_right_now_message();
@@ -480,7 +482,7 @@ function wp_dashboard_quick_press() {
 			if ( $drafts_query->posts )
 				$drafts =& $drafts_query->posts;
 		}
-		printf('<p class="textright">' . __('You can also try %s, easy blogging from anywhere on the Web.') . '</p>', '<a href="' . esc_url( admin_url( 'tools.php' ) ) . '">' . __('Press This') . '</a>' );
+		printf('<p class="easy-blogging">' . __('You can also try %s, easy blogging from anywhere on the Web.') . '</p>', '<a href="' . esc_url( admin_url( 'tools.php' ) ) . '">' . __('Press This') . '</a>' );
 		$_REQUEST = array(); // hack for get_default_post_to_edit()
 	}
 
@@ -490,22 +492,35 @@ function wp_dashboard_quick_press() {
 		$post = get_post( $last_post_id );
 		if ( empty( $post ) || $post->post_status != 'auto-draft' ) { // auto-draft doesn't exists anymore
 			$post = get_default_post_to_edit('post', true);
-			update_user_option( (int) $GLOBALS['current_user']->ID, 'dashboard_quick_press_last_post_id', (int) $post->ID ); // Save post_ID
+			update_user_option( get_current_user_id(), 'dashboard_quick_press_last_post_id', (int) $post->ID ); // Save post_ID
 		} else {
 			$post->post_title = ''; // Remove the auto draft title
 		}
 	} else {
-		$post = get_default_post_to_edit('post', true);
-		update_user_option( (int) $GLOBALS['current_user']->ID, 'dashboard_quick_press_last_post_id', (int) $post->ID ); // Save post_ID
+		$post = get_default_post_to_edit( 'post' , true);
+		$user_id = get_current_user_id();
+		// Don't create an option if this is a super admin who does not belong to this site.
+		if ( ! ( is_super_admin( $user_id ) && ! in_array( get_current_blog_id(), array_keys( get_blogs_of_user( $user_id ) ) ) ) )
+			update_user_option( $user_id, 'dashboard_quick_press_last_post_id', (int) $post->ID ); // Save post_ID
 	}
 
 	$post_ID = (int) $post->ID;
+
+	$media_settings = array(
+		'id' => $post->ID,
+		'nonce' => wp_create_nonce( 'update-post_' . $post->ID ),
+	);
+
+	if ( current_theme_supports( 'post-thumbnails', $post->post_type ) && post_type_supports( $post->post_type, 'thumbnail' ) ) {
+		$featured_image_id = get_post_meta( $post->ID, '_thumbnail_id', true );
+		$media_settings['featuredImageId'] = $featured_image_id ? $featured_image_id : -1;
+	}
 ?>
 
 	<form name="post" action="<?php echo esc_url( admin_url( 'post.php' ) ); ?>" method="post" id="quick-press">
-		<h4 id="quick-post-title"><label for="title"><?php _e('Title') ?></label></h4>
-		<div class="input-text-wrap">
-			<input type="text" name="post_title" id="title" tabindex="1" autocomplete="off" value="<?php echo esc_attr( $post->post_title ); ?>" />
+		<div class="input-text-wrap" id="title-wrap">
+			<label class="screen-reader-text prompt" for="title" id="title-prompt-text"><?php _e( 'Enter title here' ); ?></label>
+			<input type="text" name="post_title" id="title" autocomplete="off" value="<?php echo esc_attr( $post->post_title ); ?>" />
 		</div>
 
 		<?php if ( current_user_can( 'upload_files' ) ) : ?>
@@ -514,29 +529,37 @@ function wp_dashboard_quick_press() {
 		</div>
 		<?php endif; ?>
 
-		<h4 id="content-label"><label for="content"><?php _e('Content') ?></label></h4>
 		<div class="textarea-wrap">
-			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15" tabindex="2"><?php echo esc_textarea( $post->post_content ); ?></textarea>
+			<label class="screen-reader-text" for="content"><?php _e( 'Content' ); ?></label>
+			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15"><?php echo esc_textarea( $post->post_content ); ?></textarea>
 		</div>
 
-		<script type="text/javascript">edCanvas = document.getElementById('content');edInsertContent = null;</script>
+		<script type="text/javascript">
+		edCanvas = document.getElementById('content');
+		edInsertContent = null;
+		<?php if ( $_POST ) : ?>
+		wp.media.editor.remove('content');
+		wp.media.view.settings.post = <?php echo json_encode( $media_settings ); // big juicy hack. ?>;
+		wp.media.editor.add('content');
+		<?php endif; ?>
+		</script>
 
-		<h4><label for="tags-input"><?php _e('Tags') ?></label></h4>
-		<div class="input-text-wrap">
-			<input type="text" name="tags_input" id="tags-input" tabindex="3" value="<?php echo get_tags_to_edit( $post->ID ); ?>" />
+		<div class="input-text-wrap" id="tags-input-wrap">
+			<label class="screen-reader-text prompt" for="tags-input" id="tags-input-prompt-text"><?php _e( 'Tags (separate with commas)' ); ?></label>
+			<input type="text" name="tags_input" id="tags-input" value="<?php echo get_tags_to_edit( $post->ID ); ?>" />
 		</div>
 
 		<p class="submit">
+			<span id="publishing-action">
+				<input type="submit" name="publish" id="publish" accesskey="p" class="button-primary" value="<?php current_user_can('publish_posts') ? esc_attr_e('Publish') : esc_attr_e('Submit for Review'); ?>" />
+				<span class="spinner"></span>
+			</span>
 			<input type="hidden" name="action" id="quickpost-action" value="post-quickpress-save" />
 			<input type="hidden" name="post_ID" value="<?php echo $post_ID; ?>" />
 			<input type="hidden" name="post_type" value="post" />
 			<?php wp_nonce_field('add-post'); ?>
-			<?php submit_button( __( 'Save Draft' ), 'button', 'save', false, array( 'id' => 'save-post', 'tabindex'=> 4 ) ); ?>
+			<?php submit_button( __( 'Save Draft' ), 'button', 'save', false, array( 'id' => 'save-post' ) ); ?>
 			<input type="reset" value="<?php esc_attr_e( 'Reset' ); ?>" class="button" />
-			<span id="publishing-action">
-				<input type="submit" name="publish" id="publish" accesskey="p" tabindex="5" class="button-primary" value="<?php current_user_can('publish_posts') ? esc_attr_e('Publish') : esc_attr_e('Submit for Review'); ?>" />
-				<img class="waiting" src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" alt="" />
-			</span>
 			<br class="clear" />
 		</p>
 
@@ -566,7 +589,7 @@ function wp_dashboard_recent_drafts( $drafts = false ) {
 			$url = get_edit_post_link( $draft->ID );
 			$title = _draft_or_post_title( $draft->ID );
 			$item = "<h4><a href='$url' title='" . sprintf( __( 'Edit &#8220;%s&#8221;' ), esc_attr( $title ) ) . "'>" . esc_html($title) . "</a> <abbr title='" . get_the_time(__('Y/m/d g:i:s A'), $draft) . "'>" . get_the_time( get_option( 'date_format' ), $draft ) . '</abbr></h4>';
-			if ( $the_content = preg_split( '#\s#', strip_tags( $draft->post_content ), 11, PREG_SPLIT_NO_EMPTY ) )
+			if ( $the_content = preg_split( '#[\r\n\t ]#', strip_tags( $draft->post_content ), 11, PREG_SPLIT_NO_EMPTY ) )
 				$item .= '<p>' . join( ' ', array_slice( $the_content, 0, 10 ) ) . ( 10 < count( $the_content ) ? '&hellip;' : '' ) . '</p>';
 			$list[] = $item;
 		}
@@ -614,7 +637,7 @@ function wp_dashboard_recent_comments() {
 	}
 
 	if ( $comments ) {
-		echo '<div id="the-comment-list" class="list:comment">';
+		echo '<div id="the-comment-list" data-wp-lists="list:comment">';
 		foreach ( $comments as $comment )
 			_wp_dashboard_recent_comments_row( $comment );
 		echo '</div>';
@@ -657,15 +680,15 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 		$trash_url = esc_url( "comment.php?action=trashcomment&p=$comment->comment_post_ID&c=$comment->comment_ID&$del_nonce" );
 		$delete_url = esc_url( "comment.php?action=deletecomment&p=$comment->comment_post_ID&c=$comment->comment_ID&$del_nonce" );
 
-		$actions['approve'] = "<a href='$approve_url' class='dim:the-comment-list:comment-$comment->comment_ID:unapproved:e7e7d3:e7e7d3:new=approved vim-a' title='" . esc_attr__( 'Approve this comment' ) . "'>" . __( 'Approve' ) . '</a>';
-		$actions['unapprove'] = "<a href='$unapprove_url' class='dim:the-comment-list:comment-$comment->comment_ID:unapproved:e7e7d3:e7e7d3:new=unapproved vim-u' title='" . esc_attr__( 'Unapprove this comment' ) . "'>" . __( 'Unapprove' ) . '</a>';
+		$actions['approve'] = "<a href='$approve_url' data-wp-lists='dim:the-comment-list:comment-$comment->comment_ID:unapproved:e7e7d3:e7e7d3:new=approved' class='vim-a' title='" . esc_attr__( 'Approve this comment' ) . "'>" . __( 'Approve' ) . '</a>';
+		$actions['unapprove'] = "<a href='$unapprove_url' data-wp-lists='dim:the-comment-list:comment-$comment->comment_ID:unapproved:e7e7d3:e7e7d3:new=unapproved' class='vim-u' title='" . esc_attr__( 'Unapprove this comment' ) . "'>" . __( 'Unapprove' ) . '</a>';
 		$actions['edit'] = "<a href='comment.php?action=editcomment&amp;c={$comment->comment_ID}' title='" . esc_attr__('Edit comment') . "'>". __('Edit') . '</a>';
 		$actions['reply'] = '<a onclick="commentReply.open(\''.$comment->comment_ID.'\',\''.$comment->comment_post_ID.'\');return false;" class="vim-r hide-if-no-js" title="'.esc_attr__('Reply to this comment').'" href="#">' . __('Reply') . '</a>';
-		$actions['spam'] = "<a href='$spam_url' class='delete:the-comment-list:comment-$comment->comment_ID::spam=1 vim-s vim-destructive' title='" . esc_attr__( 'Mark this comment as spam' ) . "'>" . /* translators: mark as spam link */ _x( 'Spam', 'verb' ) . '</a>';
+		$actions['spam'] = "<a href='$spam_url' data-wp-lists='delete:the-comment-list:comment-$comment->comment_ID::spam=1' class='vim-s vim-destructive' title='" . esc_attr__( 'Mark this comment as spam' ) . "'>" . /* translators: mark as spam link */ _x( 'Spam', 'verb' ) . '</a>';
 		if ( !EMPTY_TRASH_DAYS )
-			$actions['delete'] = "<a href='$delete_url' class='delete:the-comment-list:comment-$comment->comment_ID::trash=1 delete vim-d vim-destructive'>" . __('Delete Permanently') . '</a>';
+			$actions['delete'] = "<a href='$delete_url' data-wp-lists='delete:the-comment-list:comment-$comment->comment_ID::trash=1' class='delete vim-d vim-destructive'>" . __('Delete Permanently') . '</a>';
 		else
-			$actions['trash'] = "<a href='$trash_url' class='delete:the-comment-list:comment-$comment->comment_ID::trash=1 delete vim-d vim-destructive' title='" . esc_attr__( 'Move this comment to the trash' ) . "'>" . _x('Trash', 'verb') . '</a>';
+			$actions['trash'] = "<a href='$trash_url' data-wp-lists='delete:the-comment-list:comment-$comment->comment_ID::trash=1' class='delete vim-d vim-destructive' title='" . esc_attr__( 'Move this comment to the trash' ) . "'>" . _x('Trash', 'verb') . '</a>';
 
 		$actions = apply_filters( 'comment_row_actions', array_filter($actions), $comment );
 
@@ -813,10 +836,13 @@ function wp_dashboard_incoming_links_output() {
 			/* translators: incoming links feed, %1$s is other person, %3$s is content */
 			$text = __( '%1$s linked here saying, "%3$s"' );
 
-		if ( !empty($show_date) ) {
-			if ( !empty($show_author) || !empty($show_summary) )
-				/* translators: incoming links feed, %4$s is the date */
-				$text .= ' ' . __( 'on %4$s' );
+		if ( !empty( $show_date ) ) {
+			if ( $link )
+				/* translators: incoming links feed, %1$s is other person, %3$s is content, %4$s is the date */
+				$text = __( '%1$s linked here <a href="%2$s">saying</a>, "%3$s" on %4$s' );
+			else
+				/* translators: incoming links feed, %1$s is other person, %3$s is content, %4$s is the date */
+				$text = __( '%1$s linked here saying, "%3$s" on %4$s' );
 			$date = esc_html( strip_tags( $item->get_date() ) );
 			$date = strtotime( $date );
 			$date = gmdate( get_option( 'date_format' ), $date );
@@ -913,7 +939,7 @@ function wp_dashboard_plugins_output() {
 
 	if ( false === $plugin_slugs = get_transient( 'plugin_slugs' ) ) {
 		$plugin_slugs = array_keys( get_plugins() );
-		set_transient( 'plugin_slugs', $plugin_slugs, 86400 );
+		set_transient( 'plugin_slugs', $plugin_slugs, DAY_IN_SECONDS );
 	}
 
 	foreach ( array( 'popular' => __('Most Popular'), 'new' => __('Newest Plugins') ) as $feed => $label ) {
@@ -961,12 +987,7 @@ function wp_dashboard_plugins_output() {
 		if ( !isset($items[$item_key]) )
 			continue;
 
-		// current bbPress feed item titles are: user on "topic title"
-		if ( preg_match( '/&quot;(.*)&quot;/s', $item->get_title(), $matches ) )
-			$title = $matches[1];
-		else // but let's make it forward compatible if things change
-			$title = $item->get_title();
-		$title = esc_html( $title );
+		$title = esc_html( $item->get_title() );
 
 		$description = esc_html( strip_tags(@html_entity_decode($item->get_description(), ENT_QUOTES, get_option('blog_charset'))) );
 
@@ -1026,7 +1047,7 @@ function wp_dashboard_cached_rss_widget( $widget_id, $callback, $check_urls = ar
 		array_unshift( $args, $widget_id );
 		ob_start();
 		call_user_func_array( $callback, $args );
-		set_transient( $cache_key, ob_get_flush(), 43200); // Default lifetime in cache of 12 hours (same as the feeds)
+		set_transient( $cache_key, ob_get_flush(), 12 * HOUR_IN_SECONDS ); // Default lifetime in cache of 12 hours (same as the feeds)
 	}
 
 	return true;
@@ -1099,7 +1120,7 @@ function wp_dashboard_quota() {
 		return true;
 
 	$quota = get_space_allowed();
-	$used = get_dirsize( BLOGUPLOADDIR ) / 1024 / 1024;
+	$used = get_space_used();
 
 	if ( $used > $quota )
 		$percentused = '100';
@@ -1114,7 +1135,7 @@ function wp_dashboard_quota() {
 	<div class="table table_content musubtable">
 	<table>
 		<tr class="first">
-			<td class="first b b-posts"><?php printf( __( '<a href="%1$s" title="Manage Uploads" class="musublink">%2$sMB</a>' ), esc_url( admin_url( 'upload.php' ) ), $quota ); ?></td>
+			<td class="first b b-posts"><?php printf( __( '<a href="%1$s" title="Manage Uploads" class="musublink">%2$sMB</a>' ), esc_url( admin_url( 'upload.php' ) ), number_format_i18n( $quota ) ); ?></td>
 			<td class="t posts"><?php _e( 'Space Allowed' ); ?></td>
 		</tr>
 	</table>
@@ -1122,7 +1143,7 @@ function wp_dashboard_quota() {
 	<div class="table table_discussion musubtable">
 	<table>
 		<tr class="first">
-			<td class="b b-comments"><?php printf( __( '<a href="%1$s" title="Manage Uploads" class="musublink">%2$sMB (%3$s%%)</a>' ), esc_url( admin_url( 'upload.php' ) ), $used, $percentused ); ?></td>
+			<td class="b b-comments"><?php printf( __( '<a href="%1$s" title="Manage Uploads" class="musublink">%2$sMB (%3$s%%)</a>' ), esc_url( admin_url( 'upload.php' ) ), number_format_i18n( $used, 2 ), $percentused ); ?></td>
 			<td class="last t comments<?php echo $used_color;?>"><?php _e( 'Space Used' );?></td>
 		</tr>
 	</table>
@@ -1217,7 +1238,7 @@ function wp_check_browser_version() {
 		if ( ! is_array( $response ) )
 			return false;
 
-		set_site_transient( 'browser_' . $key, $response, 604800 ); // cache for 1 week
+		set_site_transient( 'browser_' . $key, $response, WEEK_IN_SECONDS );
 	}
 
 	return $response;
@@ -1234,92 +1255,44 @@ function wp_dashboard_empty() {}
  * @since 3.3.0
  */
 function wp_welcome_panel() {
-	global $wp_version;
-
-	if ( ! current_user_can( 'edit_theme_options' ) )
-		return;
-
-	$classes = 'welcome-panel';
-
-	$option = get_user_meta( get_current_user_id(), 'show_welcome_panel', true );
-	// 0 = hide, 1 = toggled to show or single site creator, 2 = multisite site owner
-	$hide = 0 == $option || ( 2 == $option && wp_get_current_user()->user_email != get_option( 'admin_email' ) );
-	if ( $hide )
-		$classes .= ' hidden';
-
-	list( $display_version ) = explode( '-', $wp_version );
 	?>
-	<div id="welcome-panel" class="<?php echo esc_attr( $classes ); ?>">
-	<?php wp_nonce_field( 'welcome-panel-nonce', 'welcomepanelnonce', false ); ?>
-	<a class="welcome-panel-close" href="<?php echo esc_url( admin_url( '?welcome=0' ) ); ?>"><?php _e('Dismiss'); ?></a>
-	<div class="wp-badge"><?php printf( __( 'Version %s' ), $display_version ); ?></div>
-
 	<div class="welcome-panel-content">
-	<h3><?php _e( 'Welcome to your new WordPress site!' ); ?></h3>
-	<p class="about-description"><?php _e( 'If you need help getting started, check out our documentation on <a href="http://codex.wordpress.org/First_Steps_With_WordPress">First Steps with WordPress</a>. If you&#8217;d rather dive right in, here are a few things most people do first when they set up a new WordPress site. If you need help, use the Help tabs in the upper right corner to get information on how to use your current screen and where to go for more assistance.' ); ?></p>
+	<h3><?php _e( 'Welcome to WordPress!' ); ?></h3>
+	<p class="about-description"><?php _e( 'We&#8217;ve assembled some links to get you started:' ); ?></p>
 	<div class="welcome-panel-column-container">
 	<div class="welcome-panel-column">
-		<h4><span class="icon16 icon-settings"></span> <?php _e( 'Basic Settings' ); ?></h4>
-		<p><?php _e( 'Here are a few easy things you can do to get your feet wet. Make sure to click Save on each Settings screen.' ); ?></p>
-		<ul>
-		<li><?php echo sprintf(	__( '<a href="%s">Choose your privacy setting</a>' ), esc_url( admin_url('options-privacy.php') ) ); ?></li>
-		<li><?php echo sprintf( __( '<a href="%s">Select your tagline and time zone</a>' ), esc_url( admin_url('options-general.php') ) ); ?></li>
-		<li><?php echo sprintf( __( '<a href="%s">Turn comments on or off</a>' ), esc_url( admin_url('options-discussion.php') ) ); ?></li>
-		<li><?php echo sprintf( __( '<a href="%s">Fill in your profile</a>' ), esc_url( admin_url('profile.php') ) ); ?></li>
-		</ul>
+		<h4><?php _e( 'Get Started' ); ?></h4>
+		<a class="button button-primary button-hero load-customize hide-if-no-customize" href="<?php echo wp_customize_url(); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<a class="button button-primary button-hero hide-if-customize" href="<?php echo admin_url( 'themes.php' ); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<?php if ( current_user_can( 'install_themes' ) || ( current_user_can( 'switch_themes' ) && count( wp_get_themes( array( 'allowed' => true ) ) ) > 1 ) ) : ?>
+			<p class="hide-if-no-customize"><?php printf( __( 'or, <a href="%s">change your theme completely</a>' ), admin_url( 'themes.php' ) ); ?></p>
+		<?php endif; ?>
 	</div>
 	<div class="welcome-panel-column">
-		<h4><span class="icon16 icon-page"></span> <?php _e( 'Add Real Content' ); ?></h4>
-		<p><?php _e( 'Check out the sample page & post editors to see how it all works, then delete the default content and write your own!' ); ?></p>
+		<h4><?php _e( 'Next Steps' ); ?></h4>
 		<ul>
-		<li><?php echo sprintf( __( 'View the <a href="%1$s">sample page</a> and <a href="%2$s">post</a>' ), esc_url( get_permalink( 2 ) ), esc_url( get_permalink( 1 ) ) ); ?></li>
-		<li><?php echo sprintf( __( 'Delete the <a href="%1$s">sample page</a> and <a href="%2$s">post</a>' ), esc_url( admin_url('edit.php?post_type=page') ), esc_url( admin_url('edit.php') ) ); ?></li>
-		<li><?php echo sprintf( __( '<a href="%s">Create an About Me page</a>' ), esc_url( admin_url('edit.php?post_type=page') ) ); ?></li>
-		<li><?php echo sprintf( __( '<a href="%s">Write your first post</a>' ), esc_url( admin_url('post-new.php') ) ); ?></li>
+		<?php if ( 'page' == get_option( 'show_on_front' ) && ! get_option( 'page_for_posts' ) ) : ?>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-edit-page">' . __( 'Edit your front page' ) . '</a>', get_edit_post_link( get_option( 'page_on_front' ) ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-add-page">' . __( 'Add additional pages' ) . '</a>', admin_url( 'post-new.php?post_type=page' ) ); ?></li>
+		<?php elseif ( 'page' == get_option( 'show_on_front' ) ) : ?>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-edit-page">' . __( 'Edit your front page' ) . '</a>', get_edit_post_link( get_option( 'page_on_front' ) ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-add-page">' . __( 'Add additional pages' ) . '</a>', admin_url( 'post-new.php?post_type=page' ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-write-blog">' . __( 'Add a blog post' ) . '</a>', admin_url( 'post-new.php' ) ); ?></li>
+		<?php else : ?>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-write-blog">' . __( 'Write your first blog post' ) . '</a>', admin_url( 'post-new.php' ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-add-page">' . __( 'Add an About page' ) . '</a>', admin_url( 'post-new.php?post_type=page' ) ); ?></li>
+		<?php endif; ?>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-view-site">' . __( 'View your site' ) . '</a>', home_url( '/' ) ); ?></li>
 		</ul>
 	</div>
 	<div class="welcome-panel-column welcome-panel-last">
-		<h4><span class="icon16 icon-appearance"></span> <?php _e( 'Customize Your Site' ); ?></h4>
-		<?php
-		$theme = wp_get_theme();
-		if ( $theme->errors() ) :
-			echo '<p>';
-			printf( __( '<a href="%s">Install a theme</a> to get started customizing your site.' ), esc_url( admin_url( 'themes.php' ) ) );
-			echo '</p>';
-		else:
-			$customize_links = array();
-			if ( 'twentyeleven' == $theme->get_stylesheet() )
-				$customize_links[] = sprintf( __( '<a href="%s">Choose light or dark</a>' ), esc_url( admin_url( 'themes.php?page=theme_options' ) ) );
-
-			if ( current_theme_supports( 'custom-background' ) )
-				$customize_links[] = sprintf( __( '<a href="%s">Set a background color</a>' ), esc_url( admin_url( 'themes.php?page=custom-background' ) ) );
-
-			if ( current_theme_supports( 'custom-header' ) )
-				$customize_links[] = sprintf( __( '<a href="%s">Select a new header image</a>' ), esc_url( admin_url( 'themes.php?page=custom-header' ) ) );
-
-			if ( current_theme_supports( 'widgets' ) )
-				$customize_links[] = sprintf( __( '<a href="%s">Add some widgets</a>' ), esc_url( admin_url( 'widgets.php' ) ) );
-
-			if ( ! empty( $customize_links ) ) {
-				echo '<p>';
-				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>. If you stick with %1$s, here are a few ways to make your site look unique.' ), $theme->display('Name'), esc_url( admin_url( 'themes.php' ) ) );
-				echo '</p>';
-			?>
-			<ul>
-				<?php foreach ( $customize_links as $customize_link ) : ?>
-				<li><?php echo $customize_link ?></li>
-				<?php endforeach; ?>
-			</ul>
-			<?php
-			} else {
-				echo '<p>';
-				printf( __( 'Use the current theme &mdash; %1$s &mdash; or <a href="%2$s">choose a new one</a>.' ), $theme->display('Name'), esc_url( admin_url( 'themes.php' ) ) );
-				echo '</p>';
-			}
-		endif; ?>
+		<h4><?php _e( 'More Actions' ); ?></h4>
+		<ul>
+			<li><?php printf( '<div class="welcome-icon welcome-widgets-menus">' . __( 'Manage <a href="%1$s">widgets</a> or <a href="%2$s">menus</a>' ) . '</div>', admin_url( 'widgets.php' ), admin_url( 'nav-menus.php' ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-comments">' . __( 'Turn comments on or off' ) . '</a>', admin_url( 'options-discussion.php' ) ); ?></li>
+			<li><?php printf( '<a href="%s" class="welcome-icon welcome-learn-more">' . __( 'Learn more about getting started' ) . '</a>', __( 'http://codex.wordpress.org/First_Steps_With_WordPress' ) ); ?></li>
+		</ul>
 	</div>
-	</div>
-	<p class="welcome-panel-dismiss"><?php printf( __( 'Already know what you&#8217;re doing? <a href="%s">Dismiss this message</a>.' ), esc_url( admin_url( '?welcome=0' ) ) ); ?></p>
 	</div>
 	</div>
 	<?php

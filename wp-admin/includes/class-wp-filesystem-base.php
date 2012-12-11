@@ -193,12 +193,13 @@ class WP_Filesystem_Base {
 		$folder = untrailingslashit($folder);
 
 		$folder_parts = explode('/', $folder);
-		$last_path = $folder_parts[ count($folder_parts) - 1 ];
+		$last_index = array_pop( array_keys( $folder_parts ) );
+		$last_path = $folder_parts[ $last_index ];
 
 		$files = $this->dirlist( $base );
 
-		foreach ( $folder_parts as $key ) {
-			if ( $key == $last_path )
+		foreach ( $folder_parts as $index => $key ) {
+			if ( $index == $last_index )
 				continue; //We want this to be caught by the next code block.
 
 			//Working from /home/ to /user/ to /wordpress/ see if that file exists within the current folder,
@@ -210,7 +211,9 @@ class WP_Filesystem_Base {
 				$newdir = trailingslashit(path_join($base, $key));
 				if ( $this->verbose )
 					printf( __('Changing to %s') . '<br/>', $newdir );
-				if ( $ret = $this->search_for_folder( $folder, $newdir, $loop) )
+				// only search for the remaining path tokens in the directory, not the full path again
+				$newfolder = implode( '/', array_slice( $folder_parts, $index + 1 ) );
+				if ( $ret = $this->search_for_folder( $newfolder, $newdir, $loop) )
 					return $ret;
 			}
 		}
@@ -304,14 +307,14 @@ class WP_Filesystem_Base {
 		   if ($key = array_search($attarray[$i], $legal))
 			   $realmode .= $legal[$key];
 
-		$mode = str_pad($realmode, 9, '-');
+		$mode = str_pad($realmode, 10, '-', STR_PAD_LEFT);
 		$trans = array('-'=>'0', 'r'=>'4', 'w'=>'2', 'x'=>'1');
 		$mode = strtr($mode,$trans);
 
-		$newmode = '';
-		$newmode .= $mode[0] + $mode[1] + $mode[2];
-		$newmode .= $mode[3] + $mode[4] + $mode[5];
-		$newmode .= $mode[6] + $mode[7] + $mode[8];
+		$newmode = $mode[0];
+		$newmode .= $mode[1] + $mode[2] + $mode[3];
+		$newmode .= $mode[4] + $mode[5] + $mode[6];
+		$newmode .= $mode[7] + $mode[8] + $mode[9];
 		return $newmode;
 	}
 

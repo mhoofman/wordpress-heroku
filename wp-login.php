@@ -12,12 +12,12 @@
 require( dirname(__FILE__) . '/wp-load.php' );
 
 // Redirect to https login if forced to use SSL
-if ( force_ssl_admin() && !is_ssl() ) {
+if ( force_ssl_admin() && ! is_ssl() ) {
 	if ( 0 === strpos($_SERVER['REQUEST_URI'], 'http') ) {
-		wp_redirect(preg_replace('|^http://|', 'https://', $_SERVER['REQUEST_URI']));
+		wp_redirect( set_url_scheme( $_SERVER['REQUEST_URI'], 'https' ) );
 		exit();
 	} else {
-		wp_redirect('https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+		wp_redirect( 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
 		exit();
 	}
 }
@@ -39,7 +39,7 @@ if ( force_ssl_admin() && !is_ssl() ) {
  * @param WP_Error $wp_error Optional. WordPress Error Object
  */
 function login_header($title = 'Log In', $message = '', $wp_error = '') {
-	global $error, $interim_login, $current_site;
+	global $error, $interim_login, $current_site, $action;
 
 	// Don't index any of these forms
 	add_action( 'login_head', 'wp_no_robots' );
@@ -86,9 +86,15 @@ function login_header($title = 'Log In', $message = '', $wp_error = '') {
 	if ( $interim_login )
 		$login_header_url = '#';
 
+	$classes = array( 'login-action-' . $action, 'wp-core-ui' );
+	if ( wp_is_mobile() )
+		$classes[] = 'mobile';
+	if ( is_rtl() )
+		$classes[] = 'rtl';
+	$classes = apply_filters( 'login_body_class', $classes, $action );
 	?>
 	</head>
-	<body class="login<?php if ( wp_is_mobile() ) echo ' mobile'; ?>">
+	<body class="login <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
 	<div id="login">
 		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>"><?php bloginfo( 'name' ); ?></a></h1>
 	<?php
@@ -309,7 +315,7 @@ function register_new_user( $user_login, $user_email ) {
 		$errors->add( 'invalid_username', __( '<strong>ERROR</strong>: This username is invalid because it uses illegal characters. Please enter a valid username.' ) );
 		$sanitized_user_login = '';
 	} elseif ( username_exists( $sanitized_user_login ) ) {
-		$errors->add( 'username_exists', __( '<strong>ERROR</strong>: This username is already registered, please choose another one.' ) );
+		$errors->add( 'username_exists', __( '<strong>ERROR</strong>: This username is already registered. Please choose another one.' ) );
 	}
 
 	// Check the e-mail address
@@ -361,13 +367,13 @@ nocache_headers();
 
 header('Content-Type: '.get_bloginfo('html_type').'; charset='.get_bloginfo('charset'));
 
-if ( defined('RELOCATE') ) { // Move flag is set
+if ( defined( 'RELOCATE' ) && RELOCATE ) { // Move flag is set
 	if ( isset( $_SERVER['PATH_INFO'] ) && ($_SERVER['PATH_INFO'] != $_SERVER['PHP_SELF']) )
 		$_SERVER['PHP_SELF'] = str_replace( $_SERVER['PATH_INFO'], '', $_SERVER['PHP_SELF'] );
 
-	$schema = is_ssl() ? 'https://' : 'http://';
-	if ( dirname($schema . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) != get_option('siteurl') )
-		update_option('siteurl', dirname($schema . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) );
+	$url = dirname( set_url_scheme( 'http://' .  $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] ) );
+	if ( $url != get_option( 'siteurl' ) )
+		update_option( 'siteurl', $url );
 }
 
 //Set a cookie now to see if they are supported by the browser.
@@ -390,7 +396,7 @@ case 'postpass' :
 	}
 
 	// 10 days
-	setcookie( 'wp-postpass_' . COOKIEHASH, $wp_hasher->HashPassword( stripslashes( $_POST['post_password'] ) ), time() + 864000, COOKIEPATH );
+	setcookie( 'wp-postpass_' . COOKIEHASH, $wp_hasher->HashPassword( stripslashes( $_POST['post_password'] ) ), time() + 10 * DAY_IN_SECONDS, COOKIEPATH );
 
 	wp_safe_redirect( wp_get_referer() );
 	exit();
@@ -432,11 +438,11 @@ case 'retrievepassword' :
 <form name="lostpasswordform" id="lostpasswordform" action="<?php echo esc_url( site_url( 'wp-login.php?action=lostpassword', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login" ><?php _e('Username or E-mail:') ?><br />
-		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" /></label>
+		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
 	</p>
 <?php do_action('lostpassword_form'); ?>
 	<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
-	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Get New Password'); ?>" tabindex="100" /></p>
+	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Get New Password'); ?>" /></p>
 </form>
 
 <p id="nav">
@@ -459,11 +465,14 @@ case 'rp' :
 		exit;
 	}
 
-	$errors = '';
+	$errors = new WP_Error();
 
-	if ( isset($_POST['pass1']) && $_POST['pass1'] != $_POST['pass2'] ) {
-		$errors = new WP_Error('password_reset_mismatch', __('The passwords do not match.'));
-	} elseif ( isset($_POST['pass1']) && !empty($_POST['pass1']) ) {
+	if ( isset($_POST['pass1']) && $_POST['pass1'] != $_POST['pass2'] )
+		$errors->add( 'password_reset_mismatch', __( 'The passwords do not match.' ) );
+
+	do_action( 'validate_password_reset', $errors, $user );
+
+	if ( ( ! $errors->get_error_code() ) && isset( $_POST['pass1'] ) && !empty( $_POST['pass1'] ) ) {
 		reset_password($user, $_POST['pass1']);
 		login_header( __( 'Password Reset' ), '<p class="message reset-pass">' . __( 'Your password has been reset.' ) . ' <a href="' . esc_url( wp_login_url() ) . '">' . __( 'Log in' ) . '</a></p>' );
 		login_footer();
@@ -492,7 +501,7 @@ case 'rp' :
 	<p class="description indicator-hint"><?php _e('Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers and symbols like ! " ? $ % ^ &amp; ).'); ?></p>
 
 	<br class="clear" />
-	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Reset Password'); ?>" tabindex="100" /></p>
+	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Reset Password'); ?>" /></p>
 </form>
 
 <p id="nav">
@@ -509,7 +518,7 @@ break;
 case 'register' :
 	if ( is_multisite() ) {
 		// Multisite uses wp-signup.php
-		wp_redirect( apply_filters( 'wp_signup_location', site_url('wp-signup.php') ) );
+		wp_redirect( apply_filters( 'wp_signup_location', network_site_url('wp-signup.php') ) );
 		exit;
 	}
 
@@ -538,17 +547,17 @@ case 'register' :
 <form name="registerform" id="registerform" action="<?php echo esc_url( site_url('wp-login.php?action=register', 'login_post') ); ?>" method="post">
 	<p>
 		<label for="user_login"><?php _e('Username') ?><br />
-		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr(stripslashes($user_login)); ?>" size="20" tabindex="10" /></label>
+		<input type="text" name="user_login" id="user_login" class="input" value="<?php echo esc_attr(stripslashes($user_login)); ?>" size="20" /></label>
 	</p>
 	<p>
 		<label for="user_email"><?php _e('E-mail') ?><br />
-		<input type="email" name="user_email" id="user_email" class="input" value="<?php echo esc_attr(stripslashes($user_email)); ?>" size="25" tabindex="20" /></label>
+		<input type="text" name="user_email" id="user_email" class="input" value="<?php echo esc_attr(stripslashes($user_email)); ?>" size="25" /></label>
 	</p>
 <?php do_action('register_form'); ?>
 	<p id="reg_passmail"><?php _e('A password will be e-mailed to you.') ?></p>
 	<br class="clear" />
 	<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
-	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Register'); ?>" tabindex="100" /></p>
+	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Register'); ?>" /></p>
 </form>
 
 <p id="nav">
@@ -671,16 +680,16 @@ default:
 <form name="loginform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 	<p>
 		<label for="user_login"><?php _e('Username') ?><br />
-		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" tabindex="10" /></label>
+		<input type="text" name="log" id="user_login" class="input" value="<?php echo esc_attr($user_login); ?>" size="20" /></label>
 	</p>
 	<p>
 		<label for="user_pass"><?php _e('Password') ?><br />
-		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" tabindex="20" /></label>
+		<input type="password" name="pwd" id="user_pass" class="input" value="" size="20" /></label>
 	</p>
 <?php do_action('login_form'); ?>
-	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" tabindex="90"<?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
+	<p class="forgetmenot"><label for="rememberme"><input name="rememberme" type="checkbox" id="rememberme" value="forever" <?php checked( $rememberme ); ?> /> <?php esc_attr_e('Remember Me'); ?></label></p>
 	<p class="submit">
-		<input type="submit" name="wp-submit" id="wp-submit" class="button-primary" value="<?php esc_attr_e('Log In'); ?>" tabindex="100" />
+		<input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Log In'); ?>" />
 <?php	if ( $interim_login ) { ?>
 		<input type="hidden" name="interim-login" value="1" />
 <?php	} else { ?>

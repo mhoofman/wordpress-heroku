@@ -12,9 +12,10 @@ class WP_Themes_List_Table extends WP_List_Table {
 	protected $search_terms = array();
 	var $features = array();
 
-	function __construct() {
+	function __construct( $args = array() ) {
 		parent::__construct( array(
 			'ajax' => true,
+			'screen' => isset( $args['screen'] ) ? $args['screen'] : null,
 		) );
 	}
 
@@ -42,7 +43,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 		unset( $themes[ get_option( 'stylesheet' ) ] );
 		WP_Theme::sort_by_name( $themes );
 
-		$per_page = 999;
+		$per_page = 36;
 		$page = $this->get_pagenum();
 
 		$start = ( $page - 1 ) * $per_page;
@@ -90,8 +91,8 @@ class WP_Themes_List_Table extends WP_List_Table {
 		?>
 		<div class="tablenav themes <?php echo $which; ?>">
 			<?php $this->pagination( $which ); ?>
-		   <img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" class="ajax-loading list-ajax-loading" alt="" />
-		  <br class="clear" />
+			<span class="spinner"></span>
+			<br class="clear" />
 		</div>
 		<?php
 	}
@@ -143,7 +144,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 					. __( 'Live Preview' ) . '</a>';
 
 			if ( ! is_multisite() && current_user_can( 'delete_themes' ) )
-				$actions['delete'] = '<a class="submitdelete deletion" href="' . wp_nonce_url( "themes.php?action=delete&amp;stylesheet=$stylesheet", 'delete-theme_' . $stylesheet )
+				$actions['delete'] = '<a class="submitdelete deletion" href="' . wp_nonce_url( 'themes.php?action=delete&amp;stylesheet=' . urlencode( $stylesheet ), 'delete-theme_' . $stylesheet )
 					. '" onclick="' . "return confirm( '" . esc_js( sprintf( __( "You are about to delete this theme '%s'\n  'Cancel' to stop, 'OK' to delete." ), $title ) )
 					. "' );" . '">' . __( 'Delete' ) . '</a>';
 
@@ -171,7 +172,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 					<?php foreach ( $actions as $action ): ?>
 						<li><?php echo $action; ?></li>
 					<?php endforeach; ?>
-					<li class="hide-if-no-js"><a href="#" class="theme-detail" tabindex='4'><?php _e('Details') ?></a></li>
+					<li class="hide-if-no-js"><a href="#" class="theme-detail"><?php _e('Details') ?></a></li>
 				</ul>
 				<?php echo $delete_action; ?>
 
@@ -181,15 +182,11 @@ class WP_Themes_List_Table extends WP_List_Table {
 			<div class="themedetaildiv hide-if-js">
 				<p><strong><?php _e('Version: '); ?></strong><?php echo $version; ?></p>
 				<p><?php echo $theme->display('Description'); ?></p>
-				<?php if ( current_user_can( 'edit_themes' ) && $theme->parent() ) :
-					/* translators: 1: theme title, 2:  template dir, 3: stylesheet_dir, 4: theme title, 5: parent_theme */ ?>
-					<p><?php printf( __( 'The template files are located in <code>%2$s</code>. The stylesheet files are located in <code>%3$s</code>. <strong>%4$s</strong> uses templates from <strong>%5$s</strong>. Changes made to the templates will affect both themes.' ),
-						$title, str_replace( WP_CONTENT_DIR, '', $theme->get_template_directory() ), str_replace( WP_CONTENT_DIR, '', $theme->get_stylesheet_directory() ), $title, $theme->parent()->display('Name') ); ?></p>
-				<?php else :
-						/* translators: 1: theme title, 2:  template dir, 3: stylesheet_dir */ ?>
-					<p><?php printf( __( 'All of this theme&#8217;s files are located in <code>%2$s</code>.' ),
-						$title, str_replace( WP_CONTENT_DIR, '', $theme->get_template_directory() ), str_replace( WP_CONTENT_DIR, '', $theme->get_stylesheet_directory() ) ); ?></p>
-				<?php endif; ?>
+				<?php if ( $theme->parent() ) {
+					printf( ' <p class="howto">' . __( 'This <a href="%1$s">child theme</a> requires its parent theme, %2$s.' ) . '</p>',
+						__( 'http://codex.wordpress.org/Child_Themes' ),
+						$theme->parent()->display( 'Name' ) );
+				} ?>
 			</div>
 
 			</div>

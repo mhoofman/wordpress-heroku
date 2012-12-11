@@ -103,7 +103,7 @@ if ( $doaction ) {
 		case 'delete':
 			$deleted = 0;
 			foreach( (array) $post_ids as $post_id ) {
-				$post_del = & get_post($post_id);
+				$post_del = get_post($post_id);
 
 				if ( !current_user_can($post_type_object->cap->delete_post, $post_id) )
 					wp_die( __('You are not allowed to delete this item.') );
@@ -215,16 +215,19 @@ if ( 'post' == $post_type ) {
 	);
 }
 
-add_screen_option( 'per_page', array('label' => $title, 'default' => 20) );
+add_screen_option( 'per_page', array( 'label' => $title, 'default' => 20, 'option' => 'edit_' . $post_type . '_per_page' ) );
 
 require_once('./admin-header.php');
 ?>
 <div class="wrap">
 <?php screen_icon(); ?>
-<h2><?php echo esc_html( $post_type_object->labels->name ); ?> <a href="<?php echo $post_new_file ?>" class="add-new-h2"><?php echo esc_html($post_type_object->labels->add_new); ?></a> <?php
+<h2><?php
+echo esc_html( $post_type_object->labels->name );
+if ( current_user_can( $post_type_object->cap->create_posts ) )
+	echo ' <a href="' . esc_url( $post_new_file ) . '" class="add-new-h2">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
 if ( ! empty( $_REQUEST['s'] ) )
-	printf( '<span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', get_search_query() ); ?>
-</h2>
+	printf( ' <span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', get_search_query() );
+?></h2>
 
 <?php if ( isset( $_REQUEST['locked'] ) || isset( $_REQUEST['updated'] ) || isset( $_REQUEST['deleted'] ) || isset( $_REQUEST['trashed'] ) || isset( $_REQUEST['untrashed'] ) ) {
 	$messages = array();

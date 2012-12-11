@@ -20,10 +20,9 @@ $timezone_format = _x('Y-m-d G:i:s', 'timezone date format');
 /**
  * Display JavaScript on the page.
  *
- * @package WordPress
- * @subpackage General_Settings_Screen
+ * @since 3.5.0
  */
-function add_js() {
+function options_general_add_js() {
 ?>
 <script type="text/javascript">
 //<![CDATA[
@@ -45,18 +44,18 @@ function add_js() {
 		});
 		$("input[name='date_format_custom'], input[name='time_format_custom']").change( function() {
 			var format = $(this);
-			format.siblings('img').css('visibility','visible');
+			format.siblings('.spinner').css('display', 'inline-block'); // show(); can't be used here
 			$.post(ajaxurl, {
 					action: 'date_format_custom' == format.attr('name') ? 'date_format' : 'time_format',
 					date : format.val()
-				}, function(d) { format.siblings('img').css('visibility','hidden'); format.siblings('.example').text(d); } );
+				}, function(d) { format.siblings('.spinner').hide(); format.siblings('.example').text(d); } );
 		});
 	});
 //]]>
 </script>
 <?php
 }
-add_action('admin_head', 'add_js');
+add_action('admin_head', 'options_general_add_js');
 
 $options_help = '<p>' . __('The fields on this screen determine some of the basics of your site setup.') . '</p>' .
 	'<p>' . __('Most themes display the site title at the top of every page, in the title bar of the browser, and as the identifying name for syndicated feeds. The tagline is also displayed by many themes.') . '</p>';
@@ -231,12 +230,12 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	<fieldset><legend class="screen-reader-text"><span><?php _e('Date Format') ?></span></legend>
 <?php
 
-	$date_formats = apply_filters( 'date_formats', array(
+	$date_formats = array_unique( apply_filters( 'date_formats', array(
 		__('F j, Y'),
 		'Y/m/d',
 		'm/d/Y',
 		'd/m/Y',
-	) );
+	) ) );
 
 	$custom = true;
 
@@ -251,7 +250,7 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 
 	echo '	<label><input type="radio" name="date_format" id="date_format_custom_radio" value="\c\u\s\t\o\m"';
 	checked( $custom );
-	echo '/> ' . __('Custom:') . ' </label><input type="text" name="date_format_custom" value="' . esc_attr( get_option('date_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('date_format') ) . "</span> <img class='ajax-loading' src='" . esc_url( admin_url( 'images/wpspin_light.gif' ) ) . "' />\n";
+	echo '/> ' . __('Custom:') . ' </label><input type="text" name="date_format_custom" value="' . esc_attr( get_option('date_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('date_format') ) . "</span> <span class='spinner'></span>\n";
 
 	echo "\t<p>" . __('<a href="http://codex.wordpress.org/Formatting_Date_and_Time">Documentation on date and time formatting</a>.') . "</p>\n";
 ?>
@@ -264,11 +263,11 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	<fieldset><legend class="screen-reader-text"><span><?php _e('Time Format') ?></span></legend>
 <?php
 
-	$time_formats = apply_filters( 'time_formats', array(
+	$time_formats = array_unique( apply_filters( 'time_formats', array(
 		__('g:i a'),
 		'g:i A',
 		'H:i',
-	) );
+	) ) );
 
 	$custom = true;
 
@@ -283,7 +282,7 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 
 	echo '	<label><input type="radio" name="time_format" id="time_format_custom_radio" value="\c\u\s\t\o\m"';
 	checked( $custom );
-	echo '/> ' . __('Custom:') . ' </label><input type="text" name="time_format_custom" value="' . esc_attr( get_option('time_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('time_format') ) . "</span> <img class='ajax-loading' src='" . esc_url( admin_url( 'images/wpspin_light.gif' ) ) . "' />\n";
+	echo '/> ' . __('Custom:') . ' </label><input type="text" name="time_format_custom" value="' . esc_attr( get_option('time_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('time_format') ) . "</span> <span class='spinner'></span>\n";
 	;
 ?>
 	</fieldset>

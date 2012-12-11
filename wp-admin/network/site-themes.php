@@ -13,11 +13,6 @@ require_once( './admin.php' );
 if ( ! is_multisite() )
 	wp_die( __( 'Multisite support is not enabled.' ) );
 
-$menu_perms = get_site_option( 'menu_items', array() );
-
-if ( empty( $menu_perms['themes'] ) && ! is_super_admin() )
-	wp_die( __( 'Cheatin&#8217; uh?' ) );
-
 if ( ! current_user_can( 'manage_sites' ) )
 	wp_die( __( 'You do not have sufficient permissions to manage themes for this site.' ) );
 
@@ -177,7 +172,6 @@ if ( isset( $_GET['enabled'] ) ) {
 <?php $wp_list_table->views(); ?>
 
 <form method="post" action="site-themes.php?action=update-site">
-	<?php wp_nonce_field( 'edit-site' ); ?>
 	<input type="hidden" name="id" value="<?php echo esc_attr( $id ) ?>" />
 
 <?php $wp_list_table->display(); ?>

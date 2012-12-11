@@ -18,6 +18,8 @@ if ( is_multisite() ) {
 
 if ( is_multisite() ) {
 	function admin_created_user_email( $text ) {
+		$roles = get_editable_roles();
+		$role = $roles[ $_REQUEST['role'] ];
 		/* translators: 1: Site name, 2: site URL, 3: role */
 		return sprintf( __( 'Hi,
 You\'ve been invited to join \'%1$s\' at
@@ -26,7 +28,7 @@ If you do not want to join this site please ignore
 this email. This invitation will expire in a few days.
 
 Please click the following link to activate your user account:
-%%s' ), get_bloginfo('name'), home_url(), esc_html( $_REQUEST[ 'role' ] ) );
+%%s' ), get_bloginfo( 'name' ), home_url(), wp_specialchars_decode( translate_user_role( $role['name'] ) ) );
 	}
 	add_filter( 'wpmu_signup_user_notification_email', 'admin_created_user_email' );
 
@@ -72,6 +74,9 @@ if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 		} else {
 			$newuser_key = substr( md5( $user_id ), 0, 5 );
 			add_option( 'new_user_' . $newuser_key, array( 'user_id' => $user_id, 'email' => $user_details->user_email, 'role' => $_REQUEST[ 'role' ] ) );
+
+			$roles = get_editable_roles();
+			$role = $roles[ $_REQUEST['role'] ];
 			/* translators: 1: Site name, 2: site URL, 3: role, 4: activation URL */
 			$message = __( 'Hi,
 
@@ -80,7 +85,7 @@ You\'ve been invited to join \'%1$s\' at
 
 Please click the following link to confirm the invite:
 %4$s' );
-			wp_mail( $new_user_email, sprintf( __( '[%s] Joining confirmation' ), get_option( 'blogname' ) ), sprintf($message, get_option('blogname'), home_url(), $_REQUEST[ 'role' ], home_url("/newbloguser/$newuser_key/")));
+			wp_mail( $new_user_email, sprintf( __( '[%s] Joining confirmation' ), get_option( 'blogname' ) ), sprintf( $message, get_option( 'blogname' ), home_url(), wp_specialchars_decode( translate_user_role( $role['name'] ) ), home_url( "/newbloguser/$newuser_key/" ) ) );
 			$redirect = add_query_arg( array('update' => 'add'), 'user-new.php' );
 		}
 	}
@@ -122,7 +127,7 @@ Please click the following link to confirm the invite:
 				wpmu_activate_signup( $key );
 				$redirect = add_query_arg( array('update' => 'addnoconfirmation'), 'user-new.php' );
 			} else {
-				$redirect = add_query_arg( array('update' => 'newuserconfimation'), 'user-new.php' );
+				$redirect = add_query_arg( array('update' => 'newuserconfirmation'), 'user-new.php' );
 			}
 			wp_redirect( $redirect );
 			die();
@@ -189,7 +194,7 @@ if ( isset($_GET['update']) ) {
 	$messages = array();
 	if ( is_multisite() ) {
 		switch ( $_GET['update'] ) {
-			case "newuserconfimation":
+			case "newuserconfirmation":
 				$messages[] = __('Invitation email sent to new user. A confirmation link must be clicked before their account is created.');
 				break;
 			case "add":
@@ -262,7 +267,7 @@ if ( is_multisite() ) {
 		$label = __('E-mail or Username');
 	}
 ?>
-<form action="" method="post" name="adduser" id="adduser" class="add:users: validate"<?php do_action('user_new_form_tag');?>>
+<form action="" method="post" name="adduser" id="adduser" class="validate"<?php do_action('user_new_form_tag');?>>
 <input name="action" type="hidden" value="adduser" />
 <?php wp_nonce_field( 'add-user', '_wpnonce_add-user' ) ?>
 
@@ -295,7 +300,7 @@ if ( current_user_can( 'create_users') ) {
 		echo '<h3 id="create-new-user">' . __( 'Add New User' ) . '</h3>';
 ?>
 <p><?php _e('Create a brand new user and add it to this site.'); ?></p>
-<form action="" method="post" name="createuser" id="createuser" class="add:users: validate"<?php do_action('user_new_form_tag');?>>
+<form action="" method="post" name="createuser" id="createuser" class="validate"<?php do_action('user_new_form_tag');?>>
 <input name="action" type="hidden" value="createuser" />
 <?php wp_nonce_field( 'create-user', '_wpnonce_create-user' ) ?>
 <?php

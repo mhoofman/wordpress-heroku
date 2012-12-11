@@ -179,7 +179,11 @@ function wp_widget_control( $sidebar_args ) {
 	<div class="widget-top">
 	<div class="widget-title-action">
 		<a class="widget-action hide-if-no-js" href="#available-widgets"></a>
-		<a class="widget-control-edit hide-if-js" href="<?php echo esc_url( add_query_arg( $query_arg ) ); ?>"><span class="edit"><?php _e('Edit'); ?></span><span class="add"><?php _e('Add'); ?></span></a>
+		<a class="widget-control-edit hide-if-js" href="<?php echo esc_url( add_query_arg( $query_arg ) ); ?>">
+			<span class="edit"><?php _ex( 'Edit', 'widget' ); ?></span>
+			<span class="add"><?php _ex( 'Add', 'widget' ); ?></span>
+			<span class="screen-reader-text"><?php echo $widget_title; ?></span>
+		</a>
 	</div>
 	<div class="widget-title"><h4><?php echo $widget_title ?><span class="in-widget-title"></span></h4></div>
 	</div>
@@ -207,8 +211,8 @@ function wp_widget_control( $sidebar_args ) {
 		<a class="widget-control-close" href="#close"><?php _e('Close'); ?></a>
 		</div>
 		<div class="alignright<?php if ( 'noform' === $has_form ) echo ' widget-control-noform'; ?>">
-		<img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" class="ajax-feedback" title="" alt="" />
-		<?php submit_button( __( 'Save' ), 'button-primary widget-control-save', 'savewidget', false, array( 'id' => 'widget-' . esc_attr( $id_format ) . '-savewidget' ) ); ?>
+			<?php submit_button( __( 'Save' ), 'button-primary widget-control-save right', 'savewidget', false, array( 'id' => 'widget-' . esc_attr( $id_format ) . '-savewidget' ) ); ?>
+			<span class="spinner"></span>
 		</div>
 		<br class="clear" />
 	</div>

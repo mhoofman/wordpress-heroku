@@ -20,7 +20,7 @@ function wp_initial_constants( ) {
 		if( is_multisite() ) {
 			define('WP_MEMORY_LIMIT', '64M');
 		} else {
-			define('WP_MEMORY_LIMIT', '32M');
+			define('WP_MEMORY_LIMIT', '40M');
 		}
 	}
 
@@ -39,8 +39,11 @@ function wp_initial_constants( ) {
 		$blog_id = 1;
 
 	// set memory limits.
-	if ( function_exists('memory_get_usage') && ( (int) @ini_get('memory_limit') < abs(intval(WP_MEMORY_LIMIT)) ) )
-		@ini_set('memory_limit', WP_MEMORY_LIMIT);
+	if ( function_exists( 'memory_get_usage' ) ) {
+		$current_limit = @ini_get( 'memory_limit' );
+		if ( -1 != $current_limit && ( -1 == WP_MEMORY_LIMIT || ( intval( $current_limit ) < abs( intval( WP_MEMORY_LIMIT ) ) ) ) )
+			@ini_set( 'memory_limit', WP_MEMORY_LIMIT );
+	}
 
 	if ( !defined('WP_CONTENT_DIR') )
 		define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' ); // no trailing slash, full paths only - WP_CONTENT_URL is defined further down
@@ -69,6 +72,14 @@ function wp_initial_constants( ) {
 
 	if ( !defined('SHORTINIT') )
 		define('SHORTINIT', false);
+
+	// Constants for expressing human-readable intervals
+	// in their respective number of seconds.
+ 	define( 'MINUTE_IN_SECONDS', 60 );
+ 	define( 'HOUR_IN_SECONDS',   60 * MINUTE_IN_SECONDS );
+ 	define( 'DAY_IN_SECONDS',    24 * HOUR_IN_SECONDS   );
+	define( 'WEEK_IN_SECONDS',    7 * DAY_IN_SECONDS    );
+ 	define( 'YEAR_IN_SECONDS',  365 * DAY_IN_SECONDS    );
 }
 
 /**
@@ -293,6 +304,6 @@ function wp_templating_constants( ) {
 	 * @since 3.0.0
 	 */
 	if ( !defined('WP_DEFAULT_THEME') )
-		define( 'WP_DEFAULT_THEME', 'twentyeleven' );
+		define( 'WP_DEFAULT_THEME', 'twentytwelve' );
 
 }

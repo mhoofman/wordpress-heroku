@@ -17,12 +17,7 @@ global $wpdb, $wp_queries, $charset_collate;
  * @global string
  * @name $charset_collate
  */
-$charset_collate = '';
-
-if ( ! empty( $wpdb->charset ) )
-	$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
-if ( ! empty( $wpdb->collate ) )
-	$charset_collate .= " COLLATE $wpdb->collate";
+$charset_collate = $wpdb->get_charset_collate();
 
 /**
  * Retrieve the SQL for creating database tables.
@@ -382,7 +377,6 @@ function populate_options() {
 	'default_comment_status' => 'open',
 	'default_ping_status' => 'open',
 	'default_pingback_flag' => 1,
-	'default_post_edit_rows' => 20,
 	'posts_per_page' => 10,
 	/* translators: default date format, see http://php.net/date */
 	'date_format' => __('F j, Y'),
@@ -449,8 +443,6 @@ function populate_options() {
 
 	// 2.6
 	'avatar_default' => 'mystery',
-	'enable_app' => 0,
-	'enable_xmlrpc' => 0,
 
 	// 2.7
 	'large_size_w' => 1024,
@@ -475,17 +467,15 @@ function populate_options() {
 	// 2.8
 	'timezone_string' => $timezone_string,
 
-	// 2.9
-	'embed_autourls' => 1,
-	'embed_size_w' => '',
-	'embed_size_h' => 600,
-
 	// 3.0
 	'page_for_posts' => 0,
 	'page_on_front' => 0,
 
 	// 3.1
 	'default_post_format' => 0,
+
+	// 3.5
+	'link_manager_enabled' => 0,
 	);
 
 	// 3.3
@@ -531,7 +521,23 @@ function populate_options() {
 	if ( !__get_option('home') ) update_option('home', $guessurl);
 
 	// Delete unused options
-	$unusedoptions = array ('blodotgsping_url', 'bodyterminator', 'emailtestonly', 'phoneemail_separator', 'smilies_directory', 'subjectprefix', 'use_bbcode', 'use_blodotgsping', 'use_phoneemail', 'use_quicktags', 'use_weblogsping', 'weblogs_cache_file', 'use_preview', 'use_htmltrans', 'smilies_directory', 'fileupload_allowedusers', 'use_phoneemail', 'default_post_status', 'default_post_category', 'archive_mode', 'time_difference', 'links_minadminlevel', 'links_use_adminlevels', 'links_rating_type', 'links_rating_char', 'links_rating_ignore_zero', 'links_rating_single_image', 'links_rating_image0', 'links_rating_image1', 'links_rating_image2', 'links_rating_image3', 'links_rating_image4', 'links_rating_image5', 'links_rating_image6', 'links_rating_image7', 'links_rating_image8', 'links_rating_image9', 'weblogs_cacheminutes', 'comment_allowed_tags', 'search_engine_friendly_urls', 'default_geourl_lat', 'default_geourl_lon', 'use_default_geourl', 'weblogs_xml_url', 'new_users_can_blog', '_wpnonce', '_wp_http_referer', 'Update', 'action', 'rich_editing', 'autosave_interval', 'deactivated_plugins', 'can_compress_scripts', 'page_uris', 'update_core', 'update_plugins', 'update_themes', 'doing_cron', 'random_seed', 'rss_excerpt_length', 'secret', 'use_linksupdate', 'default_comment_status_page', 'wporg_popular_tags', 'what_to_show', 'rss_language');
+	$unusedoptions = array(
+		'blodotgsping_url', 'bodyterminator', 'emailtestonly', 'phoneemail_separator', 'smilies_directory',
+		'subjectprefix', 'use_bbcode', 'use_blodotgsping', 'use_phoneemail', 'use_quicktags', 'use_weblogsping',
+		'weblogs_cache_file', 'use_preview', 'use_htmltrans', 'smilies_directory', 'fileupload_allowedusers',
+		'use_phoneemail', 'default_post_status', 'default_post_category', 'archive_mode', 'time_difference',
+		'links_minadminlevel', 'links_use_adminlevels', 'links_rating_type', 'links_rating_char',
+		'links_rating_ignore_zero', 'links_rating_single_image', 'links_rating_image0', 'links_rating_image1',
+		'links_rating_image2', 'links_rating_image3', 'links_rating_image4', 'links_rating_image5',
+		'links_rating_image6', 'links_rating_image7', 'links_rating_image8', 'links_rating_image9',
+		'weblogs_cacheminutes', 'comment_allowed_tags', 'search_engine_friendly_urls', 'default_geourl_lat',
+		'default_geourl_lon', 'use_default_geourl', 'weblogs_xml_url', 'new_users_can_blog', '_wpnonce',
+		'_wp_http_referer', 'Update', 'action', 'rich_editing', 'autosave_interval', 'deactivated_plugins',
+		'can_compress_scripts', 'page_uris', 'update_core', 'update_plugins', 'update_themes', 'doing_cron',
+		'random_seed', 'rss_excerpt_length', 'secret', 'use_linksupdate', 'default_comment_status_page',
+		'wporg_popular_tags', 'what_to_show', 'rss_language', 'language', 'enable_xmlrpc', 'enable_app',
+		'autoembed_urls', 'default_post_edit_rows',
+	);
 	foreach ( $unusedoptions as $option )
 		delete_option($option);
 
@@ -786,7 +792,11 @@ function populate_roles_300() {
 		$role->add_cap( 'update_core' );
 		$role->add_cap( 'list_users' );
 		$role->add_cap( 'remove_users' );
+
+		// Never used, will be removed. create_users or
+		// promote_users is the capability you're looking for.
 		$role->add_cap( 'add_users' );
+
 		$role->add_cap( 'promote_users' );
 		$role->add_cap( 'edit_theme_options' );
 		$role->add_cap( 'delete_themes' );
@@ -898,11 +908,13 @@ We hope you enjoy your new site. Thanks!
 		// @todo - network admins should have a method of editing the network siteurl (used for cookie hash)
 		'siteurl' => get_option( 'siteurl' ) . '/',
 		'add_new_users' => '0',
-		'upload_space_check_disabled' => '0',
+		'upload_space_check_disabled' => is_multisite() ? get_site_option( 'upload_space_check_disabled' ) : '1',
 		'subdomain_install' => intval( $subdomain_install ),
 		'global_terms_enabled' => global_terms_enabled() ? '1' : '0',
+		'ms_files_rewriting' => is_multisite() ? get_site_option( 'ms_files_rewriting' ) : '0',
 		'initial_db_version' => get_option( 'initial_db_version' ),
 		'active_sitewide_plugins' => array(),
+		'WPLANG' => get_locale(),
 	);
 	if ( ! $subdomain_install )
 		$sitemeta['illegal_names'][] = 'blog';
@@ -919,28 +931,26 @@ We hope you enjoy your new site. Thanks!
 	}
 	$wpdb->query( "INSERT INTO $wpdb->sitemeta ( site_id, meta_key, meta_value ) VALUES " . $insert );
 
-	$current_site->domain = $domain;
-	$current_site->path = $path;
-	$current_site->site_name = ucfirst( $domain );
-
-	if ( !is_multisite() ) {
+	// When upgrading from single to multisite, assume the current site will become the main site of the network.
+	// When using populate_network() to create another network in an existing multisite environment,
+	// skip these steps since the main site of the new network has not yet been created.
+	if ( ! is_multisite() ) {
+		$current_site = new stdClass;
+		$current_site->domain = $domain;
+		$current_site->path = $path;
+		$current_site->site_name = ucfirst( $domain );
 		$wpdb->insert( $wpdb->blogs, array( 'site_id' => $network_id, 'domain' => $domain, 'path' => $path, 'registered' => current_time( 'mysql' ) ) );
-		$blog_id = $wpdb->insert_id;
+		$current_site->blog_id = $blog_id = $wpdb->insert_id;
 		update_user_meta( $site_user->ID, 'source_domain', $domain );
 		update_user_meta( $site_user->ID, 'primary_blog', $blog_id );
-		if ( !$upload_path = get_option( 'upload_path' ) ) {
-			$upload_path = substr( WP_CONTENT_DIR, strlen( ABSPATH ) ) . '/uploads';
-			update_option( 'upload_path', $upload_path );
-		}
-		update_option( 'fileupload_url', get_option( 'siteurl' ) . '/' . $upload_path );
+
+		if ( $subdomain_install )
+			$wp_rewrite->set_permalink_structure( '/%year%/%monthnum%/%day%/%postname%/' );
+		else
+			$wp_rewrite->set_permalink_structure( '/blog/%year%/%monthnum%/%day%/%postname%/' );
+
+		flush_rewrite_rules();
 	}
-
-	if ( $subdomain_install )
-		$wp_rewrite->set_permalink_structure( '/%year%/%monthnum%/%day%/%postname%/' );
-	else
-		$wp_rewrite->set_permalink_structure( '/blog/%year%/%monthnum%/%day%/%postname%/' );
-
-	flush_rewrite_rules();
 
 	if ( $subdomain_install ) {
 		$vhost_ok = false;

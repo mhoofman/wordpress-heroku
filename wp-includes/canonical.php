@@ -18,7 +18,9 @@
  * one or the other.
  *
  * Prevents redirection for feeds, trackbacks, searches, comment popup, and
- * admin URLs. Does not redirect on IIS, page/post previews, and on form data.
+ * admin URLs. Does not redirect on non-pretty-permalink-supporting IIS 7,
+ * page/post previews, WP admin, Trackbacks, robots.txt, searches, or on POST
+ * requests.
  *
  * Will also attempt to find the correct link when a user enters a URL that does
  * not exist based on exact WordPress query. Will instead try to parse the URL
@@ -37,7 +39,7 @@
 function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 	global $wp_rewrite, $is_IIS, $wp_query, $wpdb;
 
-	if ( is_trackback() || is_search() || is_comments_popup() || is_admin() || !empty($_POST) || is_preview() || is_robots() || $is_IIS )
+	if ( is_trackback() || is_search() || is_comments_popup() || is_admin() || !empty($_POST) || is_preview() || is_robots() || ( $is_IIS && !iis7_supports_permalinks() ) )
 		return;
 
 	if ( !$requested_url ) {
@@ -280,7 +282,7 @@ function redirect_canonical( $requested_url = null, $do_redirect = true ) {
 
 		if ( 'wp-register.php' == basename( $redirect['path'] ) ) {
 			if ( is_multisite() )
-				$redirect_url = apply_filters( 'wp_signup_location', site_url( 'wp-signup.php' ) );
+				$redirect_url = apply_filters( 'wp_signup_location', network_site_url( 'wp-signup.php' ) );
 			else
 				$redirect_url = site_url( 'wp-login.php?action=register' );
 			wp_redirect( $redirect_url, 301 );

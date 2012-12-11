@@ -43,7 +43,6 @@ body {
 	line-height: 19px;
 	color: #333;
 	margin: 10px;
-	min-height: 100%;
 }
 
 br[data-mce-bogus] {
@@ -141,4 +140,3 @@ img.wp-oembed {
 	width: 300px;
 	height: 250px;
 }
-

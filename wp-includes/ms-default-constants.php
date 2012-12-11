@@ -10,21 +10,31 @@
 /**
  * Defines Multisite upload constants.
  *
+ * Exists for backward compatibility with legacy file-serving through
+ * wp-includes/ms-files.php (wp-content/blogs.php in MU).
+ *
  * @since 3.0.0
  */
-function ms_upload_constants(  ) {
+function ms_upload_constants() {
 	global $wpdb;
 
-	/** @since 3.0.0 */
+	// This filter is attached in ms-default-filters.php but that file is not included during SHORTINIT.
+	add_filter( 'default_site_option_ms_files_rewriting', '__return_true' );
+
+	if ( ! get_site_option( 'ms_files_rewriting' ) )
+		return;
+
 	// Base uploads dir relative to ABSPATH
 	if ( !defined( 'UPLOADBLOGSDIR' ) )
 		define( 'UPLOADBLOGSDIR', 'wp-content/blogs.dir' );
 
-	/** @since 3.0.0 */
-	if ( !defined( 'UPLOADS' ) ) {
-		// Uploads dir relative to ABSPATH
+	// Note, the main site in a post-MU network uses wp-content/uploads.
+	// This is handled in wp_upload_dir() by ignoring UPLOADS for this case.
+	if ( ! defined( 'UPLOADS' ) ) {
 		define( 'UPLOADS', UPLOADBLOGSDIR . "/{$wpdb->blogid}/files/" );
-		if ( 'wp-content/blogs.dir' == UPLOADBLOGSDIR )
+
+		// Uploads dir relative to ABSPATH
+		if ( 'wp-content/blogs.dir' == UPLOADBLOGSDIR && ! defined( 'BLOGUPLOADDIR' ) )
 			define( 'BLOGUPLOADDIR', WP_CONTENT_DIR . "/blogs.dir/{$wpdb->blogid}/files/" );
 	}
 }
@@ -53,7 +63,7 @@ function ms_cookie_constants(  ) {
 	 * @since 2.6.0
 	 */
 	if ( !defined( 'ADMIN_COOKIE_PATH' ) ) {
-		if( !is_subdomain_install() ) {
+		if ( ! is_subdomain_install() || trim( parse_url( get_option( 'siteurl' ), PHP_URL_PATH ), '/' ) ) {
 			define( 'ADMIN_COOKIE_PATH', SITECOOKIEPATH );
 		} else {
 			define( 'ADMIN_COOKIE_PATH', SITECOOKIEPATH . 'wp-admin' );
@@ -74,9 +84,12 @@ function ms_cookie_constants(  ) {
 /**
  * Defines Multisite file constants.
  *
+ * Exists for backward compatibility with legacy file-serving through
+ * wp-includes/ms-files.php (wp-content/blogs.php in MU).
+ *
  * @since 3.0.0
  */
-function ms_file_constants(  ) {
+function ms_file_constants() {
 	/**
 	 * Optional support for X-Sendfile header
 	 * @since 3.0.0

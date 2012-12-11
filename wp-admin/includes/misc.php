@@ -192,7 +192,7 @@ function update_recently_edited( $file ) {
 }
 
 /**
- * If siteurl or home changed, flush rewrite rules.
+ * If siteurl, home or page_on_front changed, flush rewrite rules.
  *
  * @since 2.1.0
  *
@@ -209,6 +209,7 @@ function update_home_siteurl( $old_value, $value ) {
 
 add_action( 'update_option_home', 'update_home_siteurl', 10, 2 );
 add_action( 'update_option_siteurl', 'update_home_siteurl', 10, 2 );
+add_action( 'update_option_page_on_front', 'update_home_siteurl', 10, 2 );
 
 /**
  * Shorten an URL, to be used as link text
@@ -325,18 +326,18 @@ function set_screen_options() {
 		$option = $_POST['wp_screen_options']['option'];
 		$value = $_POST['wp_screen_options']['value'];
 
-		if ( !preg_match( '/^[a-z_-]+$/', $option ) )
+		if ( $option != sanitize_key( $option ) )
 			return;
-
-		$option = str_replace('-', '_', $option);
 
 		$map_option = $option;
 		$type = str_replace('edit_', '', $map_option);
 		$type = str_replace('_per_page', '', $type);
-		if ( in_array($type, get_post_types()) )
-			$map_option = 'edit_per_page';
-		if ( in_array( $type, get_taxonomies()) )
+		if ( in_array( $type, get_taxonomies() ) )
 			$map_option = 'edit_tags_per_page';
+		elseif ( in_array( $type, get_post_types() ) )
+			$map_option = 'edit_per_page';
+		else
+			$option = str_replace('-', '_', $option);
 
 		switch ( $map_option ) {
 			case 'edit_per_page':
@@ -524,36 +525,6 @@ function saveDomDocument($doc, $filename) {
 }
 
 /**
- * Workaround for Windows bug in is_writable() function
- *
- * @since 2.8.0
- *
- * @param string $path
- * @return bool
- */
-function win_is_writable( $path ) {
-	/* will work in despite of Windows ACLs bug
-	 * NOTE: use a trailing slash for folders!!!
-	 * see http://bugs.php.net/bug.php?id=27609
-	 * see http://bugs.php.net/bug.php?id=30931
-	 */
-
-	if ( $path[strlen( $path ) - 1] == '/' ) // recursively return a temporary file path
-		return win_is_writable( $path . uniqid( mt_rand() ) . '.tmp');
-	else if ( is_dir( $path ) )
-		return win_is_writable( $path . '/' . uniqid( mt_rand() ) . '.tmp' );
-	// check tmp file for read/write capabilities
-	$should_delete_tmp_file = !file_exists( $path );
-	$f = @fopen( $path, 'a' );
-	if ( $f === false )
-		return false;
-	fclose( $f );
-	if ( $should_delete_tmp_file )
-		unlink( $path );
-	return true;
-}
-
-/**
  * Display the default admin color scheme picker (Used in user-edit.php)
  *
  * @since 3.0.0
@@ -566,16 +537,16 @@ $current_color = get_user_option('admin_color', $user_id);
 if ( empty($current_color) )
 	$current_color = 'fresh';
 foreach ( $_wp_admin_css_colors as $color => $color_info ): ?>
-<div class="color-option"><input name="admin_color" id="admin_color_<?php echo $color; ?>" type="radio" value="<?php echo esc_attr($color) ?>" class="tog" <?php checked($color, $current_color); ?> />
+<div class="color-option"><input name="admin_color" id="admin_color_<?php echo esc_attr( $color ); ?>" type="radio" value="<?php echo esc_attr( $color ); ?>" class="tog" <?php checked($color, $current_color); ?> />
 	<table class="color-palette">
 	<tr>
 	<?php foreach ( $color_info->colors as $html_color ): ?>
-	<td style="background-color: <?php echo $html_color ?>" title="<?php echo $color ?>">&nbsp;</td>
+	<td style="background-color: <?php echo esc_attr( $html_color ); ?>" title="<?php echo esc_attr( $color ); ?>">&nbsp;</td>
 	<?php endforeach; ?>
 	</tr>
 	</table>
 
-	<label for="admin_color_<?php echo $color; ?>"><?php echo $color_info->name ?></label>
+	<label for="admin_color_<?php echo esc_attr( $color ); ?>"><?php echo esc_html( $color_info->name ); ?></label>
 </div>
 	<?php endforeach; ?>
 </fieldset>

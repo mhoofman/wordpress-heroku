@@ -16,12 +16,15 @@
 define( 'DOING_AJAX', true );
 define( 'WP_ADMIN', true );
 
+/** Load WordPress Bootstrap */
+require_once( dirname( dirname( __FILE__ ) ) . '/wp-load.php' );
+
+/** Allow for cross-domain requests (from the frontend). */
+send_origin_headers();
+
 // Require an action parameter
 if ( empty( $_REQUEST['action'] ) )
 	die( '0' );
-
-/** Load WordPress Bootstrap */
-require_once( dirname( dirname( __FILE__ ) ) . '/wp-load.php' );
 
 /** Load WordPress Administration APIs */
 require_once( ABSPATH . 'wp-admin/includes/admin.php' );
@@ -33,6 +36,7 @@ require_once( ABSPATH . 'wp-admin/includes/ajax-actions.php' );
 @header( 'X-Robots-Tag: noindex' );
 
 send_nosniff_header();
+nocache_headers();
 
 do_action( 'admin_init' );
 
@@ -50,7 +54,9 @@ $core_actions_post = array(
 	'menu-locations-save', 'menu-quick-search', 'meta-box-order', 'get-permalink',
 	'sample-permalink', 'inline-save', 'inline-save-tax', 'find_posts', 'widgets-order',
 	'save-widget', 'set-post-thumbnail', 'date_format', 'time_format', 'wp-fullscreen-save-post',
-	'wp-remove-post-lock', 'dismiss-wp-pointer', 'upload-attachment',
+	'wp-remove-post-lock', 'dismiss-wp-pointer', 'upload-attachment', 'get-attachment',
+	'query-attachments', 'save-attachment', 'save-attachment-compat', 'send-link-to-editor',
+	'send-attachment-to-editor', 'save-attachment-order',
 );
 
 // Register core Ajax calls.

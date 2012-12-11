@@ -196,24 +196,27 @@ class WP_Dependencies {
 		}
 	}
 
-	function query( $handle, $list = 'registered' ) { // registered, queue, done, to_do
-		switch ( $list ) :
-		case 'registered':
-		case 'scripts': // back compat
-			if ( isset($this->registered[$handle]) )
-				return $this->registered[$handle];
-			break;
-		case 'to_print': // back compat
-		case 'printed': // back compat
-			if ( 'to_print' == $list )
-				$list = 'to_do';
-			else
-				$list = 'printed';
-		default:
-			if ( in_array($handle, $this->$list) )
-				return true;
-			break;
-		endswitch;
+
+	function query( $handle, $list = 'registered' ) {
+		switch ( $list ) {
+			case 'registered' :
+			case 'scripts': // back compat
+				if ( isset( $this->registered[ $handle ] ) )
+					return $this->registered[ $handle ];
+				return false;
+
+			case 'enqueued' :
+			case 'queue' :
+				return in_array( $handle, $this->queue );
+
+			case 'to_do' :
+			case 'to_print': // back compat
+				return in_array( $handle, $this->to_do );
+
+			case 'done' :
+			case 'printed': // back compat
+				return in_array( $handle, $this->done );
+		}
 		return false;
 	}
 
@@ -244,8 +247,8 @@ class _WP_Dependency {
 	var $extra = array();
 
 	function __construct() {
-		@list($this->handle, $this->src, $this->deps, $this->ver, $this->args) = func_get_args();
-		if ( !is_array($this->deps) )
+		@list( $this->handle, $this->src, $this->deps, $this->ver, $this->args ) = func_get_args();
+		if ( ! is_array($this->deps) )
 			$this->deps = array();
 	}
 

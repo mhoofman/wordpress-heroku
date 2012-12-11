@@ -18,7 +18,7 @@ if ( is_multisite() && ! is_network_admin() ) {
 	exit();
 }
 
-if ( ! current_user_can( 'update_core' ) )
+if ( ! current_user_can( 'update_core' ) && ! current_user_can( 'update_themes' ) && ! current_user_can( 'update_plugins' ) )
 	wp_die( __( 'You do not have sufficient permissions to update this site.' ) );
 
 function list_core_update( $update ) {
@@ -74,7 +74,7 @@ function list_core_update( $update ) {
 	echo '<input name="locale" value="'. esc_attr($update->locale) .'" type="hidden"/>';
 	if ( $show_buttons ) {
 		if ( $first_pass ) {
-			submit_button( $submit, $current ? 'button' : 'primary', 'upgrade', false );
+			submit_button( $submit, $current ? 'button' : 'primary regular', 'upgrade', false );
 			$first_pass = false;
 		} else {
 			submit_button( $submit, 'button', 'upgrade', false );
@@ -131,28 +131,9 @@ function dismissed_updates() {
  * @return null
  */
 function core_upgrade_preamble() {
-	global $upgrade_error, $wp_version;
+	global $wp_version;
 
 	$updates = get_core_updates();
-?>
-	<div class="wrap">
-	<?php screen_icon('tools'); ?>
-	<h2><?php _e('WordPress Updates'); ?></h2>
-<?php
-	if ( $upgrade_error ) {
-		echo '<div class="error"><p>';
-		if ( $upgrade_error == 'themes' )
-			_e('Please select one or more themes to update.');
-		else
-			_e('Please select one or more plugins to update.');
-		echo '</p></div>';
-	}
-
-	echo '<p>';
-	/* translators: %1 date, %2 time. */
-	printf( __('Last checked on %1$s at %2$s.'), date_i18n( get_option( 'date_format' ) ), date_i18n( get_option( 'time_format' ) ) );
-	echo ' &nbsp; <a class="button" href="' . esc_url( self_admin_url('update-core.php') ) . '">' . __( 'Check Again' ) . '</a>';
-	echo '</p>';
 
 	if ( !isset($updates[0]->response) || 'latest' == $updates[0]->response ) {
 		echo '<h3>';
@@ -183,13 +164,6 @@ function core_upgrade_preamble() {
 		echo '<p>' . sprintf( __( '<a href="%s">Learn more about WordPress %s</a>.' ), esc_url( self_admin_url( 'about.php' ) ), $normalized_version ) . '</p>';
 	}
 	dismissed_updates();
-
-	if ( current_user_can( 'update_plugins' ) )
-		list_plugin_updates();
-	if ( current_user_can( 'update_themes' ) )
-		list_theme_updates();
-	do_action('core_upgrade_preamble');
-	echo '</div>';
 }
 
 function list_plugin_updates() {
@@ -380,7 +354,7 @@ function do_core_upgrade( $reinstall = false ) {
 	}
 
 	show_message( __('WordPress updated successfully') );
-	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%s">here</a>.' ), $result, esc_url( self_admin_url( 'about.php?updated' ) ) ) . '</span>' );
+	show_message( '<span class="hide-if-no-js">' . sprintf( __( 'Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href="%2$s">here</a>.' ), $result, esc_url( self_admin_url( 'about.php?updated' ) ) ) . '</span>' );
 	show_message( '<span class="hide-if-js">' . sprintf( __( 'Welcome to WordPress %1$s. <a href="%2$s">Learn more</a>.' ), $result, esc_url( self_admin_url( 'about.php?updated' ) ) ) . '</span>' );
 	?>
 	</div>
@@ -454,10 +428,41 @@ if ( 'upgrade-core' == $action ) {
 
 	wp_version_check();
 	require_once(ABSPATH . 'wp-admin/admin-header.php');
-	core_upgrade_preamble();
+	?>
+	<div class="wrap">
+	<?php screen_icon('tools'); ?>
+	<h2><?php _e('WordPress Updates'); ?></h2>
+	<?php
+	if ( $upgrade_error ) {
+		echo '<div class="error"><p>';
+		if ( $upgrade_error == 'themes' )
+			_e('Please select one or more themes to update.');
+		else
+			_e('Please select one or more plugins to update.');
+		echo '</p></div>';
+	}
+
+	echo '<p>';
+	/* translators: %1 date, %2 time. */
+	printf( __('Last checked on %1$s at %2$s.'), date_i18n( get_option( 'date_format' ) ), date_i18n( get_option( 'time_format' ) ) );
+	echo ' &nbsp; <a class="button" href="' . esc_url( self_admin_url('update-core.php') ) . '">' . __( 'Check Again' ) . '</a>';
+	echo '</p>';
+
+	if ( current_user_can( 'update_core' ) )
+		core_upgrade_preamble();
+	if ( current_user_can( 'update_plugins' ) )
+		list_plugin_updates();
+	if ( current_user_can( 'update_themes' ) )
+		list_theme_updates();
+	do_action('core_upgrade_preamble');
+	echo '</div>';
 	include(ABSPATH . 'wp-admin/admin-footer.php');
 
 } elseif ( 'do-core-upgrade' == $action || 'do-core-reinstall' == $action ) {
+
+	if ( ! current_user_can( 'update_core' ) )
+		wp_die( __( 'You do not have sufficient permissions to update this site.' ) );
+
 	check_admin_referer('upgrade-core');
 
 	// do the (un)dismiss actions before headers,

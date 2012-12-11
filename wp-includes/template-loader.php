@@ -6,6 +6,10 @@
 if ( defined('WP_USE_THEMES') && WP_USE_THEMES )
 	do_action('template_redirect');
 
+// Halt template load for HEAD requests. Performance bump. See #14348
+if ( 'HEAD' === $_SERVER['REQUEST_METHOD'] && apply_filters( 'exit_on_http_head', true ) )
+	exit();
+
 // Process feeds and trackbacks even if not using themes.
 if ( is_robots() ) :
 	do_action('do_robots');

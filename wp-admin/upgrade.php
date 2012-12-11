@@ -17,6 +17,8 @@ define( 'WP_INSTALLING', true );
 /** Load WordPress Bootstrap */
 require( '../wp-load.php' );
 
+nocache_headers();
+
 timer_start();
 require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -55,14 +57,14 @@ else
 	wp_admin_css( 'ie', true );
 	?>
 </head>
-<body>
-<h1 id="logo"><img alt="WordPress" src="images/wordpress-logo.png?ver=20120216" /></h1>
+<body class="wp-core-ui">
+<h1 id="logo"><a href="<?php esc_attr_e( 'http://wordpress.org/' ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
 
 <?php if ( get_option( 'db_version' ) == $wp_db_version || !is_blog_installed() ) : ?>
 
 <h2><?php _e( 'No Update Required' ); ?></h2>
 <p><?php _e( 'Your WordPress database is already up-to-date!' ); ?></p>
-<p class="step"><a class="button" href="<?php echo get_option( 'home' ); ?>/"><?php _e( 'Continue' ); ?></a></p>
+<p class="step"><a class="button button-large" href="<?php echo get_option( 'home' ); ?>/"><?php _e( 'Continue' ); ?></a></p>
 
 <?php elseif ( !$php_compat || !$mysql_compat ) :
 	if ( !$mysql_compat && !$php_compat )
@@ -82,7 +84,7 @@ switch ( $step ) :
 <h2><?php _e( 'Database Update Required' ); ?></h2>
 <p><?php _e( 'WordPress has been updated! Before we send you on your way, we have to update your database to the newest version.' ); ?></p>
 <p><?php _e( 'The update process may take a little while, so please be patient.' ); ?></p>
-<p class="step"><a class="button" href="upgrade.php?step=1&amp;backto=<?php echo $goback; ?>"><?php _e( 'Update WordPress Database' ); ?></a></p>
+<p class="step"><a class="button button-large" href="upgrade.php?step=1&amp;backto=<?php echo $goback; ?>"><?php _e( 'Update WordPress Database' ); ?></a></p>
 <?php
 		break;
 	case 1:
@@ -94,7 +96,7 @@ switch ( $step ) :
 ?>
 <h2><?php _e( 'Update Complete' ); ?></h2>
 	<p><?php _e( 'Your WordPress database has been successfully updated!' ); ?></p>
-	<p class="step"><a class="button" href="<?php echo $backto; ?>"><?php _e( 'Continue' ); ?></a></p>
+	<p class="step"><a class="button button-large" href="<?php echo $backto; ?>"><?php _e( 'Continue' ); ?></a></p>
 
 <!--
 <pre>

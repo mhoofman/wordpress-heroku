@@ -26,7 +26,7 @@ $pagenum = $wp_list_table->get_pagenum();
 $title = $tax->labels->name;
 
 if ( 'post' != $post_type ) {
-	$parent_file = "edit.php?post_type=$post_type";
+	$parent_file = ( 'attachment' == $post_type ) ? 'upload.php' : "edit.php?post_type=$post_type";
 	$submenu_file = "edit-tags.php?taxonomy=$taxonomy&amp;post_type=$post_type";
 } else if ( 'link_category' == $tax->name ) {
 	$parent_file = 'link-manager.php';
@@ -36,7 +36,7 @@ if ( 'post' != $post_type ) {
 	$submenu_file = "edit-tags.php?taxonomy=$taxonomy";
 }
 
-add_screen_option( 'per_page', array('label' => $title, 'default' => 20, 'option' => 'edit_' . $tax->name . '_per_page') );
+add_screen_option( 'per_page', array( 'label' => $title, 'default' => 20, 'option' => 'edit_' . $tax->name . '_per_page' ) );
 
 switch ( $wp_list_table->current_action() ) {
 
@@ -195,7 +195,7 @@ if ( 'category' == $taxonomy || 'link_category' == $taxonomy || 'post_tag' == $t
 		$help = '<p>' . __( 'You can assign keywords to your posts using <strong>tags</strong>. Unlike categories, tags have no hierarchy, meaning there&#8217;s no relationship from one tag to another.' ) . '</p>';
 
 	if ( 'link_category' == $taxonomy )
-		$help .= '<p>' . __( 'You can delete Link Categories in the Bulk Action pulldown, but that action does not delete the links within the category. Instead, it moves them to the default Link Category.' ) . '</p>';
+		$help .= '<p>' . __( 'You can delete Link Categories in the Bulk Action pull-down, but that action does not delete the links within the category. Instead, it moves them to the default Link Category.' ) . '</p>';
 	else
 		$help .='<p>' . __( 'What&#8217;s the difference between categories and tags? Normally, tags are ad-hoc keywords that identify important information in your post (names, subjects, etc) that may or may not recur in other posts, while categories are pre-determined sections. If you think of your site like a book, the categories are like the Table of Contents and the tags are like the terms in the index.' ) . '</p>';
 
@@ -218,7 +218,7 @@ if ( 'category' == $taxonomy || 'link_category' == $taxonomy || 'post_tag' == $t
 			$help .= '<li>' . __( '<strong>Slug</strong> - The &#8220;slug&#8221; is the URL-friendly version of the name. It is usually all lowercase and contains only letters, numbers, and hyphens.' ) . '</li>';
 
 		if ( 'category' == $taxonomy )
-			$help .= '<li>' . __( '<strong>Parent</strong> - Categories, unlike tags, can have a hierarchy. You might have a Jazz category, and under that have children categories for Bebop and Big Band. Totally optional. To create a subcategory, just choose another category from the Parent dropdown.' ) . '</li>';
+			$help .= '<li>' . __( '<strong>Parent</strong> - Categories, unlike tags, can have a hierarchy. You might have a Jazz category, and under that have child categories for Bebop and Big Band. Totally optional. To create a subcategory, just choose another category from the Parent dropdown.' ) . '</li>';
 
 		$help .= '<li>' . __( '<strong>Description</strong> - The description is not prominent by default; however, some themes may display it.' ) . '</li>' .
 		'</ul>' .
@@ -305,7 +305,7 @@ endif; ?>
 </div>
 <?php elseif ( 'post_tag' == $taxonomy && current_user_can( 'import' ) ) : ?>
 <div class="form-wrap">
-<p><?php printf(__('Tags can be selectively converted to categories using the <a href="%s">tag to category converter</a>'), 'import.php') ;?>.</p>
+<p><?php printf(__('Tags can be selectively converted to categories using the <a href="%s">tag to category converter</a>.'), 'import.php') ;?></p>
 </div>
 <?php endif;
 do_action('after-' . $taxonomy . '-table', $taxonomy);
@@ -388,7 +388,7 @@ if ( ! is_taxonomy_hierarchical($taxonomy) )
 	do_action('add_tag_form_fields', $taxonomy);
 do_action($taxonomy . '_add_form_fields', $taxonomy);
 
-submit_button( $tax->labels->add_new_item, 'button' );
+submit_button( $tax->labels->add_new_item );
 
 // Back compat hooks. Deprecated in preference to {$taxonomy}_add_form
 if ( 'category' == $taxonomy )
@@ -408,7 +408,9 @@ do_action($taxonomy . '_add_form', $taxonomy);
 
 </div><!-- /col-container -->
 </div><!-- /wrap -->
-
+<script type="text/javascript">
+try{document.forms.addtag['tag-name'].focus();}catch(e){}
+</script>
 <?php $wp_list_table->inline_edit(); ?>
 
 <?php

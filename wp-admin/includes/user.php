@@ -69,7 +69,8 @@ function edit_user( $user_id = 0 ) {
 			$user->user_url = '';
 		} else {
 			$user->user_url = esc_url_raw( $_POST['url'] );
-			$user->user_url = preg_match('/^(https?|ftps?|mailto|news|irc|gopher|nntp|feed|telnet):/is', $user->user_url) ? $user->user_url : 'http://'.$user->user_url;
+			$protocols = implode( '|', array_map( 'preg_quote', wp_allowed_protocols() ) );
+			$user->user_url = preg_match('/^(' . $protocols . '):/is', $user->user_url) ? $user->user_url : 'http://'.$user->user_url;
 		}
 	}
 	if ( isset( $_POST['first_name'] ) )
@@ -143,7 +144,7 @@ function edit_user( $user_id = 0 ) {
 	if ( empty( $user->user_email ) ) {
 		$errors->add( 'empty_email', __( '<strong>ERROR</strong>: Please enter an e-mail address.' ), array( 'form-field' => 'email' ) );
 	} elseif ( !is_email( $user->user_email ) ) {
-		$errors->add( 'invalid_email', __( '<strong>ERROR</strong>: The e-mail address isn&#8217;t correct.' ), array( 'form-field' => 'email' ) );
+		$errors->add( 'invalid_email', __( '<strong>ERROR</strong>: The email address isn&#8217;t correct.' ), array( 'form-field' => 'email' ) );
 	} elseif ( ( $owner_id = email_exists($user->user_email) ) && ( !$update || ( $owner_id != $user->ID ) ) ) {
 		$errors->add( 'email_exists', __('<strong>ERROR</strong>: This email is already registered, please choose another one.'), array( 'form-field' => 'email' ) );
 	}
@@ -155,9 +156,9 @@ function edit_user( $user_id = 0 ) {
 		return $errors;
 
 	if ( $update ) {
-		$user_id = wp_update_user( get_object_vars( $user ) );
+		$user_id = wp_update_user( $user );
 	} else {
-		$user_id = wp_insert_user( get_object_vars( $user ) );
+		$user_id = wp_insert_user( $user );
 		wp_new_user_notification( $user_id, isset($_POST['send_password']) ? $pass1 : '' );
 	}
 	return $user_id;
@@ -197,7 +198,7 @@ function get_editable_roles() {
  * @return object WP_User object with user data.
  */
 function get_user_to_edit( $user_id ) {
-	$user = new WP_User( $user_id );
+	$user = get_userdata( $user_id );
 
 	$user->filter = 'edit';
 
@@ -269,8 +270,18 @@ function wp_delete_user( $id, $reassign = 'novalue' ) {
 		}
 	} else {
 		$reassign = (int) $reassign;
+		$post_ids = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_author = %d", $id ) );
 		$wpdb->update( $wpdb->posts, array('post_author' => $reassign), array('post_author' => $id) );
+		if ( ! empty( $post_ids ) ) {
+			foreach ( $post_ids as $post_id )
+				clean_post_cache( $post_id );
+		}
+		$link_ids = $wpdb->get_col( $wpdb->prepare("SELECT link_id FROM $wpdb->links WHERE link_owner = %d", $id) );
 		$wpdb->update( $wpdb->links, array('link_owner' => $reassign), array('link_owner' => $id) );
+		if ( ! empty( $link_ids ) ) {
+			foreach ( $link_ids as $link_id )
+				clean_bookmark_cache( $link_id );
+		}
 	}
 
 	// FINALLY, delete user
@@ -352,7 +363,7 @@ function default_password_nag() {
 	echo '<strong>' . __('Notice:') . '</strong> ';
 	_e('You&rsquo;re using the auto-generated password for your account. Would you like to change it to something easier to remember?');
 	echo '</p><p>';
-	printf( '<a href="%s">' . __('Yes, take me to my profile page') . '</a> | ', admin_url('profile.php') . '#password' );
+	printf( '<a href="%s">' . __('Yes, take me to my profile page') . '</a> | ', get_edit_profile_url( get_current_user_id() ) . '#password' );
 	printf( '<a href="%s" id="default-password-nag-no">' . __('No thanks, do not remind me again') . '</a>', '?default_password_nag=0' );
 	echo '</p></div>';
 }

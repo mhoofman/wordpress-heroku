@@ -573,9 +573,9 @@ function activate_plugin( $plugin, $redirect = '', $network_wide = false, $silen
  * @since 2.5.0
  *
  * @param string|array $plugins Single plugin or list of plugins to deactivate.
+ * @param bool $silent Prevent calling deactivation hooks. Default is false.
  * @param mixed $network_wide Whether to deactivate the plugin for all sites in the network.
  * 	A value of null (the default) will deactivate plugins for both the site and the network.
- * @param bool $silent Prevent calling deactivation hooks. Default is false.
  */
 function deactivate_plugins( $plugins, $silent = false, $network_wide = null ) {
 	if ( is_multisite() )
@@ -606,7 +606,7 @@ function deactivate_plugins( $plugins, $silent = false, $network_wide = null ) {
 			$key = array_search( $plugin, $current );
 			if ( false !== $key ) {
 				$do_blog = true;
-				array_splice( $current, $key, 1 );
+				unset( $current[ $key ] );
 			}
 		}
 
@@ -884,7 +884,8 @@ function uninstall_plugin($plugin) {
  * @param string $capability The capability required for this menu to be displayed to the user.
  * @param string $menu_slug The slug name to refer to this menu by (should be unique for this menu)
  * @param callback $function The function to be called to output the content for this page.
- * @param string $icon_url The url to the icon to be used for this menu
+ * @param string $icon_url The url to the icon to be used for this menu. Using 'none' would leave div.wp-menu-image empty
+ *                         so an icon can be added as background with CSS.
  * @param int $position The position in the menu order this one should appear
  *
  * @return string The resulting page's hook_suffix
@@ -901,12 +902,15 @@ function add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $func
 	if ( !empty( $function ) && !empty( $hookname ) && current_user_can( $capability ) )
 		add_action( $hookname, $function );
 
-	if ( empty($icon_url) )
-		$icon_url = esc_url( admin_url( 'images/generic.png' ) );
-	elseif ( is_ssl() && 0 === strpos($icon_url, 'http://') )
-		$icon_url = 'https://' . substr($icon_url, 7);
+	if ( empty($icon_url) ) {
+		$icon_url = 'none';
+		$icon_class = 'menu-icon-generic ';
+	} else {
+		$icon_url = set_url_scheme( $icon_url );
+		$icon_class = '';
+	}
 
-	$new_menu = array( $menu_title, $capability, $menu_slug, $page_title, 'menu-top ' . $hookname, $hookname, $icon_url );
+	$new_menu = array( $menu_title, $capability, $menu_slug, $page_title, 'menu-top ' . $icon_class . $hookname, $hookname, $icon_url );
 
 	if ( null === $position )
 		$menu[] = $new_menu;
@@ -1624,8 +1628,13 @@ function register_setting( $option_group, $option_name, $sanitize_callback = '' 
 	global $new_whitelist_options;
 
 	if ( 'misc' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.0', __( 'The miscellaneous options group has been removed. Use another settings group.' ) );
+		_deprecated_argument( __FUNCTION__, '3.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'misc' ) );
 		$option_group = 'general';
+	}
+
+	if ( 'privacy' == $option_group ) {
+		_deprecated_argument( __FUNCTION__, '3.5', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'privacy' ) );
+		$option_group = 'reading';
 	}
 
 	$new_whitelist_options[ $option_group ][] = $option_name;
@@ -1647,8 +1656,13 @@ function unregister_setting( $option_group, $option_name, $sanitize_callback = '
 	global $new_whitelist_options;
 
 	if ( 'misc' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.0', __( 'The miscellaneous options group has been removed. Use another settings group.' ) );
+		_deprecated_argument( __FUNCTION__, '3.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'misc' ) );
 		$option_group = 'general';
+	}
+
+	if ( 'privacy' == $option_group ) {
+		_deprecated_argument( __FUNCTION__, '3.5', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'privacy' ) );
+		$option_group = 'reading';
 	}
 
 	$pos = array_search( $option_name, (array) $new_whitelist_options );

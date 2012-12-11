@@ -238,7 +238,7 @@ function export_wp( $args = array() ) {
 		global $wpdb;
 
 		$authors = array();
-		$results = $wpdb->get_results( "SELECT DISTINCT post_author FROM $wpdb->posts" );
+		$results = $wpdb->get_results( "SELECT DISTINCT post_author FROM $wpdb->posts WHERE post_status != 'auto-draft'" );
 		foreach ( (array) $results as $result )
 			$authors[] = get_userdata( $result->post_author );
 
@@ -279,7 +279,7 @@ function export_wp( $args = array() ) {
 	 * @since 2.3.0
 	 */
 	function wxr_post_taxonomy() {
-		global $post;
+		$post = get_post();
 
 		$taxonomies = get_object_taxonomies( $post->post_type );
 		if ( empty( $taxonomies ) )

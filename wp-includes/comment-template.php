@@ -810,11 +810,8 @@ function pings_open( $post_id = null ) {
  * @uses $post Gets the ID of the current post for the token
  */
 function wp_comment_form_unfiltered_html_nonce() {
-	global $post;
-
-	$post_id = 0;
-	if ( !empty($post) )
-		$post_id = $post->ID;
+	$post = get_post();
+	$post_id = $post ? $post->ID : 0;
 
 	if ( current_user_can( 'unfiltered_html' ) ) {
 		wp_nonce_field( 'unfiltered-html-comment_' . $post_id, '_wp_unfiltered_html_comment_disabled', false );
@@ -897,7 +894,7 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 	update_comment_cache($wp_query->comments);
 
 	if ( $separate_comments ) {
-		$wp_query->comments_by_type = &separate_comments($comments);
+		$wp_query->comments_by_type = separate_comments($comments);
 		$comments_by_type = &$wp_query->comments_by_type;
 	}
 
@@ -907,7 +904,7 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 		$overridden_cpage = true;
 	}
 
-	if ( !defined('COMMENTS_TEMPLATE') || !COMMENTS_TEMPLATE)
+	if ( !defined('COMMENTS_TEMPLATE') )
 		define('COMMENTS_TEMPLATE', true);
 
 	$include = apply_filters('comments_template', STYLESHEETPATH . $file );
@@ -1331,13 +1328,13 @@ class Walker_Comment extends Walker {
 	function start_el( &$output, $comment, $depth, $args, $id = 0 ) {
 		$depth++;
 		$GLOBALS['comment_depth'] = $depth;
+		$GLOBALS['comment'] = $comment;
 
 		if ( !empty($args['callback']) ) {
 			call_user_func($args['callback'], $comment, $args, $depth);
 			return;
 		}
 
-		$GLOBALS['comment'] = $comment;
 		extract($args, EXTR_SKIP);
 
 		if ( 'div' == $args['style'] ) {
@@ -1431,7 +1428,7 @@ function wp_list_comments($args = array(), $comments = null ) {
 		if ( empty($comments) )
 			return;
 		if ( 'all' != $r['type'] ) {
-			$comments_by_type = &separate_comments($comments);
+			$comments_by_type = separate_comments($comments);
 			if ( empty($comments_by_type[$r['type']]) )
 				return;
 			$_comments = $comments_by_type[$r['type']];
@@ -1443,7 +1440,7 @@ function wp_list_comments($args = array(), $comments = null ) {
 			return;
 		if ( 'all' != $r['type'] ) {
 			if ( empty($wp_query->comments_by_type) )
-				$wp_query->comments_by_type = &separate_comments($wp_query->comments);
+				$wp_query->comments_by_type = separate_comments($wp_query->comments);
 			if ( empty($wp_query->comments_by_type[$r['type']]) )
 				return;
 			$_comments = $wp_query->comments_by_type[$r['type']];
@@ -1524,9 +1521,9 @@ function comment_form( $args = array(), $post_id = null ) {
 	$req = get_option( 'require_name_email' );
 	$aria_req = ( $req ? " aria-required='true'" : '' );
 	$fields =  array(
-		'author' => '<p class="comment-form-author">' . '<label for="author">' . __( 'Name' ) . '</label> ' . ( $req ? '<span class="required">*</span>' : '' ) .
+		'author' => '<p class="comment-form-author">' . '<label for="author">' . __( 'Name' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
 		            '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" size="30"' . $aria_req . ' /></p>',
-		'email'  => '<p class="comment-form-email"><label for="email">' . __( 'Email' ) . '</label> ' . ( $req ? '<span class="required">*</span>' : '' ) .
+		'email'  => '<p class="comment-form-email"><label for="email">' . __( 'Email' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
 		            '<input id="email" name="email" type="text" value="' . esc_attr(  $commenter['comment_author_email'] ) . '" size="30"' . $aria_req . ' /></p>',
 		'url'    => '<p class="comment-form-url"><label for="url">' . __( 'Website' ) . '</label>' .
 		            '<input id="url" name="url" type="text" value="' . esc_attr( $commenter['comment_author_url'] ) . '" size="30" /></p>',
@@ -1537,7 +1534,7 @@ function comment_form( $args = array(), $post_id = null ) {
 		'fields'               => apply_filters( 'comment_form_default_fields', $fields ),
 		'comment_field'        => '<p class="comment-form-comment"><label for="comment">' . _x( 'Comment', 'noun' ) . '</label><textarea id="comment" name="comment" cols="45" rows="8" aria-required="true"></textarea></p>',
 		'must_log_in'          => '<p class="must-log-in">' . sprintf( __( 'You must be <a href="%s">logged in</a> to post a comment.' ), wp_login_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
-		'logged_in_as'         => '<p class="logged-in-as">' . sprintf( __( 'Logged in as <a href="%1$s">%2$s</a>. <a href="%3$s" title="Log out of this account">Log out?</a>' ), admin_url( 'profile.php' ), $user_identity, wp_logout_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
+		'logged_in_as'         => '<p class="logged-in-as">' . sprintf( __( 'Logged in as <a href="%1$s">%2$s</a>. <a href="%3$s" title="Log out of this account">Log out?</a>' ), get_edit_user_link(), $user_identity, wp_logout_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
 		'comment_notes_before' => '<p class="comment-notes">' . __( 'Your email address will not be published.' ) . ( $req ? $required_text : '' ) . '</p>',
 		'comment_notes_after'  => '<p class="form-allowed-tags">' . sprintf( __( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes: %s' ), ' <code>' . allowed_tags() . '</code>' ) . '</p>',
 		'id_form'              => 'commentform',

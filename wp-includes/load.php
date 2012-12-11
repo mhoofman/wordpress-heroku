@@ -356,7 +356,7 @@ function wp_set_wpdb_vars() {
 		dead_db();
 
 	$wpdb->field_types = array( 'post_author' => '%d', 'post_parent' => '%d', 'menu_order' => '%d', 'term_id' => '%d', 'term_group' => '%d', 'term_taxonomy_id' => '%d',
-		'parent' => '%d', 'count' => '%d','object_id' => '%d', 'term_order' => '%d', 'ID' => '%d', 'commment_ID' => '%d', 'comment_post_ID' => '%d', 'comment_parent' => '%d',
+		'parent' => '%d', 'count' => '%d','object_id' => '%d', 'term_order' => '%d', 'ID' => '%d', 'comment_ID' => '%d', 'comment_post_ID' => '%d', 'comment_parent' => '%d',
 		'user_id' => '%d', 'link_id' => '%d', 'link_owner' => '%d', 'link_rating' => '%d', 'option_id' => '%d', 'blog_id' => '%d', 'meta_id' => '%d', 'post_id' => '%d',
 		'user_status' => '%d', 'umeta_id' => '%d', 'comment_karma' => '%d', 'comment_count' => '%d',
 		// multisite:
@@ -381,7 +381,7 @@ function wp_set_wpdb_vars() {
  * @since 3.0.0
  */
 function wp_start_object_cache() {
-	global $_wp_using_ext_object_cache;
+	global $_wp_using_ext_object_cache, $blog_id;
 
 	$first_init = false;
  	if ( ! function_exists( 'wp_cache_init' ) ) {
@@ -403,13 +403,13 @@ function wp_start_object_cache() {
 	// If cache supports reset, reset instead of init if already initialized.
 	// Reset signals to the cache that global IDs have changed and it may need to update keys
 	// and cleanup caches.
-	if ( !$first_init && function_exists('wp_cache_reset') )
-		wp_cache_reset();
+	if ( ! $first_init && function_exists( 'wp_cache_switch_to_blog' ) )
+		wp_cache_switch_to_blog( $blog_id );
 	else
 		wp_cache_init();
 
 	if ( function_exists( 'wp_cache_add_global_groups' ) ) {
-		wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts' ) );
+		wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache' ) );
 		wp_cache_add_non_persistent_groups( array( 'comment', 'counts', 'plugins' ) );
 	}
 }
@@ -583,8 +583,11 @@ function wp_clone( $object ) {
  * @return bool True if inside WordPress administration pages.
  */
 function is_admin() {
-	if ( defined( 'WP_ADMIN' ) )
+	if ( isset( $GLOBALS['current_screen'] ) )
+		return $GLOBALS['current_screen']->in_admin();
+	elseif ( defined( 'WP_ADMIN' ) )
 		return WP_ADMIN;
+
 	return false;
 }
 
@@ -599,8 +602,11 @@ function is_admin() {
  * @return bool True if inside WordPress network administration pages.
  */
 function is_blog_admin() {
-	if ( defined( 'WP_BLOG_ADMIN' ) )
+	if ( isset( $GLOBALS['current_screen'] ) )
+		return $GLOBALS['current_screen']->in_admin( 'site' );
+	elseif ( defined( 'WP_BLOG_ADMIN' ) )
 		return WP_BLOG_ADMIN;
+
 	return false;
 }
 
@@ -615,8 +621,11 @@ function is_blog_admin() {
  * @return bool True if inside WordPress network administration pages.
  */
 function is_network_admin() {
-	if ( defined( 'WP_NETWORK_ADMIN' ) )
+	if ( isset( $GLOBALS['current_screen'] ) )
+		return $GLOBALS['current_screen']->in_admin( 'network' );
+	elseif ( defined( 'WP_NETWORK_ADMIN' ) )
 		return WP_NETWORK_ADMIN;
+
 	return false;
 }
 
@@ -631,8 +640,11 @@ function is_network_admin() {
  * @return bool True if inside WordPress user administration pages.
  */
 function is_user_admin() {
-	if ( defined( 'WP_USER_ADMIN' ) )
+	if ( isset( $GLOBALS['current_screen'] ) )
+		return $GLOBALS['current_screen']->in_admin( 'user' );
+	elseif ( defined( 'WP_USER_ADMIN' ) )
 		return WP_USER_ADMIN;
+
 	return false;
 }
 
@@ -651,6 +663,18 @@ function is_multisite() {
 		return true;
 
 	return false;
+}
+
+/**
+ * Retrieve the current blog id
+ *
+ * @since 3.1.0
+ *
+ * @return int Blog id
+ */
+function get_current_blog_id() {
+	global $blog_id;
+	return absint($blog_id);
 }
 
 /**

@@ -29,6 +29,8 @@ if ( isset($_GET['import']) && !defined('WP_LOAD_IMPORTERS') )
 
 require_once(dirname(dirname(__FILE__)) . '/wp-load.php');
 
+nocache_headers();
+
 if ( get_option('db_upgraded') ) {
 	flush_rewrite_rules();
 	update_option( 'db_upgraded',  false );
@@ -51,6 +53,7 @@ if ( get_option('db_upgraded') ) {
 		 * @since 2.8.4b
 		 */
 		$c = get_blog_count();
+		// If 50 or fewer sites, run every time. Else, run "about ten percent" of the time. Shh, don't check that math.
 		if ( $c <= 50 || ( $c > 50 && mt_rand( 0, (int)( $c / 50 ) ) == 1 ) ) {
 			require_once( ABSPATH . WPINC . '/http.php' );
 			$response = wp_remote_get( admin_url( 'upgrade.php?step=1' ), array( 'timeout' => 120, 'httpversion' => '1.1' ) );
@@ -65,8 +68,6 @@ require_once(ABSPATH . 'wp-admin/includes/admin.php');
 
 auth_redirect();
 
-nocache_headers();
-
 // Schedule trash collection
 if ( !wp_next_scheduled('wp_scheduled_delete') && !defined('WP_INSTALLING') )
 	wp_schedule_event(time(), 'daily', 'wp_scheduled_delete');
@@ -79,7 +80,6 @@ $time_format = get_option('time_format');
 wp_reset_vars(array('profile', 'redirect', 'redirect_url', 'a', 'text', 'trackback', 'pingback'));
 
 wp_enqueue_script( 'common' );
-wp_enqueue_script( 'jquery-color' );
 
 $editing = false;
 
@@ -186,6 +186,8 @@ if ( isset($plugin_page) ) {
 		wp_redirect( admin_url( 'import.php?invalid=' . $importer ) );
 		exit;
 	}
+
+	do_action( 'load-importer-' . $importer );
 
 	$parent_file = 'tools.php';
 	$submenu_file = 'import.php';
