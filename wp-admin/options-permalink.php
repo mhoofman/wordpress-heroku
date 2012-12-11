@@ -49,15 +49,14 @@ get_current_screen()->set_help_sidebar(
 /**
  * Display JavaScript on the page.
  *
- * @package WordPress
- * @subpackage Permalink_Settings_Screen
+ * @since 3.5.0
  */
-function add_js() {
+function options_permalink_add_js() {
 	?>
 <script type="text/javascript">
 //<![CDATA[
 jQuery(document).ready(function() {
-	jQuery('input:radio.tog').change(function() {
+	jQuery('.permalink-structure input:radio').change(function() {
 		if ( 'custom' == this.value )
 			return;
 		jQuery('#permalink_structure').val( this.value );
@@ -70,7 +69,7 @@ jQuery(document).ready(function() {
 </script>
 <?php
 }
-add_filter('admin_head', 'add_js');
+add_filter('admin_head', 'options_permalink_add_js');
 
 include('./admin-header.php');
 
@@ -190,35 +189,35 @@ $structures = array(
 );
 ?>
 <h3><?php _e('Common Settings'); ?></h3>
-<table class="form-table">
+<table class="form-table permalink-structure">
 	<tr>
-		<th><label><input name="selection" type="radio" value="" class="tog" <?php checked('', $permalink_structure); ?> /> <?php _e('Default'); ?></label></th>
+		<th><label><input name="selection" type="radio" value="" <?php checked('', $permalink_structure); ?> /> <?php _e('Default'); ?></label></th>
 		<td><code><?php echo get_option('home'); ?>/?p=123</code></td>
 	</tr>
 	<tr>
-		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[1]); ?>" class="tog" <?php checked($structures[1], $permalink_structure); ?> /> <?php _e('Day and name'); ?></label></th>
+		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[1]); ?>" <?php checked($structures[1], $permalink_structure); ?> /> <?php _e('Day and name'); ?></label></th>
 		<td><code><?php echo get_option('home') . $blog_prefix . $prefix . '/' . date('Y') . '/' . date('m') . '/' . date('d') . '/' . _x( 'sample-post', 'sample permalink structure' ) . '/'; ?></code></td>
 	</tr>
 	<tr>
-		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[2]); ?>" class="tog" <?php checked($structures[2], $permalink_structure); ?> /> <?php _e('Month and name'); ?></label></th>
+		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[2]); ?>" <?php checked($structures[2], $permalink_structure); ?> /> <?php _e('Month and name'); ?></label></th>
 		<td><code><?php echo get_option('home') . $blog_prefix . $prefix . '/' . date('Y') . '/' . date('m') . '/' . _x( 'sample-post', 'sample permalink structure' ) . '/'; ?></code></td>
 	</tr>
 	<tr>
-		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[3]); ?>" class="tog" <?php checked($structures[3], $permalink_structure); ?> /> <?php _e('Numeric'); ?></label></th>
+		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[3]); ?>" <?php checked($structures[3], $permalink_structure); ?> /> <?php _e('Numeric'); ?></label></th>
 		<td><code><?php echo get_option('home') . $blog_prefix . $prefix . '/' . _x( 'archives', 'sample permalink base' ) . '/123'; ?></code></td>
 	</tr>
 	<tr>
-		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[4]); ?>" class="tog" <?php checked($structures[4], $permalink_structure); ?> /> <?php _e('Post name'); ?></label></th>
+		<th><label><input name="selection" type="radio" value="<?php echo esc_attr($structures[4]); ?>" <?php checked($structures[4], $permalink_structure); ?> /> <?php _e('Post name'); ?></label></th>
 		<td><code><?php echo get_option('home') . $blog_prefix . $prefix . '/' . _x( 'sample-post', 'sample permalink structure' ) . '/'; ?></code></td>
 	</tr>
 	<tr>
 		<th>
-			<label><input name="selection" id="custom_selection" type="radio" value="custom" class="tog" <?php checked( !in_array($permalink_structure, $structures) ); ?> />
+			<label><input name="selection" id="custom_selection" type="radio" value="custom" <?php checked( !in_array($permalink_structure, $structures) ); ?> />
 			<?php _e('Custom Structure'); ?>
 			</label>
 		</th>
 		<td>
-			<?php echo $blog_prefix; ?>
+			<code><?php echo get_option('home') . $blog_prefix; ?></code>
 			<input name="permalink_structure" id="permalink_structure" type="text" value="<?php echo esc_attr($permalink_structure); ?>" class="regular-text code" />
 		</td>
 	</tr>

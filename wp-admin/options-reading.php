@@ -18,10 +18,9 @@ $parent_file = 'options-general.php';
 /**
  * Display JavaScript on the page.
  *
- * @package WordPress
- * @subpackage Reading_Settings_Screen
+ * @since 3.5.0
  */
-function add_js() {
+function options_reading_add_js() {
 ?>
 <script type="text/javascript">
 //<![CDATA[
@@ -39,15 +38,32 @@ function add_js() {
 </script>
 <?php
 }
-add_action('admin_head', 'add_js');
+add_action('admin_head', 'options_reading_add_js');
+
+/**
+ * Render the blog charset setting.
+ *
+ * @since 3.5.0
+ */
+function options_reading_blog_charset() {
+	echo '<input name="blog_charset" type="text" id="blog_charset" value="' . esc_attr( get_option( 'blog_charset' ) ) . '" class="regular-text" />';
+	echo '<p class="description">' . __( 'The <a href="http://codex.wordpress.org/Glossary#Character_set">character encoding</a> of your site (UTF-8 is recommended)' ) . '</p>';
+}
 
 get_current_screen()->add_help_tab( array(
 	'id'      => 'overview',
 	'title'   => __('Overview'),
 	'content' => '<p>' . __('This screen contains the settings that affect the display of your content.') . '</p>' .
 		'<p>' . sprintf(__('You can choose what&#8217;s displayed on the front page of your site. It can be posts in reverse chronological order (classic blog), or a fixed/static page. To set a static home page, you first need to create two <a href="%s">Pages</a>. One will become the front page, and the other will be where your posts are displayed.'), 'post-new.php?post_type=page') . '</p>' .
-		'<p>' . __('You can also control the display of your content in RSS feeds, including the maximum numbers of posts to display, whether to show full text or a summary, and the character set encoding.') . '</p>' .
+		'<p>' . __('You can also control the display of your content in RSS feeds, including the maximum numbers of posts to display and whether to show full text or a summary.') . '</p>' .
 		'<p>' . __('You must click the Save Changes button at the bottom of the screen for new settings to take effect.') . '</p>',
+) );
+
+get_current_screen()->add_help_tab( array(
+	'id'      => 'site-visibility',
+	'title'   => has_action( 'blog_privacy_selector' ) ? __( 'Site Visibility' ) : __( 'Search Engine Visibility' ),
+	'content' => '<p>' . __( 'You can choose whether or not your site will be crawled by robots, ping services, and spiders. If you want those services to ignore your site, click the checkbox next to &#8220;Discourage search engines from indexing this site&#8221; and click the Save Changes button at the bottom of the screen. Note that your privacy is not complete; your site is still visible on the web.' ) . '</p>' .
+		'<p>' . __( 'When this setting is in effect, a reminder is shown in the Right Now box of the Dashboard that says, &#8220;Search Engines Discouraged,&#8221; to remind you that your site is not being crawled.' ) . '</p>',
 ) );
 
 get_current_screen()->set_help_sidebar(
@@ -63,8 +79,13 @@ include( './admin-header.php' );
 <?php screen_icon(); ?>
 <h2><?php echo esc_html( $title ); ?></h2>
 
-<form name="form1" method="post" action="options.php">
-<?php settings_fields( 'reading' ); ?>
+<form method="post" action="options.php">
+<?php
+settings_fields( 'reading' );
+
+if ( ! in_array( get_option( 'blog_charset' ), array( 'utf8', 'utf-8', 'UTF8', 'UTF-8' ) ) )
+	add_settings_field( 'blog_charset', __( 'Encoding for pages and feeds' ), 'options_reading_blog_charset', 'reading', 'default', array( 'label_for' => 'blog_charset' ) );
+?>
 
 <?php if ( ! get_pages() ) : ?>
 <input name="show_on_front" type="hidden" value="posts" />
@@ -120,11 +141,24 @@ else :
 </fieldset></td>
 </tr>
 
-<tr valign="top">
-<th scope="row"><label for="blog_charset"><?php _e( 'Encoding for pages and feeds' ); ?></label></th>
-<td><input name="blog_charset" type="text" id="blog_charset" value="<?php form_option( 'blog_charset' ); ?>" class="regular-text" />
-<p class="description"><?php _e( 'The <a href="http://codex.wordpress.org/Glossary#Character_set">character encoding</a> of your site (UTF-8 is recommended, if you are adventurous there are some <a href="http://en.wikipedia.org/wiki/Character_set">other encodings</a>)' ); ?></p></td>
+<tr valign="top" class="option-site-visibility">
+<th scope="row"><?php has_action( 'blog_privacy_selector' ) ? _e( 'Site Visibility' ) : _e( 'Search Engine Visibility' ); ?> </th>
+<td><fieldset><legend class="screen-reader-text"><span><?php has_action( 'blog_privacy_selector' ) ? _e( 'Site Visibility' ) : _e( 'Search Engine Visibility' ); ?> </span></legend>
+<?php if ( has_action( 'blog_privacy_selector' ) ) : ?>
+	<input id="blog-public" type="radio" name="blog_public" value="1" <?php checked('1', get_option('blog_public')); ?> />
+	<label for="blog-public"><?php _e( 'Allow search engines to index this site' );?></label><br/>
+	<input id="blog-norobots" type="radio" name="blog_public" value="0" <?php checked('0', get_option('blog_public')); ?> />
+	<label for="blog-norobots"><?php _e( 'Discourage search engines from indexing this site' ); ?></label>
+	<p class="description"><?php _e( 'Note: Neither of these options blocks access to your site &mdash; it is up to search engines to honor your request.' ); ?></p>
+	<?php do_action('blog_privacy_selector'); ?>
+<?php else : ?>
+	<label for="blog_public"><input name="blog_public" type="checkbox" id="blog_public" value="0" <?php checked( '0', get_option( 'blog_public' ) ); ?> />
+	<?php _e( 'Discourage search engines from indexing this site' ); ?></label>
+	<p class="description"><?php _e( 'It is up to search engines to honor this request.' ); ?></p>
+<?php endif; ?>
+</fieldset></td>
 </tr>
+
 <?php do_settings_fields( 'reading', 'default' ); ?>
 </table>
 

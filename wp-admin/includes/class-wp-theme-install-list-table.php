@@ -134,7 +134,6 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 				<?php do_action( 'install_themes_table_header' ); ?>
 			</div>
 			<?php $this->pagination( 'top' ); ?>
-			<img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" class="ajax-loading list-ajax-loading" alt="" />
 			<br class="clear" />
 		</div>
 
@@ -237,7 +236,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 				<?php foreach ( $actions as $action ): ?>
 					<li><?php echo $action; ?></li>
 				<?php endforeach; ?>
-				<li class="hide-if-no-js"><a href="#" class="theme-detail" tabindex='4'><?php _e('Details') ?></a></li>
+				<li class="hide-if-no-js"><a href="#" class="theme-detail"><?php _e('Details') ?></a></li>
 			</ul>
 		</div>
 

@@ -19,11 +19,11 @@ echo '<?xml version="1.0" encoding="'.get_option('blog_charset').'"?'.'>';
 <channel>
 	<title><?php
 		if ( is_singular() )
-			printf(ent2ncr(__('Comments on: %s')), get_the_title_rss());
+			printf( ent2ncr( __( 'Comments on: %s' ) ), get_the_title_rss() );
 		elseif ( is_search() )
-			printf(ent2ncr(__('Comments for %s searching on %s')), get_bloginfo_rss( 'name' ), esc_attr($wp_query->query_vars['s']));
+			printf( ent2ncr( __( 'Comments for %1$s searching on %2$s' ) ), get_bloginfo_rss( 'name' ), get_search_query() );
 		else
-			printf(ent2ncr(__('Comments for %s')), get_bloginfo_rss( 'name' ) . get_wp_title_rss());
+			printf( ent2ncr( __( 'Comments for %s' ) ), get_bloginfo_rss( 'name' ) . get_wp_title_rss() );
 	?></title>
 	<atom:link href="<?php self_link(); ?>" rel="self" type="application/rss+xml" />
 	<link><?php (is_single()) ? the_permalink_rss() : bloginfo_rss("url") ?></link>
@@ -54,7 +54,7 @@ if ( have_comments() ) : while ( have_comments() ) : the_comment();
 		<description><?php echo ent2ncr(__('Protected Comments: Please enter your password to view comments.')); ?></description>
 		<content:encoded><![CDATA[<?php echo get_the_password_form() ?>]]></content:encoded>
 <?php else : // post pass ?>
-		<description><?php comment_text_rss() ?></description>
+		<description><![CDATA[<?php comment_text_rss() ?>]]></description>
 		<content:encoded><![CDATA[<?php comment_text() ?>]]></content:encoded>
 <?php endif; // post pass
 	do_action('commentrss2_item', $comment->comment_ID, $comment_post->ID);

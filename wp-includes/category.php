@@ -36,7 +36,7 @@ function get_all_category_ids() {
  * @param string|array $args Optional. Change the defaults retrieving categories.
  * @return array List of categories.
  */
-function &get_categories( $args = '' ) {
+function get_categories( $args = '' ) {
 	$defaults = array( 'taxonomy' => 'category' );
 	$args = wp_parse_args( $args, $defaults );
 
@@ -78,7 +78,7 @@ function &get_categories( $args = '' ) {
  * @param string $filter Optional. Default is raw or no WordPress defined filter will applied.
  * @return mixed Category data in type defined by $output parameter.
  */
-function &get_category( $category, $output = OBJECT, $filter = 'raw' ) {
+function get_category( $category, $output = OBJECT, $filter = 'raw' ) {
 	$category = get_term( $category, 'category', $output, $filter );
 	if ( is_wp_error( $category ) )
 		return $category;
@@ -165,10 +165,10 @@ function get_category_by_slug( $slug  ) {
  *
  * @since 1.0.0
  *
- * @param string $cat_name Optional. Default is 'General' and can be any category name.
+ * @param string $cat_name Category name.
  * @return int 0, if failure and ID of category on success.
  */
-function get_cat_ID( $cat_name='General' ) {
+function get_cat_ID( $cat_name ) {
 	$cat = get_term_by( 'name', $cat_name, 'category' );
 	if ( $cat )
 		return $cat->term_id;
@@ -185,7 +185,7 @@ function get_cat_ID( $cat_name='General' ) {
  */
 function get_cat_name( $cat_id ) {
 	$cat_id = (int) $cat_id;
-	$category = &get_category( $cat_id );
+	$category = get_category( $cat_id );
 	if ( ! $category || is_wp_error( $category ) )
 		return '';
 	return $category->name;
@@ -249,7 +249,7 @@ function sanitize_category_field( $field, $value, $cat_id, $context ) {
  * @param string|array $args Tag arguments to use when retrieving tags.
  * @return array List of tags.
  */
-function &get_tags( $args = '' ) {
+function get_tags( $args = '' ) {
 	$tags = get_terms( 'post_tag', $args );
 
 	if ( empty( $tags ) ) {
@@ -280,7 +280,7 @@ function &get_tags( $args = '' ) {
  * @param string $filter Optional. Default is raw or no WordPress defined filter will applied.
  * @return object|array Return type based on $output value.
  */
-function &get_tag( $tag, $output = OBJECT, $filter = 'raw' ) {
+function get_tag( $tag, $output = OBJECT, $filter = 'raw' ) {
 	return get_term( $tag, 'post_tag', $output, $filter );
 }
 

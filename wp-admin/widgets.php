@@ -59,7 +59,7 @@ get_current_screen()->add_help_tab( array(
 'title'		=> __('Missing Widgets'),
 'content'	=>
 	'<p>' . __('Many themes show some sidebar widgets by default until you edit your sidebars, but they are not automatically displayed in your sidebar management tool. After you make your first widget change, you can re-add the default widgets by adding them from the Available Widgets area.') . '</p>' .
-		'<p>' . __('When changing themes, there is often some variation in the number and setup of widget areas/sidebars and sometimes these conflicts make the transition a bit less smooth. If you changed themes and seem to be missing widgets, scroll down on this screen to the Inactive area, where all your widgets and their settings will have been saved.') . '</p>'
+		'<p>' . __('When changing themes, there is often some variation in the number and setup of widget areas/sidebars and sometimes these conflicts make the transition a bit less smooth. If you changed themes and seem to be missing widgets, scroll down on this screen to the Inactive Widgets area, where all of your widgets and their settings will have been saved.') . '</p>'
 ) );
 
 get_current_screen()->set_help_sidebar(
@@ -68,23 +68,8 @@ get_current_screen()->set_help_sidebar(
 	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
-if ( empty($wp_registered_sidebars) ) {
-	// the theme has no sidebars, die.
-	require_once( './admin-header.php' );
-?>
-
-	<div class="wrap">
-	<?php screen_icon(); ?>
-	<h2><?php echo esc_html( $title ); ?></h2>
-		<div class="error">
-			<p><?php _e( 'No Sidebars Defined' ); ?></p>
-		</div>
-		<p><?php _e( 'The theme you are currently using isn&#8217;t widget-aware, meaning that it has no sidebars that you are able to change. For information on making your theme widget-aware, please <a href="http://codex.wordpress.org/Widgetizing_Themes">follow these instructions</a>.' ); ?></p>
-	</div>
-
-<?php
-	require_once( './admin-footer.php' );
-	exit;
+if ( ! current_theme_supports( 'widgets' ) ) {
+	wp_die( __( 'The theme you are currently using isn&#8217;t widget-aware, meaning that it has no sidebars that you are able to change. For information on making your theme widget-aware, please <a href="http://codex.wordpress.org/Widgetizing_Themes">follow these instructions</a>.' ) );
 }
 
 // These are the widgets grouped by sidebar
@@ -360,12 +345,12 @@ foreach ( $wp_registered_sidebars as $sidebar => $registered_sidebar ) {
 			<div class="sidebar-name">
 				<div class="sidebar-name-arrow"><br /></div>
 				<h3><?php echo esc_html( $registered_sidebar['name'] ); ?>
-					<span><img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" class="ajax-feedback" title="" alt="" /></span>
+					<span class="spinner"></span>
 				</h3>
 			</div>
 			<div class="widget-holder inactive">
 				<?php wp_list_widget_controls( $registered_sidebar['id'] ); ?>
-				<br class="clear" />
+				<div class="clear"></div>
 			</div>
 		</div>
 <?php
@@ -395,7 +380,7 @@ foreach ( $wp_registered_sidebars as $sidebar => $registered_sidebar ) {
 	<div class="sidebar-name">
 	<div class="sidebar-name-arrow"><br /></div>
 	<h3><?php echo esc_html( $registered_sidebar['name'] ); ?>
-	<span><img src="<?php echo esc_url( admin_url( 'images/wpspin_dark.gif' ) ); ?>" class="ajax-feedback" title="" alt="" /></span></h3></div>
+	<span class="spinner"></span></h3></div>
 	<?php wp_list_widget_controls( $sidebar ); // Show the control forms for each of the widgets in this sidebar ?>
 	</div>
 <?php

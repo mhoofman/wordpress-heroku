@@ -107,6 +107,18 @@ function wp_get_theme( $stylesheet = null, $theme_root = null ) {
 }
 
 /**
+ * Clears the cache held by get_theme_roots() and WP_Theme.
+ *
+ * @since 3.5.0
+ */
+function wp_clean_themes_cache() {
+	delete_site_transient('update_themes');
+	search_theme_directories( true );
+	foreach ( wp_get_themes( array( 'errors' => null ) ) as $theme )
+		$theme->cache_delete();
+}
+
+/**
  * Whether a child theme is in use.
  *
  * @since 3.0.0
@@ -638,15 +650,17 @@ function preview_theme_ob_filter_callback( $matches ) {
 }
 
 /**
- * Switches current theme to new template and stylesheet names.
+ * Switches the theme.
+ *
+ * Accepts one argument: $stylesheet of the theme. It also accepts an additional function signature
+ * of two arguments: $template then $stylesheet. This is for backwards compatibility.
  *
  * @since 2.5.0
  * @uses do_action() Calls 'switch_theme' action, passing the new theme.
  *
- * @param string $template Template name
- * @param string $stylesheet Stylesheet name.
+ * @param string $stylesheet Stylesheet name
  */
-function switch_theme( $template, $stylesheet ) {
+function switch_theme( $stylesheet ) {
 	global $wp_theme_directories, $sidebars_widgets;
 
 	if ( is_array( $sidebars_widgets ) )
@@ -654,7 +668,13 @@ function switch_theme( $template, $stylesheet ) {
 
 	$old_theme  = wp_get_theme();
 	$new_theme = wp_get_theme( $stylesheet );
-	$new_name  = $new_theme->get('Name');
+
+	if ( func_num_args() > 1 ) {
+		$template = $stylesheet;
+		$stylesheet = func_get_arg( 1 );
+	} else {
+		$template = $new_theme->get_template();
+	}
 
 	update_option( 'template', $template );
 	update_option( 'stylesheet', $stylesheet );
@@ -662,7 +682,12 @@ function switch_theme( $template, $stylesheet ) {
 	if ( count( $wp_theme_directories ) > 1 ) {
 		update_option( 'template_root', get_raw_theme_root( $template, true ) );
 		update_option( 'stylesheet_root', get_raw_theme_root( $stylesheet, true ) );
+	} else {
+		delete_option( 'template_root' );
+		delete_option( 'stylesheet_root' );
 	}
+
+	$new_name  = $new_theme->get('Name');
 
 	update_option( 'current_theme', $new_name );
 
@@ -694,17 +719,17 @@ function validate_current_theme() {
 		return true;
 
 	if ( get_template() != WP_DEFAULT_THEME && !file_exists(get_template_directory() . '/index.php') ) {
-		switch_theme( WP_DEFAULT_THEME, WP_DEFAULT_THEME );
+		switch_theme( WP_DEFAULT_THEME );
 		return false;
 	}
 
 	if ( get_stylesheet() != WP_DEFAULT_THEME && !file_exists(get_template_directory() . '/style.css') ) {
-		switch_theme( WP_DEFAULT_THEME, WP_DEFAULT_THEME );
+		switch_theme( WP_DEFAULT_THEME );
 		return false;
 	}
 
 	if ( is_child_theme() && ! file_exists( get_stylesheet_directory() . '/style.css' ) ) {
-		switch_theme( WP_DEFAULT_THEME, WP_DEFAULT_THEME );
+		switch_theme( WP_DEFAULT_THEME );
 		return false;
 	}
 
@@ -869,12 +894,7 @@ function get_header_image() {
 	if ( is_random_header_image() )
 		$url = get_random_header_image();
 
-	if ( is_ssl() )
-		$url = str_replace( 'http://', 'https://', $url );
-	else
-		$url = str_replace( 'https://', 'http://', $url );
-
-	return esc_url_raw( $url );
+	return esc_url_raw( set_url_scheme( $url ) );
 }
 
 /**
@@ -1008,7 +1028,30 @@ function get_uploaded_header_images() {
  * @return object
  */
 function get_custom_header() {
-	$data = is_random_header_image()? _get_random_header_data() : get_theme_mod( 'header_image_data' );
+	global $_wp_default_headers;
+
+	if ( is_random_header_image() ) {
+		$data = _get_random_header_data();
+	} else {
+		$data = get_theme_mod( 'header_image_data' );
+		if ( ! $data && current_theme_supports( 'custom-header', 'default-image' ) ) {
+			$directory_args = array( get_template_directory_uri(), get_stylesheet_directory_uri() );
+			$data = array();
+			$data['url'] = $data['thumbnail_url'] = vsprintf( get_theme_support( 'custom-header', 'default-image' ), $directory_args );
+			if ( ! empty( $_wp_default_headers ) ) {
+				foreach ( (array) $_wp_default_headers as $default_header ) {
+					$url = vsprintf( $default_header['url'], $directory_args );
+					if ( $data['url'] == $url ) {
+						$data = $default_header;
+						$data['url'] = $url;
+						$data['thumbnail_url'] = vsprintf( $data['thumbnail_url'], $directory_args );
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	$default = array(
 		'url'           => '',
 		'thumbnail_url' => '',
@@ -1103,7 +1146,7 @@ function background_color() {
  */
 function _custom_background_cb() {
 	// $background is the saved custom image, or the default image.
-	$background = get_background_image();
+	$background = set_url_scheme( get_background_image() );
 
 	// $color is the saved custom color.
 	// A default has to be specified in style.css. It will not be printed here.
@@ -1446,6 +1489,8 @@ function _remove_theme_support( $feature ) {
 
 	switch ( $feature ) {
 		case 'custom-header' :
+			if ( false === did_action( 'wp_loaded', '_custom_header_background_just_in_time' ) )
+				break;
 			$support = get_theme_support( 'custom-header' );
 			if ( $support[0]['wp-head-callback'] )
 				remove_action( 'wp_head', $support[0]['wp-head-callback'] );
@@ -1454,6 +1499,8 @@ function _remove_theme_support( $feature ) {
 			break;
 
 		case 'custom-background' :
+			if ( false === did_action( 'wp_loaded', '_custom_header_background_just_in_time' ) )
+				break;
 			$support = get_theme_support( 'custom-background' );
 			remove_action( 'wp_head', $support[0]['wp-head-callback'] );
 			remove_action( 'admin_menu', array( $GLOBALS['custom_background'], 'init' ) );
@@ -1669,7 +1716,7 @@ function wp_customize_support_script() {
 			request = true;
 <?php		endif; ?>
 
-			b[c] = b[c].replace( rcs, '' );
+			b[c] = b[c].replace( rcs, ' ' );
 			b[c] += ( window.postMessage && request ? ' ' : ' no-' ) + cs;
 		}());
 	</script>

@@ -3,13 +3,13 @@
 if ( ! defined( 'ABSPATH' ) )
 	exit;
 
+if ( ! class_exists( '_WP_Editors' ) )
+	require( ABSPATH . WPINC . '/class-wp-editor.php' );
+
 // deprecated, not used
 function mce_escape($text) {
 	return esc_js($text);
 }
-
-if ( ! class_exists( '_WP_Editors' ) )
-	require( ABSPATH . WPINC . '/class-wp-editor.php' );
 
 function wp_mce_translation() {
 
@@ -132,7 +132,7 @@ function wp_mce_translation() {
 		),
 
 		'advhr' => array(
-			'advhr_desc' => __('Horizontale rule')
+			'advhr_desc' => __('Horizontal rule')
 		),
 
 		'emotions' => array(
@@ -446,7 +446,7 @@ function wp_mce_translation() {
 		'rate' => __('Rate'),
 		'uimode' => __('UI Mode'),
 		'flash_options' => __('Flash options'),
-		'qt_options' => __('Quicktime options'),
+		'qt_options' => __('QuickTime options'),
 		'wmp_options' => __('Windows media player options'),
 		'rmp_options' => __('Real media player options'),
 		'shockwave_options' => __('Shockwave options'),
@@ -509,7 +509,8 @@ function wp_mce_translation() {
 		'add_video' => __('Add Video'),
 		'add_audio' => __('Add Audio'),
 		'editgallery' => __('Edit Gallery'),
-		'delgallery' => __('Delete Gallery')
+		'delgallery' => __('Delete Gallery'),
+		'wp_fullscreen_desc' => __('Distraction Free Writing mode (Alt + Shift + W)')
 	);
 
 	$wpeditimage = array(
@@ -545,7 +546,7 @@ function wp_mce_translation() {
 		's130' => __('130%'),
 		'img_title' => __('Title'),
 		'caption' => __('Caption'),
-		'alt' => __('Alternate Text')
+		'alt' => __('Alternative Text')
 	);
 
 	$locale = _WP_Editors::$mce_locale;

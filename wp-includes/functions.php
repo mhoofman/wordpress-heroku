@@ -59,10 +59,10 @@ function mysql2date( $format, $date, $translate = true ) {
 function current_time( $type, $gmt = 0 ) {
 	switch ( $type ) {
 		case 'mysql':
-			return ( $gmt ) ? gmdate( 'Y-m-d H:i:s' ) : gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * 3600 ) ) );
+			return ( $gmt ) ? gmdate( 'Y-m-d H:i:s' ) : gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 			break;
 		case 'timestamp':
-			return ( $gmt ) ? time() : time() + ( get_option( 'gmt_offset' ) * 3600 );
+			return ( $gmt ) ? time() : time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS );
 			break;
 	}
 }
@@ -214,8 +214,8 @@ function get_weekstartend( $mysqlstring, $start_of_week = '' ) {
 	if ( $weekday < $start_of_week )
 		$weekday += 7;
 
-	$start = $day - 86400 * ( $weekday - $start_of_week ); // The most recent week start day on or before $day
-	$end = $start + 604799; // $start + 7 days - 1 second
+	$start = $day - DAY_IN_SECONDS * ( $weekday - $start_of_week ); // The most recent week start day on or before $day
+	$end = $start + 7 * DAY_IN_SECONDS - 1; // $start + 7 days - 1 second
 	return compact( 'start', 'end' );
 }
 
@@ -458,7 +458,7 @@ function do_enclose( $content, $post_ID ) {
 				if ( false !== $url_parts ) {
 					$extension = pathinfo( $url_parts['path'], PATHINFO_EXTENSION );
 					if ( !empty( $extension ) ) {
-						foreach ( get_allowed_mime_types( ) as $exts => $mime ) {
+						foreach ( wp_get_mime_types() as $exts => $mime ) {
 							if ( preg_match( '!^(' . $exts . ')$!i', $extension ) ) {
 								$type = $mime;
 								break;
@@ -637,16 +637,17 @@ function _http_build_query($data, $prefix=null, $sep=null, $key='', $urlencode=t
  */
 function add_query_arg() {
 	$ret = '';
-	if ( is_array( func_get_arg(0) ) ) {
-		if ( @func_num_args() < 2 || false === @func_get_arg( 1 ) )
+	$args = func_get_args();
+	if ( is_array( $args[0] ) ) {
+		if ( count( $args ) < 2 || false === $args[1] )
 			$uri = $_SERVER['REQUEST_URI'];
 		else
-			$uri = @func_get_arg( 1 );
+			$uri = $args[1];
 	} else {
-		if ( @func_num_args() < 3 || false === @func_get_arg( 2 ) )
+		if ( count( $args ) < 3 || false === $args[2] )
 			$uri = $_SERVER['REQUEST_URI'];
 		else
-			$uri = @func_get_arg( 2 );
+			$uri = $args[2];
 	}
 
 	if ( $frag = strstr( $uri, '#' ) )
@@ -654,9 +655,12 @@ function add_query_arg() {
 	else
 		$frag = '';
 
-	if ( preg_match( '|^https?://|i', $uri, $matches ) ) {
-		$protocol = $matches[0];
-		$uri = substr( $uri, strlen( $protocol ) );
+	if ( 0 === stripos( 'http://', $uri ) ) {
+		$protocol = 'http://';
+		$uri = substr( $uri, 7 );
+	} elseif ( 0 === stripos( 'https://', $uri ) ) {
+		$protocol = 'https://';
+		$uri = substr( $uri, 8 );
 	} else {
 		$protocol = '';
 	}
@@ -670,7 +674,7 @@ function add_query_arg() {
 			$base = $parts[0] . '?';
 			$query = $parts[1];
 		}
-	} elseif ( !empty( $protocol ) || strpos( $uri, '=' ) === false ) {
+	} elseif ( $protocol || strpos( $uri, '=' ) === false ) {
 		$base = $uri . '?';
 		$query = '';
 	} else {
@@ -680,14 +684,14 @@ function add_query_arg() {
 
 	wp_parse_str( $query, $qs );
 	$qs = urlencode_deep( $qs ); // this re-URL-encodes things that were already in the query string
-	if ( is_array( func_get_arg( 0 ) ) ) {
-		$kayvees = func_get_arg( 0 );
+	if ( is_array( $args[0] ) ) {
+		$kayvees = $args[0];
 		$qs = array_merge( $qs, $kayvees );
 	} else {
-		$qs[func_get_arg( 0 )] = func_get_arg( 1 );
+		$qs[ $args[0] ] = $args[1];
 	}
 
-	foreach ( (array) $qs as $k => $v ) {
+	foreach ( $qs as $k => $v ) {
 		if ( $v === false )
 			unset( $qs[$k] );
 	}
@@ -898,7 +902,7 @@ function status_header( $header ) {
 function wp_get_nocache_headers() {
 	$headers = array(
 		'Expires' => 'Wed, 11 Jan 1984 05:00:00 GMT',
-		'Last-Modified' => gmdate( 'D, d M Y H:i:s' ) . ' GMT',
+		'Last-Modified' => '',
 		'Cache-Control' => 'no-cache, must-revalidate, max-age=0',
 		'Pragma' => 'no-cache',
 	);
@@ -922,6 +926,8 @@ function nocache_headers() {
 	$headers = wp_get_nocache_headers();
 	foreach( $headers as $name => $field_value )
 		@header("{$name}: {$field_value}");
+	if ( empty( $headers['Last-Modified'] ) && function_exists( 'header_remove' ) )
+		@header_remove( 'Last-Modified' );
 }
 
 /**
@@ -930,7 +936,7 @@ function nocache_headers() {
  * @since 2.1.0
  */
 function cache_javascript_headers() {
-	$expiresOffset = 864000; // 10 days
+	$expiresOffset = 10 * DAY_IN_SECONDS;
 	header( "Content-Type: text/javascript; charset=" . get_bloginfo( 'charset' ) );
 	header( "Vary: Accept-Encoding" ); // Handle proxies
 	header( "Expires: " . gmdate( "D, d M Y H:i:s", time() + $expiresOffset ) . " GMT" );
@@ -1291,8 +1297,20 @@ function wp_get_original_referer() {
  * @return bool Whether the path was created. True if path already exists.
  */
 function wp_mkdir_p( $target ) {
+	$wrapper = null;
+
+	// strip the protocol
+	if( wp_is_stream( $target ) ) {
+		list( $wrapper, $target ) = explode( '://', $target, 2 );
+	}
+
 	// from php.net/mkdir user contributed notes
 	$target = str_replace( '//', '/', $target );
+
+	// put the wrapper back on the target
+	if( $wrapper !== null ) {
+		$target = $wrapper . '://' . $target;
+	}
 
 	// safe mode fails with a trailing slash under certain PHP versions.
 	$target = rtrim($target, '/'); // Use rtrim() instead of untrailingslashit to avoid formatting.php dependency.
@@ -1363,9 +1381,13 @@ function path_join( $base, $path ) {
 
 /**
  * Determines a writable directory for temporary files.
- * Function's preference is to WP_CONTENT_DIR followed by the return value of <code>sys_get_temp_dir()</code>, before finally defaulting to /tmp/
+ * Function's preference is the return value of <code>sys_get_temp_dir()</code>,
+ * followed by your PHP temporary upload directory, followed by WP_CONTENT_DIR,
+ * before finally defaulting to /tmp/
  *
- * In the event that this function does not find a writable location, It may be overridden by the <code>WP_TEMP_DIR</code> constant in your <code>wp-config.php</code> file.
+ * In the event that this function does not find a writable location,
+ * It may be overridden by the <code>WP_TEMP_DIR</code> constant in
+ * your <code>wp-config.php</code> file.
  *
  * @since 2.5.0
  *
@@ -1377,24 +1399,57 @@ function get_temp_dir() {
 		return trailingslashit(WP_TEMP_DIR);
 
 	if ( $temp )
-		return trailingslashit($temp);
+		return trailingslashit( rtrim( $temp, '\\' ) );
 
-	$temp = WP_CONTENT_DIR . '/';
-	if ( is_dir($temp) && @is_writable($temp) )
-		return $temp;
+	$is_win = ( 'WIN' === strtoupper( substr( PHP_OS, 0, 3 ) ) );
 
-	if  ( function_exists('sys_get_temp_dir') ) {
+	if ( function_exists('sys_get_temp_dir') ) {
 		$temp = sys_get_temp_dir();
-		if ( @is_writable($temp) )
-			return trailingslashit($temp);
+		if ( @is_dir( $temp ) && ( $is_win ? win_is_writable( $temp ) : @is_writable( $temp ) ) ) {
+			return trailingslashit( rtrim( $temp, '\\' ) );
+		}
 	}
 
 	$temp = ini_get('upload_tmp_dir');
-	if ( is_dir($temp) && @is_writable($temp) )
-		return trailingslashit($temp);
+	if ( is_dir( $temp ) && ( $is_win ? win_is_writable( $temp ) : @is_writable( $temp ) ) )
+		return trailingslashit( rtrim( $temp, '\\' ) );
+
+	$temp = WP_CONTENT_DIR . '/';
+	if ( is_dir( $temp ) && ( $is_win ? win_is_writable( $temp ) : @is_writable( $temp ) ) )
+		return $temp;
 
 	$temp = '/tmp/';
 	return $temp;
+}
+
+/**
+ * Workaround for Windows bug in is_writable() function
+ *
+ * @since 2.8.0
+ *
+ * @param string $path
+ * @return bool
+ */
+function win_is_writable( $path ) {
+	/* will work in despite of Windows ACLs bug
+	 * NOTE: use a trailing slash for folders!!!
+	 * see http://bugs.php.net/bug.php?id=27609
+	 * see http://bugs.php.net/bug.php?id=30931
+	 */
+
+	if ( $path[strlen( $path ) - 1] == '/' ) // recursively return a temporary file path
+		return win_is_writable( $path . uniqid( mt_rand() ) . '.tmp');
+	else if ( is_dir( $path ) )
+		return win_is_writable( $path . '/' . uniqid( mt_rand() ) . '.tmp' );
+	// check tmp file for read/write capabilities
+	$should_delete_tmp_file = !file_exists( $path );
+	$f = @fopen( $path, 'a' );
+	if ( $f === false )
+		return false;
+	fclose( $f );
+	if ( $should_delete_tmp_file )
+		unlink( $path );
+	return true;
 }
 
 /**
@@ -1431,21 +1486,16 @@ function get_temp_dir() {
  * @return array See above for description.
  */
 function wp_upload_dir( $time = null ) {
-	global $switched;
 	$siteurl = get_option( 'siteurl' );
-	$upload_path = get_option( 'upload_path' );
-	$upload_path = trim($upload_path);
-	$main_override = is_multisite() && defined( 'MULTISITE' ) && is_main_site();
-	if ( empty($upload_path) ) {
+	$upload_path = trim( get_option( 'upload_path' ) );
+
+	if ( empty( $upload_path ) || 'wp-content/uploads' == $upload_path ) {
 		$dir = WP_CONTENT_DIR . '/uploads';
+	} elseif ( 0 !== strpos( $upload_path, ABSPATH ) ) {
+		// $dir is absolute, $upload_path is (maybe) relative to ABSPATH
+		$dir = path_join( ABSPATH, $upload_path );
 	} else {
 		$dir = $upload_path;
-		if ( 'wp-content/uploads' == $upload_path ) {
-			$dir = WP_CONTENT_DIR . '/uploads';
-		} elseif ( 0 !== strpos($dir, ABSPATH) ) {
-			// $dir is absolute, $upload_path is (maybe) relative to ABSPATH
-			$dir = path_join( ABSPATH, $dir );
-		}
 	}
 
 	if ( !$url = get_option( 'upload_url_path' ) ) {
@@ -1455,19 +1505,54 @@ function wp_upload_dir( $time = null ) {
 			$url = trailingslashit( $siteurl ) . $upload_path;
 	}
 
-	if ( defined('UPLOADS') && !$main_override && ( !isset( $switched ) || $switched === false ) ) {
+	// Obey the value of UPLOADS. This happens as long as ms-files rewriting is disabled.
+	// We also sometimes obey UPLOADS when rewriting is enabled -- see the next block.
+	if ( defined( 'UPLOADS' ) && ! ( is_multisite() && get_site_option( 'ms_files_rewriting' ) ) ) {
 		$dir = ABSPATH . UPLOADS;
 		$url = trailingslashit( $siteurl ) . UPLOADS;
 	}
 
-	if ( is_multisite() && !$main_override && ( !isset( $switched ) || $switched === false ) ) {
-		if ( defined( 'BLOGUPLOADDIR' ) )
-			$dir = untrailingslashit(BLOGUPLOADDIR);
-		$url = str_replace( UPLOADS, 'files', $url );
+	// If multisite (and if not the main site in a post-MU network)
+	if ( is_multisite() && ! ( is_main_site() && defined( 'MULTISITE' ) ) ) {
+
+		if ( ! get_site_option( 'ms_files_rewriting' ) ) {
+			// If ms-files rewriting is disabled (networks created post-3.5), it is fairly straightforward:
+			// Append sites/%d if we're not on the main site (for post-MU networks). (The extra directory
+			// prevents a four-digit ID from conflicting with a year-based directory for the main site.
+			// But if a MU-era network has disabled ms-files rewriting manually, they don't need the extra
+			// directory, as they never had wp-content/uploads for the main site.)
+
+			if ( defined( 'MULTISITE' ) )
+				$ms_dir = '/sites/' . get_current_blog_id();
+			else
+				$ms_dir = '/' . get_current_blog_id();
+
+			$dir .= $ms_dir;
+			$url .= $ms_dir;
+
+		} elseif ( defined( 'UPLOADS' ) && ! ms_is_switched() ) {
+			// Handle the old-form ms-files.php rewriting if the network still has that enabled.
+			// When ms-files rewriting is enabled, then we only listen to UPLOADS when:
+			//   1) we are not on the main site in a post-MU network,
+			//      as wp-content/uploads is used there, and
+			//   2) we are not switched, as ms_upload_constants() hardcodes
+			//      these constants to reflect the original blog ID.
+			//
+			// Rather than UPLOADS, we actually use BLOGUPLOADDIR if it is set, as it is absolute.
+			// (And it will be set, see ms_upload_constants().) Otherwise, UPLOADS can be used, as
+			// as it is relative to ABSPATH. For the final piece: when UPLOADS is used with ms-files
+			// rewriting in multisite, the resulting URL is /files. (#WP22702 for background.)
+
+			if ( defined( 'BLOGUPLOADDIR' ) )
+				$dir = untrailingslashit( BLOGUPLOADDIR );
+			else
+				$dir = ABSPATH . UPLOADS;
+			$url = trailingslashit( $siteurl ) . 'files';
+		}
 	}
 
-	$bdir = $dir;
-	$burl = $url;
+	$basedir = $dir;
+	$baseurl = $url;
 
 	$subdir = '';
 	if ( get_option( 'uploads_use_yearmonth_folders' ) ) {
@@ -1482,7 +1567,15 @@ function wp_upload_dir( $time = null ) {
 	$dir .= $subdir;
 	$url .= $subdir;
 
-	$uploads = apply_filters( 'upload_dir', array( 'path' => $dir, 'url' => $url, 'subdir' => $subdir, 'basedir' => $bdir, 'baseurl' => $burl, 'error' => false ) );
+	$uploads = apply_filters( 'upload_dir',
+		array(
+			'path'    => $dir,
+			'url'     => $url,
+			'subdir'  => $subdir,
+			'basedir' => $basedir,
+			'baseurl' => $baseurl,
+			'error'   => false,
+		) );
 
 	// Make sure we have an uploads dir
 	if ( ! wp_mkdir_p( $uploads['path'] ) ) {
@@ -1492,7 +1585,7 @@ function wp_upload_dir( $time = null ) {
 			$error_path = basename( $uploads['basedir'] ) . $uploads['subdir'];
 
 		$message = sprintf( __( 'Unable to create directory %s. Is its parent directory writable by the server?' ), $error_path );
-		return array( 'error' => $message );
+		$uploads['error'] = $message;
 	}
 
 	return $uploads;
@@ -1591,7 +1684,7 @@ function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
 		return array( 'error' => __( 'Empty filename' ) );
 
 	$wp_filetype = wp_check_filetype( $name );
-	if ( !$wp_filetype['ext'] )
+	if ( ! $wp_filetype['ext'] && ! current_user_can( 'unfiltered_upload' ) )
 		return array( 'error' => __( 'Invalid file type' ) );
 
 	$upload = wp_upload_dir( $time );
@@ -1651,13 +1744,13 @@ function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
  */
 function wp_ext2type( $ext ) {
 	$ext2type = apply_filters( 'ext2type', array(
-		'audio'       => array( 'aac', 'ac3',  'aif',  'aiff', 'm3a',  'm4a',   'm4b', 'mka', 'mp1', 'mp2',  'mp3', 'ogg', 'oga', 'ram', 'wav', 'wma' ),
-		'video'       => array( 'asf', 'avi',  'divx', 'dv',   'flv',  'm4v',   'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'mpv', 'ogm', 'ogv', 'qt',  'rm', 'vob', 'wmv' ),
-		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf', 'rtf', 'wp',  'wpd' ),
-		'spreadsheet' => array( 'numbers',     'ods',  'xls',  'xlsx', 'xlsb',  'xlsm' ),
-		'interactive' => array( 'key', 'ppt',  'pptx', 'pptm', 'odp',  'swf' ),
+		'audio'       => array( 'aac', 'ac3',  'aif',  'aiff', 'm3a',  'm4a',   'm4b',  'mka',  'mp1',  'mp2',  'mp3', 'ogg', 'oga', 'ram', 'wav', 'wma' ),
+		'video'       => array( 'asf', 'avi',  'divx', 'dv',   'flv',  'm4v',   'mkv',  'mov',  'mp4',  'mpeg', 'mpg', 'mpv', 'ogm', 'ogv', 'qt',  'rm', 'vob', 'wmv' ),
+		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'rtf',  'wp',   'wpd' ),
+		'spreadsheet' => array( 'numbers',     'ods',  'xls',  'xlsx', 'xlsm',  'xlsb' ),
+		'interactive' => array( 'swf', 'key',  'ppt',  'pptx', 'pptm', 'pps',   'ppsx', 'ppsm', 'sldx', 'sldm', 'odp' ),
 		'text'        => array( 'asc', 'csv',  'tsv',  'txt' ),
-		'archive'     => array( 'bz2', 'cab',  'dmg',  'gz',   'rar',  'sea',   'sit', 'sqx', 'tar', 'tgz',  'zip', '7z' ),
+		'archive'     => array( 'bz2', 'cab',  'dmg',  'gz',   'rar',  'sea',   'sit',  'sqx',  'tar',  'tgz',  'zip', '7z' ),
 		'code'        => array( 'css', 'htm',  'html', 'php',  'js' ),
 	));
 	foreach ( $ext2type as $type => $exts )
@@ -1763,101 +1856,114 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
 }
 
 /**
+ * Retrieve list of mime types and file extensions.
+ *
+ * @since 3.5.0
+ *
+ * @uses apply_filters() Calls 'mime_types' on returned array. This filter should
+ * be used to add types, not remove them. To remove types use the upload_mimes filter.
+ *
+ * @return array Array of mime types keyed by the file extension regex corresponding to those types.
+ */
+function wp_get_mime_types() {
+	// Accepted MIME types are set here as PCRE unless provided.
+	return apply_filters( 'mime_types', array(
+	// Image formats
+	'jpg|jpeg|jpe' => 'image/jpeg',
+	'gif' => 'image/gif',
+	'png' => 'image/png',
+	'bmp' => 'image/bmp',
+	'tif|tiff' => 'image/tiff',
+	'ico' => 'image/x-icon',
+	// Video formats
+	'asf|asx|wax|wmv|wmx' => 'video/asf',
+	'avi' => 'video/avi',
+	'divx' => 'video/divx',
+	'flv' => 'video/x-flv',
+	'mov|qt' => 'video/quicktime',
+	'mpeg|mpg|mpe' => 'video/mpeg',
+	'mp4|m4v' => 'video/mp4',
+	'ogv' => 'video/ogg',
+	'mkv' => 'video/x-matroska',
+	// Text formats
+	'txt|asc|c|cc|h' => 'text/plain',
+	'csv' => 'text/csv',
+	'tsv' => 'text/tab-separated-values',
+	'ics' => 'text/calendar',
+	'rtx' => 'text/richtext',
+	'css' => 'text/css',
+	'htm|html' => 'text/html',
+	// Audio formats
+	'mp3|m4a|m4b' => 'audio/mpeg',
+	'ra|ram' => 'audio/x-realaudio',
+	'wav' => 'audio/wav',
+	'ogg|oga' => 'audio/ogg',
+	'mid|midi' => 'audio/midi',
+	'wma' => 'audio/wma',
+	'mka' => 'audio/x-matroska',
+	// Misc application formats
+	'rtf' => 'application/rtf',
+	'js' => 'application/javascript',
+	'pdf' => 'application/pdf',
+	'swf' => 'application/x-shockwave-flash',
+	'class' => 'application/java',
+	'tar' => 'application/x-tar',
+	'zip' => 'application/zip',
+	'gz|gzip' => 'application/x-gzip',
+	'rar' => 'application/rar',
+	'7z' => 'application/x-7z-compressed',
+	'exe' => 'application/x-msdownload',
+	// MS Office formats
+	'doc' => 'application/msword',
+	'pot|pps|ppt' => 'application/vnd.ms-powerpoint',
+	'wri' => 'application/vnd.ms-write',
+	'xla|xls|xlt|xlw' => 'application/vnd.ms-excel',
+	'mdb' => 'application/vnd.ms-access',
+	'mpp' => 'application/vnd.ms-project',
+	'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+	'docm' => 'application/vnd.ms-word.document.macroEnabled.12',
+	'dotx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+	'dotm' => 'application/vnd.ms-word.template.macroEnabled.12',
+	'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	'xlsm' => 'application/vnd.ms-excel.sheet.macroEnabled.12',
+	'xlsb' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+	'xltx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+	'xltm' => 'application/vnd.ms-excel.template.macroEnabled.12',
+	'xlam' => 'application/vnd.ms-excel.addin.macroEnabled.12',
+	'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	'pptm' => 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+	'ppsx' => 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+	'ppsm' => 'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
+	'potx' => 'application/vnd.openxmlformats-officedocument.presentationml.template',
+	'potm' => 'application/vnd.ms-powerpoint.template.macroEnabled.12',
+	'ppam' => 'application/vnd.ms-powerpoint.addin.macroEnabled.12',
+	'sldx' => 'application/vnd.openxmlformats-officedocument.presentationml.slide',
+	'sldm' => 'application/vnd.ms-powerpoint.slide.macroEnabled.12',
+	'onetoc|onetoc2|onetmp|onepkg' => 'application/onenote',
+	// OpenOffice formats
+	'odt' => 'application/vnd.oasis.opendocument.text',
+	'odp' => 'application/vnd.oasis.opendocument.presentation',
+	'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
+	'odg' => 'application/vnd.oasis.opendocument.graphics',
+	'odc' => 'application/vnd.oasis.opendocument.chart',
+	'odb' => 'application/vnd.oasis.opendocument.database',
+	'odf' => 'application/vnd.oasis.opendocument.formula',
+	// WordPerfect formats
+	'wp|wpd' => 'application/wordperfect',
+	) );
+}
+/**
  * Retrieve list of allowed mime types and file extensions.
  *
  * @since 2.8.6
  *
+ * @uses apply_filters() Calls 'upload_mimes' on returned array
+ * @uses wp_get_upload_mime_types() to fetch the list of mime types
+ *
  * @return array Array of mime types keyed by the file extension regex corresponding to those types.
  */
 function get_allowed_mime_types() {
-	static $mimes = false;
-
-	if ( !$mimes ) {
-		// Accepted MIME types are set here as PCRE unless provided.
-		$mimes = apply_filters( 'upload_mimes', array(
-		'jpg|jpeg|jpe' => 'image/jpeg',
-		'gif' => 'image/gif',
-		'png' => 'image/png',
-		'bmp' => 'image/bmp',
-		'tif|tiff' => 'image/tiff',
-		'ico' => 'image/x-icon',
-		'asf|asx|wax|wmv|wmx' => 'video/asf',
-		'avi' => 'video/avi',
-		'divx' => 'video/divx',
-		'flv' => 'video/x-flv',
-		'mov|qt' => 'video/quicktime',
-		'mpeg|mpg|mpe' => 'video/mpeg',
-		'txt|asc|c|cc|h' => 'text/plain',
-		'csv' => 'text/csv',
-		'tsv' => 'text/tab-separated-values',
-		'ics' => 'text/calendar',
-		'rtx' => 'text/richtext',
-		'css' => 'text/css',
-		'htm|html' => 'text/html',
-		'mp3|m4a|m4b' => 'audio/mpeg',
-		'mp4|m4v' => 'video/mp4',
-		'ra|ram' => 'audio/x-realaudio',
-		'wav' => 'audio/wav',
-		'ogg|oga' => 'audio/ogg',
-		'ogv' => 'video/ogg',
-		'mid|midi' => 'audio/midi',
-		'wma' => 'audio/wma',
-		'mka' => 'audio/x-matroska',
-		'mkv' => 'video/x-matroska',
-		'rtf' => 'application/rtf',
-		'js' => 'application/javascript',
-		'pdf' => 'application/pdf',
-		'doc|docx' => 'application/msword',
-		'pot|pps|ppt|pptx|ppam|pptm|sldm|ppsm|potm' => 'application/vnd.ms-powerpoint',
-		'wri' => 'application/vnd.ms-write',
-		'xla|xls|xlsx|xlt|xlw|xlam|xlsb|xlsm|xltm' => 'application/vnd.ms-excel',
-		'mdb' => 'application/vnd.ms-access',
-		'mpp' => 'application/vnd.ms-project',
-		'docm|dotm' => 'application/vnd.ms-word',
-		'pptx|sldx|ppsx|potx' => 'application/vnd.openxmlformats-officedocument.presentationml',
-		'xlsx|xltx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml',
-		'docx|dotx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml',
-		'onetoc|onetoc2|onetmp|onepkg' => 'application/onenote',
-		'swf' => 'application/x-shockwave-flash',
-		'class' => 'application/java',
-		'tar' => 'application/x-tar',
-		'zip' => 'application/zip',
-		'gz|gzip' => 'application/x-gzip',
-		'rar' => 'application/rar',
-		'7z' => 'application/x-7z-compressed',
-		'exe' => 'application/x-msdownload',
-		// openoffice formats
-		'odt' => 'application/vnd.oasis.opendocument.text',
-		'odp' => 'application/vnd.oasis.opendocument.presentation',
-		'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
-		'odg' => 'application/vnd.oasis.opendocument.graphics',
-		'odc' => 'application/vnd.oasis.opendocument.chart',
-		'odb' => 'application/vnd.oasis.opendocument.database',
-		'odf' => 'application/vnd.oasis.opendocument.formula',
-		// wordperfect formats
-		'wp|wpd' => 'application/wordperfect',
-		) );
-	}
-
-	return $mimes;
-}
-
-/**
- * Retrieve nonce action "Are you sure" message.
- *
- * Deprecated in 3.4.1 and 3.5.0. Backported to 3.3.3.
- *
- * @since 2.0.4
- * @deprecated 3.4.1
- * @deprecated Use wp_nonce_ays()
- * @see wp_nonce_ays()
- *
- * @param string $action Nonce action.
- * @return string Are you sure message.
- */
-function wp_explain_nonce( $action ) {
-	_deprecated_function( __FUNCTION__, '3.4.1', 'wp_nonce_ays()' );
-	return __( 'Are you sure you want to do this?' );
+	return apply_filters( 'upload_mimes', wp_get_mime_types() );
 }
 
 /**
@@ -1906,8 +2012,6 @@ function wp_die( $message = '', $title = '', $args = array() ) {
 		$function = apply_filters( 'wp_die_ajax_handler', '_ajax_wp_die_handler' );
 	elseif ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST )
 		$function = apply_filters( 'wp_die_xmlrpc_handler', '_xmlrpc_wp_die_handler' );
-	elseif ( defined( 'APP_REQUEST' ) && APP_REQUEST )
-		$function = apply_filters( 'wp_die_app_handler', '_scalar_wp_die_handler' );
 	else
 		$function = apply_filters( 'wp_die_handler', '_default_wp_die_handler' );
 
@@ -2029,42 +2133,72 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 		a:hover {
 			color: #D54E21;
 		}
-
 		.button {
-			font-family: sans-serif;
+			display: inline-block;
 			text-decoration: none;
-			font-size: 14px !important;
-			line-height: 16px;
-			padding: 6px 12px;
+			font-size: 14px;
+			line-height: 23px;
+			height: 24px;
+			margin: 0;
+			padding: 0 10px 1px;
 			cursor: pointer;
-			border: 1px solid #bbb;
-			color: #464646;
-			-webkit-border-radius: 15px;
-			border-radius: 15px;
-			-moz-box-sizing: content-box;
-			-webkit-box-sizing: content-box;
-			box-sizing: content-box;
-			background-color: #f5f5f5;
-			background-image: -ms-linear-gradient(top, #ffffff, #f2f2f2);
-			background-image: -moz-linear-gradient(top, #ffffff, #f2f2f2);
-			background-image: -o-linear-gradient(top, #ffffff, #f2f2f2);
-			background-image: -webkit-gradient(linear, left top, left bottom, from(#ffffff), to(#f2f2f2));
-			background-image: -webkit-linear-gradient(top, #ffffff, #f2f2f2);
-			background-image: linear-gradient(top, #ffffff, #f2f2f2);
+			border-width: 1px;
+			border-style: solid;
+			-webkit-border-radius: 3px;
+			border-radius: 3px;
+			white-space: nowrap;
+			-webkit-box-sizing: border-box;
+			-moz-box-sizing:    border-box;
+			box-sizing:         border-box;
+			background: #f3f3f3;
+			background-image: -webkit-gradient(linear, left top, left bottom, from(#fefefe), to(#f4f4f4));
+			background-image: -webkit-linear-gradient(top, #fefefe, #f4f4f4);
+			background-image:    -moz-linear-gradient(top, #fefefe, #f4f4f4);
+			background-image:      -o-linear-gradient(top, #fefefe, #f4f4f4);
+			background-image:   linear-gradient(to bottom, #fefefe, #f4f4f4);
+			border-color: #bbb;
+		 	color: #333;
+			text-shadow: 0 1px 0 #fff;
 		}
 
-		.button:hover {
-			color: #000;
-			border-color: #666;
+		.button.button-large {
+			height: 29px;
+			line-height: 28px;
+			padding: 0 12px;
+		}
+
+		.button:hover,
+		.button:focus {
+			background: #f3f3f3;
+			background-image: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#f3f3f3));
+			background-image: -webkit-linear-gradient(top, #fff, #f3f3f3);
+			background-image:    -moz-linear-gradient(top, #fff, #f3f3f3);
+			background-image:     -ms-linear-gradient(top, #fff, #f3f3f3);
+			background-image:      -o-linear-gradient(top, #fff, #f3f3f3);
+			background-image:   linear-gradient(to bottom, #fff, #f3f3f3);
+			border-color: #999;
+			color: #222;
+		}
+
+		.button:focus  {
+			-webkit-box-shadow: 1px 1px 1px rgba(0,0,0,.2);
+			box-shadow: 1px 1px 1px rgba(0,0,0,.2);
 		}
 
 		.button:active {
-			background-image: -ms-linear-gradient(top, #f2f2f2, #ffffff);
-			background-image: -moz-linear-gradient(top, #f2f2f2, #ffffff);
-			background-image: -o-linear-gradient(top, #f2f2f2, #ffffff);
-			background-image: -webkit-gradient(linear, left top, left bottom, from(#f2f2f2), to(#ffffff));
-			background-image: -webkit-linear-gradient(top, #f2f2f2, #ffffff);
-			background-image: linear-gradient(top, #f2f2f2, #ffffff);
+			outline: none;
+			background: #eee;
+			background-image: -webkit-gradient(linear, left top, left bottom, from(#f4f4f4), to(#fefefe));
+			background-image: -webkit-linear-gradient(top, #f4f4f4, #fefefe);
+			background-image:    -moz-linear-gradient(top, #f4f4f4, #fefefe);
+			background-image:     -ms-linear-gradient(top, #f4f4f4, #fefefe);
+			background-image:      -o-linear-gradient(top, #f4f4f4, #fefefe);
+			background-image:   linear-gradient(to bottom, #f4f4f4, #fefefe);
+			border-color: #999;
+			color: #333;
+			text-shadow: 0 -1px 0 #fff;
+			-webkit-box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
+		 	box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
 		}
 
 		<?php if ( 'rtl' == $text_direction ) : ?>
@@ -2136,6 +2270,54 @@ function _scalar_wp_die_handler( $message = '' ) {
 	if ( is_scalar( $message ) )
 		die( (string) $message );
 	die();
+}
+
+/**
+ * Send a JSON response back to an Ajax request.
+ *
+ * @since 3.5.0
+ *
+ * @param mixed $response Variable (usually an array or object) to encode as JSON, then print and die.
+ */
+function wp_send_json( $response ) {
+	@header( 'Content-Type: application/json; charset=' . get_option( 'blog_charset' ) );
+	echo json_encode( $response );
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX )
+		wp_die();
+	else
+		die;
+}
+
+/**
+ * Send a JSON response back to an Ajax request, indicating success.
+ *
+ * @since 3.5.0
+ *
+ * @param mixed $data Data to encode as JSON, then print and die.
+ */
+function wp_send_json_success( $data = null ) {
+	$response = array( 'success' => true );
+
+	if ( isset( $data ) )
+		$response['data'] = $data;
+
+	wp_send_json( $response );
+}
+
+/**
+ * Send a JSON response back to an Ajax request, indicating failure.
+ *
+ * @since 3.5.0
+ *
+ * @param mixed $data Data to encode as JSON, then print and die.
+ */
+function wp_send_json_error( $data = null ) {
+	$response = array( 'success' => false );
+
+	if ( isset( $data ) )
+		$response['data'] = $data;
+
+	wp_send_json( $response );
 }
 
 /**
@@ -2429,7 +2611,7 @@ function wp_list_filter( $list, $args = array(), $operator = 'AND' ) {
 
 		$matched = 0;
 		foreach ( $args as $m_key => $m_value ) {
-			if ( $m_value == $to_match[ $m_key ] )
+			if ( array_key_exists( $m_key, $to_match ) && $m_value == $to_match[ $m_key ] )
 				$matched++;
 		}
 
@@ -2487,6 +2669,10 @@ function wp_maybe_load_widgets() {
  */
 function wp_widgets_add_menu() {
 	global $submenu;
+
+	if ( ! current_theme_supports( 'widgets' ) )
+		return;
+
 	$submenu['themes.php'][7] = array( __( 'Widgets' ), 'edit_theme_options', 'widgets.php' );
 	ksort( $submenu['themes.php'], SORT_NUMERIC );
 }
@@ -2581,8 +2767,8 @@ function absint( $maybeint ) {
  */
 function url_is_accessable_via_ssl($url)
 {
-	if (in_array('curl', get_loaded_extensions())) {
-		$ssl = preg_replace( '/^http:\/\//', 'https://',  $url );
+	if ( in_array( 'curl', get_loaded_extensions() ) ) {
+		$ssl = set_url_scheme( $url, 'https' );
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $ssl);
@@ -2932,9 +3118,10 @@ function wp_guess_url() {
 	if ( defined('WP_SITEURL') && '' != WP_SITEURL ) {
 		$url = WP_SITEURL;
 	} else {
-		$schema = is_ssl() ? 'https://' : 'http://';
-		$url = preg_replace('#/(wp-admin/.*|wp-login.php)#i', '', $schema . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+		$schema = is_ssl() ? 'https://' : 'http://'; // set_url_scheme() is not defined yet
+		$url = preg_replace( '#/(wp-admin/.*|wp-login.php)#i', '', $schema . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
 	}
+
 	return rtrim($url, '/');
 }
 
@@ -2993,13 +3180,13 @@ function wp_suspend_cache_invalidation($suspend = true) {
  * @return bool True if not multisite or $blog_id is main site
  */
 function is_main_site( $blog_id = '' ) {
-	global $current_site, $current_blog;
+	global $current_site;
 
-	if ( !is_multisite() )
+	if ( ! is_multisite() )
 		return true;
 
-	if ( !$blog_id )
-		$blog_id = $current_blog->blog_id;
+	if ( ! $blog_id )
+		$blog_id = get_current_blog_id();
 
 	return $blog_id == $current_site->blog_id;
 }
@@ -3047,7 +3234,7 @@ function wp_timezone_override_offset() {
 	if ( false === $timezone_object || false === $datetime_object ) {
 		return false;
 	}
-	return round( timezone_offset_get( $timezone_object, $datetime_object ) / 3600, 2 );
+	return round( timezone_offset_get( $timezone_object, $datetime_object ) / HOUR_IN_SECONDS, 2 );
 }
 
 /**
@@ -3247,7 +3434,7 @@ function _cleanup_header_comment($str) {
 function wp_scheduled_delete() {
 	global $wpdb;
 
-	$delete_timestamp = time() - (60*60*24*EMPTY_TRASH_DAYS);
+	$delete_timestamp = time() - ( DAY_IN_SECONDS * EMPTY_TRASH_DAYS );
 
 	$posts_to_delete = $wpdb->get_results($wpdb->prepare("SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_wp_trash_meta_time' AND meta_value < '%d'", $delete_timestamp), ARRAY_A);
 
@@ -3536,7 +3723,7 @@ function wp_allowed_protocols() {
 	static $protocols;
 
 	if ( empty( $protocols ) ) {
-		$protocols = array( 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn' );
+		$protocols = array( 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn', 'tel', 'fax', 'xmpp' );
 		$protocols = apply_filters( 'kses_allowed_protocols', $protocols );
 	}
 
@@ -3628,8 +3815,31 @@ function _device_can_upload() {
 		|| strpos($ua, 'iPad') !== false
 		|| strpos($ua, 'iPod') !== false ) {
 			return preg_match( '#OS ([\d_]+) like Mac OS X#', $ua, $version ) && version_compare( $version[1], '6', '>=' );
-	} else {
-		return true;
 	}
+
+	return true;
 }
 
+/**
+ * Test if a given path is a stream URL
+ *
+ * @param string $path The resource path or URL
+ * @return bool True if the path is a stream URL
+ */
+function wp_is_stream( $path ) {
+	$wrappers = stream_get_wrappers();
+	$wrappers_re = '(' . join('|', $wrappers) . ')';
+
+	return preg_match( "!^$wrappers_re://!", $path ) === 1;
+}
+
+/**
+ * Test if the supplied date is valid for the Gregorian calendar
+ *
+ * @since 3.5.0
+ *
+ * @return bool true|false
+ */
+function wp_checkdate( $month, $day, $year, $source_date ) {
+	return apply_filters( 'wp_checkdate', checkdate( $month, $day, $year ), $source_date );
+}

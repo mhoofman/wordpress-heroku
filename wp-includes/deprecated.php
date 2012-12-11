@@ -26,7 +26,7 @@
 function get_postdata($postid) {
 	_deprecated_function( __FUNCTION__, '1.5.1', 'get_post()' );
 
-	$post = &get_post($postid);
+	$post = get_post($postid);
 
 	$postdata = array (
 		'ID' => $post->ID,
@@ -57,14 +57,14 @@ function get_postdata($postid) {
  * @deprecated Use The Loop - {@link http://codex.wordpress.org/The_Loop Use new WordPress Loop}
  */
 function start_wp() {
-	global $wp_query, $post;
+	global $wp_query;
 
 	_deprecated_function( __FUNCTION__, '1.5', __('new WordPress Loop') );
 
 	// Since the old style loop is being used, advance the query iterator here.
 	$wp_query->next_post();
 
-	setup_postdata($post);
+	setup_postdata( get_post() );
 }
 
 /**
@@ -984,7 +984,7 @@ function get_links($category = -1, $before = '', $after = '<br />', $between = '
 
 		if ( $show_updated )
 			if (substr($row->link_updated_f, 0, 2) != '00')
-				$title .= ' ('.__('Last updated') . ' ' . date(get_option('links_updated_date_format'), $row->link_updated_f + (get_option('gmt_offset') * 3600)) . ')';
+				$title .= ' ('.__('Last updated') . ' ' . date(get_option('links_updated_date_format'), $row->link_updated_f + (get_option('gmt_offset') * HOUR_IN_SECONDS)) . ')';
 
 		if ( '' != $title )
 			$title = ' title="' . $title . '"';
@@ -1215,7 +1215,7 @@ function get_author_rss_link($echo = false, $author_id = 1) {
  */
 function comments_rss() {
 	_deprecated_function( __FUNCTION__, '2.2', 'get_post_comments_feed_link()' );
-	return get_post_comments_feed_link();
+	return esc_url( get_post_comments_feed_link() );
 }
 
 /**
@@ -1892,7 +1892,7 @@ function get_alloptions() {
 function get_the_attachment_link($id = 0, $fullsize = false, $max_dims = false, $permalink = false) {
 	_deprecated_function( __FUNCTION__, '2.5', 'wp_get_attachment_link()' );
 	$id = (int) $id;
-	$_post = & get_post($id);
+	$_post = get_post($id);
 
 	if ( ('attachment' != $_post->post_type) || !$url = wp_get_attachment_url($_post->ID) )
 		return __('Missing Attachment');
@@ -1921,7 +1921,7 @@ function get_the_attachment_link($id = 0, $fullsize = false, $max_dims = false, 
 function get_attachment_icon_src( $id = 0, $fullsize = false ) {
 	_deprecated_function( __FUNCTION__, '2.5', 'wp_get_attachment_image_src()' );
 	$id = (int) $id;
-	if ( !$post = & get_post($id) )
+	if ( !$post = get_post($id) )
 		return false;
 
 	$file = get_attached_file( $post->ID );
@@ -1966,7 +1966,7 @@ function get_attachment_icon_src( $id = 0, $fullsize = false ) {
 function get_attachment_icon( $id = 0, $fullsize = false, $max_dims = false ) {
 	_deprecated_function( __FUNCTION__, '2.5', 'wp_get_attachment_image()' );
 	$id = (int) $id;
-	if ( !$post = & get_post($id) )
+	if ( !$post = get_post($id) )
 		return false;
 
 	if ( !$src = get_attachment_icon_src( $post->ID, $fullsize ) )
@@ -2023,7 +2023,7 @@ function get_attachment_icon( $id = 0, $fullsize = false, $max_dims = false ) {
 function get_attachment_innerHTML($id = 0, $fullsize = false, $max_dims = false) {
 	_deprecated_function( __FUNCTION__, '2.5', 'wp_get_attachment_image()' );
 	$id = (int) $id;
-	if ( !$post = & get_post($id) )
+	if ( !$post = get_post($id) )
 		return false;
 
 	if ( $innerHTML = get_attachment_icon($post->ID, $fullsize, $max_dims))
@@ -2801,7 +2801,7 @@ function get_parent_post_rel_link($title = '%title') {
 	_deprecated_function( __FUNCTION__, '3.3' );
 
 	if ( ! empty( $GLOBALS['post'] ) && ! empty( $GLOBALS['post']->post_parent ) )
-		$post = & get_post($GLOBALS['post']->post_parent);
+		$post = get_post($GLOBALS['post']->post_parent);
 
 	if ( empty($post) )
 		return;
@@ -3097,7 +3097,7 @@ function remove_custom_background() {
  * @return array Theme data.
  */
 function get_theme_data( $theme_file ) {
-	_deprecated_function( __FUNCTION__, 3.4, 'wp_get_theme()' );
+	_deprecated_function( __FUNCTION__, '3.4', 'wp_get_theme()' );
 	$theme = new WP_Theme( basename( dirname( $theme_file ) ), dirname( dirname( $theme_file ) ) );
 
 	$theme_data = array(
@@ -3133,7 +3133,7 @@ function get_theme_data( $theme_file ) {
  * @param array $pages list of page objects
  */
 function update_page_cache( &$pages ) {
-	_deprecated_function( __FUNCTION__, 3.4, 'update_post_cache()' );
+	_deprecated_function( __FUNCTION__, '3.4', 'update_post_cache()' );
 
 	update_post_cache( $pages );
 }
@@ -3152,7 +3152,215 @@ function update_page_cache( &$pages ) {
  * @param int $id Page ID to clean
  */
 function clean_page_cache( $id ) {
-	_deprecated_function( __FUNCTION__, 3.4, 'clean_post_cache()' );
+	_deprecated_function( __FUNCTION__, '3.4', 'clean_post_cache()' );
 
 	clean_post_cache( $id );
+}
+
+/**
+ * Retrieve nonce action "Are you sure" message.
+ *
+ * Deprecated in 3.4.1 and 3.5.0. Backported to 3.3.3.
+ *
+ * @since 2.0.4
+ * @deprecated 3.4.1
+ * @deprecated Use wp_nonce_ays()
+ * @see wp_nonce_ays()
+ *
+ * @param string $action Nonce action.
+ * @return string Are you sure message.
+ */
+function wp_explain_nonce( $action ) {
+	_deprecated_function( __FUNCTION__, '3.4.1', 'wp_nonce_ays()' );
+	return __( 'Are you sure you want to do this?' );
+}
+
+/**
+ * Display "sticky" CSS class, if a post is sticky.
+ *
+ * @since 2.7.0
+ * @deprecated 3.5.0
+ * @deprecated Use post_class()
+ * @see post_class()
+ *
+ * @param int $post_id An optional post ID.
+ */
+function sticky_class( $post_id = null ) {
+	_deprecated_function( __FUNCTION__, '3.5', 'post_class()' );
+	if ( is_sticky( $post_id ) )
+		echo ' sticky';
+}
+
+/**
+ * Retrieve post ancestors.
+ *
+ * This is no longer needed as WP_Post lazy-loads the ancestors
+ * property with get_post_ancestors().
+ *
+ * @since 2.3.4
+ * @deprecated 3.5.0
+ * @see get_post_ancestors()
+ */
+function _get_post_ancestors( &$post ) {
+	_deprecated_function( __FUNCTION__, '3.5' );
+}
+
+/**
+ * Load an image from a string, if PHP supports it.
+ *
+ * @since 2.1.0
+ * @deprecated 3.5.0
+ * @see wp_get_image_editor()
+ *
+ * @param string $file Filename of the image to load.
+ * @return resource The resulting image resource on success, Error string on failure.
+ */
+function wp_load_image( $file ) {
+	_deprecated_function( __FUNCTION__, '3.5', 'wp_get_image_editor()' );
+
+	if ( is_numeric( $file ) )
+		$file = get_attached_file( $file );
+
+	if ( ! is_file( $file ) )
+		return sprintf(__('File &#8220;%s&#8221; doesn&#8217;t exist?'), $file);
+
+	if ( ! function_exists('imagecreatefromstring') )
+		return __('The GD image library is not installed.');
+
+	// Set artificially high because GD uses uncompressed images in memory
+	@ini_set( 'memory_limit', apply_filters( 'image_memory_limit', WP_MAX_MEMORY_LIMIT ) );
+	$image = imagecreatefromstring( file_get_contents( $file ) );
+
+	if ( !is_resource( $image ) )
+		return sprintf(__('File &#8220;%s&#8221; is not an image.'), $file);
+
+	return $image;
+}
+
+/**
+ * Scale down an image to fit a particular size and save a new copy of the image.
+ *
+ * The PNG transparency will be preserved using the function, as well as the
+ * image type. If the file going in is PNG, then the resized image is going to
+ * be PNG. The only supported image types are PNG, GIF, and JPEG.
+ *
+ * Some functionality requires API to exist, so some PHP version may lose out
+ * support. This is not the fault of WordPress (where functionality is
+ * downgraded, not actual defects), but of your PHP version.
+ *
+ * @since 2.5.0
+ * @deprecated 3.5.0
+ * @see wp_get_image_editor()
+ *
+ * @param string $file Image file path.
+ * @param int $max_w Maximum width to resize to.
+ * @param int $max_h Maximum height to resize to.
+ * @param bool $crop Optional. Whether to crop image or resize.
+ * @param string $suffix Optional. File suffix.
+ * @param string $dest_path Optional. New image file path.
+ * @param int $jpeg_quality Optional, default is 90. Image quality percentage.
+ * @return mixed WP_Error on failure. String with new destination path.
+ */
+function image_resize( $file, $max_w, $max_h, $crop = false, $suffix = null, $dest_path = null, $jpeg_quality = 90 ) {
+	_deprecated_function( __FUNCTION__, '3.5', 'wp_get_image_editor()' );
+
+	$editor = wp_get_image_editor( $file );
+	if ( is_wp_error( $editor ) )
+		return $editor;
+	$editor->set_quality( $jpeg_quality );
+
+	$resized = $editor->resize( $max_w, $max_h, $crop );
+	if ( is_wp_error( $resized ) )
+		return $resized;
+
+	$dest_file = $editor->generate_filename( $suffix, $dest_path );
+	$saved = $editor->save( $dest_file );
+
+	if ( is_wp_error( $saved ) )
+		return $saved;
+
+	return $dest_file;
+}
+
+/**
+ * Retrieve a single post, based on post ID.
+ *
+ * Has categories in 'post_category' property or key. Has tags in 'tags_input'
+ * property or key.
+ *
+ * @since 1.0.0
+ * @deprecated 3.5.0
+ * @see get_post()
+ *
+ * @param int $postid Post ID.
+ * @param string $mode How to return result, either OBJECT, ARRAY_N, or ARRAY_A.
+ * @return object|array Post object or array holding post contents and information
+ */
+function wp_get_single_post( $postid = 0, $mode = OBJECT ) {
+	_deprecated_function( __FUNCTION__, '3.5', 'get_post()' );
+	return get_post( $postid, $mode, 'edit' );
+}
+
+/**
+ * Check that the user login name and password is correct.
+ *
+ * @since 0.71
+ * @deprecated 3.5.0
+ * @deprecated Use wp_authenticate()
+ * @see wp_authenticate()
+ *
+ * @param string $user_login User name.
+ * @param string $user_pass User password.
+ * @return bool False if does not authenticate, true if username and password authenticates.
+ */
+function user_pass_ok($user_login, $user_pass) {
+	_deprecated_function( __FUNCTION__, '3.5', 'wp_authenticate()' );
+	$user = wp_authenticate( $user_login, $user_pass );
+	if ( is_wp_error( $user ) )
+		return false;
+
+	return true;
+}
+
+/**
+ * Callback formerly fired on the save_post hook. No longer needed.
+ *
+ * @since 2.3.0
+ * @deprecated 3.5.0
+ */
+function _save_post_hook() {}
+
+/**
+ * Check if the installed version of GD supports particular image type
+ *
+ * @since 2.9.0
+ * @deprecated 3.5.0
+ * see wp_image_editor_supports()
+ *
+ * @param string $mime_type
+ * @return bool
+ */
+function gd_edit_image_support($mime_type) {
+	_deprecated_function( __FUNCTION__, '3.5', 'wp_image_editor_supports()' );
+
+	if ( function_exists('imagetypes') ) {
+		switch( $mime_type ) {
+			case 'image/jpeg':
+				return (imagetypes() & IMG_JPG) != 0;
+			case 'image/png':
+				return (imagetypes() & IMG_PNG) != 0;
+			case 'image/gif':
+				return (imagetypes() & IMG_GIF) != 0;
+		}
+	} else {
+		switch( $mime_type ) {
+			case 'image/jpeg':
+				return function_exists('imagecreatefromjpeg');
+			case 'image/png':
+				return function_exists('imagecreatefrompng');
+			case 'image/gif':
+				return function_exists('imagecreatefromgif');
+		}
+	}
+	return false;
 }

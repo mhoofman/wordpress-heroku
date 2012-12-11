@@ -58,13 +58,29 @@ function install_theme_search_form( $type_selector = true ) {
 <form id="search-themes" method="get" action="">
 	<input type="hidden" name="tab" value="search" />
 	<?php if ( $type_selector ) : ?>
+	<label class="screen-reader-text" for="typeselector"><?php _e('Type of search'); ?></label>
 	<select	name="type" id="typeselector">
 	<option value="term" <?php selected('term', $type) ?>><?php _e('Keyword'); ?></option>
 	<option value="author" <?php selected('author', $type) ?>><?php _e('Author'); ?></option>
 	<option value="tag" <?php selected('tag', $type) ?>><?php _ex('Tag', 'Theme Installer'); ?></option>
 	</select>
+	<label class="screen-reader-text" for="s"><?php
+	switch ( $type ) {
+		case 'term':
+			_e( 'Search by keyword' );
+			break;
+		case 'author':
+			_e( 'Search by author' );
+			break;
+		case 'tag':
+			_e( 'Search by tag' );
+			break;
+	}
+	?></label>
+	<?php else : ?>
+	<label class="screen-reader-text" for="s"><?php _e('Search by keyword'); ?></label>
 	<?php endif; ?>
-	<input type="search" name="s" size="30" value="<?php echo esc_attr($term) ?>" />
+	<input type="search" name="s" id="s" size="30" value="<?php echo esc_attr($term) ?>" autofocus="autofocus" />
 	<?php submit_button( __( 'Search' ), 'button', 'search', false ); ?>
 </form>
 <?php
@@ -118,10 +134,10 @@ add_action('install_themes_dashboard', 'install_themes_dashboard');
 
 function install_themes_upload($page = 1) {
 ?>
-<h4><?php _e('Install a theme in .zip format') ?></h4>
-<p class="install-help"><?php _e('If you have a theme in a .zip format, you may install it by uploading it here.') ?></p>
-<form method="post" enctype="multipart/form-data" action="<?php echo self_admin_url('update.php?action=upload-theme') ?>">
-	<?php wp_nonce_field( 'theme-upload') ?>
+<h4><?php _e('Install a theme in .zip format'); ?></h4>
+<p class="install-help"><?php _e('If you have a theme in a .zip format, you may install it by uploading it here.'); ?></p>
+<form method="post" enctype="multipart/form-data" class="wp-upload-form" action="<?php echo self_admin_url('update.php?action=upload-theme'); ?>">
+	<?php wp_nonce_field( 'theme-upload'); ?>
 	<input type="file" name="themezip" />
 	<?php submit_button( __( 'Install Now' ), 'button', 'install-theme-submit', false ); ?>
 </form>

@@ -3,12 +3,12 @@
 /* ---------->>> thickbox specific link and font settings <<<------------------------------------------------------*/
 /* ----------------------------------------------------------------------------------------------------------------*/
 #TB_window {
-	font: 12px "Lucida Grande", Verdana, Arial, sans-serif;
+	font: 12px sans-serif;
 	color: #333333;
 }
 
 #TB_secondLine {
-	font: 10px "Lucida Grande", Verdana, Arial, sans-serif;
+	font: 10px sans-serif;
 	color:#666666;
 }
 
@@ -159,4 +159,20 @@ margin-top: expression(0 - parseInt(this.offsetHeight / 2) + (TBWindowMargin = d
 	border:none;
 	margin-bottom:-1px;
 	_margin-bottom:1px;
+}
+
+.tb-close-icon {
+	background: url('tb-close.png') no-repeat;
+	height: 15px;
+	width: 15px;
+}
+
+@media print,
+  (-o-min-device-pixel-ratio: 5/4),
+  (-webkit-min-device-pixel-ratio: 1.25),
+  (min-resolution: 120dpi) {
+	.tb-close-icon {
+		background: url('tb-close-2x.png') no-repeat;
+		background-size: 15px;
+	}
 }

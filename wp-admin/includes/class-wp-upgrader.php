@@ -496,11 +496,11 @@ class Plugin_Upgrader extends WP_Upgrader {
 			$this->skin->plugin_info = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, true);
 
 			if ( !isset( $current->response[ $plugin ] ) ) {
-				$this->skin->set_result(false);
+				$this->skin->set_result(true);
 				$this->skin->before();
-				$this->skin->error('up_to_date');
+				$this->skin->feedback('up_to_date');
 				$this->skin->after();
-				$results[$plugin] = false;
+				$results[$plugin] = true;
 				continue;
 			}
 
@@ -763,10 +763,7 @@ class Theme_Upgrader extends WP_Upgrader {
 			return $this->result;
 
 		// Force refresh of theme update information
-		delete_site_transient('update_themes');
-		search_theme_directories( true );
-		foreach ( wp_get_themes() as $theme )
-			$theme->cache_delete();
+		wp_clean_themes_cache();
 
 		return true;
 	}
@@ -812,10 +809,7 @@ class Theme_Upgrader extends WP_Upgrader {
 			return $this->result;
 
 		// Force refresh of theme update information
-		delete_site_transient('update_themes');
-		search_theme_directories( true );
-		foreach ( wp_get_themes() as $theme )
-			$theme->cache_delete();
+		wp_clean_themes_cache();
 
 		return true;
 	}
@@ -857,16 +851,16 @@ class Theme_Upgrader extends WP_Upgrader {
 		foreach ( $themes as $theme ) {
 			$this->update_current++;
 
+			$this->skin->theme_info = $this->theme_info($theme);
+
 			if ( !isset( $current->response[ $theme ] ) ) {
-				$this->skin->set_result(false);
+				$this->skin->set_result(true);
 				$this->skin->before();
-				$this->skin->error('up_to_date');
+				$this->skin->feedback('up_to_date');
 				$this->skin->after();
-				$results[$theme] = false;
+				$results[$theme] = true;
 				continue;
 			}
-
-			$this->skin->theme_info = $this->theme_info($theme);
 
 			// Get the URL to the zip file
 			$r = $current->response[ $theme ];
@@ -902,10 +896,7 @@ class Theme_Upgrader extends WP_Upgrader {
 		remove_filter('upgrader_clear_destination', array(&$this, 'delete_old_theme'), 10, 4);
 
 		// Force refresh of theme update information
-		delete_site_transient('update_themes');
-		search_theme_directories( true );
-		foreach ( wp_get_themes() as $theme )
-			$theme->cache_delete();
+		wp_clean_themes_cache();
 
 		return $results;
 	}
@@ -962,13 +953,11 @@ class Theme_Upgrader extends WP_Upgrader {
 		if ( $theme != get_stylesheet() ) // If not current
 			return $return;
 
-		// Ensure stylesheet name hasnt changed after the upgrade:
-		// @TODO: Note, This doesn't handle the Template changing, or the Template name changing.
+		// Ensure stylesheet name hasn't changed after the upgrade:
 		if ( $theme == get_stylesheet() && $theme != $this->result['destination_name'] ) {
-			$theme_info = $this->theme_info();
+			wp_clean_themes_cache();
 			$stylesheet = $this->result['destination_name'];
-			$template = $theme_info->get_template();
-			switch_theme($template, $stylesheet, true);
+			switch_theme( $stylesheet );
 		}
 
 		//Time to remove maintenance mode
@@ -1206,9 +1195,7 @@ class Plugin_Upgrader_Skin extends WP_Upgrader_Skin {
 			'activate_plugin' => '<a href="' . wp_nonce_url('plugins.php?action=activate&amp;plugin=' . $this->plugin, 'activate-plugin_' . $this->plugin) . '" title="' . esc_attr__('Activate this plugin') . '" target="_parent">' . __('Activate Plugin') . '</a>',
 			'plugins_page' => '<a href="' . self_admin_url('plugins.php') . '" title="' . esc_attr__('Go to plugins page') . '" target="_parent">' . __('Return to Plugins page') . '</a>'
 		);
-		if ( $this->plugin_active )
-			unset( $update_actions['activate_plugin'] );
-		if ( ! $this->result || is_wp_error($this->result) )
+		if ( $this->plugin_active || ! $this->result || is_wp_error( $this->result ) || ! current_user_can( 'activate_plugins' ) )
 			unset( $update_actions['activate_plugin'] );
 
 		$update_actions = apply_filters('update_plugin_complete_actions', $update_actions, $this->plugin);
@@ -1301,8 +1288,8 @@ class Bulk_Upgrader_Skin extends WP_Upgrader_Skin {
 
 	function before($title = '') {
 		$this->in_loop = true;
-		printf( '<h4>' . $this->upgrader->strings['skin_before_update_header'] . ' <img alt="" src="' . admin_url( 'images/wpspin_light.gif' ) . '" class="hidden waiting-' . $this->upgrader->update_current . '" style="vertical-align:middle;" /></h4>',  $title, $this->upgrader->update_current, $this->upgrader->update_count);
-		echo '<script type="text/javascript">jQuery(\'.waiting-' . esc_js($this->upgrader->update_current) . '\').show();</script>';
+		printf( '<h4>' . $this->upgrader->strings['skin_before_update_header'] . ' <span class="spinner waiting-' . $this->upgrader->update_current . '"></span></h4>',  $title, $this->upgrader->update_current, $this->upgrader->update_count);
+		echo '<script type="text/javascript">jQuery(\'.waiting-' . esc_js($this->upgrader->update_current) . '\').css("display", "inline-block");</script>';
 		echo '<div class="update-messages hide-if-js" id="progress-' . esc_attr($this->upgrader->update_current) . '"><p>';
 		$this->flush_output();
 	}
@@ -1362,6 +1349,8 @@ class Bulk_Plugin_Upgrader_Skin extends Bulk_Upgrader_Skin {
 			'plugins_page' => '<a href="' . self_admin_url('plugins.php') . '" title="' . esc_attr__('Go to plugins page') . '" target="_parent">' . __('Return to Plugins page') . '</a>',
 			'updates_page' => '<a href="' . self_admin_url('update-core.php') . '" title="' . esc_attr__('Go to WordPress Updates page') . '" target="_parent">' . __('Return to WordPress Updates') . '</a>'
 		);
+		if ( ! current_user_can( 'activate_plugins' ) )
+			unset( $update_actions['plugins_page'] );
 
 		$update_actions = apply_filters('update_bulk_plugins_complete_actions', $update_actions, $this->plugin_info);
 		if ( ! empty($update_actions) )
@@ -1395,6 +1384,8 @@ class Bulk_Theme_Upgrader_Skin extends Bulk_Upgrader_Skin {
 			'themes_page' => '<a href="' . self_admin_url('themes.php') . '" title="' . esc_attr__('Go to themes page') . '" target="_parent">' . __('Return to Themes page') . '</a>',
 			'updates_page' => '<a href="' . self_admin_url('update-core.php') . '" title="' . esc_attr__('Go to WordPress Updates page') . '" target="_parent">' . __('Return to WordPress Updates') . '</a>'
 		);
+		if ( ! current_user_can( 'switch_themes' ) && ! current_user_can( 'edit_theme_options' ) )
+			unset( $update_actions['themes_page'] );
 
 		$update_actions = apply_filters('update_bulk_theme_complete_actions', $update_actions, $this->theme_info );
 		if ( ! empty($update_actions) )
@@ -1456,9 +1447,11 @@ class Plugin_Installer_Skin extends WP_Upgrader_Skin {
 			$install_actions['plugins_page'] = '<a href="' . self_admin_url('plugins.php') . '" title="' . esc_attr__('Return to Plugins page') . '" target="_parent">' . __('Return to Plugins page') . '</a>';
 
 		if ( ! $this->result || is_wp_error($this->result) ) {
+			unset( $install_actions['activate_plugin'], $install_actions['network_activate'] );
+		} elseif ( ! current_user_can( 'activate_plugins' ) ) {
 			unset( $install_actions['activate_plugin'] );
-			unset( $install_actions['network_activate'] );
 		}
+
 		$install_actions = apply_filters('install_plugin_complete_actions', $install_actions, $this->api, $plugin_file);
 		if ( ! empty($install_actions) )
 			$this->feedback(implode(' | ', (array)$install_actions));
@@ -1509,7 +1502,7 @@ class Theme_Installer_Skin extends WP_Upgrader_Skin {
 			'preview'    => 1,
 			'template'   => urlencode( $template ),
 			'stylesheet' => urlencode( $stylesheet ),
-		), trailingslashit( get_home_url() ) );
+		), trailingslashit( home_url() ) );
 
 		$activate_link = add_query_arg( array(
 			'action'     => 'activate',
@@ -1524,14 +1517,14 @@ class Theme_Installer_Skin extends WP_Upgrader_Skin {
 		$install_actions['activate'] = '<a href="' . esc_url( $activate_link ) . '" class="activatelink" title="' . esc_attr( sprintf( __('Activate &#8220;%s&#8221;'), $name ) ) . '">' . __('Activate') . '</a>';
 
 		if ( is_network_admin() && current_user_can( 'manage_network_themes' ) )
-			$install_actions['network_enable'] = '<a href="' . esc_url( wp_nonce_url( 'themes.php?action=enable&amp;theme=' . $stylesheet, 'enable-theme_' . $stylesheet ) ) . '" title="' . esc_attr__( 'Enable this theme for all sites in this network' ) . '" target="_parent">' . __( 'Network Enable' ) . '</a>';
+			$install_actions['network_enable'] = '<a href="' . esc_url( wp_nonce_url( 'themes.php?action=enable&amp;theme=' . urlencode( $stylesheet ), 'enable-theme_' . $stylesheet ) ) . '" title="' . esc_attr__( 'Enable this theme for all sites in this network' ) . '" target="_parent">' . __( 'Network Enable' ) . '</a>';
 
 		if ( $this->type == 'web' )
 			$install_actions['themes_page'] = '<a href="' . self_admin_url('theme-install.php') . '" title="' . esc_attr__('Return to Theme Installer') . '" target="_parent">' . __('Return to Theme Installer') . '</a>';
-		else
+		elseif ( current_user_can( 'switch_themes' ) || current_user_can( 'edit_theme_options' ) )
 			$install_actions['themes_page'] = '<a href="' . self_admin_url('themes.php') . '" title="' . esc_attr__('Themes page') . '" target="_parent">' . __('Return to Themes page') . '</a>';
 
-		if ( ! $this->result || is_wp_error($this->result) || is_network_admin() )
+		if ( ! $this->result || is_wp_error($this->result) || is_network_admin() || ! current_user_can( 'switch_themes' ) )
 			unset( $install_actions['activate'], $install_actions['preview'] );
 
 		$install_actions = apply_filters('install_theme_complete_actions', $install_actions, $this->api, $stylesheet, $theme_info);
@@ -1573,7 +1566,7 @@ class Theme_Upgrader_Skin extends WP_Upgrader_Skin {
 				'preview'    => 1,
 				'template'   => urlencode( $template ),
 				'stylesheet' => urlencode( $stylesheet ),
-			), trailingslashit( get_home_url() ) );
+			), trailingslashit( home_url() ) );
 
 			$activate_link = add_query_arg( array(
 				'action'     => 'activate',
@@ -1583,8 +1576,9 @@ class Theme_Upgrader_Skin extends WP_Upgrader_Skin {
 			$activate_link = wp_nonce_url( $activate_link, 'switch-theme_' . $stylesheet );
 
 			if ( get_stylesheet() == $stylesheet ) {
-				$update_actions['preview']  = '<a href="' . wp_customize_url( $stylesheet ) . '" class="hide-if-no-customize load-customize" title="' . esc_attr( sprintf( __('Customize &#8220;%s&#8221;'), $name ) ) . '">' . __('Customize') . '</a>';
-			} else {
+				if ( current_user_can( 'edit_theme_options' ) )
+					$update_actions['preview']  = '<a href="' . wp_customize_url( $stylesheet ) . '" class="hide-if-no-customize load-customize" title="' . esc_attr( sprintf( __('Customize &#8220;%s&#8221;'), $name ) ) . '">' . __('Customize') . '</a>';
+			} elseif ( current_user_can( 'switch_themes' ) ) {
 				$update_actions['preview']  = '<a href="' . esc_url( $preview_link ) . '" class="hide-if-customize" title="' . esc_attr( sprintf( __('Preview &#8220;%s&#8221;'), $name ) ) . '">' . __('Preview') . '</a>';
 				$update_actions['preview'] .= '<a href="' . wp_customize_url( $stylesheet ) . '" class="hide-if-no-customize load-customize" title="' . esc_attr( sprintf( __('Preview &#8220;%s&#8221;'), $name ) ) . '">' . __('Live Preview') . '</a>';
 				$update_actions['activate'] = '<a href="' . esc_url( $activate_link ) . '" class="activatelink" title="' . esc_attr( sprintf( __('Activate &#8220;%s&#8221;'), $name ) ) . '">' . __('Activate') . '</a>';

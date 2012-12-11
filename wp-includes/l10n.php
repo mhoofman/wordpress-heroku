@@ -65,7 +65,7 @@ function get_locale() {
  * @return string Translated text
  */
 function translate( $text, $domain = 'default' ) {
-	$translations = &get_translations_for_domain( $domain );
+	$translations = get_translations_for_domain( $domain );
 	return apply_filters( 'gettext', $translations->translate( $text ), $text, $domain );
 }
 
@@ -78,7 +78,7 @@ function before_last_bar( $string ) {
 }
 
 function translate_with_gettext_context( $text, $context, $domain = 'default' ) {
-	$translations = &get_translations_for_domain( $domain );
+	$translations = get_translations_for_domain( $domain );
 	return apply_filters( 'gettext_with_context', $translations->translate( $text, $context ), $text, $context, $domain );
 }
 
@@ -236,7 +236,7 @@ function esc_html_x( $single, $context, $domain = 'default' ) {
  * @return string Either $single or $plural translated text
  */
 function _n( $single, $plural, $number, $domain = 'default' ) {
-	$translations = &get_translations_for_domain( $domain );
+	$translations = get_translations_for_domain( $domain );
 	$translation = $translations->translate_plural( $single, $plural, $number );
 	return apply_filters( 'ngettext', $translation, $single, $plural, $number, $domain );
 }
@@ -249,7 +249,7 @@ function _n( $single, $plural, $number, $domain = 'default' ) {
  *
  */
 function _nx($single, $plural, $number, $context, $domain = 'default') {
-	$translations = &get_translations_for_domain( $domain );
+	$translations = get_translations_for_domain( $domain );
 	$translation = $translations->translate_plural( $single, $plural, $number, $context );
 	return apply_filters( 'ngettext_with_context', $translation, $single, $plural, $number, $context, $domain );
 }
@@ -459,9 +459,16 @@ function load_muplugin_textdomain( $domain, $mu_plugin_rel_path = '' ) {
 function load_theme_textdomain( $domain, $path = false ) {
 	$locale = apply_filters( 'theme_locale', get_locale(), $domain );
 
-	$path = ( empty( $path ) ) ? get_template_directory() : $path;
+	if ( ! $path )
+		$path = get_template_directory();
 
-	$mofile = "$path/$locale.mo";
+	// Load the textdomain from the Theme provided location, or theme directory first
+	$mofile = "{$path}/{$locale}.mo";
+	if ( $loaded = load_textdomain($domain, $mofile) )
+		return $loaded;
+
+	// Else, load textdomain from the Language directory
+	$mofile = WP_LANG_DIR . "/themes/{$domain}-{$locale}.mo";
 	return load_textdomain($domain, $mofile);
 }
 
@@ -478,12 +485,9 @@ function load_theme_textdomain( $domain, $path = false ) {
  * @param string $domain Unique identifier for retrieving translated strings
  */
 function load_child_theme_textdomain( $domain, $path = false ) {
-	$locale = apply_filters( 'theme_locale', get_locale(), $domain );
-
-	$path = ( empty( $path ) ) ? get_stylesheet_directory() : $path;
-
-	$mofile = "$path/$locale.mo";
-	return load_textdomain($domain, $mofile);
+	if ( ! $path )
+		$path = get_stylesheet_directory();
+	return load_theme_textdomain( $domain, $path );
 }
 
 /**
@@ -493,7 +497,7 @@ function load_child_theme_textdomain( $domain, $path = false ) {
  * @param string $domain
  * @return object A Translation instance
  */
-function &get_translations_for_domain( $domain ) {
+function get_translations_for_domain( $domain ) {
 	global $l10n;
 	if ( !isset( $l10n[$domain] ) ) {
 		$l10n[$domain] = new NOOP_Translations;

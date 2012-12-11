@@ -44,7 +44,7 @@ do_action( 'customize_controls_enqueue_scripts' );
 wp_user_settings();
 _wp_admin_html_begin();
 
-$body_class = '';
+$body_class = 'wp-core-ui';
 
 if ( wp_is_mobile() ) :
 	$body_class .= ' mobile';
@@ -57,6 +57,10 @@ $is_ios = wp_is_mobile() && preg_match( '/iPad|iPod|iPhone/', $_SERVER['HTTP_USE
 if ( $is_ios )
 	$body_class .= ' ios';
 
+if ( is_rtl() )
+	$body_class .=  ' rtl';
+$body_class .= ' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
+
 $admin_title = sprintf( __( '%1$s &#8212; WordPress' ), strip_tags( sprintf( __( 'Customize %s' ), $wp_customize->theme()->display('Name') ) ) );
 ?><title><?php echo $admin_title; ?></title><?php
 
@@ -67,12 +71,13 @@ do_action( 'customize_controls_print_scripts' );
 <body class="<?php echo esc_attr( $body_class ); ?>">
 <div class="wp-full-overlay expanded">
 	<form id="customize-controls" class="wrap wp-full-overlay-sidebar">
+
 		<div id="customize-header-actions" class="wp-full-overlay-header">
 			<?php
 				$save_text = $wp_customize->is_theme_active() ? __( 'Save &amp; Publish' ) : __( 'Save &amp; Activate' );
-				submit_button( $save_text, 'primary', 'save', false );
+				submit_button( $save_text, 'primary save', 'save', false );
 			?>
-			<img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" />
+			<span class="spinner"></span>
 			<a class="back button" href="<?php echo esc_url( $return ? $return : admin_url( 'themes.php' ) ); ?>">
 				<?php _e( 'Cancel' ); ?>
 			</a>
@@ -83,9 +88,9 @@ do_action( 'customize_controls_print_scripts' );
 			$cannot_expand = ! ( $screenshot || $wp_customize->theme()->get('Description') );
 		?>
 
-		<div class="wp-full-overlay-sidebar-content">
+		<div class="wp-full-overlay-sidebar-content" tabindex="-1">
 			<div id="customize-info" class="customize-section<?php if ( $cannot_expand ) echo ' cannot-expand'; ?>">
-				<div class="customize-section-title">
+				<div class="customize-section-title" aria-label="<?php esc_attr_e( 'Theme Customizer Options' ); ?>" tabindex="0">
 					<span class="preview-notice"><?php
 						/* translators: %s is the theme name in the Customize/Live Preview pane */
 						echo sprintf( __( 'You are previewing %s' ), '<strong class="theme-name">' . $wp_customize->theme()->display('Name') . '</strong>' );

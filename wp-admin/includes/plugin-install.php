@@ -74,7 +74,7 @@ function install_popular_tags( $args = array() ) {
 	if ( is_wp_error($tags) )
 		return $tags;
 
-	set_site_transient('poptags_' . $key, $tags, 10800); // 3 * 60 * 60 = 10800
+	set_site_transient( 'poptags_' . $key, $tags, 3 * HOUR_IN_SECONDS );
 
 	return $tags;
 }
@@ -128,7 +128,7 @@ function install_search_form( $type_selector = true ) {
 			<option value="tag"<?php selected('tag', $type) ?>><?php _ex('Tag', 'Plugin Installer'); ?></option>
 		</select>
 		<?php endif; ?>
-		<input type="search" name="s" value="<?php echo esc_attr($term) ?>" />
+		<input type="search" name="s" value="<?php echo esc_attr($term) ?>" autofocus="autofocus" />
 		<label class="screen-reader-text" for="plugin-search-input"><?php _e('Search Plugins'); ?></label>
 		<?php submit_button( __( 'Search Plugins' ), 'button', 'plugin-search-input', false ); ?>
 	</form><?php
@@ -142,17 +142,37 @@ function install_search_form( $type_selector = true ) {
  */
 function install_plugins_upload( $page = 1 ) {
 ?>
-	<h4><?php _e('Install a plugin in .zip format') ?></h4>
-	<p class="install-help"><?php _e('If you have a plugin in a .zip format, you may install it by uploading it here.') ?></p>
-	<form method="post" enctype="multipart/form-data" action="<?php echo self_admin_url('update.php?action=upload-plugin') ?>">
-		<?php wp_nonce_field( 'plugin-upload') ?>
+	<h4><?php _e('Install a plugin in .zip format'); ?></h4>
+	<p class="install-help"><?php _e('If you have a plugin in a .zip format, you may install it by uploading it here.'); ?></p>
+	<form method="post" enctype="multipart/form-data" class="wp-upload-form" action="<?php echo self_admin_url('update.php?action=upload-plugin'); ?>">
+		<?php wp_nonce_field( 'plugin-upload'); ?>
 		<label class="screen-reader-text" for="pluginzip"><?php _e('Plugin zip file'); ?></label>
 		<input type="file" id="pluginzip" name="pluginzip" />
-		<input type="submit" class="button" value="<?php esc_attr_e('Install Now') ?>" />
+		<?php submit_button( __( 'Install Now' ), 'button', 'install-plugin-submit', false ); ?>
 	</form>
 <?php
 }
 add_action('install_plugins_upload', 'install_plugins_upload', 10, 1);
+
+/**
+ * Show a username form for the favorites page
+ * @since 3.5.0
+ *
+ */
+function install_plugins_favorites_form() {
+	$user = ! empty( $_GET['user'] ) ? stripslashes( $_GET['user'] ) : get_user_option( 'wporg_favorites' );
+	?>
+	<p class="install-help"><?php _e( 'If you have marked plugins as favorites on WordPress.org, you can browse them here.' ); ?></p>
+	<form method="get" action="">
+		<input type="hidden" name="tab" value="favorites" />
+		<p>
+			<label for="user"><?php _e( 'Your WordPress.org username:' ); ?></label>
+			<input type="search" id="user" name="user" value="<?php echo esc_attr( $user ); ?>" />
+			<input type="submit" class="button" value="<?php esc_attr_e( 'Get Favorites' ); ?>" />
+		</p>
+	</form>
+	<?php
+}
 
 /**
  * Display plugin content based on plugin list.
@@ -162,12 +182,16 @@ add_action('install_plugins_upload', 'install_plugins_upload', 10, 1);
 function display_plugins_table() {
 	global $wp_list_table;
 
+	if ( current_filter() == 'install_plugins_favorites' && empty( $_GET['user'] ) && ! get_user_option( 'wporg_favorites' ) )
+			return;
+
 	$wp_list_table->display();
 }
-add_action('install_plugins_search', 'display_plugins_table');
-add_action('install_plugins_featured', 'display_plugins_table');
-add_action('install_plugins_popular', 'display_plugins_table');
-add_action('install_plugins_new', 'display_plugins_table');
+add_action( 'install_plugins_search',    'display_plugins_table' );
+add_action( 'install_plugins_featured',  'display_plugins_table' );
+add_action( 'install_plugins_popular',   'display_plugins_table' );
+add_action( 'install_plugins_new',       'display_plugins_table' );
+add_action( 'install_plugins_favorites', 'display_plugins_table' );
 
 /**
  * Determine the status we can perform on a plugin.

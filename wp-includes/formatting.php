@@ -100,7 +100,7 @@ function wptexturize($text) {
 	}
 
 	// Transform into regexp sub-expression used in _wptexturize_pushpop_element
-	// Must do this everytime in case plugins use these filters in a context sensitive manner
+	// Must do this every time in case plugins use these filters in a context sensitive manner
 	$no_texturize_tags = '(' . implode('|', apply_filters('no_texturize_tags', $default_no_texturize_tags) ) . ')';
 	$no_texturize_shortcodes = '(' . implode('|', apply_filters('no_texturize_shortcodes', $default_no_texturize_shortcodes) ) . ')';
 
@@ -141,8 +141,7 @@ function wptexturize($text) {
  * @param array $stack Array used as stack of opened tag elements
  * @param string $disabled_elements Tags to match against formatted as regexp sub-expression
  * @param string $opening Tag opening character, assumed to be 1 character long
- * @param string $opening Tag closing  character
- * @return object
+ * @param string $closing Tag closing character
  */
 function _wptexturize_pushpop_element($text, &$stack, $disabled_elements, $opening = '<', $closing = '>') {
 	// Check if it is a closing tag -- otherwise assume opening tag
@@ -221,7 +220,7 @@ function wpautop($pee, $br = true) {
 
 	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
 	// Space things out a little
-	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|select|option|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
+	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|select|option|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|samp|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
 	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
@@ -264,7 +263,7 @@ function wpautop($pee, $br = true) {
  * @since 3.1.0
  * @access private
  * @param array $matches preg_replace_callback matches array
- * @returns string
+ * @return string
  */
 function _autop_newline_preservation_helper( $matches ) {
 	return str_replace("\n", "<WPPreserveNewline />", $matches[0]);
@@ -296,7 +295,7 @@ function shortcode_unautop( $pee ) {
 		. '('                                // 1: The shortcode
 		.     '\\['                          // Opening bracket
 		.     "($tagregexp)"                 // 2: Shortcode name
-		.     '\\b'                          // Word boundary
+		.     '(?![\\w-])'                   // Not followed by word character or hyphen
 		                                     // Unroll the loop: Inside the opening shortcode tag
 		.     '[^\\]\\/]*'                   // Not a closing bracket or forward slash
 		.     '(?:'
@@ -770,6 +769,20 @@ function remove_accents($string) {
 		chr(225).chr(187).chr(164) => 'U', chr(225).chr(187).chr(165) => 'u',
 		chr(225).chr(187).chr(176) => 'U', chr(225).chr(187).chr(177) => 'u',
 		chr(225).chr(187).chr(180) => 'Y', chr(225).chr(187).chr(181) => 'y',
+		// Vowels with diacritic (Chinese, Hanyu Pinyin)
+		chr(201).chr(145) => 'a',
+		// macron
+		chr(199).chr(149) => 'U', chr(199).chr(150) => 'u',
+		// acute accent
+		chr(199).chr(151) => 'U', chr(199).chr(152) => 'u',
+		// caron
+		chr(199).chr(141) => 'A', chr(199).chr(142) => 'a',
+		chr(199).chr(143) => 'I', chr(199).chr(144) => 'i',
+		chr(199).chr(145) => 'O', chr(199).chr(146) => 'o',
+		chr(199).chr(147) => 'U', chr(199).chr(148) => 'u',
+		chr(199).chr(153) => 'U', chr(199).chr(154) => 'u',
+		// grave accent
+		chr(199).chr(155) => 'U', chr(199).chr(156) => 'u',
 		);
 
 		$string = strtr($string, $chars);
@@ -986,6 +999,8 @@ function sanitize_title_with_dashes($title, $raw_title = '', $context = 'display
 			'%e2%80%9a', '%e2%80%9b', '%e2%80%9e', '%e2%80%9f',
 			// copy, reg, deg, hellip and trade
 			'%c2%a9', '%c2%ae', '%c2%b0', '%e2%80%a6', '%e2%84%a2',
+			// grave accent, acute accent, macron, caron
+			'%cc%80', '%cc%81', '%cc%84', '%cc%8c',
 		), '', $title );
 
 		// Convert times to x
@@ -1009,7 +1024,7 @@ function sanitize_title_with_dashes($title, $raw_title = '', $context = 'display
  * @since 2.5.1
  *
  * @param string $orderby Order by string to be checked.
- * @return string|false Returns the order by clause if it is a match, false otherwise.
+ * @return string|bool Returns the order by clause if it is a match, false otherwise.
  */
 function sanitize_sql_orderby( $orderby ){
 	preg_match('/^\s*([a-z0-9_]+(\s+(ASC|DESC))?(\s*,\s*|\s*$))+|^\s*RAND\(\s*\)\s*$/i', $orderby, $obmatches);
@@ -1156,8 +1171,10 @@ function force_balance_tags( $text ) {
 	$stacksize = 0;
 	$tagqueue = '';
 	$newtext = '';
-	$single_tags = array( 'br', 'hr', 'img', 'input' ); // Known single-entity/self-closing tags
-	$nestable_tags = array( 'blockquote', 'div', 'span', 'q' ); // Tags that can be immediately nested within themselves
+	// Known single-entity/self-closing tags
+	$single_tags = array( 'area', 'base', 'basefont', 'br', 'col', 'command', 'embed', 'frame', 'hr', 'img', 'input', 'isindex', 'link', 'meta', 'param', 'source' );
+	// Tags that can be immediately nested within themselves
+	$nestable_tags = array( 'blockquote', 'div', 'object', 'q', 'span' );
 
 	// WP bug fix for comments - in case you REALLY meant to type '< !--'
 	$text = str_replace('< !--', '<    !--', $text);
@@ -1204,26 +1221,35 @@ function force_balance_tags( $text ) {
 
 			// Tag Cleaning
 
-			// If self-closing or '', don't do anything.
-			if ( substr($regex[2],-1) == '/' || $tag == '' ) {
+			// If it's an empty tag "< >", do nothing
+			if ( '' == $tag ) {
 				// do nothing
+			}
+			// ElseIf it presents itself as a self-closing tag...
+			elseif ( substr( $regex[2], -1 ) == '/' ) {
+				// ...but it isn't a known single-entity self-closing tag, then don't let it be treated as such and
+				// immediately close it with a closing tag (the tag will encapsulate no text as a result)
+				if ( ! in_array( $tag, $single_tags ) )
+					$regex[2] = trim( substr( $regex[2], 0, -1 ) ) . "></$tag";
 			}
 			// ElseIf it's a known single-entity tag but it doesn't close itself, do so
 			elseif ( in_array($tag, $single_tags) ) {
 				$regex[2] .= '/';
-			} else {	// Push the tag onto the stack
+			}
+			// Else it's not a single-entity tag
+			else {
 				// If the top of the stack is the same as the tag we want to push, close previous tag
 				if ( $stacksize > 0 && !in_array($tag, $nestable_tags) && $tagstack[$stacksize - 1] == $tag ) {
-					$tagqueue = '</' . array_pop ($tagstack) . '>';
+					$tagqueue = '</' . array_pop( $tagstack ) . '>';
 					$stacksize--;
 				}
-				$stacksize = array_push ($tagstack, $tag);
+				$stacksize = array_push( $tagstack, $tag );
 			}
 
 			// Attributes
 			$attributes = $regex[2];
-			if( !empty($attributes) )
-				$attributes = ' '.$attributes;
+			if( ! empty( $attributes ) && $attributes[0] != '>' )
+				$attributes = ' ' . $attributes;
 
 			$tag = '<' . $tag . $attributes . '>';
 			//If already queuing a close tag, then put this tag on, too
@@ -1381,8 +1407,8 @@ function addslashes_gpc($gpc) {
  *
  * @since 2.0.0
  *
- * @param array|string $value The array or string to be stripped.
- * @return array|string Stripped array (or string in the callback).
+ * @param mixed $value The value to be stripped.
+ * @return mixed Stripped value.
  */
 function stripslashes_deep($value) {
 	if ( is_array($value) ) {
@@ -1392,7 +1418,7 @@ function stripslashes_deep($value) {
 		foreach ($vars as $key=>$data) {
 			$value->{$key} = stripslashes_deep( $data );
 		}
-	} else {
+	} elseif ( is_string( $value ) ) {
 		$value = stripslashes($value);
 	}
 
@@ -1623,8 +1649,8 @@ function make_clickable( $text ) {
  * @since 3.4.0
  * @access private
  *
- * @param string $string The string to split
- * @param    int $goal   The desired chunk length.
+ * @param string $string The string to split.
+ * @param int $goal The desired chunk length.
  * @return array Numeric array of chunks.
  */
 function _split_str_by_whitespace( $string, $goal ) {
@@ -1822,7 +1848,6 @@ function is_email( $email, $deprecated = false ) {
  * Convert to ASCII from email subjects.
  *
  * @since 1.2.0
- * @usedby wp_mail() handles charsets in email subjects
  *
  * @param string $string Subject line
  * @return string Converted string to ASCII
@@ -1839,11 +1864,12 @@ function wp_iso_descrambler($string) {
 }
 
 /**
- * Helper function to convert hex encoded chars to ascii
+ * Helper function to convert hex encoded chars to ASCII
  *
  * @since 3.1.0
  * @access private
- * @param array $match the preg_replace_callback matches array
+ * @param array $match The preg_replace_callback matches array
+ * @return array Converted chars
  */
 function _wp_iso_convert( $match ) {
 	return chr( hexdec( strtolower( $match[1] ) ) );
@@ -1866,19 +1892,25 @@ function _wp_iso_convert( $match ) {
  */
 function get_gmt_from_date($string, $format = 'Y-m-d H:i:s') {
 	preg_match('#([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2}) ([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})#', $string, $matches);
+	if ( ! $matches )
+		return date( $format, 0 );
+
 	$tz = get_option('timezone_string');
 	if ( $tz ) {
 		date_default_timezone_set( $tz );
-		$datetime = new DateTime( $string );
+		$datetime = date_create( $string );
+		if ( ! $datetime )
+			return date( $format, 0 );
+
 		$datetime->setTimezone( new DateTimeZone('UTC') );
 		$offset = $datetime->getOffset();
-		$datetime->modify( '+' . $offset / 3600 . ' hours');
+		$datetime->modify( '+' . $offset / HOUR_IN_SECONDS . ' hours');
 		$string_gmt = gmdate($format, $datetime->format('U'));
 
 		date_default_timezone_set('UTC');
 	} else {
 		$string_time = gmmktime($matches[4], $matches[5], $matches[6], $matches[2], $matches[3], $matches[1]);
-		$string_gmt = gmdate($format, $string_time - get_option('gmt_offset') * 3600);
+		$string_gmt = gmdate($format, $string_time - get_option('gmt_offset') * HOUR_IN_SECONDS);
 	}
 	return $string_gmt;
 }
@@ -1898,7 +1930,7 @@ function get_gmt_from_date($string, $format = 'Y-m-d H:i:s') {
 function get_date_from_gmt($string, $format = 'Y-m-d H:i:s') {
 	preg_match('#([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2}) ([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})#', $string, $matches);
 	$string_time = gmmktime($matches[4], $matches[5], $matches[6], $matches[2], $matches[3], $matches[1]);
-	$string_localtime = gmdate($format, $string_time + get_option('gmt_offset')*3600);
+	$string_localtime = gmdate($format, $string_time + get_option('gmt_offset') * HOUR_IN_SECONDS);
 	return $string_localtime;
 }
 
@@ -1918,7 +1950,7 @@ function iso8601_timezone_to_offset($timezone) {
 		$sign    = (substr($timezone, 0, 1) == '+') ? 1 : -1;
 		$hours   = intval(substr($timezone, 1, 2));
 		$minutes = intval(substr($timezone, 3, 4)) / 60;
-		$offset  = $sign * 3600 * ($hours + $minutes);
+		$offset  = $sign * HOUR_IN_SECONDS * ($hours + $minutes);
 	}
 	return $offset;
 }
@@ -1942,7 +1974,7 @@ function iso8601_to_datetime($date_string, $timezone = 'user') {
 		if (!empty($date_bits[7])) { // we have a timezone, so let's compute an offset
 			$offset = iso8601_timezone_to_offset($date_bits[7]);
 		} else { // we don't have a timezone, so we assume user local timezone (not server's!)
-			$offset = 3600 * get_option('gmt_offset');
+			$offset = HOUR_IN_SECONDS * get_option('gmt_offset');
 		}
 
 		$timestamp = gmmktime($date_bits[4], $date_bits[5], $date_bits[6], $date_bits[2], $date_bits[3], $date_bits[1]);
@@ -2067,28 +2099,28 @@ function sanitize_email( $email ) {
  * @return string Human readable time difference.
  */
 function human_time_diff( $from, $to = '' ) {
-	if ( empty($to) )
+	if ( empty( $to ) )
 		$to = time();
-	$diff = (int) abs($to - $from);
-	if ($diff <= 3600) {
-		$mins = round($diff / 60);
-		if ($mins <= 1) {
+	$diff = (int) abs( $to - $from );
+	if ( $diff <= HOUR_IN_SECONDS ) {
+		$mins = round( $diff / MINUTE_IN_SECONDS );
+		if ( $mins <= 1 ) {
 			$mins = 1;
 		}
 		/* translators: min=minute */
-		$since = sprintf(_n('%s min', '%s mins', $mins), $mins);
-	} else if (($diff <= 86400) && ($diff > 3600)) {
-		$hours = round($diff / 3600);
-		if ($hours <= 1) {
+		$since = sprintf( _n( '%s min', '%s mins', $mins ), $mins );
+	} elseif ( ( $diff <= DAY_IN_SECONDS ) && ( $diff > HOUR_IN_SECONDS ) ) {
+		$hours = round( $diff / HOUR_IN_SECONDS );
+		if ( $hours <= 1 ) {
 			$hours = 1;
 		}
-		$since = sprintf(_n('%s hour', '%s hours', $hours), $hours);
-	} elseif ($diff >= 86400) {
-		$days = round($diff / 86400);
-		if ($days <= 1) {
+		$since = sprintf( _n( '%s hour', '%s hours', $hours ), $hours );
+	} elseif ( $diff >= DAY_IN_SECONDS ) {
+		$days = round( $diff / DAY_IN_SECONDS );
+		if ( $days <= 1 ) {
 			$days = 1;
 		}
-		$since = sprintf(_n('%s day', '%s days', $days), $days);
+		$since = sprintf( _n( '%s day', '%s days', $days ), $days );
 	}
 	return $since;
 }
@@ -2738,8 +2770,6 @@ function sanitize_option($option, $value) {
 		case 'medium_size_h':
 		case 'large_size_w':
 		case 'large_size_h':
-		case 'embed_size_h':
-		case 'default_post_edit_rows':
 		case 'mailserver_port':
 		case 'comment_max_links':
 		case 'page_on_front':
@@ -2754,11 +2784,6 @@ function sanitize_option($option, $value) {
 		case 'users_can_register':
 		case 'start_of_week':
 			$value = absint( $value );
-			break;
-
-		case 'embed_size_w':
-			if ( '' !== $value )
-				$value = absint( $value );
 			break;
 
 		case 'posts_per_page':
@@ -2779,9 +2804,7 @@ function sanitize_option($option, $value) {
 
 		case 'blogdescription':
 		case 'blogname':
-			$value = addslashes($value);
-			$value = wp_filter_post_kses( $value ); // calls stripslashes then addslashes
-			$value = stripslashes($value);
+			$value = wp_kses_post( $value );
 			$value = esc_html( $value );
 			break;
 
@@ -2789,17 +2812,29 @@ function sanitize_option($option, $value) {
 			$value = preg_replace('/[^a-zA-Z0-9_-]/', '', $value); // strips slashes
 			break;
 
+		case 'blog_public':
+			// This is the value if the settings checkbox is not checked on POST. Don't rely on this.
+			if ( null === $value )
+				$value = 1;
+			else
+				$value = intval( $value );
+			break;
+
 		case 'date_format':
 		case 'time_format':
 		case 'mailserver_url':
 		case 'mailserver_login':
 		case 'mailserver_pass':
-		case 'ping_sites':
 		case 'upload_path':
-			$value = strip_tags($value);
-			$value = addslashes($value);
-			$value = wp_filter_kses($value); // calls stripslashes then addslashes
-			$value = stripslashes($value);
+			$value = strip_tags( $value );
+			$value = wp_kses_data( $value );
+			break;
+
+		case 'ping_sites':
+			$value = explode( "\n", $value );
+			$value = array_filter( array_map( 'trim', $value ) );
+			$value = array_filter( array_map( 'esc_url_raw', $value ) );
+			$value = implode( "\n", $value );
 			break;
 
 		case 'gmt_offset':
@@ -2830,6 +2865,32 @@ function sanitize_option($option, $value) {
 			$allowed = get_available_languages();
 			if ( ! in_array( $value, $allowed ) && ! empty( $value ) )
 				$value = get_option( $option );
+			break;
+
+		case 'illegal_names':
+			if ( ! is_array( $value ) )
+				$value = explode( "\n", $value );
+
+			$value = array_values( array_filter( array_map( 'trim', $value ) ) );
+
+			if ( ! $value )
+				$value = '';
+			break;
+
+		case 'limited_email_domains':
+		case 'banned_email_domains':
+			if ( ! is_array( $value ) )
+				$value = explode( "\n", $value );
+
+			$domains = array_values( array_filter( array_map( 'trim', $value ) ) );
+			$value = array();
+
+			foreach ( $domains as $domain ) {
+				if ( ! preg_match( '/(--|\.\.)/', $domain ) && preg_match( '|^([a-zA-Z0-9-\.])+$|', $domain ) )
+					$value[] = $domain;
+			}
+			if ( ! $value )
+				$value = '';
 			break;
 
 		case 'timezone_string':
@@ -3189,7 +3250,7 @@ function sanitize_text_field($str) {
  * @return string
  */
 function wp_basename( $path, $suffix = '' ) {
-	return urldecode( basename( str_replace( '%2F', '/', urlencode( $path ) ), $suffix ) );
+	return urldecode( basename( str_replace( array( '%2F', '%5C' ), '/', urlencode( $path ) ), $suffix ) );
 }
 
 /**
@@ -3206,7 +3267,7 @@ function capital_P_dangit( $text ) {
 	// Still here? Use the more judicious replacement
 	static $dblq = false;
 	if ( false === $dblq )
-		$dblq = _x('&#8220;', 'opening curly quote');
+		$dblq = _x( '&#8220;', 'opening curly double quote' );
 	return str_replace(
 		array( ' Wordpress', '&#8216;Wordpress', $dblq . 'Wordpress', '>Wordpress', '(Wordpress' ),
 		array( ' WordPress', '&#8216;WordPress', $dblq . 'WordPress', '>WordPress', '(WordPress' ),

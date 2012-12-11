@@ -24,7 +24,7 @@ function confirm_delete_users( $users ) {
 	screen_icon();
 	?>
 	<h2><?php esc_html_e( 'Users' ); ?></h2>
-	<p><?php _e( 'Transfer or delete posts and links before deleting users.' ); ?></p>
+	<p><?php _e( 'Transfer or delete posts before deleting users.' ); ?></p>
 	<form action="users.php?action=dodelete" method="post">
 	<input type="hidden" name="dodelete" />
 	<?php
@@ -34,7 +34,7 @@ function confirm_delete_users( $users ) {
 
 	foreach ( ( $allusers = (array) $_POST['allusers'] ) as $key => $val ) {
 		if ( $val != '' && $val != '0' ) {
-			$delete_user = new WP_User( $val );
+			$delete_user = get_userdata( $val );
 
 			if ( ! current_user_can( 'delete_user', $delete_user->ID ) )
 				wp_die( sprintf( __( 'Warning! User %s cannot be deleted.' ), $delete_user->user_login ) );
@@ -47,7 +47,7 @@ function confirm_delete_users( $users ) {
 
 			if ( !empty( $blogs ) ) {
 				?>
-				<br /><fieldset><p><legend><?php printf( __( "What should be done with posts and links owned by <em>%s</em>?" ), $delete_user->user_login ); ?></legend></p>
+				<br /><fieldset><p><legend><?php printf( __( "What should be done with posts owned by <em>%s</em>?" ), $delete_user->user_login ); ?></legend></p>
 				<?php
 				foreach ( (array) $blogs as $key => $details ) {
 					$blog_users = get_users( array( 'blog_id' => $details->userblog_id ) );
@@ -67,9 +67,9 @@ function confirm_delete_users( $users ) {
 						<ul style="list-style:none;">
 							<li><?php printf( __( 'Site: %s' ), $user_site ); ?></li>
 							<li><label><input type="radio" id="delete_option0" name="delete[<?php echo $details->userblog_id . '][' . $delete_user->ID ?>]" value="delete" checked="checked" />
-							<?php _e( 'Delete all posts and links.' ); ?></label></li>
+							<?php _e( 'Delete all posts.' ); ?></label></li>
 							<li><label><input type="radio" id="delete_option1" name="delete[<?php echo $details->userblog_id . '][' . $delete_user->ID ?>]" value="reassign" />
-							<?php echo __( 'Attribute all posts and links to:' ) . '</label>' . $user_dropdown; ?></li>
+							<?php echo __( 'Attribute all posts to:' ) . '</label>' . $user_dropdown; ?></li>
 						</ul>
 						<?php
 					}
@@ -139,8 +139,8 @@ if ( isset( $_GET['action'] ) ) {
 							break;
 
 							case 'spam':
-								$user = new WP_User( $val );
-								if ( in_array( $user->user_login, get_super_admins() ) )
+								$user = get_userdata( $val );
+								if ( is_super_admin( $user->ID ) )
 									wp_die( sprintf( __( 'Warning! User cannot be modified. The user %s is a network administrator.' ), esc_html( $user->user_login ) ) );
 
 								$userfunction = 'all_spam';

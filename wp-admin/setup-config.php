@@ -85,7 +85,7 @@ $step = isset( $_GET['step'] ) ? (int) $_GET['step'] : 0;
  * @package WordPress
  * @subpackage Installer_WP_Config
  */
-function display_header() {
+function setup_config_display_header() {
 	global $wp_version;
 
 	header( 'Content-Type: text/html; charset=utf-8' );
@@ -96,16 +96,17 @@ function display_header() {
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title><?php _e( 'WordPress &rsaquo; Setup Configuration File' ); ?></title>
 <link rel="stylesheet" href="css/install.css?ver=<?php echo preg_replace( '/[^0-9a-z\.-]/i', '', $wp_version ); ?>" type="text/css" />
+<link rel="stylesheet" href="../wp-includes/css/buttons.css?ver=<?php echo preg_replace( '/[^0-9a-z\.-]/i', '', $wp_version ); ?>" type="text/css" />
 
 </head>
-<body<?php if ( is_rtl() ) echo ' class="rtl"'; ?>>
-<h1 id="logo"><img alt="WordPress" src="images/wordpress-logo.png?ver=20120216" /></h1>
+<body class="wp-core-ui<?php if ( is_rtl() ) echo ' rtl'; ?>">
+<h1 id="logo"><a href="<?php esc_attr_e( 'http://wordpress.org/' ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
 <?php
-}//end function display_header();
+} // end function setup_config_display_header();
 
 switch($step) {
 	case 0:
-		display_header();
+		setup_config_display_header();
 ?>
 
 <p><?php _e( 'Welcome to WordPress. Before getting started, we need some information on the database. You will need to know the following items before proceeding.' ) ?></p>
@@ -116,18 +117,18 @@ switch($step) {
 	<li><?php _e( 'Database host' ); ?></li>
 	<li><?php _e( 'Table prefix (if you want to run more than one WordPress in a single database)' ); ?></li>
 </ol>
-<p><strong><?php _e( "If for any reason this automatic file creation doesn't work, don't worry. All this does is fill in the database information to a configuration file. You may also simply open <code>wp-config-sample.php</code> in a text editor, fill in your information, and save it as <code>wp-config.php</code>." ); ?></strong></p>
+<p><strong><?php _e( "If for any reason this automatic file creation doesn&#8217;t work, don&#8217;t worry. All this does is fill in the database information to a configuration file. You may also simply open <code>wp-config-sample.php</code> in a text editor, fill in your information, and save it as <code>wp-config.php</code>." ); ?></strong></p>
 <p><?php _e( "In all likelihood, these items were supplied to you by your Web Host. If you do not have this information, then you will need to contact them before you can continue. If you&#8217;re all ready&hellip;" ); ?></p>
 
-<p class="step"><a href="setup-config.php?step=1<?php if ( isset( $_GET['noapi'] ) ) echo '&amp;noapi'; ?>" class="button"><?php _e( 'Let&#8217;s go!' ); ?></a></p>
+<p class="step"><a href="setup-config.php?step=1<?php if ( isset( $_GET['noapi'] ) ) echo '&amp;noapi'; ?>" class="button button-large"><?php _e( 'Let&#8217;s go!' ); ?></a></p>
 <?php
 	break;
 
 	case 1:
-		display_header();
+		setup_config_display_header();
 	?>
 <form method="post" action="setup-config.php?step=2">
-	<p><?php _e( "Below you should enter your database connection details. If you're not sure about these, contact your host." ); ?></p>
+	<p><?php _e( "Below you should enter your database connection details. If you&#8217;re not sure about these, contact your host." ); ?></p>
 	<table class="form-table">
 		<tr>
 			<th scope="row"><label for="dbname"><?php _e( 'Database Name' ); ?></label></th>
@@ -156,7 +157,7 @@ switch($step) {
 		</tr>
 	</table>
 	<?php if ( isset( $_GET['noapi'] ) ) { ?><input name="noapi" type="hidden" value="1" /><?php } ?>
-	<p class="step"><input name="submit" type="submit" value="<?php echo htmlspecialchars( __( 'Submit' ), ENT_QUOTES ); ?>" class="button" /></p>
+	<p class="step"><input name="submit" type="submit" value="<?php echo htmlspecialchars( __( 'Submit' ), ENT_QUOTES ); ?>" class="button button-large" /></p>
 </form>
 <?php
 	break;
@@ -165,7 +166,7 @@ switch($step) {
 	foreach ( array( 'dbname', 'uname', 'pwd', 'dbhost', 'prefix' ) as $key )
 		$$key = trim( stripslashes( $_POST[ $key ] ) );
 
-	$tryagain_link = '</p><p class="step"><a href="setup-config.php?step=1" onclick="javascript:history.go(-1);return false;" class="button">' . __( 'Try Again' ) . '</a>';
+	$tryagain_link = '</p><p class="step"><a href="setup-config.php?step=1" onclick="javascript:history.go(-1);return false;" class="button button-large">' . __( 'Try again' ) . '</a>';
 
 	if ( empty( $prefix ) )
 		wp_die( __( '<strong>ERROR</strong>: "Table Prefix" must not be empty.' . $tryagain_link ) );
@@ -254,17 +255,24 @@ switch($step) {
 	unset( $line );
 
 	if ( ! is_writable(ABSPATH) ) :
-		display_header();
+		setup_config_display_header();
 ?>
-<p><?php _e( "Sorry, but I can't write the <code>wp-config.php</code> file." ); ?></p>
+<p><?php _e( "Sorry, but I can&#8217;t write the <code>wp-config.php</code> file." ); ?></p>
 <p><?php _e( 'You can create the <code>wp-config.php</code> manually and paste the following text into it.' ); ?></p>
-<textarea cols="98" rows="15" class="code"><?php
+<textarea id="wp-config" cols="98" rows="15" class="code" readonly="readonly"><?php
 		foreach( $config_file as $line ) {
 			echo htmlentities($line, ENT_COMPAT, 'UTF-8');
 		}
 ?></textarea>
-<p><?php _e( 'After you\'ve done that, click "Run the install."' ); ?></p>
-<p class="step"><a href="install.php" class="button"><?php _e( 'Run the install' ); ?></a></p>
+<p><?php _e( 'After you&#8217;ve done that, click &#8220;Run the install.&#8221;' ); ?></p>
+<p class="step"><a href="install.php" class="button button-large"><?php _e( 'Run the install' ); ?></a></p>
+<script>
+(function(){
+var el=document.getElementById('wp-config');
+el.focus();
+el.select();
+})();
+</script>
 <?php
 	else :
 		$handle = fopen(ABSPATH . 'wp-config.php', 'w');
@@ -273,11 +281,11 @@ switch($step) {
 		}
 		fclose($handle);
 		chmod(ABSPATH . 'wp-config.php', 0666);
-		display_header();
+		setup_config_display_header();
 ?>
-<p><?php _e( "All right sparky! You've made it through this part of the installation. WordPress can now communicate with your database. If you are ready, time now to&hellip;" ); ?></p>
+<p><?php _e( "All right sparky! You&#8217;ve made it through this part of the installation. WordPress can now communicate with your database. If you are ready, time now to&hellip;" ); ?></p>
 
-<p class="step"><a href="install.php" class="button"><?php _e( 'Run the install' ); ?></a></p>
+<p class="step"><a href="install.php" class="button button-large"><?php _e( 'Run the install' ); ?></a></p>
 <?php
 	endif;
 	break;

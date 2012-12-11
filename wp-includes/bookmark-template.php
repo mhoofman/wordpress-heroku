@@ -42,7 +42,6 @@
  *
  * @since 2.1.0
  * @access private
- * @usedby wp_list_bookmarks()
  *
  * @param array $bookmarks List of bookmarks to traverse
  * @param string|array $args Optional. Overwrite the defaults.
@@ -79,7 +78,7 @@ function _walk_bookmarks($bookmarks, $args = '' ) {
 		if ( $show_updated )
 			if ( '00' != substr($bookmark->link_updated_f, 0, 2) ) {
 				$title .= ' (';
-				$title .= sprintf(__('Last updated: %s'), date(get_option('links_updated_date_format'), $bookmark->link_updated_f + (get_option('gmt_offset') * 3600)));
+				$title .= sprintf(__('Last updated: %s'), date(get_option('links_updated_date_format'), $bookmark->link_updated_f + (get_option('gmt_offset') * HOUR_IN_SECONDS)));
 				$title .= ')';
 			}
 
@@ -189,7 +188,7 @@ function _walk_bookmarks($bookmarks, $args = '' ) {
  * @link http://codex.wordpress.org/Template_Tags/wp_list_bookmarks
  *
  * @since 2.1.0
- * @uses _list_bookmarks() Used to iterate over all of the bookmarks and return
+ * @uses _walk_bookmarks() Used to iterate over all of the bookmarks and return
  *		the html
  * @uses get_terms() Gets all of the categories that are for links.
  *
@@ -216,9 +215,13 @@ function wp_list_bookmarks($args = '') {
 	$output = '';
 
 	if ( $categorize ) {
-		//Split the bookmarks into ul's for each category
-		$cats = get_terms('link_category', array('name__like' => $category_name, 'include' => $category, 'exclude' => $exclude_category, 'orderby' => $category_orderby, 'order' => $category_order, 'hierarchical' => 0));
+		$cats = get_terms( 'link_category', array( 'name__like' => $category_name, 'include' => $category, 'exclude' => $exclude_category, 'orderby' => $category_orderby, 'order' => $category_order, 'hierarchical' => 0 ) );
+		if ( empty( $cats ) )
+			$categorize = false;
+	}
 
+	if ( $categorize ) {
+		// Split the bookmarks into ul's for each category
 		foreach ( (array) $cats as $cat ) {
 			$params = array_merge($r, array('category'=>$cat->term_id));
 			$bookmarks = get_bookmarks($params);

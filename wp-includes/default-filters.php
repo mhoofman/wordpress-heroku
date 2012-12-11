@@ -249,7 +249,6 @@ add_action( 'plugins_loaded',             'wp_maybe_load_embeds',               
 add_action( 'shutdown',                   'wp_ob_end_flush_all',                      1    );
 add_action( 'pre_post_update',            'wp_save_post_revision'                          );
 add_action( 'publish_post',               '_publish_post_hook',                       5, 1 );
-add_action( 'save_post',                  '_save_post_hook',                          5, 2 );
 add_action( 'transition_post_status',     '_transition_post_status',                  5, 3 );
 add_action( 'transition_post_status',     '_update_term_count_on_transition_post_status', 10, 3 );
 add_action( 'comment_form',               'wp_comment_form_unfiltered_html_nonce'          );
@@ -258,6 +257,7 @@ add_action( 'wp_scheduled_auto_draft_delete', 'wp_delete_auto_drafts'           
 add_action( 'admin_init',                 'send_frame_options_header',               10, 0 );
 add_action( 'importer_scheduled_cleanup', 'wp_delete_attachment'                           );
 add_action( 'upgrader_scheduled_cleanup', 'wp_delete_attachment'                           );
+add_action( 'welcome_panel',              'wp_welcome_panel'                               );
 
 // Navigation menu actions
 add_action( 'delete_post',                '_wp_delete_post_menu_item'         );
@@ -281,5 +281,11 @@ add_filter( 'pre_option_gmt_offset','wp_timezone_override_offset' );
 // Admin Color Schemes
 add_action( 'admin_init', 'register_admin_color_schemes', 1);
 add_action( 'admin_color_scheme_picker', 'admin_color_scheme_picker' );
+
+// If the upgrade hasn't run yet, assume link manager is used.
+add_filter( 'default_option_link_manager_enabled', '__return_true' );
+
+// This option no longer exists; tell plugins we always support auto-embedding.
+add_filter( 'default_option_embed_autourls', '__return_true' );
 
 unset($filter, $action);
