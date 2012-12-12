@@ -1,6 +1,6 @@
 # WordPress Heroku
 
-This project is a template for getting [WordPress](http://wordpress.org/) up and running on [Heroku](http://www.heroku.com/). It comes with [PostgreSQL for WordPress](http://wordpress.org/extend/plugins/postgresql-for-wordpress/) pre-installed in order to use Heroku's existing Postgres backend.
+This project is a template for installing and running [WordPress](http://wordpress.org/) on [Heroku](http://www.heroku.com/). The repository comes bundled with [PostgreSQL for WordPress](http://wordpress.org/extend/plugins/postgresql-for-wordpress/) and [WP Read-Only](http://wordpress.org/extend/plugins/wpro/).
 
 Installation
 ============
@@ -62,6 +62,14 @@ Deploy to Heroku
     > * [new branch]    production -> master 
 
 After deployment WordPress has a few more steps to setup and thats it!
+
+Media Uploads
+===
+[WP Read-Only](http://wordpress.org/extend/plugins/wpro/) plugin is included in the repository allowing the use of [S3](http://aws.amazon.com/s3/) for media uploads.
+
+1. Activate the plugin under 'Plugins', if not already activated.
+2. Input your Amazon S3 credentials in 'Settings'->'WPRO Settings'.
+
 
 Usage
 ========
