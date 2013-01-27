@@ -96,7 +96,7 @@
 					'dl[A][dd|dt]' +
 					'dt[A][C|B]' +
 					'dd[A][C]' +
-					'a[A|href|target|download|ping|rel|media|type][C|B]' +
+					'a[A|href|target|download|ping|rel|media|type][B]' +
 					'em[A][B]' +
 					'strong[A][B]' +
 					'small[A][B]' +
@@ -704,7 +704,7 @@
 			elements.img.attributesDefault = [{name: 'alt', value: ''}];
 
 			// Remove these if they are empty by default
-			each(split('ol,ul,sub,sup,blockquote,span,font,a,table,tbody,tr,strong,em,b,i'), function(name) {
+			each(split('ol,ul,sub,sup,blockquote,span,font,a,table,tbody,tr'), function(name) {
 				if (elements[name]) {
 					elements[name].removeEmpty = true;
 				}

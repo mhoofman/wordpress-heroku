@@ -735,6 +735,15 @@ function gallery_shortcode($attr) {
 
 	$itemtag = tag_escape($itemtag);
 	$captiontag = tag_escape($captiontag);
+	$icontag = tag_escape($icontag);
+	$valid_tags = wp_kses_allowed_html( 'post' );
+	if ( ! isset( $valid_tags[ $itemtag ] ) )
+		$itemtag = 'dl';
+	if ( ! isset( $valid_tags[ $captiontag ] ) )
+		$captiontag = 'dd';
+	if ( ! isset( $valid_tags[ $icontag ] ) )
+		$icontag = 'dt';
+
 	$columns = intval($columns);
 	$itemwidth = $columns > 0 ? floor(100/$columns) : 100;
 	$float = is_rtl() ? 'right' : 'left';
@@ -1391,13 +1400,8 @@ function wp_prepare_attachment_for_js( $attachment ) {
 				$size_meta = $meta['sizes'][ $size ];
 
 				// We have the actual image size, but might need to further constrain it if content_width is narrower.
-				// This is not necessary for thumbnails and medium size.
-				if ( 'thumbnail' == $size || 'medium' == $size ) {
-					$width = $size_meta['width'];
-					$height = $size_meta['height'];
-				} else {
-					list( $width, $height ) = image_constrain_size_for_editor( $size_meta['width'], $size_meta['height'], $size, 'edit' );
-				}
+				// Thumbnail, medium, and full sizes are also checked against the site's height/width options.
+				list( $width, $height ) = image_constrain_size_for_editor( $size_meta['width'], $size_meta['height'], $size, 'edit' );
 
 				$sizes[ $size ] = array(
 					'height'      => $height,
@@ -1431,6 +1435,11 @@ function wp_prepare_attachment_for_js( $attachment ) {
  * @since 3.5.0
  */
 function wp_enqueue_media( $args = array() ) {
+
+	// Enqueue me just once per page, please.
+	if ( did_action( 'wp_enqueue_media' ) )
+		return;
+
 	$defaults = array(
 		'post' => null,
 	);
@@ -1449,6 +1458,12 @@ function wp_enqueue_media( $args = array() ) {
 	$tabs = apply_filters( 'media_upload_tabs', $tabs );
 	unset( $tabs['type'], $tabs['type_url'], $tabs['gallery'], $tabs['library'] );
 
+	$props = array(
+		'link'  => get_option( 'image_default_link_type' ), // db default is 'file'
+		'align' => get_option( 'image_default_align' ), // empty default
+		'size'  => get_option( 'image_default_size' ),  // empty default
+	);
+
 	$settings = array(
 		'tabs'      => $tabs,
 		'tabUrl'    => add_query_arg( array( 'chromeless' => true ), admin_url('media-upload.php') ),
@@ -1460,6 +1475,7 @@ function wp_enqueue_media( $args = array() ) {
 		'post'    => array(
 			'id' => 0,
 		),
+		'defaultProps' => $props,
 	);
 
 	$post = null;

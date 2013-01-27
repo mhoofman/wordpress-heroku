@@ -413,8 +413,6 @@
 
 			this.get('selection').on( 'add remove reset', this.refreshContent, this );
 
-			this.on( 'insert', this._insertDisplaySettings, this );
-
 			if ( this.get('contentUserSetting') ) {
 				this.frame.on( 'content:activate', this.saveContentMode, this );
 				this.set( 'content', getUserSetting( 'libraryContent', this.get('content') ) );
@@ -440,11 +438,12 @@
 		},
 
 		resetDisplays: function() {
+			var defaultProps = media.view.settings.defaultProps;
 			this._displays = [];
 			this._defaultDisplaySettings = {
-				align: getUserSetting( 'align', 'none' ),
-				size:  getUserSetting( 'imgsize', 'medium' ),
-				link:  getUserSetting( 'urlbutton', 'post' )
+				align: defaultProps.align || getUserSetting( 'align', 'none' ),
+				size:  defaultProps.size  || getUserSetting( 'imgsize', 'medium' ),
+				link:  defaultProps.link  || getUserSetting( 'urlbutton', 'file' )
 			};
 		},
 
@@ -455,22 +454,6 @@
 				displays[ attachment.cid ] = new Backbone.Model( this._defaultDisplaySettings );
 
 			return displays[ attachment.cid ];
-		},
-
-		_insertDisplaySettings: function() {
-			var selection = this.get('selection'),
-				display;
-
-			// If inserting one image, set those display properties as the
-			// default user setting.
-			if ( selection.length !== 1 )
-				return;
-
-			display = this.display( selection.first() ).toJSON();
-
-			setUserSetting( 'align', display.align );
-			setUserSetting( 'imgsize', display.size );
-			setUserSetting( 'urlbutton', display.link );
 		},
 
 		syncSelection: function() {
@@ -522,7 +505,10 @@
 				router = frame.router.get(),
 				mode = frame.content.mode();
 
-			if ( this.active && ! selection.length && ! router.get( mode ) )
+			// If the state is active, no items are selected, and the current
+			// content mode is not an option in the state's router (provided
+			// the state has a router), reset the content mode to the default.
+			if ( this.active && ! selection.length && router && ! router.get( mode ) )
 				this.frame.content.render( this.get('content') );
 		},
 
@@ -533,10 +519,12 @@
 			if ( 'upload' === content.mode() )
 				this.frame.content.mode('browse');
 
-			// If we're in a workflow that supports multiple attachments,
-			// automatically select any uploading attachments.
-			if ( this.get('multiple') )
-				this.get('selection').add( attachment );
+			// Automatically select any uploading attachments.
+			//
+			// Selections that don't support multiple attachments automatically
+			// limit themselves to one attachment (in this case, the last
+			// attachment in the upload queue).
+			this.get('selection').add( attachment );
 		},
 
 		saveContentMode: function() {
@@ -673,6 +661,10 @@
 				return !! this.mirroring.getByCid( attachment.cid ) && ! edit.getByCid( attachment.cid ) && media.model.Selection.prototype.validator.apply( this, arguments );
 			};
 
+			// Reset the library to ensure that all attachments are re-added
+			// to the collection. Do so silently, as calling `observe` will
+			// trigger the `reset` event.
+			library.reset( library.mirroring.models, { silent: true });
 			library.observe( edit );
 			this.editLibrary = edit;
 
@@ -2854,7 +2846,9 @@
 		initialize: function() {
 			var selection = this.options.selection;
 
-			this.model.on( 'change:sizes change:uploading change:caption change:title', this.render, this );
+			this.model.on( 'change:sizes change:uploading', this.render, this );
+			this.model.on( 'change:title', this._syncTitle, this );
+			this.model.on( 'change:caption', this._syncCaption, this );
 			this.model.on( 'change:percent', this.progress, this );
 
 			// Update the selection.
@@ -3170,6 +3164,28 @@
 
 			selection.remove( this.model );
 		}
+	});
+
+	// Ensure settings remain in sync between attachment views.
+	_.each({
+		caption: '_syncCaption',
+		title:   '_syncTitle'
+	}, function( method, setting ) {
+		media.view.Attachment.prototype[ method ] = function( model, value ) {
+			var $setting = this.$('[data-setting="' + setting + '"]');
+
+			if ( ! $setting.length )
+				return this;
+
+			// If the updated value is in sync with the value in the DOM, there
+			// is no need to re-render. If we're currently editing the value,
+			// it will automatically be in sync, suppressing the re-render for
+			// the view we're editing, while updating any others.
+			if ( value === $setting.find('input, textarea, select, [value]').val() )
+				return this;
+
+			return this.render();
+		};
 	});
 
 	/**

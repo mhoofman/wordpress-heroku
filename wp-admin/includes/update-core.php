@@ -535,6 +535,7 @@ $_old_files = array(
 'wp-includes/js/jquery/ui/jquery.effects.pulsate.min.js',
 'wp-includes/js/jquery/ui/jquery.effects.transfer.min.js',
 'wp-includes/js/jquery/ui/jquery.effects.fold.min.js',
+'wp-admin/options-privacy.php',
 );
 
 /**
@@ -630,7 +631,8 @@ function update_core($from, $to) {
 	}
 
 	// Import $wp_version, $required_php_version, and $required_mysql_version from the new version
-	$versions_file = $wp_filesystem->wp_content_dir() . 'upgrade/version-current.php';
+	// $wp_filesystem->wp_content_dir() returned unslashed pre-2.8
+	$versions_file = trailingslashit( $wp_filesystem->wp_content_dir() ) . 'upgrade/version-current.php';
 	if ( ! $wp_filesystem->copy( $from . $distro . 'wp-includes/version.php', $versions_file ) ) {
 		 $wp_filesystem->delete( $from, true );
 		 return new WP_Error( 'copy_failed', __('Could not copy file.') );
@@ -691,6 +693,15 @@ function update_core($from, $to) {
 		}
 	}
 
+	// 3.5 -> 3.5+ - an empty twentytwelve directory was created upon upgrade to 3.5 for some users, preventing installation of Twenty Twelve.
+	if ( '3.5' == $old_wp_version ) {
+		if ( is_dir( WP_CONTENT_DIR . '/themes/twentytwelve' ) && ! file_exists( WP_CONTENT_DIR . '/themes/twentytwelve/style.css' )  ) {
+			// Bumping the introduced version to 3.5.1 for the affected users causes Twenty Twelve to be installed for the first time
+			if ( $wp_filesystem->delete( $wp_filesystem->wp_themes_dir() . 'twentytwelve/' ) )
+				$_new_bundled_files[ 'themes/twentytwelve/' ] = '3.5.1';
+		}
+	}
+
 	// Copy New bundled plugins & themes
 	// This gives us the ability to install new plugins & themes bundled with future versions of WordPress whilst avoiding the re-install upon upgrade issue.
 	// $development_build controls us overwriting bundled themes and plugins when a non-stable release is being updated
@@ -700,6 +711,10 @@ function update_core($from, $to) {
 			if ( $development_build || version_compare( $introduced_version, $old_wp_version, '>' ) ) {
 				$directory = ('/' == $file[ strlen($file)-1 ]);
 				list($type, $filename) = explode('/', $file, 2);
+
+				// Check to see if the bundled items exist before attempting to copy them
+				if ( ! $wp_filesystem->exists( $from . $distro . 'wp-content/' . $file ) )
+					continue;
 
 				if ( 'plugins' == $type )
 					$dest = $wp_filesystem->wp_plugins_dir();

@@ -74,6 +74,7 @@ jQuery(document).ready(function () {
  		return false;
  	});
  	jQuery('a[id^="author_comment_url"]').mouseover(function () {
+		var wpcomProtocol = ( 'https:' === location.protocol ) ? 'https://' : 'http://';
 		// Need to determine size of author column
 		var thisParentWidth = jQuery(this).parent().width();
 		// It changes based on if there is a gravatar present
@@ -83,12 +84,12 @@ jQuery(document).ready(function () {
 			jQuery('.widefat td').css('overflow', 'visible');
 			jQuery(this).css('position', 'relative');
 			var thisHref = jQuery.URLEncode(jQuery(this).attr('href'));
-			jQuery(this).append('<div class="mShot mshot-container" style="left: '+thisParentWidth+'"><div class="mshot-arrow"></div><img src="http://s.wordpress.com/mshots/v1/'+thisHref+'?w=450" width="450" class="mshot-image_'+thisId+'" style="margin: 0;" /></div>');
+			jQuery(this).append('<div class="mShot mshot-container" style="left: '+thisParentWidth+'"><div class="mshot-arrow"></div><img src="'+wpcomProtocol+'s0.wordpress.com/mshots/v1/'+thisHref+'?w=450" width="450" class="mshot-image_'+thisId+'" style="margin: 0;" /></div>');
 			setTimeout(function () {
-				jQuery('.mshot-image_'+thisId).attr('src', 'http://s.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=2');
+				jQuery('.mshot-image_'+thisId).attr('src', wpcomProtocol+'s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=2');
 			}, 6000);
 			setTimeout(function () {
-				jQuery('.mshot-image_'+thisId).attr('src', 'http://s.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=3');
+				jQuery('.mshot-image_'+thisId).attr('src', wpcomProtocol+'s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=3');
 			}, 12000);
 		} else {
 			jQuery(this).find('.mShot').css('left', thisParentWidth).show();
@@ -106,7 +107,8 @@ jQuery.extend({URLEncode:function(c){var o='';var x=0;c=c.toString();var r=/(^[a
 });
 // Preload mshot images after everything else has loaded
 jQuery(window).load(function() {
+	var wpcomProtocol = ( 'https:' === location.protocol ) ? 'https://' : 'http://';
 	jQuery('a[id^="author_comment_url"]').each(function () {
-		jQuery.get('http://s.wordpress.com/mshots/v1/'+jQuery.URLEncode(jQuery(this).attr('href'))+'?w=450');
+		jQuery.get(wpcomProtocol+'s0.wordpress.com/mshots/v1/'+jQuery.URLEncode(jQuery(this).attr('href'))+'?w=450');
 	});
 });
