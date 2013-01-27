@@ -5,8 +5,8 @@
 /*
 Plugin Name: Akismet
 Plugin URI: http://akismet.com/?return=true
-Description: Used by millions, Akismet is quite possibly the best way in the world to <strong>protect your blog from comment and trackback spam</strong>. It keeps your site protected from spam even while you sleep. To get started: 1) Click the "Activate" link to the left of this description, 2) <a href="http://akismet.com/get/?return=true">Sign up for an Akismet API key</a>, and 3) Go to your <a href="admin.php?page=akismet-key-config">Akismet configuration</a> page, and save your API key.
-Version: 2.5.6
+Description: Used by millions, Akismet is quite possibly the best way in the world to <strong>protect your blog from comment and trackback spam</strong>. It keeps your site protected from spam even while you sleep. To get started: 1) Click the "Activate" link to the left of this description, 2) <a href="http://akismet.com/get/?return=true">Sign up for an Akismet API key</a>, and 3) Go to your Akismet configuration page, and save your API key.
+Version: 2.5.7
 Author: Automattic
 Author URI: http://automattic.com/wordpress-plugins/
 License: GPLv2 or later
@@ -28,7 +28,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-define('AKISMET_VERSION', '2.5.6');
+// Make sure we don't expose any info if called directly
+if ( !function_exists( 'add_action' ) ) {
+	echo 'Hi there!  I\'m just a plugin, not much I can do when called directly.';
+	exit;
+}
+
+define('AKISMET_VERSION', '2.5.7');
 define('AKISMET_PLUGIN_URL', plugin_dir_url( __FILE__ ));
 
 /** If you hardcode a WP.com API key here, all key config screens will be hidden */
@@ -36,12 +42,6 @@ if ( defined('WPCOM_API_KEY') )
 	$wpcom_api_key = constant('WPCOM_API_KEY');
 else
 	$wpcom_api_key = '';
-
-// Make sure we don't expose any info if called directly
-if ( !function_exists( 'add_action' ) ) {
-	echo "Hi there!  I'm just a plugin, not much I can do when called directly.";
-	exit;
-}
 
 if ( isset($wp_db_version) && $wp_db_version <= 9872 )
 	include_once dirname( __FILE__ ) . '/legacy.php';
@@ -110,7 +110,7 @@ function akismet_test_mode() {
 }
 
 // return a comma-separated list of role names for the given user
-function akismet_get_user_roles($user_id ) {
+function akismet_get_user_roles( $user_id ) {
 	$roles = false;
 	
 	if ( !class_exists('WP_User') )
@@ -277,10 +277,13 @@ function akismet_auto_check_update_meta( $id, $comment ) {
 	if ( !function_exists('add_comment_meta') )
 		return false;
 
+	if ( !isset( $akismet_last_comment['comment_author_email'] ) )
+		$akismet_last_comment['comment_author_email'] = '';
+
 	// wp_insert_comment() might be called in other contexts, so make sure this is the same comment
 	// as was checked by akismet_auto_check_comment
 	if ( is_object($comment) && !empty($akismet_last_comment) && is_array($akismet_last_comment) ) {
-		if ( intval($akismet_last_comment['comment_post_ID']) == intval($comment->comment_post_ID)
+		if ( isset($akismet_last_comment['comment_post_ID']) && intval($akismet_last_comment['comment_post_ID']) == intval($comment->comment_post_ID)
 			&& $akismet_last_comment['comment_author'] == $comment->comment_author
 			&& $akismet_last_comment['comment_author_email'] == $comment->comment_author_email ) {
 				// normal result: true or false
@@ -319,15 +322,15 @@ function akismet_auto_check_comment( $commentdata ) {
 
 	$comment = $commentdata;
 	$comment['user_ip']    = $_SERVER['REMOTE_ADDR'];
-	$comment['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
-	$comment['referrer']   = $_SERVER['HTTP_REFERER'];
+	$comment['user_agent'] = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : null; 
+	$comment['referrer']   = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : null;
 	$comment['blog']       = get_option('home');
 	$comment['blog_lang']  = get_locale();
 	$comment['blog_charset'] = get_option('blog_charset');
 	$comment['permalink']  = get_permalink($comment['comment_post_ID']);
 	
 	if ( !empty( $comment['user_ID'] ) ) {
-		$comment['user_role'] = akismet_get_user_roles($comment['user_ID']);
+		$comment['user_role'] = akismet_get_user_roles( $comment['user_ID'] );
 	}
 
 	$akismet_nonce_option = apply_filters( 'akismet_comment_nonce', get_option( 'akismet_comment_nonce' ) );
@@ -370,6 +373,7 @@ function akismet_auto_check_comment( $commentdata ) {
 	$commentdata['comment_as_submitted'] = $comment;
 
 	$response = akismet_http_post($query_string, $akismet_api_host, '/1.1/comment-check', $akismet_api_port);
+	do_action( 'akismet_comment_check_response', $response );
 	akismet_update_alert( $response );
 	$commentdata['akismet_result'] = $response[1];
 	if ( 'true' == $response[1] ) {
@@ -386,7 +390,8 @@ function akismet_auto_check_comment( $commentdata ) {
 			// akismet_result_spam() won't be called so bump the counter here
 			if ( $incr = apply_filters('akismet_spam_count_incr', 1) )
 				update_option( 'akismet_spam_count', get_option('akismet_spam_count') + $incr );
-			wp_safe_redirect( $_SERVER['HTTP_REFERER'] );
+			$redirect_to = isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : get_permalink( $post );
+			wp_safe_redirect( $redirect_to );
 			die();
 		}
 	}
@@ -498,7 +503,7 @@ function akismet_check_db_comment( $id, $recheck_reason = 'recheck_queue' ) {
     $query_string .= $key . '=' . urlencode( stripslashes($data) ) . '&';
 
     $response = akismet_http_post($query_string, $akismet_api_host, '/1.1/comment-check', $akismet_api_port);
-    return $response[1];
+    return ( is_array( $response ) && isset( $response[1] ) ) ? $response[1] : false;
 }
 
 function akismet_cron_recheck() {
@@ -565,7 +570,7 @@ function akismet_cron_recheck() {
 		delete_comment_meta( $comment_id, 'akismet_rechecking' );
 	}
 	
-	$remaining = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->commentmeta WHERE meta_key = 'akismet_error'" ) );
+	$remaining = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->commentmeta WHERE meta_key = 'akismet_error'" );
 	if ( $remaining && !wp_next_scheduled('akismet_schedule_cron_recheck') ) {
 		wp_schedule_single_event( time() + 1200, 'akismet_schedule_cron_recheck' );
 	}

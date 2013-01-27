@@ -682,7 +682,7 @@ final class WP_Post {
  */
 function get_post_ancestors( $post ) {
 	if ( ! $post )
-		return false;
+		return array();
 
 	$post = get_post( $post );
 
@@ -3010,18 +3010,31 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
  * Publish a post by transitioning the post status.
  *
  * @since 2.1.0
- * @uses wp_update_post()
+ * @uses $wpdb
+ * @uses do_action() Calls 'edit_post', 'save_post', and 'wp_insert_post' on post_id and post data.
  *
  * @param mixed $post Post ID or object.
  */
 function wp_publish_post( $post ) {
+	global $wpdb;
+
 	if ( ! $post = get_post( $post ) )
 		return;
+
 	if ( 'publish' == $post->post_status )
 		return;
 
+	$wpdb->update( $wpdb->posts, array( 'post_status' => 'publish' ), array( 'ID' => $post->ID ) );
+
+	clean_post_cache( $post->ID );
+
+	$old_status = $post->post_status;
 	$post->post_status = 'publish';
-	wp_update_post( $post );
+	wp_transition_post_status( 'publish', $old_status, $post );
+
+	do_action( 'edit_post', $post->ID, $post );
+	do_action( 'save_post', $post->ID, $post );
+	do_action( 'wp_insert_post', $post->ID, $post );
 }
 
 /**
@@ -3581,8 +3594,8 @@ function _page_traverse_name( $page_id, &$children, &$result ){
  * @return string Page URI.
  */
 function get_page_uri($page) {
-	if ( ! is_object($page) )
-		$page = get_post( $page );
+	$page = get_post( $page );
+
 	$uri = $page->post_name;
 
 	foreach ( $page->ancestors as $parent ) {

@@ -23,7 +23,6 @@ function akismet_admin_init() {
         $hook = get_plugin_page_hook( 'akismet-stats-display', 'index.php' );
     else
         $hook = 'dashboard_page_akismet-stats-display';
-    add_action('admin_head-'.$hook, 'akismet_stats_script');
     add_meta_box('akismet-status', __('Comment History'), 'akismet_comment_status_meta_box', 'comment', 'normal');
 }
 add_action('admin_init', 'akismet_admin_init');
@@ -56,7 +55,7 @@ $akismet_nonce = 'akismet-update-key';
 
 function akismet_plugin_action_links( $links, $file ) {
 	if ( $file == plugin_basename( dirname(__FILE__).'/akismet.php' ) ) {
-		$links[] = '<a href="admin.php?page=akismet-key-config">'.__('Settings').'</a>';
+		$links[] = '<a href="' . admin_url( 'admin.php?page=akismet-key-config' ) . '">'.__( 'Settings' ).'</a>';
 	}
 
 	return $links;
@@ -240,23 +239,6 @@ function akismet_conf() {
 <?php
 }
 
-function akismet_stats_script() {
-	?>
-<script type="text/javascript">
-function resizeIframe() {
-  
-    document.getElementById('akismet-stats-frame').style.height = "2500px";
-    
-};
-function resizeIframeInit() {
-	document.getElementById('akismet-stats-frame').onload = resizeIframe;
-	window.onresize = resizeIframe;
-}
-addLoadEvent(resizeIframeInit);
-</script><?php
-}
-
-
 function akismet_stats_display() {
 	global $akismet_api_host, $akismet_api_port, $wpcom_api_key;
 	$blog = urlencode( get_bloginfo('url') );
@@ -269,7 +251,7 @@ function akismet_stats_display() {
 	$url .= "?blog={$blog}&api_key=" . akismet_get_key();
 	?>
 	<div class="wrap">
-	<iframe src="<?php echo $url; ?>" width="100%" height="100%" frameborder="0" id="akismet-stats-frame"></iframe>
+	<iframe src="<?php echo $url; ?>" width="100%" height="2500px" frameborder="0" id="akismet-stats-frame"></iframe>
 	</div>
 	<?php
 }
@@ -329,7 +311,7 @@ function akismet_admin_warnings() {
 		function akismet_warning() {
 			global $wpdb;
 				akismet_fix_scheduled_recheck();
-				$waiting = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->commentmeta WHERE meta_key = 'akismet_error'" ) );
+				$waiting = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->commentmeta WHERE meta_key = 'akismet_error'" );
 				$next_check = wp_next_scheduled('akismet_schedule_cron_recheck');
 				if ( $waiting > 0 && $next_check > time() )
 					echo "
@@ -741,7 +723,8 @@ function akismet_recheck_queue() {
 
 		delete_comment_meta( $c['comment_ID'], 'akismet_rechecking' );
 	}
-	wp_safe_redirect( $_SERVER['HTTP_REFERER'] );
+	$redirect_to = isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : admin_url( 'edit-comments.php' );
+	wp_safe_redirect( $redirect_to );
 	exit;
 }
 
