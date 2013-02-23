@@ -8,7 +8,7 @@ Installation
 Clone the repository from Github
 
     $ git clone git://github.com/mhoofman/wordpress-heroku.git
-    
+
 With the [Heroku gem](http://devcenter.heroku.com/articles/heroku-command), create your app
 
     $ cd wordpress-heroku
@@ -21,19 +21,19 @@ Add a database to your app
 
     $ heroku addons:add heroku-postgresql:dev
     > Adding heroku-postgresql:dev to strange-turtle-1234... done, v2 (free)
-	> Attached as HEROKU_POSTGRESQL_COLOR
-	> Database has been created and is available
-	> Use `heroku addons:docs heroku-postgresql:dev` to view documentation
+    > Attached as HEROKU_POSTGRESQL_COLOR
+    > Database has been created and is available
+    > Use `heroku addons:docs heroku-postgresql:dev` to view documentation
 
 Promote the database (replace COLOR with the color name from the above output)
 
-	$ heroku pg:promote HEROKU_POSTGRESQL_COLOR
-	> Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
+    $ heroku pg:promote HEROKU_POSTGRESQL_COLOR
+    > Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
 
 Create a new branch for any configuration/setup changes needed
 
     $ git checkout -b production
-    
+
 Copy the `wp-config.php`
 
     $ cp wp-config-sample.php wp-config.php
@@ -43,7 +43,7 @@ Clear `.gitignore` and commit `wp-config.php`
     $ >.gitignore
     $ git add .
     $ git commit -m "Initial WordPress commit"
-    
+
 Deploy to Heroku
 
     $ git push heroku production:master
@@ -59,7 +59,7 @@ Deploy to Heroku
     >        http://strange-turtle-1234.herokuapp.com deployed to Heroku
     >
     > To git@heroku:strange-turtle-1234.git
-    > * [new branch]    production -> master 
+    > * [new branch]    production -> master
 
 After deployment WordPress has a few more steps to setup and thats it!
 
