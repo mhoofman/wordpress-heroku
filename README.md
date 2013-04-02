@@ -86,7 +86,23 @@ Usage
 ========
 
 * Because a file cannot be written to Heroku's file system, updating and installing plugins or themes should be done locally and then pushed to Heroku.
+
+Setting up MAMP
+===========
+
 * To run WordPress locally on Mac OS X try [MAMP](http://codex.wordpress.org/Installing_WordPress_Locally_on_Your_Mac_With_MAMP).
+* This template requires Postgres as the local database so install [Postgres.app](http://postgresapp.com/)
+* Open psql, from the menubar elephant icon, and run...
+
+```
+CREATE DATABASE wordpress;
+CREATE USER wordpress WITH PASSWORD 'wordpress';
+GRANT ALL PRIVILEGES ON DATABASE wordpress to wordpress;
+```
+
+* Open /Applications/MAMP/Library/bin/envvars and add `export DATABASE_URL="postgres://wordpress:wordpress@localhost:5432/wordpress"`
+* Start MAMP and open http://localhost/wp-admin/ in a browser.
+
 
 Updating
 ========
