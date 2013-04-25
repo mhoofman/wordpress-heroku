@@ -116,8 +116,8 @@ CREATE USER wordpress WITH PASSWORD 'wordpress';
 GRANT ALL PRIVILEGES ON DATABASE wordpress to wordpress;
 ```
 
-* In your Apache config, add a `SetEnv` directive like `SetEnv DATABASE_URL postgres://wordpress:wordpress@localhost:5432/wordpress"`
-* Change the first line of your `wp-config.php` to set `$db` to use `$_SERVER` if `DATABASE_URL` not found in `$_ENV`:
+* In your Apache config, add a `SetEnv` directive like `SetEnv DATABASE_URL postgres://wordpress:wordpress@localhost:5432/wordpress`
+* Change the first line of your `wp-config.php` to use `$_SERVER["DATABASE_URL"]` if `DATABASE_URL` not found in `$_ENV`:
 
 ```
 if (isset($_ENV["DATABASE_URL"]))
