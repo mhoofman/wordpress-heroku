@@ -87,8 +87,10 @@ Usage
 
 * Because a file cannot be written to Heroku's file system, updating and installing plugins or themes should be done locally and then pushed to Heroku.
 
-Setting up MAMP
+Setting up a local environment
 ===========
+
+## Mac OS X
 
 * To run WordPress locally on Mac OS X try [MAMP](http://codex.wordpress.org/Installing_WordPress_Locally_on_Your_Mac_With_MAMP).
 * This template requires Postgres as the local database so install [Postgres.app](http://postgresapp.com/)
@@ -102,6 +104,30 @@ GRANT ALL PRIVILEGES ON DATABASE wordpress to wordpress;
 
 * Open /Applications/MAMP/Library/bin/envvars and add `export DATABASE_URL="postgres://wordpress:wordpress@localhost:5432/wordpress"`
 * Start MAMP and open http://localhost/wp-admin/ in a browser.
+
+## Linux, or manual Apache config
+
+* Install Postgres according to your package manager or from source
+* Execute the following commands in psql interactive shell...
+
+```
+CREATE DATABASE wordpress;
+CREATE USER wordpress WITH PASSWORD 'wordpress';
+GRANT ALL PRIVILEGES ON DATABASE wordpress to wordpress;
+```
+
+* In your Apache config, add a `SetEnv` directive like `SetEnv DATABASE_URL postgres://wordpress:wordpress@localhost:5432/wordpress`
+* Change the first line of your `wp-config.php` to use `$_SERVER["DATABASE_URL"]` if `DATABASE_URL` not found in `$_ENV`:
+
+```
+if (isset($_ENV["DATABASE_URL"]))
+  $db = parse_url($_ENV["DATABASE_URL"]);
+else
+  $db = parse_url($_SERVER["DATABASE_URL"]);
+
+```
+
+* (Re)start Apache, and open http://localhost/wp-admin in a browser.
 
 
 Updating
