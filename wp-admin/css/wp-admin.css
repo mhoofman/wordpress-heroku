@@ -1383,7 +1383,7 @@ form.upgrade .hint {
 }
 
 #adminmenuwrap {
-	position: relative;
+	position: fixed;
 	float: left;
 }
 
