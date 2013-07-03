@@ -1,4 +1,16 @@
 jQuery(document).ready(function () {
+	jQuery( '.switch-have-key' ).click( function() {
+		var no_key = jQuery( this ).parents().find('div.no-key');		
+		var have_key = jQuery( this ).parents().find('div.have-key');
+		
+		no_key.addClass( 'hidden' );
+		have_key.removeClass( 'hidden' );		
+		
+		return false;
+	});
+	jQuery( 'p.need-key a' ).click( function(){
+		document.akismet_activate.submit();
+	});
 	jQuery('.akismet-status').each(function () {
 		var thisId = jQuery(this).attr('commentid');
 		jQuery(this).prependTo('#comment-' + thisId + ' .column-comment div:first-child');
