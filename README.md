@@ -2,8 +2,7 @@
 
 This project is a template for installing and running [WordPress](http://wordpress.org/) on [Heroku](http://www.heroku.com/). The repository comes bundled with [PostgreSQL for WordPress](http://wordpress.org/extend/plugins/postgresql-for-wordpress/) and [WP Read-Only](http://wordpress.org/extend/plugins/wpro/).
 
-Installation
-============
+## Installation
 
 Clone the repository from Github
 
@@ -74,23 +73,21 @@ Deploy to Heroku
 
 After deployment WordPress has a few more steps to setup and thats it!
 
-Media Uploads
-===
+## Media Uploads
+
 [WP Read-Only](http://wordpress.org/extend/plugins/wpro/) plugin is included in the repository allowing the use of [S3](http://aws.amazon.com/s3/) for media uploads.
 
 1. Activate the plugin under 'Plugins', if not already activated.
 2. Input your Amazon S3 credentials in 'Settings'->'WPRO Settings'.
 
 
-Usage
-========
+## Usage
 
-* Because a file cannot be written to Heroku's file system, updating and installing plugins or themes should be done locally and then pushed to Heroku.
+Because a file cannot be written to Heroku's file system, updating and installing plugins or themes should be done locally and then pushed to Heroku.
 
-Setting up a local environment
-===========
+## Setting up a local environment
 
-## Mac OS X
+### Mac OS X
 
 * To run WordPress locally on Mac OS X try [MAMP](http://codex.wordpress.org/Installing_WordPress_Locally_on_Your_Mac_With_MAMP).
 * This template requires Postgres as the local database so install [Postgres.app](http://postgresapp.com/)
@@ -105,7 +102,7 @@ GRANT ALL PRIVILEGES ON DATABASE wordpress to wordpress;
 * Open /Applications/MAMP/Library/bin/envvars and add `export DATABASE_URL="postgres://wordpress:wordpress@localhost:5432/wordpress"`
 * Start MAMP and open http://localhost/wp-admin/ in a browser.
 
-## Linux, or manual Apache config
+### Linux, or manual Apache config
 
 * Install Postgres according to your package manager or from source
 * Execute the following commands in psql interactive shell...
@@ -130,8 +127,7 @@ else
 * (Re)start Apache, and open http://localhost/wp-admin in a browser.
 
 
-Updating
-========
+## Updating
 
 Updating your WordPress version is just a matter of merging the updates into
 the branch created from the installation.
@@ -151,27 +147,6 @@ WordPress needs to update the database. After push, navigate to:
 WordPress will prompt for updating the database. After that you'll be good
 to go.
 
-Custom Domains
-==============
+## Custom Domains
 
-Heroku allows you to add custom domains to your site hosted with them.  To add your custom domain, enter in the follow commands.
-
-    $ heroku domains:add www.example.com
-    > Added www.example.com as a custom domain name to myapp.heroku.com
-
-You'll also want to cover the non "www" side of the url.
-
-    $ heroku domains:add example.com
-    > Added example.com as a custom domain name to myapp.heroku.com
-
-Once Heroku recognizes your custom domain(s) you'll then need to setup separate DNS A records for the following ip addresses to point to your domain:
-
-    75.101.163.44
-    75.101.145.87
-    174.129.212.2
-
-Once the DNS A records propagate, then simply test out your change by hitting the url in the browser to make sure you are good to go.  If you are in need of cheap DNS hosting then I would recommend [DNSimple](https://dnsimple.com/r/571e28804df06f).
-
-The last step is updating your WordPress installation to recognize the new domain.  You'll need to open up the WordPress Admin Dashboard and go to Settings --> General.  From there just update the URL for the WordPress address and you're done.
-
-If you find yourself running into problems, there is a guide posted in the Heroku Docs which can be found [here](https://devcenter.heroku.com/articles/custom-domains).
+For settings up a custom domain refer to the [Heroku Docs](https://devcenter.heroku.com/articles/custom-domains).
