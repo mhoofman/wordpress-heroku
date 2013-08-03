@@ -80,10 +80,21 @@ class Walker_Nav_Menu extends Walker {
 
 		$output .= $indent . '<li' . $id . $value . $class_names .'>';
 
-		$attributes  = ! empty( $item->attr_title ) ? ' title="'  . esc_attr( $item->attr_title ) .'"' : '';
-		$attributes .= ! empty( $item->target )     ? ' target="' . esc_attr( $item->target     ) .'"' : '';
-		$attributes .= ! empty( $item->xfn )        ? ' rel="'    . esc_attr( $item->xfn        ) .'"' : '';
-		$attributes .= ! empty( $item->url )        ? ' href="'   . esc_attr( $item->url        ) .'"' : '';
+		$atts = array();
+		$atts['title']  = ! empty( $item->attr_title ) ? $item->attr_title : '';
+		$atts['target'] = ! empty( $item->target )     ? $item->target     : '';
+		$atts['rel']    = ! empty( $item->xfn )        ? $item->xfn        : '';
+		$atts['href']   = ! empty( $item->url )        ? $item->url        : '';
+
+		$atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args );
+
+		$attributes = '';
+		foreach ( $atts as $attr => $value ) {
+			if ( ! empty( $value ) ) {
+				$value = ( 'href' === $attr ) ? esc_url( $value ) : esc_attr( $value );
+				$attributes .= ' ' . $attr . '="' . $value . '"';
+			}
+		}
 
 		$item_output = $args->before;
 		$item_output .= '<a'. $attributes .'>';
@@ -168,17 +179,17 @@ function wp_nav_menu( $args = array() ) {
 
 	/*
 	 * If no menu was found:
-	 *  - Fallback (if one was specified), or bail.
+	 *  - Fall back (if one was specified), or bail.
 	 *
 	 * If no menu items were found:
-	 *  - Fallback, but only if no theme location was specified.
+	 *  - Fall back, but only if no theme location was specified.
 	 *  - Otherwise, bail.
 	 */
 	if ( ( !$menu || is_wp_error($menu) || ( isset($menu_items) && empty($menu_items) && !$args->theme_location ) )
 		&& $args->fallback_cb && is_callable( $args->fallback_cb ) )
 			return call_user_func( $args->fallback_cb, (array) $args );
 
-	if ( !$menu || is_wp_error( $menu ) || empty( $menu_items ) )
+	if ( ! $menu || is_wp_error( $menu ) )
 		return false;
 
 	$nav_menu = $items = '';
@@ -228,6 +239,10 @@ function wp_nav_menu( $args = array() ) {
 	$items = apply_filters( 'wp_nav_menu_items', $items, $args );
 	$items = apply_filters( "wp_nav_menu_{$menu->slug}_items", $items, $args );
 
+	// Don't print any markup if there are no items at this point.
+	if ( empty( $items ) )
+		return false;
+
 	$nav_menu .= sprintf( $args->items_wrap, esc_attr( $wrap_id ), esc_attr( $wrap_class ), $items );
 	unset( $items );
 
@@ -251,7 +266,7 @@ function wp_nav_menu( $args = array() ) {
  * @param array $menu_items The current menu item objects to which to add the class property information.
  */
 function _wp_menu_item_classes_by_context( &$menu_items ) {
-	global $wp_query;
+	global $wp_query, $wp_rewrite;
 
 	$queried_object = $wp_query->get_queried_object();
 	$queried_object_id = (int) $wp_query->queried_object_id;
@@ -367,7 +382,7 @@ function _wp_menu_item_classes_by_context( &$menu_items ) {
 			$current_url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_root_relative_current );
 			$raw_item_url = strpos( $menu_item->url, '#' ) ? substr( $menu_item->url, 0, strpos( $menu_item->url, '#' ) ) : $menu_item->url;
 			$item_url = untrailingslashit( $raw_item_url );
-			$_indexless_current = untrailingslashit( preg_replace( '/index.php$/', '', $current_url ) );
+			$_indexless_current = untrailingslashit( preg_replace( '/' . preg_quote( $wp_rewrite->index, '/' ) . '$/', '', $current_url ) );
 
 			if ( $raw_item_url && in_array( $item_url, array( $current_url, $_indexless_current, $_root_relative_current ) ) ) {
 				$classes[] = 'current-menu-item';

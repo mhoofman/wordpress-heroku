@@ -47,8 +47,7 @@ if ( isset($_REQUEST['attachment_id']) && ($id = intval($_REQUEST['attachment_id
 	$post = get_post( $id );
 	if ( 'attachment' != $post->post_type )
 		wp_die( __( 'Unknown post type.' ) );
-	$post_type_object = get_post_type_object( 'attachment' );
-	if ( ! current_user_can( $post_type_object->cap->edit_post, $id ) )
+	if ( ! current_user_can( 'edit_post', $id ) )
 		wp_die( __( 'You are not allowed to edit this item.' ) );
 
 	switch ( $_REQUEST['fetch'] ) {
@@ -57,7 +56,7 @@ if ( isset($_REQUEST['attachment_id']) && ($id = intval($_REQUEST['attachment_id
 				echo '<img class="pinkynail" src="' . esc_url( $thumb_url[0] ) . '" alt="" />';
 			echo '<a class="edit-attachment" href="' . esc_url( get_edit_post_link( $id ) ) . '" target="_blank">' . _x( 'Edit', 'media item' ) . '</a>';
 			$title = $post->post_title ? $post->post_title : wp_basename( $post->guid ); // title shouldn't ever be empty, but use filename just in cas.e
-			echo '<div class="filename new"><span class="title">' . esc_html( wp_html_excerpt( $title, 60 ) ) . '</span></div>';
+			echo '<div class="filename new"><span class="title">' . esc_html( wp_html_excerpt( $title, 60, '&hellip;' ) ) . '</span></div>';
 			break;
 		case 2 :
 			add_filter('attachment_fields_to_edit', 'media_single_attachment_fields_to_edit', 10, 2);

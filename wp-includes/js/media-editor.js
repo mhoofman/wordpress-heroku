@@ -45,7 +45,7 @@
 			props.title = props.title || attachment.title;
 
 			link = props.link || defaultProps.link || getUserSetting( 'urlbutton', 'file' );
-			if ( 'file' === link )
+			if ( 'file' === link || 'embed' === link )
 				linkUrl = attachment.url;
 			else if ( 'post' === link )
 				linkUrl = attachment.link;
@@ -66,7 +66,8 @@
 					src:       size.url,
 					captionId: 'attachment_' + attachment.id
 				});
-
+			} else if ( 'video' === attachment.type || 'audio' === attachment.type ) {
+				_.extend( props, _.pick( attachment, 'title', 'type', 'icon', 'mime' ) );
 			// Format properties for non-images.
 			} else {
 				props.title = props.title || attachment.filename;
@@ -95,6 +96,48 @@
 			return wp.html.string( options );
 		},
 
+		audio: function( props, attachment ) {
+			return wp.media.string._audioVideo( 'audio', props, attachment );
+		},
+
+		video: function( props, attachment ) {
+			return wp.media.string._audioVideo( 'video', props, attachment );
+		},
+
+		_audioVideo: function( type, props, attachment ) {
+			var shortcode, html, extension;
+
+			props = wp.media.string.props( props, attachment );
+			if ( props.link !== 'embed' )
+				return wp.media.string.link( props );
+
+			shortcode = {};
+
+			if ( 'video' === type ) {
+				if ( attachment.width )
+					shortcode.width = attachment.width;
+
+				if ( attachment.height )
+					shortcode.height = attachment.height;
+			}
+
+			extension = attachment.filename.split('.').pop();
+
+			if ( _.contains( wp.media.view.settings.embedExts, extension ) ) {
+				shortcode[extension] = attachment.url;
+			} else {
+				// Render unsupported audio and video files as links.
+				return wp.media.string.link( props );
+			}
+
+			html = wp.shortcode.string({
+				tag:     type,
+				attrs:   shortcode
+			});
+
+			return html;
+		},
+
 		image: function( props, attachment ) {
 			var img = {},
 				options, classes, shortcode, html;
@@ -102,7 +145,7 @@
 			props = wp.media.string.props( props, attachment );
 			classes = props.classes || [];
 
-			img.src = props.url;
+			img.src = typeof attachment !== 'undefined' ? attachment.url : props.url;
 			_.extend( img, _.pick( props, 'width', 'height', 'alt' ) );
 
 			// Only assign the align class to the image if we're not printing
@@ -450,7 +493,7 @@
 		add: function( id, options ) {
 			var workflow = this.get( id );
 
-			if ( workflow )
+			if ( workflow ) // only add once: if exists return existing
 				return workflow;
 
 			workflow = workflows[ id ] = wp.media( _.defaults( options || {}, {
@@ -576,7 +619,10 @@
 						if ( props[ prop ] )
 							options[ option ] = props[ prop ];
 					});
-
+				} else if ( 'video' === attachment.type ) {
+					html = wp.media.string.video( props, attachment );
+				} else if ( 'audio' === attachment.type ) {
+					html = wp.media.string.audio( props, attachment );
 				} else {
 					html = wp.media.string.link( props );
 					options.post_title = props.title;
@@ -601,8 +647,10 @@
 			}
 		},
 
-		open: function( id ) {
+		open: function( id, options ) {
 			var workflow, editor;
+
+			options = options || {};
 
 			id = this.id( id );
 
@@ -618,9 +666,9 @@
 
 			workflow = this.get( id );
 
-			// Initialize the editor's workflow if we haven't yet.
-			if ( ! workflow )
-				workflow = this.add( id );
+			// Redo workflow if state has changed
+			if ( ! workflow || ( workflow.options && options.state !== workflow.options.state ) )
+				workflow = this.add( id, options );
 
 			return workflow.open();
 		},
@@ -628,7 +676,13 @@
 		init: function() {
 			$(document.body).on( 'click', '.insert-media', function( event ) {
 				var $this = $(this),
-					editor = $this.data('editor');
+					editor = $this.data('editor'),
+					options = {
+						frame:    'post',
+						state:    'insert',
+						title:    wp.media.view.l10n.addMedia,
+						multiple: true
+					};
 
 				event.preventDefault();
 
@@ -639,7 +693,12 @@
 				// See: http://core.trac.wordpress.org/ticket/22445
 				$this.blur();
 
-				wp.media.editor.open( editor );
+				if ( $this.hasClass( 'gallery' ) ) {
+					options.state = 'gallery';
+					options.title = wp.media.view.l10n.createGalleryTitle;
+				}
+
+				wp.media.editor.open( editor, options );
 			});
 		}
 	};

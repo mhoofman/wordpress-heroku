@@ -37,7 +37,7 @@ function delete_theme($stylesheet, $redirect = '') {
 	}
 
 	if ( ! WP_Filesystem($credentials) ) {
-		request_filesystem_credentials($url, '', true); // Failed to connect, Error and request again
+		request_filesystem_credentials($redirect, '', true); // Failed to connect, Error and request again
 		$data = ob_get_contents();
 		ob_end_clean();
 		if ( ! empty($data) ) {
@@ -216,10 +216,10 @@ function get_theme_feature_list( $api = true ) {
 		return $features;
 
 	if ( !$feature_list = get_site_transient( 'wporg_theme_feature_list' ) )
-		set_site_transient( 'wporg_theme_feature_list', array( ), 10800);
+		set_site_transient( 'wporg_theme_feature_list', array(), 10800);
 
 	if ( !$feature_list ) {
-		$feature_list = themes_api( 'feature_list', array( ) );
+		$feature_list = themes_api( 'feature_list', array() );
 		if ( is_wp_error( $feature_list ) )
 			return $features;
 	}

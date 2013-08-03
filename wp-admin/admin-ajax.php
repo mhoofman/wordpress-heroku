@@ -56,7 +56,7 @@ $core_actions_post = array(
 	'save-widget', 'set-post-thumbnail', 'date_format', 'time_format', 'wp-fullscreen-save-post',
 	'wp-remove-post-lock', 'dismiss-wp-pointer', 'upload-attachment', 'get-attachment',
 	'query-attachments', 'save-attachment', 'save-attachment-compat', 'send-link-to-editor',
-	'send-attachment-to-editor', 'save-attachment-order',
+	'send-attachment-to-editor', 'save-attachment-order', 'heartbeat', 'get-revision-diffs',
 );
 
 // Register core Ajax calls.
@@ -66,7 +66,7 @@ if ( ! empty( $_GET['action'] ) && in_array( $_GET['action'], $core_actions_get 
 if ( ! empty( $_POST['action'] ) && in_array( $_POST['action'], $core_actions_post ) )
 	add_action( 'wp_ajax_' . $_POST['action'], 'wp_ajax_' . str_replace( '-', '_', $_POST['action'] ), 1 );
 
-add_action( 'wp_ajax_nopriv_autosave', 'wp_ajax_nopriv_autosave', 1 );
+add_action( 'wp_ajax_nopriv_heartbeat', 'wp_ajax_nopriv_heartbeat', 1 );
 
 if ( is_user_logged_in() )
 	do_action( 'wp_ajax_' . $_REQUEST['action'] ); // Authenticated actions

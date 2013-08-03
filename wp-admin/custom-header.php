@@ -663,8 +663,8 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 			list( $width, $height, $type, $attr ) = getimagesize( $file );
 		} else {
 			$data = wp_get_attachment_metadata( $attachment_id );
-			$height = $data[ 'height' ];
-			$width = $data[ 'width' ];
+			$height = isset( $data[ 'height' ] ) ? $data[ 'height' ] : 0;
+			$width = isset( $data[ 'width' ] ) ? $data[ 'width' ] : 0;
 			unset( $data );
 		}
 
@@ -1001,6 +1001,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 
 		$default = sprintf( $default, get_template_directory_uri(), get_stylesheet_directory_uri() );
 
+		$default_data = array();
 		foreach ( $this->default_headers as $header => $details ) {
 			if ( $details['url'] == $default ) {
 				$default_data = $details;

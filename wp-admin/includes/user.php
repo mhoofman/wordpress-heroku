@@ -34,7 +34,7 @@ function edit_user( $user_id = 0 ) {
 		$update = true;
 		$user->ID = (int) $user_id;
 		$userdata = get_userdata( $user_id );
-		$user->user_login = $wpdb->escape( $userdata->user_login );
+		$user->user_login = wp_slash( $userdata->user_login );
 	} else {
 		$update = false;
 	}
@@ -43,9 +43,9 @@ function edit_user( $user_id = 0 ) {
 		$user->user_login = sanitize_user($_POST['user_login'], true);
 
 	$pass1 = $pass2 = '';
-	if ( isset( $_POST['pass1'] ))
+	if ( isset( $_POST['pass1'] ) )
 		$pass1 = $_POST['pass1'];
-	if ( isset( $_POST['pass2'] ))
+	if ( isset( $_POST['pass2'] ) )
 		$pass2 = $_POST['pass2'];
 
 	if ( isset( $_POST['role'] ) && current_user_can( 'edit_users' ) ) {
@@ -106,10 +106,10 @@ function edit_user( $user_id = 0 ) {
 
 	/* checking that username has been typed */
 	if ( $user->user_login == '' )
-		$errors->add( 'user_login', __( '<strong>ERROR</strong>: Please enter a username.' ));
+		$errors->add( 'user_login', __( '<strong>ERROR</strong>: Please enter a username.' ) );
 
 	/* checking the password has been typed twice */
-	do_action_ref_array( 'check_passwords', array ( $user->user_login, & $pass1, & $pass2 ));
+	do_action_ref_array( 'check_passwords', array( $user->user_login, &$pass1, &$pass2 ) );
 
 	if ( $update ) {
 		if ( empty($pass1) && !empty($pass2) )
@@ -124,7 +124,7 @@ function edit_user( $user_id = 0 ) {
 	}
 
 	/* Check for "\" in password */
-	if ( false !== strpos( stripslashes($pass1), "\\" ) )
+	if ( false !== strpos( wp_unslash( $pass1 ), "\\" ) )
 		$errors->add( 'pass', __( '<strong>ERROR</strong>: Passwords may not contain the character "\\".' ), array( 'form-field' => 'pass1' ) );
 
 	/* checking the password has been typed twice the same */
@@ -150,7 +150,7 @@ function edit_user( $user_id = 0 ) {
 	}
 
 	// Allow plugins to return their own errors.
-	do_action_ref_array('user_profile_update_errors', array ( &$errors, $update, &$user ) );
+	do_action_ref_array( 'user_profile_update_errors', array( &$errors, $update, &$user ) );
 
 	if ( $errors->get_error_codes() )
 		return $errors;
@@ -159,7 +159,7 @@ function edit_user( $user_id = 0 ) {
 		$user_id = wp_update_user( $user );
 	} else {
 		$user_id = wp_insert_user( $user );
-		wp_new_user_notification( $user_id, isset($_POST['send_password']) ? $pass1 : '' );
+		wp_new_user_notification( $user_id, isset( $_POST['send_password'] ) ? wp_unslash( $pass1 ) : '' );
 	}
 	return $user_id;
 }
@@ -239,6 +239,9 @@ function wp_delete_user( $id, $reassign = 'novalue' ) {
 
 	$id = (int) $id;
 	$user = new WP_User( $id );
+
+	if ( !$user->exists() )
+		return false;
 
 	// allow for transaction statement
 	do_action('delete_user', $id);
@@ -344,7 +347,7 @@ function default_password_nag_edit_user($user_ID, $old_data) {
 	$new_data = get_userdata($user_ID);
 
 	if ( $new_data->user_pass != $old_data->user_pass ) { //Remove the nag if the password has been changed.
-		delete_user_setting('default_password_nag', $user_ID);
+		delete_user_setting('default_password_nag');
 		update_user_option($user_ID, 'default_password_nag', false, true);
 	}
 }

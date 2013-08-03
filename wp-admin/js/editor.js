@@ -49,8 +49,15 @@ var switchEditors = {
 			if ( ed && ed.isHidden() )
 				return false;
 
-			if ( ed )
+			if ( ed ) {
 				ed.hide();
+			} else {
+				// The TinyMCE instance doesn't exist, run the content through "pre_wpautop()" and show the textarea
+				if ( tinyMCEPreInit.mceInit[id] && tinyMCEPreInit.mceInit[id].wpautop )
+					txtarea_el.value = t.pre_wpautop( txtarea_el.value );
+
+				dom.setStyles(txtarea_el, {'display': '', 'visibility': ''});
+			}
 
 			dom.removeClass(wrap_id, 'tmce-active');
 			dom.addClass(wrap_id, 'html-active');
@@ -138,7 +145,7 @@ var switchEditors = {
 
 	_wp_Autop : function(pee) {
 		var preserve_linebreaks = false, preserve_br = false,
-			blocklist = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|select|option|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|samp|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary';
+			blocklist = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|select|option|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary';
 
 		if ( pee.indexOf('<object') != -1 ) {
 			pee = pee.replace(/<object[\s\S]+?<\/object>/g, function(a){

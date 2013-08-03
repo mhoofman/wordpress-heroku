@@ -177,16 +177,16 @@ endif;
  *
  * @since 2.2.0
  * @deprecated 3.5.0
- * @link http://wordpress.org/extend/plugins/atom-publishing-protocol/
+ * @link http://wordpress.org/plugins/atom-publishing-protocol/
  */
 if ( ! class_exists( 'wp_atom_server' ) ) {
 	class wp_atom_server {
 		public function __call( $name, $arguments ) {
-			_deprecated_function( __CLASS__ . '::' . $name, '3.5', 'the Atom Publishing Platform plugin' );
+			_deprecated_function( __CLASS__ . '::' . $name, '3.5', 'the Atom Publishing Protocol plugin' );
 		}
 
 		public static function __callStatic( $name, $arguments ) {
-			_deprecated_function( __CLASS__ . '::' . $name, '3.5', 'the Atom Publishing Platform plugin' );
+			_deprecated_function( __CLASS__ . '::' . $name, '3.5', 'the Atom Publishing Protocol plugin' );
 		}
 	}
 }

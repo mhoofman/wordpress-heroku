@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------
  *
  * Copyright 2009, Moxiecode Systems AB
- * Released under LGPL License.
+ * Released under LGPL
  *
  * License: http://tinymce.moxiecode.com/license
  * Contributing: http://tinymce.moxiecode.com/contributing
@@ -155,7 +155,7 @@ var tinyMCEPopup = {
 
 	/**
 	 * Stores the current editor selection for later restoration. This can be useful since some browsers
-	 * looses it's selection if a control element is selected/focused inside the dialogs.
+	 * loses its selection if a control element is selected/focused inside the dialogs.
 	 *
 	 * @method storeSelection
 	 */
@@ -165,7 +165,7 @@ var tinyMCEPopup = {
 
 	/**
 	 * Restores any stored selection. This can be useful since some browsers
-	 * looses it's selection if a control element is selected/focused inside the dialogs.
+	 * loses its selection if a control element is selected/focused inside the dialogs.
 	 *
 	 * @method restoreSelection
 	 */
@@ -246,7 +246,7 @@ var tinyMCEPopup = {
 	},
 
 	/**
-	 * Creates a alert dialog. Please don't use the blocking behavior of this
+	 * Creates an alert dialog. Please don't use the blocking behavior of this
 	 * native version use the callback method instead then it can be extended.
 	 *
 	 * @method alert

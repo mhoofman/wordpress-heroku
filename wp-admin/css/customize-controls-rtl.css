@@ -1,11 +1,3 @@
-.control-section .customize-section-title {
-	font-family: Tahoma, Arial, sans-serif;
-}
-.customize-section-title:after {
-	right: auto;
-	left: 20px;
-}
-
 #customize-header-actions .button-primary {
 	float: left;
 }
@@ -29,11 +21,11 @@
 /*
  * Dropdowns
  */
-.customize-section .dropdown {
+.accordion-section .dropdown {
 	float: right;
 }
 
-.customize-section .dropdown-content {
+.accordion-section .dropdown-content {
 	float: right;
 	margin-right: 0px;
 	margin-left: 16px;
@@ -65,21 +57,21 @@
 	margin-left: 5px;
 }
 
-.customize-section input[type="text"].color-picker-hex {
-	float: right;
+.accordion-section input[type="text"].color-picker-hex {
+	direction: ltr;
 }
 
 /*
  * Image Picker
  */
-.customize-section .customize-control-image .actions {
+.accordion-section .customize-control-image .actions {
 	text-align: left;
 }
 
 .customize-control-image .library,
 .customize-control-image .actions,
-.customize-section .customize-control-image .library ul,
-.customize-section .customize-control-image .library li,
-.customize-section .customize-control-image .library-content {
+.accordion-section .customize-control-image .library ul,
+.accordion-section .customize-control-image .library li,
+.accordion-section .customize-control-image .library-content {
 	float: right;
 }

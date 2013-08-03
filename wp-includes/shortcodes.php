@@ -128,6 +128,43 @@ function remove_all_shortcodes() {
 }
 
 /**
+ * Whether a registered shortcode exists named $tag
+ *
+ * @since 3.6.0
+ *
+ * @global array $shortcode_tags
+ * @param string $tag
+ * @return boolean
+ */
+function shortcode_exists( $tag ) {
+	global $shortcode_tags;
+	return array_key_exists( $tag, $shortcode_tags );
+}
+
+/**
+ * Whether the passed content contains the specified shortcode
+ *
+ * @since 3.6.0
+ *
+ * @global array $shortcode_tags
+ * @param string $tag
+ * @return boolean
+ */
+function has_shortcode( $content, $tag ) {
+	if ( shortcode_exists( $tag ) ) {
+		preg_match_all( '/' . get_shortcode_regex() . '/s', $content, $matches, PREG_SET_ORDER );
+		if ( empty( $matches ) )
+			return false;
+
+		foreach ( $matches as $shortcode ) {
+			if ( $tag === $shortcode[2] )
+				return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Search content for shortcodes and filter shortcodes through their hooks.
  *
  * If there are no shortcode tags defined, then the content will be returned
@@ -289,9 +326,10 @@ function shortcode_parse_atts($text) {
  *
  * @param array $pairs Entire list of supported attributes and their defaults.
  * @param array $atts User defined attributes in shortcode tag.
+ * @param string $shortcode Optional. The name of the shortcode, provided for context to enable filtering
  * @return array Combined and filtered attribute list.
  */
-function shortcode_atts($pairs, $atts) {
+function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
 	$atts = (array)$atts;
 	$out = array();
 	foreach($pairs as $name => $default) {
@@ -300,6 +338,10 @@ function shortcode_atts($pairs, $atts) {
 		else
 			$out[$name] = $default;
 	}
+
+	if ( $shortcode )
+		$out = apply_filters( "shortcode_atts_{$shortcode}", $out, $pairs, $atts );
+
 	return $out;
 }
 

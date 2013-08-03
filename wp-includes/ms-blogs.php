@@ -43,14 +43,12 @@ function get_blogaddress_by_id( $blog_id ) {
  * @return string
  */
 function get_blogaddress_by_name( $blogname ) {
-	global $current_site;
-
 	if ( is_subdomain_install() ) {
 		if ( $blogname == 'main' )
 			$blogname = 'www';
 		$url = rtrim( network_home_url(), '/' );
 		if ( !empty( $blogname ) )
-			$url = preg_replace( '|^([^\.]+://)|', '$1' . $blogname . '.', $url );
+			$url = preg_replace( '|^([^\.]+://)|', "\${1}" . $blogname . '.', $url );
 	} else {
 		$url = network_home_url( $blogname );
 	}
@@ -84,7 +82,7 @@ function get_blogaddress_by_domain( $domain, $path ) {
 }
 
 /**
- * Given a blog's (subdomain or directory) slug, retrieve it's id.
+ * Given a blog's (subdomain or directory) slug, retrieve its id.
  *
  * @since MU
  *
@@ -254,6 +252,16 @@ function get_blog_details( $fields = null, $get_all = true ) {
 function refresh_blog_details( $blog_id ) {
 	$blog_id = (int) $blog_id;
 	$details = get_blog_details( $blog_id, false );
+	if ( ! $details ) {
+		// Make sure clean_blog_cache() gets the blog ID
+		// when the blog has been previously cached as
+		// non-existent.
+		$details = (object) array(
+			'blog_id' => $blog_id,
+			'domain' => null,
+			'path' => null
+		);
+	}
 
 	clean_blog_cache( $details );
 
@@ -461,7 +469,7 @@ function delete_blog_option( $id, $option ) {
  * @param int $id The blog id
  * @param string $option The option key
  * @param mixed $value The option value
- * @return bool True on success, false on failrue.
+ * @return bool True on success, false on failure.
  */
 function update_blog_option( $id, $option, $value, $deprecated = null ) {
 	$id = (int) $id;
@@ -687,6 +695,8 @@ function update_blog_status( $blog_id, $pref, $value, $deprecated = null ) {
 		( $value == 1 ) ? do_action( 'archive_blog', $blog_id ) : do_action( 'unarchive_blog', $blog_id );
 	elseif ( 'deleted' == $pref )
 		( $value == 1 ) ? do_action( 'make_delete_blog', $blog_id ) : do_action( 'make_undelete_blog', $blog_id );
+	elseif ( 'public' == $pref )
+		do_action( 'update_blog_public', $blog_id, $value ); // Moved here from update_blog_public().
 
 	return $value;
 }

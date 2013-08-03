@@ -317,18 +317,19 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 	if ( ! is_array($wp_taxonomies) )
 		$wp_taxonomies = array();
 
-	$defaults = array(	'hierarchical' => false,
-						'update_count_callback' => '',
-						'rewrite' => true,
-						'query_var' => $taxonomy,
-						'public' => true,
-						'show_ui' => null,
-						'show_tagcloud' => null,
-						'_builtin' => false,
-						'labels' => array(),
-						'capabilities' => array(),
-						'show_in_nav_menus' => null,
-					);
+	$defaults = array(
+		'hierarchical' => false,
+		'update_count_callback' => '',
+		'rewrite' => true,
+		'query_var' => $taxonomy,
+		'public' => true,
+		'show_ui' => null,
+		'show_tagcloud' => null,
+		'_builtin' => false,
+		'labels' => array(),
+		'capabilities' => array(),
+		'show_in_nav_menus' => null,
+	);
 	$args = wp_parse_args($args, $defaults);
 
 	if ( strlen( $taxonomy ) > 32 )
@@ -411,6 +412,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
  * - separate_items_with_commas - This string isn't used on hierarchical taxonomies. Default is "Separate tags with commas", used in the meta box.
  * - add_or_remove_items - This string isn't used on hierarchical taxonomies. Default is "Add or remove tags", used in the meta box when JavaScript is disabled.
  * - choose_from_most_used - This string isn't used on hierarchical taxonomies. Default is "Choose from the most used tags", used in the meta box.
+ * - not_found - This string isn't used on hierarchical taxonomies. Default is "No tags found", used in the meta box.
  *
  * Above, the first default value is for non-hierarchical taxonomies (like tags) and the second one is for hierarchical taxonomies (like categories).
  *
@@ -422,6 +424,9 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 function get_taxonomy_labels( $tax ) {
 	if ( isset( $tax->helps ) && empty( $tax->labels['separate_items_with_commas'] ) )
 		$tax->labels['separate_items_with_commas'] = $tax->helps;
+
+	if ( isset( $tax->no_tagcloud ) && empty( $tax->labels['not_found'] ) )
+		$tax->labels['not_found'] = $tax->no_tagcloud;
 
 	$nohier_vs_hier_defaults = array(
 		'name' => array( _x( 'Tags', 'taxonomy general name' ), _x( 'Categories', 'taxonomy general name' ) ),
@@ -439,6 +444,7 @@ function get_taxonomy_labels( $tax ) {
 		'separate_items_with_commas' => array( __( 'Separate tags with commas' ), null ),
 		'add_or_remove_items' => array( __( 'Add or remove tags' ), null ),
 		'choose_from_most_used' => array( __( 'Choose from the most used tags' ), null ),
+		'not_found' => array( __( 'No tags found.' ), null ),
 	);
 	$nohier_vs_hier_defaults['menu_name'] = $nohier_vs_hier_defaults['name'];
 
@@ -785,7 +791,7 @@ class WP_Tax_Query {
 		if ( $query['field'] == $resulting_field )
 			return;
 
-		$resulting_field = esc_sql( $resulting_field );
+		$resulting_field = sanitize_key( $resulting_field );
 
 		switch ( $query['field'] ) {
 			case 'slug':
@@ -954,7 +960,7 @@ function get_term_by($field, $value, $taxonomy, $output = OBJECT, $filter = 'raw
 			return false;
 	} else if ( 'name' == $field ) {
 		// Assume already escaped
-		$value = stripslashes($value);
+		$value = wp_unslash($value);
 		$field = 't.name';
 	} else {
 		$term = get_term( (int) $value, $taxonomy, $output, $filter);
@@ -1240,10 +1246,10 @@ function get_terms($taxonomies, $args = '') {
 	// $args can be whatever, only use the args defined in defaults to compute the key
 	$filter_key = ( has_filter('list_terms_exclusions') ) ? serialize($GLOBALS['wp_filter']['list_terms_exclusions']) : '';
 	$key = md5( serialize( compact(array_keys($defaults)) ) . serialize( $taxonomies ) . $filter_key );
-	$last_changed = wp_cache_get('last_changed', 'terms');
-	if ( !$last_changed ) {
-		$last_changed = time();
-		wp_cache_set('last_changed', $last_changed, 'terms');
+	$last_changed = wp_cache_get( 'last_changed', 'terms' );
+	if ( ! $last_changed ) {
+		$last_changed = microtime();
+		wp_cache_set( 'last_changed', $last_changed, 'terms' );
 	}
 	$cache_key = "get_terms:$key:$last_changed";
 	$cache = wp_cache_get( $cache_key, 'terms' );
@@ -1346,7 +1352,7 @@ function get_terms($taxonomies, $args = '') {
 		$where .= ' AND tt.count > 0';
 
 	// don't limit the query results when we have to descend the family tree
-	if ( ! empty($number) && ! $hierarchical && empty( $child_of ) && '' === $parent ) {
+	if ( $number && ! $hierarchical && ! $child_of && '' === $parent ) {
 		if ( $offset )
 			$limits = 'LIMIT ' . $offset . ',' . $number;
 		else
@@ -1451,9 +1457,8 @@ function get_terms($taxonomies, $args = '') {
 		$terms = $_terms;
 	}
 
-	if ( 0 < $number && intval(@count($terms)) > $number ) {
-		$terms = array_slice($terms, $offset, $number);
-	}
+	if ( $number && is_array( $terms ) && count( $terms ) > $number )
+		$terms = array_slice( $terms, $offset, $number );
 
 	wp_cache_add( $cache_key, $terms, 'terms', DAY_IN_SECONDS );
 
@@ -1494,7 +1499,7 @@ function term_exists($term, $taxonomy = '', $parent = 0) {
 			return $wpdb->get_var( $wpdb->prepare( $select . $where, $term ) );
 	}
 
-	$term = trim( stripslashes( $term ) );
+	$term = trim( wp_unslash( $term ) );
 
 	if ( '' === $slug = sanitize_title($term) )
 		return 0;
@@ -1712,26 +1717,21 @@ function wp_count_terms( $taxonomy, $args = array() ) {
  * @package WordPress
  * @subpackage Taxonomy
  * @since 2.3.0
- * @uses $wpdb
+ * @uses wp_remove_object_terms()
  *
  * @param int $object_id The term Object Id that refers to the term
  * @param string|array $taxonomies List of Taxonomy Names or single Taxonomy name.
  */
 function wp_delete_object_term_relationships( $object_id, $taxonomies ) {
-	global $wpdb;
-
 	$object_id = (int) $object_id;
 
 	if ( !is_array($taxonomies) )
 		$taxonomies = array($taxonomies);
 
 	foreach ( (array) $taxonomies as $taxonomy ) {
-		$tt_ids = wp_get_object_terms($object_id, $taxonomy, array('fields' => 'tt_ids'));
-		$in_tt_ids = "'" . implode("', '", $tt_ids) . "'";
-		do_action( 'delete_term_relationships', $object_id, $tt_ids );
-		$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->term_relationships WHERE object_id = %d AND term_taxonomy_id IN ($in_tt_ids)", $object_id) );
-		do_action( 'deleted_term_relationships', $object_id, $tt_ids );
-		wp_update_term_count($tt_ids, $taxonomy);
+		$term_ids = wp_get_object_terms( $object_id, $taxonomy, array( 'fields' => 'ids' ) );
+		$term_ids = array_map( 'intval', $term_ids );
+		wp_remove_object_terms( $object_id, $term_ids, $taxonomy );
 	}
 }
 
@@ -1752,8 +1752,8 @@ function wp_delete_object_term_relationships( $object_id, $taxonomies ) {
  *
  * @uses $wpdb
  * @uses do_action() Calls both 'delete_term' and 'delete_$taxonomy' action
- *	hooks, passing term object, term id. 'delete_term' gets an additional
- *	parameter with the $taxonomy parameter.
+ *	hooks, passing term ID, term taxonomy ID, and deleted term object. 'delete_term'
+ *	also gets taxonomy as the third parameter.
  *
  * @param int $term Term ID
  * @param string $taxonomy Taxonomy Name
@@ -2062,8 +2062,8 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
 	extract($args, EXTR_SKIP);
 
 	// expected_slashed ($name)
-	$name = stripslashes($name);
-	$description = stripslashes($description);
+	$name = wp_unslash($name);
+	$description = wp_unslash($description);
 
 	if ( empty($slug) )
 		$slug = sanitize_title($name);
@@ -2158,7 +2158,7 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
  * @package WordPress
  * @subpackage Taxonomy
  * @since 2.3.0
- * @uses $wpdb
+ * @uses wp_remove_object_terms()
  *
  * @param int $object_id The object to relate to.
  * @param array|int|string $terms The slug or id of the term, will replace all existing
@@ -2215,13 +2215,17 @@ function wp_set_object_terms($object_id, $terms, $taxonomy, $append = false) {
 		wp_update_term_count( $new_tt_ids, $taxonomy );
 
 	if ( ! $append ) {
-		$delete_terms = array_diff($old_tt_ids, $tt_ids);
-		if ( $delete_terms ) {
-			$in_delete_terms = "'" . implode("', '", $delete_terms) . "'";
-			do_action( 'delete_term_relationships', $object_id, $delete_terms );
-			$wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->term_relationships WHERE object_id = %d AND term_taxonomy_id IN ($in_delete_terms)", $object_id) );
-			do_action( 'deleted_term_relationships', $object_id, $delete_terms );
-			wp_update_term_count($delete_terms, $taxonomy);
+		$delete_tt_ids = array_diff( $old_tt_ids, $tt_ids );
+
+		if ( $delete_tt_ids ) {
+			$in_delete_tt_ids = "'" . implode( "', '", $delete_tt_ids ) . "'";
+			$delete_term_ids = $wpdb->get_col( $wpdb->prepare( "SELECT tt.term_id FROM $wpdb->term_taxonomy AS tt WHERE tt.taxonomy = %s AND tt.term_taxonomy_id IN ($in_delete_tt_ids)", $taxonomy ) );
+			$delete_term_ids = array_map( 'intval', $delete_term_ids );
+
+			$remove = wp_remove_object_terms( $object_id, $delete_term_ids, $taxonomy );
+			if ( is_wp_error( $remove ) ) {
+				return $remove;
+			}
 		}
 	}
 
@@ -2242,6 +2246,86 @@ function wp_set_object_terms($object_id, $terms, $taxonomy, $append = false) {
 
 	do_action('set_object_terms', $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids);
 	return $tt_ids;
+}
+
+/**
+ * Add term(s) associated with a given object.
+ *
+ * @package WordPress
+ * @subpackage Taxonomy
+ * @since 3.6
+ * @uses wp_set_object_terms()
+ *
+ * @param int $object_id The ID of the object to which the terms will be added.
+ * @param array|int|string $terms The slug(s) or ID(s) of the term(s) to add.
+ * @param array|string $taxonomy Taxonomy name.
+ * @return array|WP_Error Affected Term IDs
+ */
+function wp_add_object_terms( $object_id, $terms, $taxonomy ) {
+	return wp_set_object_terms( $object_id, $terms, $taxonomy, true );
+}
+
+/**
+ * Remove term(s) associated with a given object.
+ *
+ * @package WordPress
+ * @subpackage Taxonomy
+ * @since 3.6
+ * @uses $wpdb
+ *
+ * @uses apply_filters() Calls 'delete_term_relationships' hook with object_id and tt_ids as parameters.
+ * @uses apply_filters() Calls 'deleted_term_relationships' hook with object_id and tt_ids as parameters.
+ *
+ * @param int $object_id The ID of the object from which the terms will be removed.
+ * @param array|int|string $terms The slug(s) or ID(s) of the term(s) to remove.
+ * @param array|string $taxonomy Taxonomy name.
+ * @return bool|WP_Error True on success, false or WP_Error on failure.
+ */
+function wp_remove_object_terms( $object_id, $terms, $taxonomy ) {
+	global $wpdb;
+
+	$object_id = (int) $object_id;
+
+	if ( ! taxonomy_exists( $taxonomy ) ) {
+		return new WP_Error( 'invalid_taxonomy', __( 'Invalid Taxonomy' ) );
+	}
+
+	if ( ! is_array( $terms ) ) {
+		$terms = array( $terms );
+	}
+
+	$tt_ids = array();
+
+	foreach ( (array) $terms as $term ) {
+		if ( ! strlen( trim( $term ) ) ) {
+			continue;
+		}
+
+		if ( ! $term_info = term_exists( $term, $taxonomy ) ) {
+			// Skip if a non-existent term ID is passed.
+			if ( is_int( $term ) ) {
+				continue;
+			}
+		}
+
+		if ( is_wp_error( $term_info ) ) {
+			return $term_info;
+		}
+
+		$tt_ids[] = $term_info['term_taxonomy_id'];
+	}
+
+	if ( $tt_ids ) {
+		$in_tt_ids = "'" . implode( "', '", $tt_ids ) . "'";
+		do_action( 'delete_term_relationships', $object_id, $tt_ids );
+		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->term_relationships WHERE object_id = %d AND term_taxonomy_id IN ($in_tt_ids)", $object_id ) );
+		do_action( 'deleted_term_relationships', $object_id, $tt_ids );
+		wp_update_term_count( $tt_ids, $taxonomy );
+
+		return (bool) $deleted;
+	}
+
+	return false;
 }
 
 /**
@@ -2361,7 +2445,7 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 		return $term;
 
 	// Escape data pulled from DB.
-	$term = add_magic_quotes($term);
+	$term = wp_slash($term);
 
 	// Merge old and new args with new args overwriting old ones.
 	$args = array_merge($term, $args);
@@ -2372,8 +2456,8 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 	extract($args, EXTR_SKIP);
 
 	// expected_slashed ($name)
-	$name = stripslashes($name);
-	$description = stripslashes($description);
+	$name = wp_unslash($name);
+	$description = wp_unslash($description);
 
 	if ( '' == trim($name) )
 		return new WP_Error('empty_term_name', __('A name is required for this term'));
@@ -2632,7 +2716,7 @@ function clean_term_cache($ids, $taxonomy = '', $clean_taxonomy = true) {
 		do_action('clean_term_cache', $ids, $taxonomy);
 	}
 
-	wp_cache_set('last_changed', time(), 'terms');
+	wp_cache_set( 'last_changed', microtime(), 'terms' );
 }
 
 /**

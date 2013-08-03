@@ -27,7 +27,6 @@ function wp_unregister_GLOBALS() {
 	$input = array_merge( $_GET, $_POST, $_COOKIE, $_SERVER, $_ENV, $_FILES, isset( $_SESSION ) && is_array( $_SESSION ) ? $_SESSION : array() );
 	foreach ( $input as $k => $v )
 		if ( !in_array( $k, $no_unset ) && isset( $GLOBALS[$k] ) ) {
-			$GLOBALS[$k] = null;
 			unset( $GLOBALS[$k] );
 		}
 }
@@ -254,17 +253,14 @@ function timer_stop( $display = 0, $precision = 3 ) { // if called like timer_st
  * When WP_DEBUG_LOG is true, errors will be logged to wp-content/debug.log.
  * WP_DEBUG_LOG defaults to false.
  *
+ * Errors are never displayed for XML-RPC requests.
+ *
  * @access private
  * @since 3.0.0
  */
 function wp_debug_mode() {
 	if ( WP_DEBUG ) {
-		// E_DEPRECATED is a core PHP constant in PHP 5.3. Don't define this yourself.
-		// The two statements are equivalent, just one is for 5.3+ and for less than 5.3.
-		if ( defined( 'E_DEPRECATED' ) )
-			error_reporting( E_ALL & ~E_DEPRECATED & ~E_STRICT );
-		else
-			error_reporting( E_ALL );
+		error_reporting( E_ALL );
 
 		if ( WP_DEBUG_DISPLAY )
 			ini_set( 'display_errors', 1 );
@@ -278,6 +274,8 @@ function wp_debug_mode() {
 	} else {
 		error_reporting( E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_ERROR | E_WARNING | E_PARSE | E_USER_ERROR | E_USER_WARNING | E_RECOVERABLE_ERROR );
 	}
+	if ( defined( 'XMLRPC_REQUEST' ) )
+		ini_set( 'display_errors', 0 );
 }
 
 /**
@@ -514,7 +512,8 @@ function wp_get_active_and_valid_plugins() {
  */
 function wp_set_internal_encoding() {
 	if ( function_exists( 'mb_internal_encoding' ) ) {
-		if ( !@mb_internal_encoding( get_option( 'blog_charset' ) ) )
+		$charset = get_option( 'blog_charset' );
+		if ( ! $charset || ! @mb_internal_encoding( $charset ) )
 			mb_internal_encoding( 'UTF-8' );
 	}
 }

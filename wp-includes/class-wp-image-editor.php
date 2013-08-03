@@ -97,11 +97,14 @@ abstract class WP_Image_Editor {
 	 * Processes current image and saves to disk
 	 * multiple sizes from single source.
 	 *
+	 * 'width' and 'height' are required.
+	 * 'crop' defaults to false when not provided.
+	 *
 	 * @since 3.5.0
 	 * @access public
 	 * @abstract
 	 *
-	 * @param array $sizes { {'width'=>int, 'height'=>int, 'crop'=>bool}, ... }
+	 * @param array $sizes { {'width'=>int, 'height'=>int, ['crop'=>bool]}, ... }
 	 * @return array
 	 */
 	abstract public function multi_resize( $sizes );
@@ -144,8 +147,8 @@ abstract class WP_Image_Editor {
 	 * @access public
 	 * @abstract
 	 *
-	 * @param boolean $horz Horizontal Flip
-	 * @param boolean $vert Vertical Flip
+	 * @param boolean $horz Flip along Horizontal Axis
+	 * @param boolean $vert Flip along Vertical Axis
 	 * @return boolean|WP_Error
 	 */
 	abstract public function flip( $horz, $vert );
@@ -324,11 +327,11 @@ abstract class WP_Image_Editor {
 	 * @return boolean
 	 */
 	protected function make_image( $filename, $function, $arguments ) {
-		$dst_file = $filename;
-
 		if ( $stream = wp_is_stream( $filename ) ) {
-			$filename = null;
 			ob_start();
+		} else {
+			// The directory containing the original file may no longer exist when using a replication plugin. 
+			wp_mkdir_p( dirname( $filename ) ); 
 		}
 
 		$result = call_user_func_array( $function, $arguments );
@@ -336,7 +339,7 @@ abstract class WP_Image_Editor {
 		if ( $result && $stream ) {
 			$contents = ob_get_contents();
 
-			$fp = fopen( $dst_file, 'w' );
+			$fp = fopen( $filename, 'w' );
 
 			if ( ! $fp )
 				return false;

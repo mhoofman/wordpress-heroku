@@ -203,7 +203,7 @@ function get_attached_file( $attachment_id, $unfiltered = false ) {
  *
  * @param int $attachment_id Attachment ID
  * @param string $file File path for the attachment
- * @return bool False on failure, true on success.
+ * @return bool True on success, false on failure.
  */
 function update_attached_file( $attachment_id, $file ) {
 	if ( !get_post( $attachment_id ) )
@@ -360,7 +360,7 @@ function get_extended($post) {
 		$more_text = '';
 	}
 
-	// Strip leading and trailing whitespace
+	// ` leading and trailing whitespace
 	$main = preg_replace('/^[\s]*(.*)[\s]*$/', '\\1', $main);
 	$extended = preg_replace('/^[\s]*(.*)[\s]*$/', '\\1', $extended);
 	$more_text = preg_replace('/^[\s]*(.*)[\s]*$/', '\\1', $more_text);
@@ -567,6 +567,17 @@ final class WP_Post {
 	 */
 	public $filter;
 
+	/**
+	 * Private variable used by post formats to cache parsed content.
+	 *
+	 * @since 3.6.0
+	 *
+	 * @var array
+	 * @access private
+	 */
+	public $format_content;
+
+
 	public static function get_instance( $post_id ) {
 		global $wpdb;
 
@@ -713,10 +724,10 @@ function get_post_ancestors( $post ) {
  * @since 2.3.0
  * @uses sanitize_post_field() See for possible $context values.
  *
- * @param string $field Post field name
- * @param id $post Post ID
- * @param string $context Optional. How to filter the field. Default is display.
- * @return bool|string False on failure or returns the value in post field
+ * @param string $field Post field name.
+ * @param int|object $post Post ID or post object.
+ * @param string $context Optional. How to filter the field. Default is 'display'.
+ * @return string The value of the post field on success, empty string on failure.
  */
 function get_post_field( $field, $post, $context = 'display' ) {
 	$post = get_post( $post );
@@ -738,8 +749,8 @@ function get_post_field( $field, $post, $context = 'display' ) {
  *
  * @since 2.0.0
  *
- * @param int $ID Optional. Post ID.
- * @return bool|string False on failure or returns the mime type
+ * @param int $ID Optional. Post ID. Default is the current post from the loop.
+ * @return string|bool The mime type on success, false on failure.
  */
 function get_post_mime_type($ID = '') {
 	$post = get_post($ID);
@@ -751,71 +762,6 @@ function get_post_mime_type($ID = '') {
 }
 
 /**
- * Retrieve the format slug for a post
- *
- * @since 3.1.0
- *
- * @param int|object $post A post
- *
- * @return mixed The format if successful. False if no format is set. WP_Error if errors.
- */
-function get_post_format( $post = null ) {
-	$post = get_post($post);
-
-	if ( ! post_type_supports( $post->post_type, 'post-formats' ) )
-		return false;
-
-	$_format = get_the_terms( $post->ID, 'post_format' );
-
-	if ( empty( $_format ) )
-		return false;
-
-	$format = array_shift( $_format );
-
-	return ( str_replace('post-format-', '', $format->slug ) );
-}
-
-/**
- * Check if a post has a particular format
- *
- * @since 3.1.0
- * @uses has_term()
- *
- * @param string $format The format to check for
- * @param object|id $post The post to check. If not supplied, defaults to the current post if used in the loop.
- * @return bool True if the post has the format, false otherwise.
- */
-function has_post_format( $format, $post = null ) {
-	return has_term('post-format-' . sanitize_key($format), 'post_format', $post);
-}
-
-/**
- * Assign a format to a post
- *
- * @since 3.1.0
- *
- * @param int|object $post The post for which to assign a format
- * @param string $format  A format to assign. Use an empty string or array to remove all formats from the post.
- * @return mixed WP_Error on error. Array of affected term IDs on success.
- */
-function set_post_format( $post, $format ) {
-	$post = get_post($post);
-
-	if ( empty($post) )
-		return new WP_Error('invalid_post', __('Invalid post'));
-
-	if ( !empty($format) ) {
-		$format = sanitize_key($format);
-		if ( 'standard' == $format || !in_array( $format, array_keys( get_post_format_slugs() ) ) )
-			$format = '';
-		else
-			$format = 'post-format-' . $format;
-	}
-
-	return wp_set_post_terms($post->ID, $format, 'post_format');
-}
-
-/**
  * Retrieve the post status based on the Post ID.
  *
  * If the post ID is of an attachment, then the parent post status will be given
@@ -823,8 +769,8 @@ function set_post_format( $post, $format ) {
  *
  * @since 2.0.0
  *
- * @param int $ID Post ID
- * @return string|bool Post status or false on failure.
+ * @param int $ID Optional. Post ID. Default is the current post from the loop.
+ * @return string|bool Post status on success, false on failure.
  */
 function get_post_status($ID = '') {
 	$post = get_post($ID);
@@ -858,7 +804,7 @@ function get_post_status($ID = '') {
  *
  * @return array List of post statuses.
  */
-function get_post_statuses( ) {
+function get_post_statuses() {
 	$status = array(
 		'draft'			=> __('Draft'),
 		'pending'		=> __('Pending Review'),
@@ -879,7 +825,7 @@ function get_post_statuses( ) {
  *
  * @return array List of page statuses.
  */
-function get_page_statuses( ) {
+function get_page_statuses() {
 	$status = array(
 		'draft'			=> __('Draft'),
 		'private'		=> __('Private'),
@@ -1063,10 +1009,8 @@ function post_type_exists( $post_type ) {
  *
  * @since 2.1.0
  *
- * @uses $post The Loop current post global
- *
- * @param mixed $post Optional. Post object or post ID.
- * @return bool|string post type or false on failure.
+ * @param int|object $post Optional. Post ID or post object. Default is the current post from the loop.
+ * @return string|bool Post type on success, false on failure.
  */
 function get_post_type( $post = null ) {
 	if ( $post = get_post( $post ) )
@@ -1139,7 +1083,7 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *     * While the default settings of exclude_from_search, publicly_queryable, show_ui, and show_in_nav_menus are
  *       inherited from public, each does not rely on this relationship and controls a very specific intention.
  * - exclude_from_search - Whether to exclude posts with this post type from front end search results.
- *     * If not set, the the opposite of public's current value is used.
+ *     * If not set, the opposite of public's current value is used.
  * - publicly_queryable - Whether queries can be performed on the front end for the post type as part of parse_request().
  *     * ?post_type={post_type_key}
  *     * ?{post_type_key}={single_post_slug}
@@ -1594,11 +1538,8 @@ function add_post_type_support( $post_type, $feature ) {
 function remove_post_type_support( $post_type, $feature ) {
 	global $_wp_post_type_features;
 
-	if ( !isset($_wp_post_type_features[$post_type]) )
-		return;
-
-	if ( isset($_wp_post_type_features[$post_type][$feature]) )
-		unset($_wp_post_type_features[$post_type][$feature]);
+	if ( isset( $_wp_post_type_features[$post_type][$feature] ) )
+		unset( $_wp_post_type_features[$post_type][$feature] );
 }
 
 /**
@@ -1630,17 +1571,7 @@ function get_all_post_type_supports( $post_type ) {
 function post_type_supports( $post_type, $feature ) {
 	global $_wp_post_type_features;
 
-	if ( !isset( $_wp_post_type_features[$post_type][$feature] ) )
-		return false;
-
-	// If no args passed then no extra checks need be performed
-	if ( func_num_args() <= 2 )
-		return true;
-
-	// @todo Allow pluggable arg checking
-	//$args = array_slice( func_get_args(), 2 );
-
-	return true;
+	return ( isset( $_wp_post_type_features[$post_type][$feature] ) );
 }
 
 /**
@@ -1742,7 +1673,7 @@ function get_posts($args = null) {
  * @param string $meta_key Metadata name.
  * @param mixed $meta_value Metadata value.
  * @param bool $unique Optional, default is false. Whether the same key should not be added.
- * @return bool False for failure. True for success.
+ * @return int|bool Meta ID on success, false on failure.
  */
 function add_post_meta($post_id, $meta_key, $meta_value, $unique = false) {
 	// make sure meta is added to the post, not a revision
@@ -1766,7 +1697,7 @@ function add_post_meta($post_id, $meta_key, $meta_value, $unique = false) {
  * @param int $post_id post ID
  * @param string $meta_key Metadata name.
  * @param mixed $meta_value Optional. Metadata value.
- * @return bool False for failure. True for success.
+ * @return bool True on success, false on failure.
  */
 function delete_post_meta($post_id, $meta_key, $meta_value = '') {
 	// make sure meta is added to the post, not a revision
@@ -1809,7 +1740,7 @@ function get_post_meta($post_id, $key = '', $single = false) {
  * @param string $meta_key Metadata key.
  * @param mixed $meta_value Metadata value.
  * @param mixed $prev_value Optional. Previous value to check before removing.
- * @return bool False on failure, true if success.
+ * @return bool True on success, false on failure.
  */
 function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
 	// make sure meta is added to the post, not a revision
@@ -2170,7 +2101,7 @@ function wp_count_attachments( $mime_type = '' ) {
 	$and = wp_post_mime_type_where( $mime_type );
 	$count = $wpdb->get_results( "SELECT post_mime_type, COUNT( * ) AS num_posts FROM $wpdb->posts WHERE post_type = 'attachment' AND post_status != 'trash' $and GROUP BY post_mime_type", ARRAY_A );
 
-	$stats = array( );
+	$stats = array();
 	foreach( (array) $count as $row ) {
 		$stats[$row['post_mime_type']] = $row['num_posts'];
 	}
@@ -2458,7 +2389,7 @@ function wp_untrash_post($post_id = 0) {
  * @uses do_action() on 'trash_post_comments' before trashing
  * @uses do_action() on 'trashed_post_comments' after trashing
  *
- * @param int $post Post ID or object.
+ * @param int|object $post Post ID or object.
  * @return mixed False on failure
  */
 function wp_trash_post_comments($post = null) {
@@ -2499,7 +2430,7 @@ function wp_trash_post_comments($post = null) {
  * @uses do_action() on 'untrash_post_comments' before trashing
  * @uses do_action() on 'untrashed_post_comments' after trashing
  *
- * @param int $post Post ID or object.
+ * @param int|object $post Post ID or object.
  * @return mixed False on failure
  */
 function wp_untrash_post_comments($post = null) {
@@ -2662,7 +2593,7 @@ function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
  *
  * If the $postarr parameter has 'ID' set to a value, then post will be updated.
  *
- * You can set the post date manually, but setting the values for 'post_date'
+ * You can set the post date manually, by setting the values for 'post_date'
  * and 'post_date_gmt' keys. You can close the comments or open the comments by
  * setting the value for 'comment_status' key.
  *
@@ -2713,9 +2644,21 @@ function wp_insert_post($postarr, $wp_error = false) {
 	extract($postarr, EXTR_SKIP);
 
 	// Are we updating or creating?
+	$post_ID = 0;
 	$update = false;
-	if ( !empty($ID) ) {
+	if ( ! empty( $ID ) ) {
 		$update = true;
+
+		// Get the post ID and GUID
+		$post_ID = $ID;
+		$post_before = get_post( $post_ID );
+		if ( is_null( $post_before ) ) {
+			if ( $wp_error )
+				return new WP_Error( 'invalid_post', __( 'Invalid post ID.' ) );
+			return 0;
+		}
+
+		$guid = get_post_field( 'guid', $post_ID );
 		$previous_status = get_post_field('post_status', $ID);
 	} else {
 		$previous_status = 'new';
@@ -2723,6 +2666,7 @@ function wp_insert_post($postarr, $wp_error = false) {
 
 	$maybe_empty = ! $post_content && ! $post_title && ! $post_excerpt && post_type_supports( $post_type, 'editor' )
 		&& post_type_supports( $post_type, 'title' ) && post_type_supports( $post_type, 'excerpt' );
+
 	if ( apply_filters( 'wp_insert_post_empty_content', $maybe_empty, $postarr ) ) {
 		if ( $wp_error )
 			return new WP_Error( 'empty_content', __( 'Content, title, and excerpt are empty.' ) );
@@ -2750,15 +2694,6 @@ function wp_insert_post($postarr, $wp_error = false) {
 
 	if ( empty($post_author) )
 		$post_author = $user_ID;
-
-	$post_ID = 0;
-
-	// Get the post ID and GUID
-	if ( $update ) {
-		$post_ID = (int) $ID;
-		$guid = get_post_field( 'guid', $post_ID );
-		$post_before = get_post($post_ID);
-	}
 
 	// Don't allow contributors to set the post slug for pending review posts
 	if ( 'pending' == $post_status && !current_user_can( 'publish_posts' ) )
@@ -2859,11 +2794,11 @@ function wp_insert_post($postarr, $wp_error = false) {
 	// expected_slashed (everything!)
 	$data = compact( array( 'post_author', 'post_date', 'post_date_gmt', 'post_content', 'post_content_filtered', 'post_title', 'post_excerpt', 'post_status', 'post_type', 'comment_status', 'ping_status', 'post_password', 'post_name', 'to_ping', 'pinged', 'post_modified', 'post_modified_gmt', 'post_parent', 'menu_order', 'guid' ) );
 	$data = apply_filters('wp_insert_post_data', $data, $postarr);
-	$data = stripslashes_deep( $data );
+	$data = wp_unslash( $data );
 	$where = array( 'ID' => $post_ID );
 
 	if ( $update ) {
-		do_action( 'pre_post_update', $post_ID );
+		do_action( 'pre_post_update', $post_ID, $data );
 		if ( false === $wpdb->update( $wpdb->posts, $data, $where ) ) {
 			if ( $wp_error )
 				return new WP_Error('db_update_error', __('Could not update post in the database'), $wpdb->last_error);
@@ -2872,7 +2807,7 @@ function wp_insert_post($postarr, $wp_error = false) {
 		}
 	} else {
 		if ( isset($post_mime_type) )
-			$data['post_mime_type'] = stripslashes( $post_mime_type ); // This isn't in the update
+			$data['post_mime_type'] = wp_unslash( $post_mime_type ); // This isn't in the update
 		// If there is a suggested ID, use it if not already present
 		if ( !empty($import_id) ) {
 			$import_id = (int) $import_id;
@@ -2966,14 +2901,20 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
 	if ( is_object($postarr) ) {
 		// non-escaped post was passed
 		$postarr = get_object_vars($postarr);
-		$postarr = add_magic_quotes($postarr);
+		$postarr = wp_slash($postarr);
 	}
 
 	// First, get all of the original fields
 	$post = get_post($postarr['ID'], ARRAY_A);
 
+	if ( is_null( $post ) ) {
+		if ( $wp_error )
+			return new WP_Error( 'invalid_post', __( 'Invalid post ID.' ) );
+		return 0;
+	}
+
 	// Escape data pulled from DB.
-	$post = add_magic_quotes($post);
+	$post = wp_slash($post);
 
 	// Passed post category list overwrites existing category list if not empty.
 	if ( isset($postarr['post_category']) && is_array($postarr['post_category'])
@@ -3010,7 +2951,7 @@ function wp_update_post( $postarr = array(), $wp_error = false ) {
  * @uses $wpdb
  * @uses do_action() Calls 'edit_post', 'save_post', and 'wp_insert_post' on post_id and post data.
  *
- * @param mixed $post Post ID or object.
+ * @param int|object $post Post ID or object.
  */
 function wp_publish_post( $post ) {
 	global $wpdb;
@@ -3081,7 +3022,7 @@ function check_and_publish_future_post($post_id) {
  * @return string unique slug for the post, based on $post_name (with a -1, -2, etc. suffix)
  */
 function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_parent ) {
-	if ( in_array( $post_status, array( 'draft', 'pending', 'auto-draft' ) ) )
+	if ( in_array( $post_status, array( 'draft', 'pending', 'auto-draft' ) ) || ( 'inherit' == $post_status && 'revision' == $post_type ) )
 		return $slug;
 
 	global $wpdb, $wp_rewrite;
@@ -3101,8 +3042,8 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		if ( $post_name_check || in_array( $slug, $feeds ) || apply_filters( 'wp_unique_post_slug_is_bad_attachment_slug', false, $slug ) ) {
 			$suffix = 2;
 			do {
-				$alt_post_name = substr ($slug, 0, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
-				$post_name_check = $wpdb->get_var( $wpdb->prepare($check_sql, $alt_post_name, $post_ID ) );
+				$alt_post_name = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
+				$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $alt_post_name, $post_ID ) );
 				$suffix++;
 			} while ( $post_name_check );
 			$slug = $alt_post_name;
@@ -3118,7 +3059,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		if ( $post_name_check || in_array( $slug, $feeds ) || preg_match( "@^($wp_rewrite->pagination_base)?\d+$@", $slug )  || apply_filters( 'wp_unique_post_slug_is_bad_hierarchical_slug', false, $slug, $post_type, $post_parent ) ) {
 			$suffix = 2;
 			do {
-				$alt_post_name = substr( $slug, 0, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
+				$alt_post_name = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
 				$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $alt_post_name, $post_ID, $post_parent ) );
 				$suffix++;
 			} while ( $post_name_check );
@@ -3132,7 +3073,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		if ( $post_name_check || in_array( $slug, $feeds ) || apply_filters( 'wp_unique_post_slug_is_bad_flat_slug', false, $slug, $post_type ) ) {
 			$suffix = 2;
 			do {
-				$alt_post_name = substr( $slug, 0, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
+				$alt_post_name = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . "-$suffix";
 				$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $alt_post_name, $post_type, $post_ID ) );
 				$suffix++;
 			} while ( $post_name_check );
@@ -3141,6 +3082,29 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 	}
 
 	return apply_filters( 'wp_unique_post_slug', $slug, $post_ID, $post_status, $post_type, $post_parent, $original_slug );
+}
+
+/**
+ * Truncates a post slug.
+ *
+ * @since 3.6.0
+ * @access private
+ * @uses utf8_uri_encode() Makes sure UTF-8 characters are properly cut and encoded.
+ *
+ * @param string $slug The slug to truncate.
+ * @param int $length Max length of the slug.
+ * @return string The truncated slug.
+ */
+function _truncate_post_slug( $slug, $length = 200 ) {
+	if ( strlen( $slug ) > $length ) {
+		$decoded_slug = urldecode( $slug );
+		if ( $decoded_slug === $slug )
+			$slug = substr( $slug, 0, $length );
+		else
+			$slug = utf8_uri_encode( $decoded_slug, $length );
+	}
+
+	return rtrim( $slug, '-' );
 }
 
 /**
@@ -3296,7 +3260,7 @@ function add_ping($post_id, $uri) {
 	$new = implode("\n", $pung);
 	$new = apply_filters('add_ping', $new);
 	// expected_slashed ($new)
-	$new = stripslashes($new);
+	$new = wp_unslash($new);
 	return $wpdb->update( $wpdb->posts, array( 'pinged' => $new ), array( 'ID' => $post_id ) );
 }
 
@@ -3383,13 +3347,13 @@ function trackback_url_list($tb_list, $post_id) {
 		$excerpt = strip_tags($post_excerpt ? $post_excerpt : $post_content);
 
 		if (strlen($excerpt) > 255) {
-			$excerpt = substr($excerpt,0,252) . '...';
+			$excerpt = substr($excerpt,0,252) . '&hellip;';
 		}
 
 		$trackback_urls = explode(',', $tb_list);
 		foreach( (array) $trackback_urls as $tb_url) {
 			$tb_url = trim($tb_url);
-			trackback($tb_url, stripslashes($post_title), $excerpt, $post_id);
+			trackback($tb_url, wp_unslash($post_title), $excerpt, $post_id);
 		}
 	}
 }
@@ -3453,12 +3417,11 @@ function get_page_by_path($page_path, $output = OBJECT, $post_type = 'page') {
 	$page_path = str_replace('%2F', '/', $page_path);
 	$page_path = str_replace('%20', ' ', $page_path);
 	$parts = explode( '/', trim( $page_path, '/' ) );
-	$parts = array_map( 'esc_sql', $parts );
+	$parts = esc_sql( $parts );
 	$parts = array_map( 'sanitize_title_for_query', $parts );
 
 	$in_string = "'". implode( "','", $parts ) . "'";
-	$post_type_sql = $post_type;
-	$wpdb->escape_by_ref( $post_type_sql );
+	$post_type_sql = esc_sql( $post_type );
 	$pages = $wpdb->get_results( "SELECT ID, post_name, post_parent, post_type FROM $wpdb->posts WHERE post_name IN ($in_string) AND (post_type = '$post_type_sql' OR post_type = 'attachment')", OBJECT_K );
 
 	$revparts = array_reverse( $parts );
@@ -3646,15 +3609,20 @@ function get_pages($args = '') {
 	if ( array_diff( $post_status, get_post_stati() ) )
 		return $pages;
 
-	$cache = array();
+	// $args can be whatever, only use the args defined in defaults to compute the key
 	$key = md5( serialize( compact(array_keys($defaults)) ) );
-	if ( $cache = wp_cache_get( 'get_pages', 'posts' ) ) {
-		if ( is_array($cache) && isset( $cache[ $key ] ) && is_array( $cache[ $key ] ) ) {
-			// Convert to WP_Post instances
-			$pages = array_map( 'get_post', $cache[ $key ] );
-			$pages = apply_filters( 'get_pages', $pages, $r );
-			return $pages;
-		}
+	$last_changed = wp_cache_get( 'last_changed', 'posts' );
+	if ( ! $last_changed ) {
+		$last_changed = microtime();
+		wp_cache_set( 'last_changed', $last_changed, 'posts' );
+	}
+
+	$cache_key = "get_pages:$key:$last_changed";
+	if ( $cache = wp_cache_get( $cache_key, 'posts' ) ) {
+		// Convert to WP_Post instances
+		$pages = array_map( 'get_post', $cache );
+		$pages = apply_filters('get_pages', $pages, $r);
+		return $pages;
 	}
 
 	if ( !is_array($cache) )
@@ -3724,15 +3692,15 @@ function get_pages($args = '') {
 
 	$join = '';
 	$where = "$exclusions $inclusions ";
-	if ( ! empty( $meta_key ) || ! empty( $meta_value ) ) {
+	if ( '' !== $meta_key || '' !== $meta_value ) {
 		$join = " LEFT JOIN $wpdb->postmeta ON ( $wpdb->posts.ID = $wpdb->postmeta.post_id )";
 
 		// meta_key and meta_value might be slashed
-		$meta_key = stripslashes($meta_key);
-		$meta_value = stripslashes($meta_value);
-		if ( ! empty( $meta_key ) )
+		$meta_key = wp_unslash($meta_key);
+		$meta_value = wp_unslash($meta_value);
+		if ( '' !== $meta_key )
 			$where .= $wpdb->prepare(" AND $wpdb->postmeta.meta_key = %s", $meta_key);
-		if ( ! empty( $meta_value ) )
+		if ( '' !== $meta_value )
 			$where .= $wpdb->prepare(" AND $wpdb->postmeta.meta_value = %s", $meta_value);
 
 	}
@@ -3824,8 +3792,11 @@ function get_pages($args = '') {
 		}
 	}
 
-	$cache[ $key ] = $pages;
-	wp_cache_set( 'get_pages', $cache, 'posts' );
+	$page_structure = array();
+	foreach ( $pages as $page )
+		$page_structure[] = $page->ID;
+
+	wp_cache_set( $cache_key, $page_structure, 'posts' );
 
 	// Convert to WP_Post instances
 	$pages = array_map( 'get_post', $pages );
@@ -3905,7 +3876,7 @@ function wp_insert_attachment($object, $file = false, $parent = 0) {
 	global $wpdb, $user_ID;
 
 	$defaults = array('post_status' => 'inherit', 'post_type' => 'post', 'post_author' => $user_ID,
-		'ping_status' => get_option('default_ping_status'), 'post_parent' => 0,
+		'ping_status' => get_option('default_ping_status'), 'post_parent' => 0, 'post_title' => '',
 		'menu_order' => 0, 'to_ping' =>  '', 'pinged' => '', 'post_password' => '',
 		'guid' => '', 'post_content_filtered' => '', 'post_excerpt' => '', 'import_id' => 0, 'context' => '');
 
@@ -3996,7 +3967,7 @@ function wp_insert_attachment($object, $file = false, $parent = 0) {
 
 	// expected_slashed (everything!)
 	$data = compact( array( 'post_author', 'post_date', 'post_date_gmt', 'post_content', 'post_content_filtered', 'post_title', 'post_excerpt', 'post_status', 'post_type', 'comment_status', 'ping_status', 'post_password', 'post_name', 'to_ping', 'pinged', 'post_modified', 'post_modified_gmt', 'post_parent', 'menu_order', 'post_mime_type', 'guid' ) );
-	$data = stripslashes_deep( $data );
+	$data = wp_unslash( $data );
 
 	if ( $update ) {
 		$wpdb->update( $wpdb->posts, $data, array( 'ID' => $post_ID ) );
@@ -4632,7 +4603,7 @@ function update_post_cache( &$posts ) {
  *
  * @uses do_action() Calls 'clean_post_cache' on $id before adding children (if any).
  *
- * @param object|int $post The post object or ID to remove from the cache
+ * @param int|object $post Post ID or object to remove from the cache
  */
 function clean_post_cache( $post ) {
 	global $_wp_suspend_cache_invalidation, $wpdb;
@@ -4660,6 +4631,8 @@ function clean_post_cache( $post ) {
 		wp_cache_delete( 'all_page_ids', 'posts' );
 		do_action( 'clean_page_cache', $post->ID );
 	}
+
+	wp_cache_set( 'last_changed', microtime(), 'posts' );
 }
 
 /**
@@ -4820,7 +4793,7 @@ function _transition_post_status($new_status, $old_status, $post) {
  *   wp_transition_post_status() and the default filter for _future_post_hook().
  * @param object $post Object type containing the post information
  */
-function _future_post_hook( $deprecated = '', $post ) {
+function _future_post_hook( $deprecated, $post ) {
 	wp_clear_scheduled_hook( 'publish_future_post', array( $post->ID ) );
 	wp_schedule_single_event( strtotime( get_gmt_from_date( $post->post_date ) . ' GMT') , 'publish_future_post', array( $post->ID ) );
 }
@@ -4830,15 +4803,12 @@ function _future_post_hook( $deprecated = '', $post ) {
  *
  * @since 2.3.0
  * @access private
- * @uses $wpdb
- * @uses XMLRPC_REQUEST constant.
- * @uses do_action() Calls 'xmlprc_publish_post' on post ID if XMLRPC_REQUEST is defined.
+ * @uses XMLRPC_REQUEST and WP_IMPORTING constants.
+ * @uses do_action() Calls 'xmlrpc_publish_post' on post ID if XMLRPC_REQUEST is defined.
  *
  * @param int $post_id The ID in the database table of the post being published
  */
 function _publish_post_hook($post_id) {
-	global $wpdb;
-
 	if ( defined('XMLRPC_REQUEST') )
 		do_action('xmlrpc_publish_post', $post_id);
 
@@ -4850,405 +4820,6 @@ function _publish_post_hook($post_id) {
 	add_post_meta( $post_id, '_encloseme', '1' );
 
 	wp_schedule_single_event(time(), 'do_pings');
-}
-
-/**
- * Determines which fields of posts are to be saved in revisions.
- *
- * Does two things. If passed a post *array*, it will return a post array ready
- * to be inserted into the posts table as a post revision. Otherwise, returns
- * an array whose keys are the post fields to be saved for post revisions.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- * @access private
- * @uses apply_filters() Calls '_wp_post_revision_fields' on 'title', 'content' and 'excerpt' fields.
- *
- * @param array $post Optional a post array to be processed for insertion as a post revision.
- * @param bool $autosave optional Is the revision an autosave?
- * @return array Post array ready to be inserted as a post revision or array of fields that can be versioned.
- */
-function _wp_post_revision_fields( $post = null, $autosave = false ) {
-	static $fields = false;
-
-	if ( !$fields ) {
-		// Allow these to be versioned
-		$fields = array(
-			'post_title' => __( 'Title' ),
-			'post_content' => __( 'Content' ),
-			'post_excerpt' => __( 'Excerpt' ),
-		);
-
-		// Runs only once
-		$fields = apply_filters( '_wp_post_revision_fields', $fields );
-
-		// WP uses these internally either in versioning or elsewhere - they cannot be versioned
-		foreach ( array( 'ID', 'post_name', 'post_parent', 'post_date', 'post_date_gmt', 'post_status', 'post_type', 'comment_count', 'post_author' ) as $protect )
-			unset( $fields[$protect] );
-	}
-
-	if ( !is_array($post) )
-		return $fields;
-
-	$return = array();
-	foreach ( array_intersect( array_keys( $post ), array_keys( $fields ) ) as $field )
-		$return[$field] = $post[$field];
-
-	$return['post_parent']   = $post['ID'];
-	$return['post_status']   = 'inherit';
-	$return['post_type']     = 'revision';
-	$return['post_name']     = $autosave ? "$post[ID]-autosave" : "$post[ID]-revision";
-	$return['post_date']     = isset($post['post_modified']) ? $post['post_modified'] : '';
-	$return['post_date_gmt'] = isset($post['post_modified_gmt']) ? $post['post_modified_gmt'] : '';
-
-	return $return;
-}
-
-/**
- * Saves an already existing post as a post revision.
- *
- * Typically used immediately prior to post updates.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses _wp_put_post_revision()
- *
- * @param int $post_id The ID of the post to save as a revision.
- * @return mixed Null or 0 if error, new revision ID, if success.
- */
-function wp_save_post_revision( $post_id ) {
-	// We do autosaves manually with wp_create_post_autosave()
-	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-		return;
-
-	// WP_POST_REVISIONS = 0, false
-	if ( ! WP_POST_REVISIONS )
-		return;
-
-	if ( !$post = get_post( $post_id, ARRAY_A ) )
-		return;
-
-	if ( 'auto-draft' == $post['post_status'] )
-		return;
-
-	if ( !post_type_supports($post['post_type'], 'revisions') )
-		return;
-
-	$return = _wp_put_post_revision( $post );
-
-	// WP_POST_REVISIONS = true (default), -1
-	if ( !is_numeric( WP_POST_REVISIONS ) || WP_POST_REVISIONS < 0 )
-		return $return;
-
-	// all revisions and (possibly) one autosave
-	$revisions = wp_get_post_revisions( $post_id, array( 'order' => 'ASC' ) );
-
-	// WP_POST_REVISIONS = (int) (# of autosaves to save)
-	$delete = count($revisions) - WP_POST_REVISIONS;
-
-	if ( $delete < 1 )
-		return $return;
-
-	$revisions = array_slice( $revisions, 0, $delete );
-
-	for ( $i = 0; isset($revisions[$i]); $i++ ) {
-		if ( false !== strpos( $revisions[$i]->post_name, 'autosave' ) )
-			continue;
-		wp_delete_post_revision( $revisions[$i]->ID );
-	}
-
-	return $return;
-}
-
-/**
- * Retrieve the autosaved data of the specified post.
- *
- * Returns a post object containing the information that was autosaved for the
- * specified post.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @param int $post_id The post ID.
- * @return object|bool The autosaved data or false on failure or when no autosave exists.
- */
-function wp_get_post_autosave( $post_id ) {
-
-	if ( !$post = get_post( $post_id ) )
-		return false;
-
-	$q = array(
-		'name' => "{$post->ID}-autosave",
-		'post_parent' => $post->ID,
-		'post_type' => 'revision',
-		'post_status' => 'inherit'
-	);
-
-	// Use WP_Query so that the result gets cached
-	$autosave_query = new WP_Query;
-
-	add_action( 'parse_query', '_wp_get_post_autosave_hack' );
-	$autosave = $autosave_query->query( $q );
-	remove_action( 'parse_query', '_wp_get_post_autosave_hack' );
-
-	if ( $autosave && is_array($autosave) && is_object($autosave[0]) )
-		return $autosave[0];
-
-	return false;
-}
-
-/**
- * Internally used to hack WP_Query into submission.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @param object $query WP_Query object
- */
-function _wp_get_post_autosave_hack( $query ) {
-	$query->is_single = false;
-}
-
-/**
- * Determines if the specified post is a revision.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @param int|object $post Post ID or post object.
- * @return bool|int False if not a revision, ID of revision's parent otherwise.
- */
-function wp_is_post_revision( $post ) {
-	if ( !$post = wp_get_post_revision( $post ) )
-		return false;
-	return (int) $post->post_parent;
-}
-
-/**
- * Determines if the specified post is an autosave.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @param int|object $post Post ID or post object.
- * @return bool|int False if not a revision, ID of autosave's parent otherwise
- */
-function wp_is_post_autosave( $post ) {
-	if ( !$post = wp_get_post_revision( $post ) )
-		return false;
-	if ( "{$post->post_parent}-autosave" !== $post->post_name )
-		return false;
-	return (int) $post->post_parent;
-}
-
-/**
- * Inserts post data into the posts table as a post revision.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses wp_insert_post()
- *
- * @param int|object|array $post Post ID, post object OR post array.
- * @param bool $autosave Optional. Is the revision an autosave?
- * @return mixed Null or 0 if error, new revision ID if success.
- */
-function _wp_put_post_revision( $post = null, $autosave = false ) {
-	if ( is_object($post) )
-		$post = get_object_vars( $post );
-	elseif ( !is_array($post) )
-		$post = get_post($post, ARRAY_A);
-	if ( !$post || empty($post['ID']) )
-		return;
-
-	if ( isset($post['post_type']) && 'revision' == $post['post_type'] )
-		return new WP_Error( 'post_type', __( 'Cannot create a revision of a revision' ) );
-
-	$post = _wp_post_revision_fields( $post, $autosave );
-	$post = add_magic_quotes($post); //since data is from db
-
-	$revision_id = wp_insert_post( $post );
-	if ( is_wp_error($revision_id) )
-		return $revision_id;
-
-	if ( $revision_id )
-		do_action( '_wp_put_post_revision', $revision_id );
-	return $revision_id;
-}
-
-/**
- * Gets a post revision.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses get_post()
- *
- * @param int|object $post Post ID or post object
- * @param string $output Optional. OBJECT, ARRAY_A, or ARRAY_N.
- * @param string $filter Optional sanitation filter. @see sanitize_post()
- * @return mixed Null if error or post object if success
- */
-function wp_get_post_revision(&$post, $output = OBJECT, $filter = 'raw') {
-	$null = null;
-	if ( !$revision = get_post( $post, OBJECT, $filter ) )
-		return $revision;
-	if ( 'revision' !== $revision->post_type )
-		return $null;
-
-	if ( $output == OBJECT ) {
-		return $revision;
-	} elseif ( $output == ARRAY_A ) {
-		$_revision = get_object_vars($revision);
-		return $_revision;
-	} elseif ( $output == ARRAY_N ) {
-		$_revision = array_values(get_object_vars($revision));
-		return $_revision;
-	}
-
-	return $revision;
-}
-
-/**
- * Restores a post to the specified revision.
- *
- * Can restore a past revision using all fields of the post revision, or only selected fields.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses wp_get_post_revision()
- * @uses wp_update_post()
- * @uses do_action() Calls 'wp_restore_post_revision' on post ID and revision ID if wp_update_post()
- *  is successful.
- *
- * @param int|object $revision_id Revision ID or revision object.
- * @param array $fields Optional. What fields to restore from. Defaults to all.
- * @return mixed Null if error, false if no fields to restore, (int) post ID if success.
- */
-function wp_restore_post_revision( $revision_id, $fields = null ) {
-	if ( !$revision = wp_get_post_revision( $revision_id, ARRAY_A ) )
-		return $revision;
-
-	if ( !is_array( $fields ) )
-		$fields = array_keys( _wp_post_revision_fields() );
-
-	$update = array();
-	foreach( array_intersect( array_keys( $revision ), $fields ) as $field )
-		$update[$field] = $revision[$field];
-
-	if ( !$update )
-		return false;
-
-	$update['ID'] = $revision['post_parent'];
-
-	$update = add_magic_quotes( $update ); //since data is from db
-
-	$post_id = wp_update_post( $update );
-	if ( is_wp_error( $post_id ) )
-		return $post_id;
-
-	if ( $post_id )
-		do_action( 'wp_restore_post_revision', $post_id, $revision['ID'] );
-
-	return $post_id;
-}
-
-/**
- * Deletes a revision.
- *
- * Deletes the row from the posts table corresponding to the specified revision.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses wp_get_post_revision()
- * @uses wp_delete_post()
- *
- * @param int|object $revision_id Revision ID or revision object.
- * @return mixed Null or WP_Error if error, deleted post if success.
- */
-function wp_delete_post_revision( $revision_id ) {
-	if ( !$revision = wp_get_post_revision( $revision_id ) )
-		return $revision;
-
-	$delete = wp_delete_post( $revision->ID );
-	if ( is_wp_error( $delete ) )
-		return $delete;
-
-	if ( $delete )
-		do_action( 'wp_delete_post_revision', $revision->ID, $revision );
-
-	return $delete;
-}
-
-/**
- * Returns all revisions of specified post.
- *
- * @package WordPress
- * @subpackage Post_Revisions
- * @since 2.6.0
- *
- * @uses get_children()
- *
- * @param int|object $post_id Post ID or post object
- * @return array empty if no revisions
- */
-function wp_get_post_revisions( $post_id = 0, $args = null ) {
-	if ( ! WP_POST_REVISIONS )
-		return array();
-	if ( ( !$post = get_post( $post_id ) ) || empty( $post->ID ) )
-		return array();
-
-	$defaults = array( 'order' => 'DESC', 'orderby' => 'date' );
-	$args = wp_parse_args( $args, $defaults );
-	$args = array_merge( $args, array( 'post_parent' => $post->ID, 'post_type' => 'revision', 'post_status' => 'inherit' ) );
-
-	if ( !$revisions = get_children( $args ) )
-		return array();
-	return $revisions;
-}
-
-function _set_preview($post) {
-
-	if ( ! is_object($post) )
-		return $post;
-
-	$preview = wp_get_post_autosave($post->ID);
-
-	if ( ! is_object($preview) )
-		return $post;
-
-	$preview = sanitize_post($preview);
-
-	$post->post_content = $preview->post_content;
-	$post->post_title = $preview->post_title;
-	$post->post_excerpt = $preview->post_excerpt;
-
-	return $post;
-}
-
-function _show_post_preview() {
-
-	if ( isset($_GET['preview_id']) && isset($_GET['preview_nonce']) ) {
-		$id = (int) $_GET['preview_id'];
-
-		if ( false == wp_verify_nonce( $_GET['preview_nonce'], 'post_preview_' . $id ) )
-			wp_die( __('You do not have permission to preview drafts.') );
-
-		add_filter('the_preview', '_set_preview');
-	}
 }
 
 /**
@@ -5311,57 +4882,6 @@ function wp_check_post_hierarchy_for_loops( $post_parent, $post_ID ) {
 }
 
 /**
- * Returns an array of post format slugs to their translated and pretty display versions
- *
- * @since 3.1.0
- *
- * @return array The array of translations
- */
-function get_post_format_strings() {
-	$strings = array(
-		'standard' => _x( 'Standard', 'Post format' ), // Special case. any value that evals to false will be considered standard
-		'aside'    => _x( 'Aside',    'Post format' ),
-		'chat'     => _x( 'Chat',     'Post format' ),
-		'gallery'  => _x( 'Gallery',  'Post format' ),
-		'link'     => _x( 'Link',     'Post format' ),
-		'image'    => _x( 'Image',    'Post format' ),
-		'quote'    => _x( 'Quote',    'Post format' ),
-		'status'   => _x( 'Status',   'Post format' ),
-		'video'    => _x( 'Video',    'Post format' ),
-		'audio'    => _x( 'Audio',    'Post format' ),
-	);
-	return $strings;
-}
-
-/**
- * Retrieves an array of post format slugs.
- *
- * @since 3.1.0
- *
- * @return array The array of post format slugs.
- */
-function get_post_format_slugs() {
-	$slugs = array_keys( get_post_format_strings() );
-	return array_combine( $slugs, $slugs );
-}
-
-/**
- * Returns a pretty, translated version of a post format slug
- *
- * @since 3.1.0
- *
- * @param string $slug A post format slug
- * @return string The translated post format name
- */
-function get_post_format_string( $slug ) {
-	$strings = get_post_format_strings();
-	if ( !$slug )
-		return $strings['standard'];
-	else
-		return ( isset( $strings[$slug] ) ) ? $strings[$slug] : '';
-}
-
-/**
  * Sets a post thumbnail.
  *
  * @since 3.1.0
@@ -5398,21 +4918,6 @@ function delete_post_thumbnail( $post ) {
 }
 
 /**
- * Returns a link to a post format index.
- *
- * @since 3.1.0
- *
- * @param string $format Post format
- * @return string Link
- */
-function get_post_format_link( $format ) {
-	$term = get_term_by('slug', 'post-format-' . $format, 'post_format' );
-	if ( ! $term || is_wp_error( $term ) )
-		return false;
-	return get_term_link( $term );
-}
-
-/**
  * Deletes auto-drafts for new posts that are > 7 days old
  *
  * @since 3.4.0
@@ -5425,98 +4930,6 @@ function wp_delete_auto_drafts() {
 	foreach ( (array) $old_posts as $delete )
 		wp_delete_post( $delete, true ); // Force delete
 }
-
-/**
- * Filters the request to allow for the format prefix.
- *
- * @access private
- * @since 3.1.0
- */
-function _post_format_request( $qvs ) {
-	if ( ! isset( $qvs['post_format'] ) )
-		return $qvs;
-	$slugs = get_post_format_slugs();
-	if ( isset( $slugs[ $qvs['post_format'] ] ) )
-		$qvs['post_format'] = 'post-format-' . $slugs[ $qvs['post_format'] ];
-	$tax = get_taxonomy( 'post_format' );
-	if ( ! is_admin() )
-		$qvs['post_type'] = $tax->object_type;
-	return $qvs;
-}
-add_filter( 'request', '_post_format_request' );
-
-/**
- * Filters the post format term link to remove the format prefix.
- *
- * @access private
- * @since 3.1.0
- */
-function _post_format_link( $link, $term, $taxonomy ) {
-	global $wp_rewrite;
-	if ( 'post_format' != $taxonomy )
-		return $link;
-	if ( $wp_rewrite->get_extra_permastruct( $taxonomy ) ) {
-		return str_replace( "/{$term->slug}", '/' . str_replace( 'post-format-', '', $term->slug ), $link );
-	} else {
-		$link = remove_query_arg( 'post_format', $link );
-		return add_query_arg( 'post_format', str_replace( 'post-format-', '', $term->slug ), $link );
-	}
-}
-add_filter( 'term_link', '_post_format_link', 10, 3 );
-
-/**
- * Remove the post format prefix from the name property of the term object created by get_term().
- *
- * @access private
- * @since 3.1.0
- */
-function _post_format_get_term( $term ) {
-	if ( isset( $term->slug ) ) {
-		$term->name = get_post_format_string( str_replace( 'post-format-', '', $term->slug ) );
-	}
-	return $term;
-}
-add_filter( 'get_post_format', '_post_format_get_term' );
-
-/**
- * Remove the post format prefix from the name property of the term objects created by get_terms().
- *
- * @access private
- * @since 3.1.0
- */
-function _post_format_get_terms( $terms, $taxonomies, $args ) {
-	if ( in_array( 'post_format', (array) $taxonomies ) ) {
-		if ( isset( $args['fields'] ) && 'names' == $args['fields'] ) {
-			foreach( $terms as $order => $name ) {
-				$terms[$order] = get_post_format_string( str_replace( 'post-format-', '', $name ) );
-			}
-		} else {
-			foreach ( (array) $terms as $order => $term ) {
-				if ( isset( $term->taxonomy ) && 'post_format' == $term->taxonomy ) {
-					$terms[$order]->name = get_post_format_string( str_replace( 'post-format-', '', $term->slug ) );
-				}
-			}
-		}
-	}
-	return $terms;
-}
-add_filter( 'get_terms', '_post_format_get_terms', 10, 3 );
-
-/**
- * Remove the post format prefix from the name property of the term objects created by wp_get_object_terms().
- *
- * @access private
- * @since 3.1.0
- */
-function _post_format_wp_get_object_terms( $terms ) {
-	foreach ( (array) $terms as $order => $term ) {
-		if ( isset( $term->taxonomy ) && 'post_format' == $term->taxonomy ) {
-			$terms[$order]->name = get_post_format_string( str_replace( 'post-format-', '', $term->slug ) );
-		}
-	}
-	return $terms;
-}
-add_filter( 'wp_get_object_terms', '_post_format_wp_get_object_terms' );
 
 /**
  * Update the custom taxonomies' term counts when a post's status is changed. For example, default posts term counts (for custom taxonomies) don't include private / draft posts.

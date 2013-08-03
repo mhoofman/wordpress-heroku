@@ -8,7 +8,7 @@
  * settings = {
  *   id : 'my_id',          the HTML ID of the textarea, required
  *   buttons: ''            Comma separated list of the names of the default buttons to show. Optional.
- *                          Current list of default button names: 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,spell,close';
+ *                          Current list of default button names: 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,close';
  * }
  *
  * The settings can also be a string quicktags_id.
@@ -229,7 +229,7 @@ function edButton(id, display, tagStart, tagEnd, access, open) {
 
 	qt._buttonsInit = function() {
 		var t = this, canvas, name, settings, theButtons, html, inst, ed, id, i, use,
-			defaults = ',strong,em,link,block,del,ins,img,ul,ol,li,code,more,spell,close,';
+			defaults = ',strong,em,link,block,del,ins,img,ul,ol,li,code,more,close,';
 
 		for ( inst in t.instances ) {
 			if ( inst == 0 )
@@ -296,14 +296,14 @@ function edButton(id, display, tagStart, tagEnd, access, open) {
 	 *     QTags.addButton( 'my_id', 'my button', '<span>', '</span>' );
 	 *     QTags.addButton( 'my_id2', 'my button', '<br />' );
 	 *
-	 * @param id string required Button HTML ID
-	 * @param display string required Button's value="..."
-	 * @param arg1 string || function required Either a starting tag to be inserted like "<span>" or a callback that is executed when the button is clicked.
-	 * @param arg2 string optional Ending tag like "</span>"
-	 * @param access_key string optional Access key for the button.
-	 * @param title string optional Button's title="..."
-	 * @param priority int optional Number representing the desired position of the button in the toolbar. 1 - 9 = first, 11 - 19 = second, 21 - 29 = third, etc.
-	 * @param instance string optional Limit the button to a specifric instance of Quicktags, add to all instances if not present.
+	 * @param string id Required. Button HTML ID
+	 * @param string display Required. Button's value="..."
+	 * @param string|function arg1 Required. Either a starting tag to be inserted like "<span>" or a callback that is executed when the button is clicked.
+	 * @param string arg2 Optional. Ending tag like "</span>"
+	 * @param string access_key Optional. Access key for the button.
+	 * @param string title Optional. Button's title="..."
+	 * @param int priority Optional. Number representing the desired position of the button in the toolbar. 1 - 9 = first, 11 - 19 = second, 21 - 29 = third, etc.
+	 * @param string instance Optional. Limit the button to a specifric instance of Quicktags, add to all instances if not present.
 	 * @return mixed null or the button object that is needed for back-compat.
 	 */
 	qt.addButton = function( id, display, arg1, arg2, access_key, title, priority, instance ) {
@@ -499,36 +499,8 @@ function edButton(id, display, tagStart, tagEnd, access, open) {
 		}
 	};
 
-	// the spell button
-	qt.SpellButton = function() {
-		qt.Button.call(this, 'spell', quicktagsL10n.lookup, '', quicktagsL10n.dictionaryLookup);
-	};
-	qt.SpellButton.prototype = new qt.Button();
-	qt.SpellButton.prototype.callback = function(element, canvas, ed) {
-		var word = '', sel, startPos, endPos;
-
-		if ( document.selection ) {
-			canvas.focus();
-			sel = document.selection.createRange();
-			if ( sel.text.length > 0 ) {
-				word = sel.text;
-			}
-		} else if ( canvas.selectionStart || canvas.selectionStart == '0' ) {
-			startPos = canvas.selectionStart;
-			endPos = canvas.selectionEnd;
-			if ( startPos != endPos ) {
-				word = canvas.value.substring(startPos, endPos);
-			}
-		}
-
-		if ( word === '' ) {
-			word = prompt(quicktagsL10n.wordLookup, '');
-		}
-
-		if ( word !== null && /^\w[\w ]*$/.test(word)) {
-			window.open('http://www.answers.com/' + encodeURIComponent(word));
-		}
-	};
+	// removed
+	qt.SpellButton = function() {};
 
 	// the close tags button
 	qt.CloseButton = function() {
@@ -643,7 +615,6 @@ function edButton(id, display, tagStart, tagEnd, access, open) {
 	edButtons[100] = new qt.TagButton('li','li','\t<li>','</li>\n','l'),
 	edButtons[110] = new qt.TagButton('code','code','<code>','</code>','c'),
 	edButtons[120] = new qt.TagButton('more','more','<!--more-->','','t'),
-	edButtons[130] = new qt.SpellButton(),
 	edButtons[140] = new qt.CloseButton()
 
 })();

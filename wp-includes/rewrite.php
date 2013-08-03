@@ -89,7 +89,7 @@ function add_feed($feedname, $function) {
 		$wp_rewrite->feeds[] = $feedname;
 	$hook = 'do_feed_' . $feedname;
 	// Remove default function hook
-	remove_action($hook, $hook, 10, 1);
+	remove_action($hook, $hook);
 	add_action($hook, $function, 10, 1);
 	return $hook;
 }
@@ -315,7 +315,7 @@ function url_to_postid($url) {
 
 	// Strip 'index.php/' if we're not using path info permalinks
 	if ( !$wp_rewrite->using_index_permalinks() )
-		$url = str_replace('index.php/', '', $url);
+		$url = str_replace( $wp_rewrite->index . '/', '', $url );
 
 	if ( false !== strpos($url, home_url()) ) {
 		// Chop off http://domain.com
@@ -1552,7 +1552,7 @@ class WP_Rewrite {
 		$root_rewrite = apply_filters('root_rewrite_rules', $root_rewrite);
 
 		// Comments
-		$comments_rewrite = $this->generate_rewrite_rules($this->root . $this->comments_base, EP_COMMENTS, true, true, true, false);
+		$comments_rewrite = $this->generate_rewrite_rules($this->root . $this->comments_base, EP_COMMENTS, false, true, true, false);
 		$comments_rewrite = apply_filters('comments_rewrite_rules', $comments_rewrite);
 
 		// Search

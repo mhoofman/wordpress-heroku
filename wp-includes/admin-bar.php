@@ -8,8 +8,8 @@
 /**
  * Instantiate the admin bar object and set it up as a global for access elsewhere.
  *
- * To hide the admin bar, you're looking in the wrong place. Unhooking this function will not
- * properly remove the admin bar. For that, use show_admin_bar(false) or the show_admin_bar filter.
+ * UNHOOKING THIS FUNCTION WILL NOT PROPERLY REMOVE THE ADMIN BAR.
+ * For that, use show_admin_bar(false) or the 'show_admin_bar' filter.
  *
  * @since 3.1.0
  * @access private
@@ -36,7 +36,9 @@ function _wp_admin_bar_init() {
 
 	return true;
 }
-add_action( 'init', '_wp_admin_bar_init' ); // Don't remove. Wrong way to disable.
+// Don't remove. Wrong way to disable.
+add_action( 'template_redirect', '_wp_admin_bar_init', 0 );
+add_action( 'admin_init', '_wp_admin_bar_init' );
 
 /**
  * Render the admin bar to the page based on the $wp_admin_bar->menu member var.
@@ -174,8 +176,8 @@ function wp_admin_bar_my_account_menu( $wp_admin_bar ) {
 	$user_info  = get_avatar( $user_id, 64 );
 	$user_info .= "<span class='display-name'>{$current_user->display_name}</span>";
 
-	if ( $current_user->display_name !== $current_user->user_nicename )
-		$user_info .= "<span class='username'>{$current_user->user_nicename}</span>";
+	if ( $current_user->display_name !== $current_user->user_login )
+		$user_info .= "<span class='username'>{$current_user->user_login}</span>";
 
 	$wp_admin_bar->add_menu( array(
 		'parent' => 'user-actions',
@@ -227,9 +229,7 @@ function wp_admin_bar_site_menu( $wp_admin_bar ) {
 		$blogname = sprintf( __('Global Dashboard: %s'), esc_html( $current_site->site_name ) );
 	}
 
-	$title = wp_html_excerpt( $blogname, 40 );
-	if ( $title != $blogname )
-		$title = trim( $title ) . '&hellip;';
+	$title = wp_html_excerpt( $blogname, 40, '&hellip;' );
 
 	$wp_admin_bar->add_menu( array(
 		'id'    => 'site-name',
@@ -429,7 +429,7 @@ function wp_admin_bar_edit_menu( $wp_admin_bar ) {
 		if ( 'post' == $current_screen->base
 			&& 'add' != $current_screen->action
 			&& ( $post_type_object = get_post_type_object( $post->post_type ) )
-			&& current_user_can( $post_type_object->cap->read_post, $post->ID )
+			&& current_user_can( 'read_post', $post->ID )
 			&& ( $post_type_object->public )
 			&& ( $post_type_object->show_in_admin_bar ) )
 		{
@@ -457,7 +457,7 @@ function wp_admin_bar_edit_menu( $wp_admin_bar ) {
 
 		if ( ! empty( $current_object->post_type )
 			&& ( $post_type_object = get_post_type_object( $current_object->post_type ) )
-			&& current_user_can( $post_type_object->cap->edit_post, $current_object->ID )
+			&& current_user_can( 'edit_post', $current_object->ID )
 			&& $post_type_object->show_ui && $post_type_object->show_in_admin_bar )
 		{
 			$wp_admin_bar->add_menu( array(

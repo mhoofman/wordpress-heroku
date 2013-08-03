@@ -9,7 +9,7 @@
 /** WordPress Administration Bootstrap */
 require_once('./admin.php');
 
-wp_reset_vars(array('action', 'redirect', 'profile', 'user_id', 'wp_http_referer'));
+wp_reset_vars( array( 'action', 'user_id', 'wp_http_referer' ) );
 
 $user_id = (int) $user_id;
 $current_user = wp_get_current_user();
@@ -54,7 +54,7 @@ get_current_screen()->set_help_sidebar(
     '<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
-$wp_http_referer = remove_query_arg(array('update', 'delete_count'), stripslashes($wp_http_referer));
+$wp_http_referer = remove_query_arg(array('update', 'delete_count'), $wp_http_referer );
 
 $user_can_edit = current_user_can( 'edit_posts' ) || current_user_can( 'edit_pages' );
 
@@ -250,7 +250,6 @@ if ( !( IS_PROFILE_PAGE && !$user_can_edit ) ) : ?>
 <td><select name="role" id="role">
 <?php
 // Compare user role against currently editable roles
-// TODO: create a function that does this: wp_get_user_role()
 $user_roles = array_intersect( array_values( $profileuser->roles ), array_keys( get_editable_roles() ) );
 $user_role  = array_shift( $user_roles );
 
@@ -337,7 +336,7 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 	<td><input type="text" name="email" id="email" value="<?php echo esc_attr($profileuser->user_email) ?>" class="regular-text" />
 	<?php
 	$new_email = get_option( $current_user->ID . '_new_email' );
-	if ( $new_email && $new_email != $current_user->user_email ) : ?>
+	if ( $new_email && $new_email['newemail'] != $current_user->user_email && $profileuser->ID == $current_user->ID ) : ?>
 	<div class="updated inline">
 	<p><?php printf( __('There is a pending change of your e-mail to <code>%1$s</code>. <a href="%2$s">Cancel</a>'), $new_email['newemail'], esc_url( self_admin_url( 'profile.php?dismiss=' . $current_user->ID . '_new_email' ) ) ); ?></p>
 	</div>
@@ -377,10 +376,18 @@ if ( $show_password_fields ) :
 ?>
 <tr id="password">
 	<th><label for="pass1"><?php _e('New Password'); ?></label></th>
-	<td><input type="password" name="pass1" id="pass1" size="16" value="" autocomplete="off" /> <span class="description"><?php _e("If you would like to change the password type a new one. Otherwise leave this blank."); ?></span><br />
-		<input type="password" name="pass2" id="pass2" size="16" value="" autocomplete="off" /> <span class="description"><?php _e("Type your new password again."); ?></span><br />
-		<div id="pass-strength-result"><?php _e('Strength indicator'); ?></div>
-		<p class="description indicator-hint"><?php _e('Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers and symbols like ! " ? $ % ^ &amp; ).'); ?></p>
+	<td>
+		<input class="hidden" value=" " /><!-- #24364 workaround -->
+		<input type="password" name="pass1" id="pass1" size="16" value="" autocomplete="off" /> <span class="description"><?php _e("If you would like to change the password type a new one. Otherwise leave this blank."); ?></span>
+	</td>
+</tr>
+<tr>
+	<th scope="row"><label for="pass2"><?php _e('Repeat New Password'); ?></label></th>
+	<td>
+	<input name="pass2" type="password" id="pass2" size="16" value="" autocomplete="off" /> <span class="description" for="pass2"><?php _e("Type your new password again."); ?></span>
+	<br />
+	<div id="pass-strength-result"><?php _e('Strength indicator'); ?></div>
+	<p class="description indicator-hint"><?php _e('Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers and symbols like ! " ? $ % ^ &amp; ).'); ?></p>
 	</td>
 </tr>
 <?php endif; ?>
@@ -393,25 +400,27 @@ if ( $show_password_fields ) :
 		do_action( 'edit_user_profile', $profileuser );
 ?>
 
-<?php if ( count($profileuser->caps) > count($profileuser->roles) && apply_filters('additional_capabilities_display', true, $profileuser) ) { ?>
-<br class="clear" />
-	<table width="99%" style="border: none;" cellspacing="2" cellpadding="3" class="editform">
-		<tr>
-			<th scope="row"><?php _e('Additional Capabilities') ?></th>
-			<td><?php
-			$output = '';
-			foreach ( $profileuser->caps as $cap => $value ) {
-				if ( !$wp_roles->is_role($cap) ) {
-					if ( $output != '' )
-						$output .= ', ';
-					$output .= $value ? $cap : "Denied: {$cap}";
-				}
-			}
-			echo $output;
-			?></td>
-		</tr>
-	</table>
-<?php } ?>
+<?php if ( count( $profileuser->caps ) > count( $profileuser->roles ) && apply_filters( 'additional_capabilities_display', true, $profileuser ) ) : ?>
+<h3><?php _e( 'Additional Capabilities' ); ?></h3>
+<table class="form-table">
+<tr>
+	<th scope="row"><?php _e( 'Capabilities' ); ?></th>
+	<td>
+<?php
+	$output = '';
+	foreach ( $profileuser->caps as $cap => $value ) {
+		if ( ! $wp_roles->is_role( $cap ) ) {
+			if ( '' != $output )
+				$output .= ', ';
+			$output .= $value ? $cap : sprintf( __( 'Denied: %s' ), $cap );
+		}
+	}
+	echo $output;
+?>
+	</td>
+</tr>
+</table>
+<?php endif; ?>
 
 <input type="hidden" name="action" value="update" />
 <input type="hidden" name="user_id" id="user_id" value="<?php echo esc_attr($user_id); ?>" />

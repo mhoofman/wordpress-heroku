@@ -175,6 +175,7 @@ add_filter( 'the_author',         'ent2ncr',      8 );
 // Misc filters
 add_filter( 'option_ping_sites',        'privacy_ping_filter'                 );
 add_filter( 'option_blog_charset',      '_wp_specialchars'                    ); // IMPORTANT: This must not be wp_specialchars() or esc_html() or it'll cause an infinite loop
+add_filter( 'option_blog_charset',      '_canonical_charset'                  );
 add_filter( 'option_home',              '_config_wp_home'                     );
 add_filter( 'option_siteurl',           '_config_wp_siteurl'                  );
 add_filter( 'tiny_mce_before_init',     '_mce_set_direction'                  );
@@ -194,6 +195,8 @@ add_filter( 'editable_slug',            'esc_textarea'                        );
 add_filter( 'nav_menu_meta_box_object', '_wp_nav_menu_meta_box_object'        );
 add_filter( 'pingback_ping_source_uri', 'pingback_ping_source_uri'            );
 add_filter( 'xmlrpc_pingback_error',    'xmlrpc_pingback_error'               );
+
+add_filter( 'http_request_host_is_external', 'allowed_http_request_hosts', 10, 2 );
 
 // Actions
 add_action( 'wp_head',             'wp_enqueue_scripts',              1     );
@@ -249,7 +252,7 @@ add_action( 'init',                       'smilies_init',                       
 add_action( 'plugins_loaded',             'wp_maybe_load_widgets',                    0    );
 add_action( 'plugins_loaded',             'wp_maybe_load_embeds',                     0    );
 add_action( 'shutdown',                   'wp_ob_end_flush_all',                      1    );
-add_action( 'pre_post_update',            'wp_save_post_revision'                          );
+add_action( 'post_updated',               'wp_save_post_revision',                   10, 1 );
 add_action( 'publish_post',               '_publish_post_hook',                       5, 1 );
 add_action( 'transition_post_status',     '_transition_post_status',                  5, 3 );
 add_action( 'transition_post_status',     '_update_term_count_on_transition_post_status', 10, 3 );
@@ -289,5 +292,13 @@ add_filter( 'default_option_link_manager_enabled', '__return_true' );
 
 // This option no longer exists; tell plugins we always support auto-embedding.
 add_filter( 'default_option_embed_autourls', '__return_true' );
+
+// Default settings for heartbeat
+add_filter( 'heartbeat_settings', 'wp_heartbeat_settings' );
+
+// Check if the user is logged out
+add_action( 'admin_enqueue_scripts',     'wp_auth_check_load'   );
+add_filter( 'heartbeat_received',        'wp_auth_check', 10, 2 );
+add_filter( 'heartbeat_nopriv_received', 'wp_auth_check', 10, 2 );
 
 unset($filter, $action);

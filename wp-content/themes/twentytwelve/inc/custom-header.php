@@ -21,7 +21,7 @@
 function twentytwelve_custom_header_setup() {
 	$args = array(
 		// Text color and image (empty to use none).
-		'default-text-color'     => '444',
+		'default-text-color'     => '515151',
 		'default-image'          => '',
 
 		// Set height and width, with a maximum value for the width.
@@ -47,9 +47,23 @@ function twentytwelve_custom_header_setup() {
 add_action( 'after_setup_theme', 'twentytwelve_custom_header_setup' );
 
 /**
+ * Loads our special font CSS file.
+ *
+ * @since Twenty Twelve 1.2
+ *
+ * @return void
+ */
+function twentytwelve_custom_header_fonts() {
+	$font_url = twentytwelve_get_font_url();
+	if ( ! empty( $font_url ) )
+		wp_enqueue_style( 'twentytwelve-fonts', esc_url_raw( $font_url ), array(), null );
+}
+add_action( 'admin_print_styles-appearance_page_custom-header', 'twentytwelve_custom_header_fonts' );
+
+/**
  * Styles the header text displayed on the blog.
  *
- * get_header_textcolor() options: 444 is default, hide text (returns 'blank'), or any hex value.
+ * get_header_textcolor() options: 515151 is default, hide text (returns 'blank'), or any hex value.
  *
  * @since Twenty Twelve 1.0
  */
@@ -62,14 +76,14 @@ function twentytwelve_header_style() {
 
 	// If we get this far, we have custom styles.
 	?>
-	<style type="text/css">
+	<style type="text/css" id="twentytwelve-header-css">
 	<?php
 		// Has the text been hidden?
 		if ( ! display_header_text() ) :
 	?>
 		.site-title,
 		.site-description {
-			position: absolute !important;
+			position: absolute;
 			clip: rect(1px 1px 1px 1px); /* IE7 */
 			clip: rect(1px, 1px, 1px, 1px);
 		}
@@ -77,9 +91,9 @@ function twentytwelve_header_style() {
 		// If the user has set a custom color for the text, use that.
 		else :
 	?>
-		.site-title a,
-		.site-description {
-			color: #<?php echo $text_color; ?> !important;
+		.site-header h1 a,
+		.site-header h2 {
+			color: #<?php echo $text_color; ?>;
 		}
 	<?php endif; ?>
 	</style>
@@ -93,29 +107,30 @@ function twentytwelve_header_style() {
  */
 function twentytwelve_admin_header_style() {
 ?>
-	<style type="text/css">
+	<style type="text/css" id="twentytwelve-admin-header-css">
 	.appearance_page_custom-header #headimg {
 		border: none;
+		font-family: "Open Sans", Helvetica, Arial, sans-serif;
 	}
 	#headimg h1,
 	#headimg h2 {
-		line-height: 1.6;
+		line-height: 1.84615;
 		margin: 0;
 		padding: 0;
 	}
 	#headimg h1 {
-		font-size: 30px;
+		font-size: 26px;
 	}
 	#headimg h1 a {
 		color: #515151;
 		text-decoration: none;
 	}
 	#headimg h1 a:hover {
-		color: #21759b;
+		color: #21759b !important; /* Has to override custom inline style. */
 	}
 	#headimg h2 {
 		color: #757575;
-		font: normal 13px/1.8 "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", sans-serif;
+		font-size: 13px;
 		margin-bottom: 24px;
 	}
 	#headimg img {
@@ -140,8 +155,8 @@ function twentytwelve_admin_header_image() {
 		else
 			$style = ' style="color:#' . get_header_textcolor() . ';"';
 		?>
-		<h1><a id="name"<?php echo $style; ?> onclick="return false;" href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php bloginfo( 'name' ); ?></a></h1>
-		<h2 id="desc"<?php echo $style; ?>><?php bloginfo( 'description' ); ?></h2>
+		<h1 class="displaying-header-text"><a id="name"<?php echo $style; ?> onclick="return false;" href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php bloginfo( 'name' ); ?></a></h1>
+		<h2 id="desc" class="displaying-header-text"<?php echo $style; ?>><?php bloginfo( 'description' ); ?></h2>
 		<?php $header_image = get_header_image();
 		if ( ! empty( $header_image ) ) : ?>
 			<img src="<?php echo esc_url( $header_image ); ?>" class="header-image" width="<?php echo get_custom_header()->width; ?>" height="<?php echo get_custom_header()->height; ?>" alt="" />

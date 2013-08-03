@@ -846,26 +846,6 @@
 			api.state = state;
 		}());
 
-		// Temporary accordion code.
-		$('.customize-section-title').bind('click keydown', function( event ) {
-
-			if ( event.type === 'keydown' &&  13 !== event.which ) // enter
-					return;
-
-			var clicked = $( this ).parents( '.customize-section' );
-
-			if ( clicked.hasClass('cannot-expand') )
-				return;
-
-			// Scroll up if on #customize-section-title_tagline
-			if ('customize-section-title_tagline' === clicked.attr('id'))
-				$('.wp-full-overlay-sidebar-content').scrollTop(0);
-
-			$( '.customize-section' ).not( clicked ).removeClass( 'open' );
-			clicked.toggleClass( 'open' );
-			event.preventDefault();
-		});
-
 		// Button bindings.
 		$('#save').click( function( event ) {
 			previewer.save();
@@ -884,6 +864,11 @@
 			if ( 13 === event.which ) // enter
 				parent.send( 'close' );
 			event.preventDefault();
+		});
+
+		$('.upload-dropzone a.upload').keydown( function( event ) {
+			if ( 13 === event.which ) // enter
+				this.click();
 		});
 
 		$('.collapse-sidebar').on( 'click keydown', function( event ) {

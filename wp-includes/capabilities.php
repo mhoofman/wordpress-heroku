@@ -158,7 +158,7 @@ class WP_Roles {
 	 * @param string $role Role name.
 	 * @param string $display_name Role display name.
 	 * @param array $capabilities List of role capabilities in the above format.
-	 * @return null|WP_Role WP_Role object if role is added, null if already exists.
+	 * @return WP_Role|null WP_Role object if role is added, null if already exists.
 	 */
 	function add_role( $role, $display_name, $capabilities = array() ) {
 		if ( isset( $this->roles[$role] ) )
@@ -239,7 +239,7 @@ class WP_Roles {
 	 * @access public
 	 *
 	 * @param string $role Role name.
-	 * @return object|null Null, if role does not exist. WP_Role object, if found.
+	 * @return WP_Role|null WP_Role object if found, null if the role does not exist.
 	 */
 	function get_role( $role ) {
 		if ( isset( $this->role_objects[$role] ) )
@@ -535,7 +535,9 @@ class WP_User {
 			// to int 1.
 			if ( ! is_numeric( $value ) )
 				return false;
-			$value = absint( $value );
+			$value = intval( $value );
+			if ( $value < 1 )
+				return false;
 		} else {
 			$value = trim( $value );
 		}
@@ -803,6 +805,7 @@ class WP_User {
 		foreach ( (array) $this->roles as $oldrole )
 			unset( $this->caps[$oldrole] );
 
+		$old_roles = $this->roles;
 		if ( !empty( $role ) ) {
 			$this->caps[$role] = true;
 			$this->roles = array( $role => true );
@@ -812,7 +815,7 @@ class WP_User {
 		update_user_meta( $this->ID, $this->cap_key, $this->caps );
 		$this->get_role_caps();
 		$this->update_user_level_from_caps();
-		do_action( 'set_user_role', $this->ID, $role );
+		do_action( 'set_user_role', $this->ID, $role, $old_roles );
 	}
 
 	/**
@@ -1159,8 +1162,7 @@ function map_meta_cap( $cap, $user_id ) {
 	case 'delete_post_meta':
 	case 'add_post_meta':
 		$post = get_post( $args[0] );
-		$post_type_object = get_post_type_object( $post->post_type );
-		$caps = map_meta_cap( $post_type_object->cap->edit_post, $user_id, $post->ID );
+		$caps = map_meta_cap( 'edit_post', $user_id, $post->ID );
 
 		$meta_key = isset( $args[ 1 ] ) ? $args[ 1 ] : false;
 
@@ -1175,9 +1177,7 @@ function map_meta_cap( $cap, $user_id ) {
 	case 'edit_comment':
 		$comment = get_comment( $args[0] );
 		$post = get_post( $comment->comment_post_ID );
-		$post_type_object = get_post_type_object( $post->post_type );
-
-		$caps = map_meta_cap( $post_type_object->cap->edit_post, $user_id, $post->ID );
+		$caps = map_meta_cap( 'edit_post', $user_id, $post->ID );
 		break;
 	case 'unfiltered_upload':
 		if ( defined('ALLOW_UNFILTERED_UPLOADS') && ALLOW_UNFILTERED_UPLOADS && ( !is_multisite() || is_super_admin( $user_id ) )  )
@@ -1371,7 +1371,7 @@ function user_can( $user, $capability ) {
  * @since 2.0.0
  *
  * @param string $role Role name.
- * @return object
+ * @return WP_Role|null WP_Role object if found, null if the role does not exist.
  */
 function get_role( $role ) {
 	global $wp_roles;
@@ -1391,7 +1391,7 @@ function get_role( $role ) {
  * @param string $role Role name.
  * @param string $display_name Display name for role.
  * @param array $capabilities List of capabilities, e.g. array( 'edit_posts' => true, 'delete_posts' => false );
- * @return null|WP_Role WP_Role object if role is added, null if already exists.
+ * @return WP_Role|null WP_Role object if role is added, null if already exists.
  */
 function add_role( $role, $display_name, $capabilities = array() ) {
 	global $wp_roles;

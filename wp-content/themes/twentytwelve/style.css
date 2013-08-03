@@ -1,10 +1,10 @@
 /*
 Theme Name: Twenty Twelve
-Theme URI: http://wordpress.org/extend/themes/twentytwelve
+Theme URI: http://wordpress.org/themes/twentytwelve
 Author: the WordPress team
 Author URI: http://wordpress.org/
 Description: The 2012 theme for WordPress is a fully responsive theme that looks great on any device. Features include a front page template with its own widgets, an optional display font, styling for post formats on both index and single views, and an optional no-sidebar page template. Make it yours with a custom menu, header image, and background.
-Version: 1.1
+Version: 1.2
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: light, gray, white, one-column, two-columns, right-sidebar, flexible-width, custom-background, custom-header, custom-menu, editor-style, featured-images, flexible-header, full-width-template, microformats, post-formats, rtl-language-support, sticky-post, theme-options, translation-ready
@@ -214,7 +214,7 @@ textarea {
 }
 button,
 input {
-    line-height: normal;
+	line-height: normal;
 }
 textarea {
 	font-size: 100%;
@@ -240,7 +240,7 @@ input[type="submit"],
 input[type="button"],
 input[type="reset"],
 article.post-password-required input[type=submit],
-li.bypostauthor cite span {
+.bypostauthor cite span {
 	padding: 6px 10px;
 	padding: 0.428571429rem 0.714285714rem;
 	font-size: 11px;
@@ -268,7 +268,7 @@ input[type="reset"] {
 }
 button[disabled],
 input[disabled] {
-    cursor: default;
+	cursor: default;
 }
 .menu-toggle:hover,
 button:hover,
@@ -300,9 +300,9 @@ input[type="reset"]:active {
 	background-image: -o-linear-gradient(top, #ebebeb, #e1e1e1);
 	background-image: linear-gradient(top, #ebebeb, #e1e1e1);
 	box-shadow: inset 0 0 8px 2px #c6c6c6, 0 1px 0 0 #f4f4f4;
-	border: none;
+	border-color: transparent;
 }
-li.bypostauthor cite span {
+.bypostauthor cite span {
 	color: #fff;
 	background-color: #21759b;
 	background-image: none;
@@ -505,8 +505,6 @@ a:hover {
 	position: absolute !important;
 	clip: rect(1px, 1px, 1px, 1px);
 }
-.main-navigation .assistive-text:hover,
-.main-navigation .assistive-text:active,
 .main-navigation .assistive-text:focus {
 	background: #fff;
 	border: 2px solid #333;
@@ -647,6 +645,9 @@ section[role="banner"] {
 }
 .widget-area .widget a:hover {
 	color: #21759b;
+}
+.widget-area .widget a:visited {
+	color: #9f9f9f;
 }
 .widget-area #s {
 	width: 53.66666666666%; /* define a width to avoid dropping a wider submit button */
@@ -797,6 +798,10 @@ article.sticky .featured-post {
 	margin: 0 0 1.714285714rem;
 	line-height: 1.714285714;
 }
+.entry-content a:visited,
+.comment-content a:visited {
+	color: #9f9f9f;
+}
 .entry-content ol,
 .comment-content ol,
 .entry-content ul,
@@ -884,15 +889,19 @@ article.sticky .featured-post {
 	margin: 0 0 24px;
 	margin: 0 0 1.714285714rem;
 }
-img.alignleft {
+img.alignleft,
+.wp-caption.alignleft {
 	margin: 12px 24px 12px 0;
 	margin: 0.857142857rem 1.714285714rem 0.857142857rem 0;
 }
-img.alignright {
+img.alignright,
+.wp-caption.alignright {
 	margin: 12px 0 12px 24px;
 	margin: 0.857142857rem 0 0.857142857rem 1.714285714rem;
 }
-img.aligncenter {
+img.aligncenter,
+.wp-caption.aligncenter {
+	clear: both;
 	margin-top: 12px;
 	margin-top: 0.857142857rem;
 	margin-bottom: 12px;
@@ -1189,6 +1198,9 @@ article.format-quote .entry-content blockquote {
 	font-size: 1.071428571rem;
 	line-height: 1.42857143;
 }
+.comments-area cite b {
+	font-weight: normal;
+}
 .comments-area article header time {
 	line-height: 1.714285714;
 	text-decoration: none;
@@ -1229,7 +1241,7 @@ article.format-quote .entry-content blockquote {
 	border-radius: 3px;
 	border: 1px solid #007cbd;
 }
-.comments-area li.bypostauthor cite span {
+.comments-area .bypostauthor cite span {
 	position: absolute;
 	margin-left: 5px;
 	margin-left: 0.357142857rem;
@@ -1237,6 +1249,9 @@ article.format-quote .entry-content blockquote {
 	padding: 0.142857143rem 0.357142857rem;
 	font-size: 10px;
 	font-size: 0.714285714rem;
+}
+.comments-area .bypostauthor cite b {
+	font-weight: bold;
 }
 a.comment-reply-link,
 a.comment-edit-link {

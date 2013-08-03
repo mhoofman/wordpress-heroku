@@ -396,6 +396,12 @@ div#dashboard-widgets {
 	display: inline;
 }
 
+a.post-state-format {
+	text-indent: 0;
+	line-height: 0;
+	font-size: 0;
+}
+
 table.ie-fixed {
 	table-layout: fixed;
 }
@@ -624,3 +630,13 @@ table.ie-fixed {
 * html #adminmenu div.wp-menu-image {
 	height: 29px;
 }
+
+.revisions-tickmarks,
+.revisions-tooltip {
+	display: none !important;
+}
+
+.revisions.pinned .revisions-controls {
+    position: relative;
+}
+

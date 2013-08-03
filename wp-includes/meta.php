@@ -26,7 +26,7 @@
  * @param bool $unique Optional, default is false. Whether the specified metadata key should be
  * 		unique for the object. If true, and the object already has a value for the specified
  * 		metadata key, no change will be made
- * @return bool The meta ID on successful update, false on failure.
+ * @return int|bool The meta ID on successful update, false on failure.
  */
 function add_metadata($meta_type, $object_id, $meta_key, $meta_value, $unique = false) {
 	if ( !$meta_type || !$meta_key )
@@ -40,11 +40,11 @@ function add_metadata($meta_type, $object_id, $meta_key, $meta_value, $unique = 
 
 	global $wpdb;
 
-	$column = esc_sql($meta_type . '_id');
+	$column = sanitize_key($meta_type . '_id');
 
 	// expected_slashed ($meta_key)
-	$meta_key = stripslashes($meta_key);
-	$meta_value = stripslashes_deep($meta_value);
+	$meta_key = wp_unslash($meta_key);
+	$meta_value = wp_unslash($meta_value);
 	$meta_value = sanitize_meta( $meta_key, $meta_value, $meta_type );
 
 	$check = apply_filters( "add_{$meta_type}_metadata", null, $object_id, $meta_key, $meta_value, $unique );
@@ -110,13 +110,13 @@ function update_metadata($meta_type, $object_id, $meta_key, $meta_value, $prev_v
 
 	global $wpdb;
 
-	$column = esc_sql($meta_type . '_id');
+	$column = sanitize_key($meta_type . '_id');
 	$id_column = 'user' == $meta_type ? 'umeta_id' : 'meta_id';
 
 	// expected_slashed ($meta_key)
-	$meta_key = stripslashes($meta_key);
+	$meta_key = wp_unslash($meta_key);
 	$passed_value = $meta_value;
-	$meta_value = stripslashes_deep($meta_value);
+	$meta_value = wp_unslash($meta_value);
 	$meta_value = sanitize_meta( $meta_key, $meta_value, $meta_type );
 
 	$check = apply_filters( "update_{$meta_type}_metadata", null, $object_id, $meta_key, $meta_value, $prev_value );
@@ -193,11 +193,11 @@ function delete_metadata($meta_type, $object_id, $meta_key, $meta_value = '', $d
 
 	global $wpdb;
 
-	$type_column = esc_sql($meta_type . '_id');
+	$type_column = sanitize_key($meta_type . '_id');
 	$id_column = 'user' == $meta_type ? 'umeta_id' : 'meta_id';
 	// expected_slashed ($meta_key)
-	$meta_key = stripslashes($meta_key);
-	$meta_value = stripslashes_deep($meta_value);
+	$meta_key = wp_unslash($meta_key);
+	$meta_value = wp_unslash($meta_value);
 
 	$check = apply_filters( "delete_{$meta_type}_metadata", null, $object_id, $meta_key, $meta_value, $delete_all );
 	if ( null !== $check )
@@ -397,7 +397,7 @@ function update_metadata_by_mid( $meta_type, $meta_id, $meta_value, $meta_key = 
 	if ( ! $table = _get_meta_table( $meta_type ) )
 		return false;
 
-	$column = esc_sql($meta_type . '_id');
+	$column = sanitize_key($meta_type . '_id');
 	$id_column = 'user' == $meta_type ? 'umeta_id' : 'meta_id';
 
 	// Fetch the meta and go on if it's found.
@@ -478,7 +478,7 @@ function delete_metadata_by_mid( $meta_type, $meta_id ) {
 		return false;
 
 	// object and id columns
-	$column = esc_sql($meta_type . '_id');
+	$column = sanitize_key($meta_type . '_id');
 	$id_column = 'user' == $meta_type ? 'umeta_id' : 'meta_id';
 
 	// Fetch the meta and go on if it's found.
@@ -528,7 +528,7 @@ function update_meta_cache($meta_type, $object_ids) {
 	if ( ! $table = _get_meta_table($meta_type) )
 		return false;
 
-	$column = esc_sql($meta_type . '_id');
+	$column = sanitize_key($meta_type . '_id');
 
 	global $wpdb;
 
@@ -678,7 +678,7 @@ class WP_Meta_Query {
 		}
 
 		// WP_Query sets 'meta_value' = '' by default
-		if ( isset( $qv[ 'meta_value' ] ) && '' !== $qv[ 'meta_value' ] )
+		if ( isset( $qv[ 'meta_value' ] ) && '' !== $qv[ 'meta_value' ] && ( ! is_array( $qv[ 'meta_value' ] ) || $qv[ 'meta_value' ] ) )
 			$meta_query[0]['value'] = $qv[ 'meta_value' ];
 
 		if ( !empty( $qv['meta_query'] ) && is_array( $qv['meta_query'] ) ) {
@@ -706,7 +706,7 @@ class WP_Meta_Query {
 		if ( ! $meta_table = _get_meta_table( $type ) )
 			return false;
 
-		$meta_id_column = esc_sql( $type . '_id' );
+		$meta_id_column = sanitize_key( $type . '_id' );
 
 		$join = array();
 		$where = array();
@@ -714,6 +714,14 @@ class WP_Meta_Query {
 		$key_only_queries = array();
 		$queries = array();
 
+		// Split out the queries with empty arrays as value
+		foreach ( $this->queries as $k => $q ) {
+			if ( isset( $q['value'] ) && is_array( $q['value'] ) && empty( $q['value'] ) ) {
+				$key_only_queries[$k] = $q;
+				unset( $this->queries[$k] );
+			}
+		}		
+		
 		// Split out the meta_key only queries (we can only do this for OR)
 		if ( 'OR' == $this->relation ) {
 			foreach ( $this->queries as $k => $q ) {

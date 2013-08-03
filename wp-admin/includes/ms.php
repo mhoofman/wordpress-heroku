@@ -80,7 +80,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 		$drop = false;
 
 	if ( $drop ) {
-		$drop_tables = apply_filters( 'wpmu_drop_tables', $wpdb->tables( 'blog' ) );
+		$drop_tables = apply_filters( 'wpmu_drop_tables', $wpdb->tables( 'blog' ), $blog_id );
 
 		foreach ( (array) $drop_tables as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS `$table`" );
@@ -134,6 +134,9 @@ function wpmu_delete_user( $id ) {
 
 	$id = (int) $id;
 	$user = new WP_User( $id );
+
+	if ( !$user->exists() )
+		return false;
 
 	do_action( 'wpmu_delete_user', $id );
 
@@ -368,7 +371,7 @@ function update_user_status( $id, $pref, $value, $deprecated = null ) {
 	if ( null !== $deprecated )
 		_deprecated_argument( __FUNCTION__, '3.1' );
 
-	$wpdb->update( $wpdb->users, array( $pref => $value ), array( 'ID' => $id ) );
+	$wpdb->update( $wpdb->users, array( sanitize_key( $pref ) => $value ), array( 'ID' => $id ) );
 
 	$user = new WP_User( $id );
 	clean_user_cache( $user );
@@ -525,7 +528,7 @@ function site_admin_notice() {
 	if ( !is_super_admin() )
 		return false;
 	if ( get_site_option( 'wpmu_upgrade_site' ) != $wp_db_version )
-		echo "<div class='update-nag'>" . sprintf( __( 'Thank you for Updating! Please visit the <a href="%s">Update Network</a> page to update all your sites.' ), esc_url( network_admin_url( 'upgrade.php' ) ) ) . "</div>";
+		echo "<div class='update-nag'>" . sprintf( __( 'Thank you for Updating! Please visit the <a href="%s">Upgrade Network</a> page to update all your sites.' ), esc_url( network_admin_url( 'upgrade.php' ) ) ) . "</div>";
 }
 add_action( 'admin_notices', 'site_admin_notice' );
 add_action( 'network_admin_notices', 'site_admin_notice' );
@@ -691,24 +694,4 @@ var tb_pathToImage = "../../wp-includes/js/thickbox/loadingAnimation.gif";
 //]]>
 </script>
 <?php
-}
-
-/**
- * Whether or not we have a large network.
- *
- * The default criteria for a large network is either more than 10,000 users or more than 10,000 sites.
- * Plugins can alter this criteria using the 'wp_is_large_network' filter.
- *
- * @since 3.3.0
- * @param string $using 'sites or 'users'. Default is 'sites'.
- * @return bool True if the network meets the criteria for large. False otherwise.
- */
-function wp_is_large_network( $using = 'sites' ) {
-	if ( 'users' == $using ) {
-		$count = get_user_count();
-		return apply_filters( 'wp_is_large_network', $count > 10000, 'users', $count );
-	}
-
-	$count = get_blog_count();
-	return apply_filters( 'wp_is_large_network', $count > 10000, 'sites', $count );
 }

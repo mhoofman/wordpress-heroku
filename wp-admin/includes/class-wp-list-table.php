@@ -72,7 +72,7 @@ class WP_List_Table {
 	var $_pagination;
 
 	/**
-	 * Constructor. The child class should call this constructor from it's own constructor
+	 * Constructor. The child class should call this constructor from its own constructor
 	 *
 	 * @param array $args An associative array with information about the current table
 	 * @access protected
@@ -826,7 +826,7 @@ class WP_List_Table {
 		$row_class = ( $row_class == '' ? ' class="alternate"' : '' );
 
 		echo '<tr' . $row_class . '>';
-		echo $this->single_row_columns( $item );
+		$this->single_row_columns( $item );
 		echo '</tr>';
 	}
 

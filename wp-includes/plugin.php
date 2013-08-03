@@ -45,7 +45,7 @@
  *
  * <strong>Note:</strong> the function will return true no matter if the
  * function was hooked fails or not. There are no checks for whether the
- * function exists beforehand and no checks to whether the <tt>$function_to_add
+ * function exists beforehand and no checks to whether the <tt>$function_to_add</tt>
  * is even a string. It is up to you to take care and this is done for
  * optimization purposes, so everything is as quick as possible.
  *
@@ -604,12 +604,13 @@ function plugin_dir_url( $file ) {
  * Set the activation hook for a plugin.
  *
  * When a plugin is activated, the action 'activate_PLUGINNAME' hook is
- * activated. In the name of this hook, PLUGINNAME is replaced with the name of
- * the plugin, including the optional subdirectory. For example, when the plugin
- * is located in wp-content/plugin/sampleplugin/sample.php, then the name of
- * this hook will become 'activate_sampleplugin/sample.php'. When the plugin
- * consists of only one file and is (as by default) located at
- * wp-content/plugin/sample.php the name of this hook will be
+ * called. In the name of this hook, PLUGINNAME is replaced with the name
+ * of the plugin, including the optional subdirectory. For example, when the
+ * plugin is located in wp-content/plugins/sampleplugin/sample.php, then
+ * the name of this hook will become 'activate_sampleplugin/sample.php'.
+ *
+ * When the plugin consists of only one file and is (as by default) located at
+ * wp-content/plugins/sample.php the name of this hook will be
  * 'activate_sample.php'.
  *
  * @package WordPress
@@ -628,21 +629,21 @@ function register_activation_hook($file, $function) {
  * Set the deactivation hook for a plugin.
  *
  * When a plugin is deactivated, the action 'deactivate_PLUGINNAME' hook is
- * deactivated. In the name of this hook, PLUGINNAME is replaced with the name
+ * called. In the name of this hook, PLUGINNAME is replaced with the name
  * of the plugin, including the optional subdirectory. For example, when the
- * plugin is located in wp-content/plugin/sampleplugin/sample.php, then
- * the name of this hook will become 'activate_sampleplugin/sample.php'.
+ * plugin is located in wp-content/plugins/sampleplugin/sample.php, then
+ * the name of this hook will become 'deactivate_sampleplugin/sample.php'.
  *
  * When the plugin consists of only one file and is (as by default) located at
- * wp-content/plugin/sample.php the name of this hook will be
- * 'activate_sample.php'.
+ * wp-content/plugins/sample.php the name of this hook will be
+ * 'deactivate_sample.php'.
  *
  * @package WordPress
  * @subpackage Plugin
  * @since 2.0
  *
  * @param string $file The filename of the plugin including the path.
- * @param callback $function the function hooked to the 'activate_PLUGIN' action.
+ * @param callback $function the function hooked to the 'deactivate_PLUGIN' action.
  */
 function register_deactivation_hook($file, $function) {
 	$file = plugin_basename($file);
@@ -784,6 +785,6 @@ function _wp_filter_build_unique_id($tag, $function, $priority) {
 		}
 	} else if ( is_string($function[0]) ) {
 		// Static Calling
-		return $function[0].$function[1];
+		return $function[0] . '::' . $function[1];
 	}
 }

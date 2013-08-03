@@ -83,12 +83,9 @@ div.dashboard-widget,
 	background-color: #f1f1f1;
 }
 
-.widefat {
+table.widefat {
 	border-color: #dfdfdf;
 	background-color: #f9f9f9;
-}
-textarea.widefat {
-	background-color: #fff;
 }
 
 div.dashboard-widget-error {
@@ -167,6 +164,7 @@ textarea.disabled {
 	color: #fff;
 }
 
+.revisions-meta,
 .widget .widget-top,
 .postbox h3,
 .stuffbox h3,
@@ -186,6 +184,8 @@ h3.dashboard-widget-title small,
 	background-image:      -o-linear-gradient(bottom, #ececec, #f9f9f9);
 	background-image: linear-gradient(to top, #ececec, #f9f9f9);
 }
+
+
 
 .widget .widget-top,
 .postbox h3,
@@ -412,7 +412,8 @@ div.dashboard-widget-submit input:hover,
 
 .submitbox .submitdelete:hover,
 #media-items a.delete:hover,
-#media-items a.delete-permanently:hover {
+#media-items a.delete-permanently:hover,
+#nav-menu-footer .menu-delete:hover {
 	color: #fff;
 	background-color: #f00;
 	border-bottom-color: #f00;
@@ -1351,25 +1352,78 @@ div.wp-menu-image {
 
 /* end screen icons */
 
+/* Post format icons */
+
+.post-format-icon {
+	background: url(../images/post-formats.png) no-repeat;
+}
+
 /* Diff */
 table.diff .diff-deletedline {
-	background-color: #fdd;
+	background-color: #ffe9e9;
 }
 
 table.diff .diff-deletedline del {
-	background-color: #f99;
+	background-color: #faa;
 }
 
 table.diff .diff-addedline {
-	background-color: #dfd;
+	background-color: #e9ffe9;
 }
 
 table.diff .diff-addedline ins {
-	background-color: #9f9;
+	background-color: #afa;
 }
 
-#att-info {
-	background-color: #e4f2Fd;
+.revisions-meta {
+	border: 1px solid #dfdfdf;
+}
+
+.revisions-controls {
+	background: #fff;
+	background: -webkit-gradient(linear, left bottom, left top, color-stop(0%,rgba(255,255,255,1)), color-stop(30px,rgba(255,255,255,1)), color-stop(100%,rgba(255,255,255,1)));
+	background: -webkit-linear-gradient(bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 30px, rgba(255,255,255,1) 100%);
+	background:    -moz-linear-gradient(bottom, rgba(255,255,255,0) 0%,rgba(255,255,255,1) 30px, rgba(255,255,255,1) 100%);
+	background:      -o-linear-gradient(bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 30px, rgba(255,255,255,1) 100%);
+	background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 30px, rgba(255,255,255,1) 100%);
+}
+
+.revisions-tooltip,
+.revisions-tooltip-arrow span {
+	border-color: #d7d7d7;
+	background-color: #fff;
+}
+
+.revisions-tickmarks > div {
+	border-color: #aaa;
+}
+
+/* jQuery UI Slider */
+.wp-slider.ui-slider {
+	border-color: #d7d7d7;
+}
+
+.wp-slider .ui-slider-handle {
+	border-color: #ccc;
+	border-radius: 50%;
+	background: #f4f4f4;
+	background-image: -webkit-gradient(linear, left bottom, left top, from(#dfdfdf), to(#fff));
+	background-image: -webkit-linear-gradient(bottom, #dfdfdf, #fff);
+	background-image:    -moz-linear-gradient(bottom, #dfdfdf, #fff);
+	background-image:      -o-linear-gradient(bottom, #dfdfdf, #fff);
+	background-image: linear-gradient(to top, #dfdfdf, #fff);
+	color: #333;
+}
+
+.wp-slider .ui-slider-handle:hover,
+.wp-slider .ui-slider-handle:focus {
+	border-color: #aaa;
+}
+
+.wp-slider .ui-slider-handle.ui-state-hover,
+.wp-slider .ui-slider-handle.ui-state-focus {
+	border-color: #aaa;
+	outline: none;
 }
 
 /* edit image */
@@ -1427,11 +1481,6 @@ table.diff .diff-addedline ins {
 .inline-editor ul.cat-checklist {
 	background-color: #fff;
 	border-color: #ddd;
-}
-
-.inline-editor .categories .catshow,
-.inline-editor .categories .cathide {
-	color: #21759b;
 }
 
 .inline-editor .quick-edit-save {
@@ -1748,6 +1797,23 @@ div.widgets-sortables,
 .submitbox .submitcancel:hover {
 	background: #21759b;
 	color: #fff;
+}
+
+.manage-menus {
+	border: 1px solid #eeeeee;
+	background: #fbfbfb;
+}
+
+.theme-location-set {
+	color: #999999;
+}
+
+.nav-menus-php .delete-action a {
+	color: #bc0b0b;
+}
+
+.is-submenu {
+	color: #999999;
 }
 /* end added from nav-menu.css */
 
@@ -2071,6 +2137,12 @@ h2.nav-tab-wrapper, h3.nav-tab-wrapper {
 	#header-logo {
 		background-image: url('../images/wp-logo-2x.png?ver=20120916');
 		background-size: 16px auto;
+	}
+
+	/* 16px post formats */
+	.post-format-icon {
+		background-image: url(../images/post-formats32.png);
+		background-size: 16px 304px;
 	}
 
 }

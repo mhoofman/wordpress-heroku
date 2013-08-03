@@ -250,8 +250,10 @@ class WP_Comment_Query {
 		// $args can be whatever, only use the args defined in defaults to compute the key
 		$key = md5( serialize( compact(array_keys($defaults)) )  );
 		$last_changed = wp_cache_get( 'last_changed', 'comment' );
-		if ( ! $last_changed )
-			$last_changed = wp_cache_set( 'last_changed', 1, 'comment' );
+		if ( ! $last_changed ) {
+			$last_changed = microtime();
+			wp_cache_set( 'last_changed', $last_changed, 'comment' );
+		}
 		$cache_key = "get_comments:$key:$last_changed";
 
 		if ( $cache = wp_cache_get( $cache_key, 'comment' ) )
@@ -415,7 +417,7 @@ class WP_Comment_Query {
  *
  * @return array List of comment statuses.
  */
-function get_comment_statuses( ) {
+function get_comment_statuses() {
 	$status = array(
 		'hold'		=> __('Unapproved'),
 		/* translators: comment status  */
@@ -537,7 +539,7 @@ function get_comment_count( $post_id = 0 ) {
  * @param string $meta_key Metadata name.
  * @param mixed $meta_value Metadata value.
  * @param bool $unique Optional, default is false. Whether the same key should not be added.
- * @return bool False for failure. True for success.
+ * @return int|bool Meta ID on success, false on failure.
  */
 function add_comment_meta($comment_id, $meta_key, $meta_value, $unique = false) {
 	return add_metadata('comment', $comment_id, $meta_key, $meta_value, $unique);
@@ -557,7 +559,7 @@ function add_comment_meta($comment_id, $meta_key, $meta_value, $unique = false) 
  * @param int $comment_id comment ID
  * @param string $meta_key Metadata name.
  * @param mixed $meta_value Optional. Metadata value.
- * @return bool False for failure. True for success.
+ * @return bool True on success, false on failure.
  */
 function delete_comment_meta($comment_id, $meta_key, $meta_value = '') {
 	return delete_metadata('comment', $comment_id, $meta_key, $meta_value);
@@ -596,7 +598,7 @@ function get_comment_meta($comment_id, $key = '', $single = false) {
  * @param string $meta_key Metadata key.
  * @param mixed $meta_value Metadata value.
  * @param mixed $prev_value Optional. Previous value to check before removing.
- * @return bool False on failure, true if success.
+ * @return bool True on success, false on failure.
  */
 function update_comment_meta($comment_id, $meta_key, $meta_value, $prev_value = '') {
 	return update_metadata('comment', $comment_id, $meta_key, $meta_value, $prev_value);
@@ -632,21 +634,21 @@ function wp_set_comment_cookies($comment, $user) {
 function sanitize_comment_cookies() {
 	if ( isset($_COOKIE['comment_author_'.COOKIEHASH]) ) {
 		$comment_author = apply_filters('pre_comment_author_name', $_COOKIE['comment_author_'.COOKIEHASH]);
-		$comment_author = stripslashes($comment_author);
+		$comment_author = wp_unslash($comment_author);
 		$comment_author = esc_attr($comment_author);
 		$_COOKIE['comment_author_'.COOKIEHASH] = $comment_author;
 	}
 
 	if ( isset($_COOKIE['comment_author_email_'.COOKIEHASH]) ) {
 		$comment_author_email = apply_filters('pre_comment_author_email', $_COOKIE['comment_author_email_'.COOKIEHASH]);
-		$comment_author_email = stripslashes($comment_author_email);
+		$comment_author_email = wp_unslash($comment_author_email);
 		$comment_author_email = esc_attr($comment_author_email);
 		$_COOKIE['comment_author_email_'.COOKIEHASH] = $comment_author_email;
 	}
 
 	if ( isset($_COOKIE['comment_author_url_'.COOKIEHASH]) ) {
 		$comment_author_url = apply_filters('pre_comment_author_url', $_COOKIE['comment_author_url_'.COOKIEHASH]);
-		$comment_author_url = stripslashes($comment_author_url);
+		$comment_author_url = wp_unslash($comment_author_url);
 		$_COOKIE['comment_author_url_'.COOKIEHASH] = $comment_author_url;
 	}
 }
@@ -669,10 +671,10 @@ function wp_allow_comment($commentdata) {
 
 	// Simple duplicate check
 	// expected_slashed ($comment_post_ID, $comment_author, $comment_author_email, $comment_content)
-	$dupe = "SELECT comment_ID FROM $wpdb->comments WHERE comment_post_ID = '$comment_post_ID' AND comment_parent = '$comment_parent' AND comment_approved != 'trash' AND ( comment_author = '$comment_author' ";
+	$dupe = $wpdb->prepare( "SELECT comment_ID FROM $wpdb->comments WHERE comment_post_ID = %d AND comment_parent = %s AND comment_approved != 'trash' AND ( comment_author = %s ", wp_unslash( $comment_post_ID ), wp_unslash( $comment_parent ), wp_unslash( $comment_author ) );
 	if ( $comment_author_email )
-		$dupe .= "OR comment_author_email = '$comment_author_email' ";
-	$dupe .= ") AND comment_content = '$comment_content' LIMIT 1";
+		$dupe .= $wpdb->prepare( "OR comment_author_email = %s ", wp_unslash( $comment_author_email ) );
+	$dupe .= $wpdb->prepare( ") AND comment_content = %s LIMIT 1", wp_unslash( $comment_content ) );
 	if ( $wpdb->get_var($dupe) ) {
 		do_action( 'comment_duplicate_trigger', $commentdata );
 		if ( defined('DOING_AJAX') )
@@ -992,7 +994,7 @@ function wp_count_comments( $post_id = 0 ) {
  *
  * @param int $comment_id Comment ID
  * @param bool $force_delete Whether to bypass trash and force deletion. Default is false.
- * @return bool False if delete comment query failure, true on success.
+ * @return bool True on success, false on failure.
  */
 function wp_delete_comment($comment_id, $force_delete = false) {
 	global $wpdb;
@@ -1042,7 +1044,7 @@ function wp_delete_comment($comment_id, $force_delete = false) {
  * @uses wp_delete_comment() if trash is disabled
  *
  * @param int $comment_id Comment ID.
- * @return mixed False on failure
+ * @return bool True on success, false on failure.
  */
 function wp_trash_comment($comment_id) {
 	if ( !EMPTY_TRASH_DAYS )
@@ -1071,7 +1073,7 @@ function wp_trash_comment($comment_id) {
  * @uses do_action() on 'untrashed_comment' after untrashing
  *
  * @param int $comment_id Comment ID.
- * @return mixed False on failure
+ * @return bool True on success, false on failure.
  */
 function wp_untrash_comment($comment_id) {
 	if ( ! (int)$comment_id )
@@ -1101,7 +1103,7 @@ function wp_untrash_comment($comment_id) {
  * @uses do_action() on 'spammed_comment' after spamming
  *
  * @param int $comment_id Comment ID.
- * @return mixed False on failure
+ * @return bool True on success, false on failure.
  */
 function wp_spam_comment($comment_id) {
 	if ( !$comment = get_comment($comment_id) )
@@ -1126,7 +1128,7 @@ function wp_spam_comment($comment_id) {
  * @uses do_action() on 'unspammed_comment' after unspamming
  *
  * @param int $comment_id Comment ID.
- * @return mixed False on failure
+ * @return bool True on success, false on failure.
  */
 function wp_unspam_comment($comment_id) {
 	if ( ! (int)$comment_id )
@@ -1260,7 +1262,7 @@ function wp_get_current_commenter() {
  */
 function wp_insert_comment($commentdata) {
 	global $wpdb;
-	extract(stripslashes_deep($commentdata), EXTR_SKIP);
+	extract(wp_unslash($commentdata), EXTR_SKIP);
 
 	if ( ! isset($comment_author_IP) )
 		$comment_author_IP = '';
@@ -1290,12 +1292,7 @@ function wp_insert_comment($commentdata) {
 	$comment = get_comment($id);
 	do_action('wp_insert_comment', $id, $comment);
 
-	if ( function_exists( 'wp_cache_incr' ) ) {
-		wp_cache_incr( 'last_changed', 1, 'comment' );
-	} else {
-		$last_changed = wp_cache_get( 'last_changed', 'comment' );
-		wp_cache_set( 'last_changed', $last_changed + 1, 'comment' );
-	}
+	wp_cache_set( 'last_changed', microtime(), 'comment' );
 
 	return $id;
 }
@@ -1388,7 +1385,7 @@ function wp_new_comment( $commentdata ) {
 	$commentdata['comment_parent'] = ( 'approved' == $parent_status || 'unapproved' == $parent_status ) ? $commentdata['comment_parent'] : 0;
 
 	$commentdata['comment_author_IP'] = preg_replace( '/[^0-9a-fA-F:., ]/', '',$_SERVER['REMOTE_ADDR'] );
-	$commentdata['comment_agent']     = substr($_SERVER['HTTP_USER_AGENT'], 0, 254);
+	$commentdata['comment_agent']     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( $_SERVER['HTTP_USER_AGENT'], 0, 254 ) : '';
 
 	$commentdata['comment_date']     = current_time('mysql');
 	$commentdata['comment_date_gmt'] = current_time('mysql', 1);
@@ -1426,7 +1423,7 @@ function wp_new_comment( $commentdata ) {
  * @param int $comment_id Comment ID.
  * @param string $comment_status New comment status, either 'hold', 'approve', 'spam', or 'trash'.
  * @param bool $wp_error Whether to return a WP_Error object if there is a failure. Default is false.
- * @return bool False on failure or deletion and true on success.
+ * @return bool|WP_Error True on success, false or WP_Error on failure.
  */
 function wp_set_comment_status($comment_id, $comment_status, $wp_error = false) {
 	global $wpdb;
@@ -1495,7 +1492,7 @@ function wp_update_comment($commentarr) {
 	$comment = get_comment($commentarr['comment_ID'], ARRAY_A);
 
 	// Escape data pulled from DB.
-	$comment = esc_sql($comment);
+	$comment = wp_slash($comment);
 
 	$old_status = $comment['comment_approved'];
 
@@ -1505,7 +1502,7 @@ function wp_update_comment($commentarr) {
 	$commentarr = wp_filter_comment( $commentarr );
 
 	// Now extract the merged array.
-	extract(stripslashes_deep($commentarr), EXTR_SKIP);
+	extract(wp_unslash($commentarr), EXTR_SKIP);
 
 	$comment_content = apply_filters('comment_save_pre', $comment_content);
 
@@ -1604,7 +1601,7 @@ function wp_update_comment_count($post_id, $do_deferred=false) {
  * @uses do_action() Calls 'edit_posts' hook on $post_id and $post
  *
  * @param int $post_id Post ID
- * @return bool False on '0' $post_id or if post with ID does not exist. True on success.
+ * @return bool True on success, false on '0' $post_id or if post with ID does not exist.
  */
 function wp_update_comment_count_now($post_id) {
 	global $wpdb;
@@ -1661,7 +1658,7 @@ function discover_pingback_server_uri( $url, $deprecated = '' ) {
 	if ( 0 === strpos($url, $uploads_dir['baseurl']) )
 		return false;
 
-	$response = wp_remote_head( $url, array( 'timeout' => 2, 'httpversion' => '1.0', 'reject_unsafe_urls' => true ) );
+	$response = wp_safe_remote_head( $url, array( 'timeout' => 2, 'httpversion' => '1.0' ) );
 
 	if ( is_wp_error( $response ) )
 		return false;
@@ -1673,8 +1670,8 @@ function discover_pingback_server_uri( $url, $deprecated = '' ) {
 	if ( preg_match('#(image|audio|video|model)/#is', wp_remote_retrieve_header( $response, 'content-type' )) )
 		return false;
 
-	// Now do a GET since we're going to look in the html headers (and we're sure its not a binary file)
-	$response = wp_remote_get( $url, array( 'timeout' => 2, 'httpversion' => '1.0', 'reject_unsafe_urls' => true ) );
+	// Now do a GET since we're going to look in the html headers (and we're sure it's not a binary file)
+	$response = wp_safe_remote_get( $url, array( 'timeout' => 2, 'httpversion' => '1.0' ) );
 
 	if ( is_wp_error( $response ) )
 		return false;
@@ -1752,11 +1749,11 @@ function do_trackbacks($post_id) {
 	}
 
 	if ( empty($post->post_excerpt) )
-		$excerpt = apply_filters('the_content', $post->post_content);
+		$excerpt = apply_filters('the_content', $post->post_content, $post->ID);
 	else
 		$excerpt = apply_filters('the_excerpt', $post->post_excerpt);
 	$excerpt = str_replace(']]>', ']]&gt;', $excerpt);
-	$excerpt = wp_html_excerpt($excerpt, 252) . '...';
+	$excerpt = wp_html_excerpt($excerpt, 252, '&#8230;');
 
 	$post_title = apply_filters('the_title', $post->post_title, $post->ID);
 	$post_title = strip_tags($post_title);
@@ -1848,6 +1845,7 @@ function pingback($content, $post_ID) {
 		endif;
 	endforeach;
 
+	$post_links = array_unique( $post_links );
 	do_action_ref_array( 'pre_ping', array( &$post_links, &$pung, $post_ID ) );
 
 	foreach ( (array) $post_links as $pagelinkedto ) {
@@ -1908,7 +1906,6 @@ function trackback($trackback_url, $title, $excerpt, $ID) {
 
 	$options = array();
 	$options['timeout'] = 4;
-	$options['reject_unsafe_urls'] = true;
 	$options['body'] = array(
 		'title' => $title,
 		'url' => get_permalink($ID),
@@ -1916,7 +1913,7 @@ function trackback($trackback_url, $title, $excerpt, $ID) {
 		'excerpt' => $excerpt
 	);
 
-	$response = wp_remote_post($trackback_url, $options);
+	$response = wp_safe_remote_post( $trackback_url, $options );
 
 	if ( is_wp_error( $response ) )
 		return;
@@ -2000,12 +1997,7 @@ function clean_comment_cache($ids) {
 	foreach ( (array) $ids as $id )
 		wp_cache_delete($id, 'comment');
 
-	if ( function_exists( 'wp_cache_incr' ) ) {
-		wp_cache_incr( 'last_changed', 1, 'comment' );
-	} else {
-		$last_changed = wp_cache_get( 'last_changed', 'comment' );
-		wp_cache_set( 'last_changed', $last_changed + 1, 'comment' );
-	}
+	wp_cache_set( 'last_changed', microtime(), 'comment' );
 }
 
 /**

@@ -170,7 +170,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 			/*
 			// I toyed with this, but decided against it. Leaving it in here in case anyone thinks it is a good idea. ~ Mark
 			if ( !empty( $_REQUEST['s'] ) )
-				$link = add_query_arg( 's', esc_attr( stripslashes( $_REQUEST['s'] ) ), $link );
+				$link = add_query_arg( 's', esc_attr( wp_unslash( $_REQUEST['s'] ) ), $link );
 			*/
 			$status_links[$status] = "<a href='$link'$class>" . sprintf(
 				translate_nooped_plural( $label, $num_comments->$status ),
@@ -315,7 +315,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		$this->user_can = current_user_can( 'edit_comment', $comment->comment_ID );
 
 		echo "<tr id='comment-$comment->comment_ID' class='$the_comment_class'>";
-		echo $this->single_row_columns( $comment );
+		$this->single_row_columns( $comment );
 		echo "</tr>\n";
 	}
 
@@ -336,12 +336,6 @@ class WP_Comments_List_Table extends WP_List_Table {
 		$comment_url = esc_url( get_comment_link( $comment->comment_ID ) );
 		$the_comment_status = wp_get_comment_status( $comment->comment_ID );
 
-		$ptime = date( 'G', strtotime( $comment->comment_date ) );
-		if ( ( abs( time() - $ptime ) ) < DAY_IN_SECONDS )
-			$ptime = sprintf( __( '%s ago' ), human_time_diff( $ptime ) );
-		else
-			$ptime = mysql2date( __( 'Y/m/d \a\t g:i A' ), $comment->comment_date );
-
 		if ( $user_can ) {
 			$del_nonce = esc_html( '_wpnonce=' . wp_create_nonce( "delete-comment_$comment->comment_ID" ) );
 			$approve_nonce = esc_html( '_wpnonce=' . wp_create_nonce( "approve-comment_$comment->comment_ID" ) );
@@ -360,8 +354,10 @@ class WP_Comments_List_Table extends WP_List_Table {
 		echo '<div class="submitted-on">';
 		/* translators: 2: comment date, 3: comment time */
 		printf( __( 'Submitted on <a href="%1$s">%2$s at %3$s</a>' ), $comment_url,
-			/* translators: comment date format. See http://php.net/date */ get_comment_date( __( 'Y/m/d' ) ),
-			/* translators: comment time format. See http://php.net/date */ get_comment_date( get_option( 'time_format' ) ) );
+			/* translators: comment date format. See http://php.net/date */
+			get_comment_date( __( 'Y/m/d' ) ),
+			get_comment_date( get_option( 'time_format' ) )
+		);
 
 		if ( $comment->comment_parent ) {
 			$parent = get_comment( $comment->comment_parent );
@@ -456,7 +452,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 			$author_url = '';
 		$author_url_display = preg_replace( '|http://(www\.)?|i', '', $author_url );
 		if ( strlen( $author_url_display ) > 50 )
-			$author_url_display = substr( $author_url_display, 0, 49 ) . '...';
+			$author_url_display = substr( $author_url_display, 0, 49 ) . '&hellip;';
 
 		echo "<strong>"; comment_author(); echo '</strong><br />';
 		if ( !empty( $author_url ) )

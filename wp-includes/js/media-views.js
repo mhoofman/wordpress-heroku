@@ -223,10 +223,8 @@
 			this.on( 'reset', this.reset, this );
 			this.on( 'ready', this._ready, this );
 			this.on( 'ready', this.ready, this );
-
-			this.on( 'change:menu', this._updateMenu, this );
-
 			Backbone.Model.apply( this, arguments );
+			this.on( 'change:menu', this._updateMenu, this );
 		},
 
 		ready: function() {},
@@ -451,9 +449,27 @@
 			var displays = this._displays;
 
 			if ( ! displays[ attachment.cid ] )
-				displays[ attachment.cid ] = new Backbone.Model( this._defaultDisplaySettings );
+				displays[ attachment.cid ] = new Backbone.Model( this.defaultDisplaySettings( attachment ) );
 
 			return displays[ attachment.cid ];
+		},
+
+		defaultDisplaySettings: function( attachment ) {
+			settings = this._defaultDisplaySettings;
+			if ( settings.canEmbed = this.canEmbed( attachment ) )
+				settings.link = 'embed';
+			return settings;
+		},
+
+		canEmbed: function( attachment ) {
+			// If uploading, we know the filename but not the mime type.
+			if ( ! attachment.get('uploading') ) {
+				var type = attachment.get('type');
+				if ( type !== 'audio' && type !== 'video' )
+					return false;
+			}
+
+			return _.contains( media.view.settings.embedExts, attachment.get('filename').split('.').pop() );
 		},
 
 		syncSelection: function() {
@@ -658,7 +674,7 @@
 			// Accepts attachments that exist in the original library and
 			// that do not exist in gallery's library.
 			library.validator = function( attachment ) {
-				return !! this.mirroring.getByCid( attachment.cid ) && ! edit.getByCid( attachment.cid ) && media.model.Selection.prototype.validator.apply( this, arguments );
+				return !! this.mirroring.get( attachment.cid ) && ! edit.get( attachment.cid ) && media.model.Selection.prototype.validator.apply( this, arguments );
 			};
 
 			// Reset the library to ensure that all attachments are re-added
@@ -701,8 +717,8 @@
 			// Overload the library's comparator to push items that are not in
 			// the mirrored query to the front of the aggregate collection.
 			library.comparator = function( a, b ) {
-				var aInQuery = !! this.mirroring.getByCid( a.cid ),
-					bInQuery = !! this.mirroring.getByCid( b.cid );
+				var aInQuery = !! this.mirroring.get( a.cid ),
+					bInQuery = !! this.mirroring.get( b.cid );
 
 				if ( ! aInQuery && bInQuery )
 					return -1;
@@ -845,355 +861,29 @@
 	 * ========================================================================
 	 */
 
-	// wp.media.Views
-	// -------------
-	//
-	// A subview manager.
-
-	media.Views = function( view, views ) {
-		this.view = view;
-		this._views = _.isArray( views ) ? { '': views } : views || {};
-	};
-
-	media.Views.extend = Backbone.Model.extend;
-
-	_.extend( media.Views.prototype, {
-		// ### Fetch all of the subviews
-		//
-		// Returns an array of all subviews.
-		all: function() {
-			return _.flatten( this._views );
-		},
-
-		// ### Get a selector's subviews
-		//
-		// Fetches all subviews that match a given `selector`.
-		//
-		// If no `selector` is provided, it will grab all subviews attached
-		// to the view's root.
-		get: function( selector ) {
-			selector = selector || '';
-			return this._views[ selector ];
-		},
-
-		// ### Get a selector's first subview
-		//
-		// Fetches the first subview that matches a given `selector`.
-		//
-		// If no `selector` is provided, it will grab the first subview
-		// attached to the view's root.
-		//
-		// Useful when a selector only has one subview at a time.
-		first: function( selector ) {
-			var views = this.get( selector );
-			return views && views.length ? views[0] : null;
-		},
-
-		// ### Register subview(s)
-		//
-		// Registers any number of `views` to a `selector`.
-		//
-		// When no `selector` is provided, the root selector (the empty string)
-		// is used. `views` accepts a `Backbone.View` instance or an array of
-		// `Backbone.View` instances.
-		//
-		// ---
-		//
-		// Accepts an `options` object, which has a significant effect on the
-		// resulting behavior.
-		//
-		// `options.silent` &ndash; *boolean, `false`*
-		// > If `options.silent` is true, no DOM modifications will be made.
-		//
-		// `options.add` &ndash; *boolean, `false`*
-		// > Use `Views.add()` as a shortcut for setting `options.add` to true.
-		//
-		// > By default, the provided `views` will replace
-		// any existing views associated with the selector. If `options.add`
-		// is true, the provided `views` will be added to the existing views.
-		//
-		// `options.at` &ndash; *integer, `undefined`*
-		// > When adding, to insert `views` at a specific index, use
-		// `options.at`. By default, `views` are added to the end of the array.
-		set: function( selector, views, options ) {
-			var existing, next;
-
-			if ( ! _.isString( selector ) ) {
-				options  = views;
-				views    = selector;
-				selector = '';
-			}
-
-			options  = options || {};
-			views    = _.isArray( views ) ? views : [ views ];
-			existing = this.get( selector );
-			next     = views;
-
-			if ( existing ) {
-				if ( options.add ) {
-					if ( _.isUndefined( options.at ) ) {
-						next = existing.concat( views );
-					} else {
-						next = existing;
-						next.splice.apply( next, [ options.at, 0 ].concat( views ) );
-					}
-				} else {
-					_.each( next, function( view ) {
-						view.__detach = true;
-					});
-
-					_.each( existing, function( view ) {
-						if ( view.__detach )
-							view.$el.detach();
-						else
-							view.dispose();
-					});
-
-					_.each( next, function( view ) {
-						delete view.__detach;
-					});
-				}
-			}
-
-			this._views[ selector ] = next;
-
-			_.each( views, function( subview ) {
-				var constructor = subview.Views || media.Views,
-					subviews = subview.views = subview.views || new constructor( subview );
-				subviews.parent   = this.view;
-				subviews.selector = selector;
-			}, this );
-
-			if ( ! options.silent )
-				this._attach( selector, views, _.extend({ ready: this._isReady() }, options ) );
-
-			return this;
-		},
-
-		// ### Add subview(s) to existing subviews
-		//
-		// An alias to `Views.set()`, which defaults `options.add` to true.
-		//
-		// Adds any number of `views` to a `selector`.
-		//
-		// When no `selector` is provided, the root selector (the empty string)
-		// is used. `views` accepts a `Backbone.View` instance or an array of
-		// `Backbone.View` instances.
-		//
-		// Use `Views.set()` when setting `options.add` to `false`.
-		//
-		// Accepts an `options` object. By default, provided `views` will be
-		// inserted at the end of the array of existing views. To insert
-		// `views` at a specific index, use `options.at`. If `options.silent`
-		// is true, no DOM modifications will be made.
-		//
-		// For more information on the `options` object, see `Views.set()`.
-		add: function( selector, views, options ) {
-			if ( ! _.isString( selector ) ) {
-				options  = views;
-				views    = selector;
-				selector = '';
-			}
-
-			return this.set( selector, views, _.extend({ add: true }, options ) );
-		},
-
-		// ### Stop tracking subviews
-		//
-		// Stops tracking `views` registered to a `selector`. If no `views` are
-		// set, then all of the `selector`'s subviews will be unregistered and
-		// disposed.
-		//
-		// Accepts an `options` object. If `options.silent` is set, `dispose`
-		// will *not* be triggered on the unregistered views.
-		unset: function( selector, views, options ) {
-			var existing;
-
-			if ( ! _.isString( selector ) ) {
-				options = views;
-				views = selector;
-				selector = '';
-			}
-
-			views = views || [];
-
-			if ( existing = this.get( selector ) ) {
-				views = _.isArray( views ) ? views : [ views ];
-				this._views[ selector ] = views.length ? _.difference( existing, views ) : [];
-			}
-
-			if ( ! options || ! options.silent )
-				_.invoke( views, 'dispose' );
-
-			return this;
-		},
-
-		// ### Detach all subviews
-		//
-		// Detaches all subviews from the DOM.
-		//
-		// Helps to preserve all subview events when re-rendering the master
-		// view. Used in conjunction with `Views.render()`.
-		detach: function() {
-			$( _.pluck( this.all(), 'el' ) ).detach();
-			return this;
-		},
-
-		// ### Render all subviews
-		//
-		// Renders all subviews. Used in conjunction with `Views.detach()`.
-		render: function() {
-			var options = {
-					ready: this._isReady()
-				};
-
-			_.each( this._views, function( views, selector ) {
-				this._attach( selector, views, options );
-			}, this );
-
-			this.rendered = true;
-			return this;
-		},
-
-		// ### Dispose all subviews
-		//
-		// Triggers the `dispose()` method on all subviews. Detaches the master
-		// view from its parent. Resets the internals of the views manager.
-		//
-		// Accepts an `options` object. If `options.silent` is set, `unset`
-		// will *not* be triggered on the master view's parent.
-		dispose: function( options ) {
-			if ( ! options || ! options.silent ) {
-				if ( this.parent && this.parent.views )
-					this.parent.views.unset( this.selector, this.view, { silent: true });
-				delete this.parent;
-				delete this.selector;
-			}
-
-			_.invoke( this.all(), 'dispose' );
-			this._views = [];
-			return this;
-		},
-
-		// ### Replace a selector's subviews
-		//
-		// By default, sets the `$target` selector's html to the subview `els`.
-		//
-		// Can be overridden in subclasses.
-		replace: function( $target, els ) {
-			$target.html( els );
-			return this;
-		},
-
-		// ### Insert subviews into a selector
-		//
-		// By default, appends the subview `els` to the end of the `$target`
-		// selector. If `options.at` is set, inserts the subview `els` at the
-		// provided index.
-		//
-		// Can be overridden in subclasses.
-		insert: function( $target, els, options ) {
-			var at = options && options.at,
-				$children;
-
-			if ( _.isNumber( at ) && ($children = $target.children()).length > at )
-				$children.eq( at ).before( els );
-			else
-				$target.append( els );
-
-			return this;
-		},
-
-		// ### Trigger the ready event
-		//
-		// **Only use this method if you know what you're doing.**
-		// For performance reasons, this method does not check if the view is
-		// actually attached to the DOM. It's taking your word for it.
-		//
-		// Fires the ready event on the current view and all attached subviews.
-		ready: function() {
-			this.view.trigger('ready');
-
-			// Find all attached subviews, and call ready on them.
-			_.chain( this.all() ).map( function( view ) {
-				return view.views;
-			}).flatten().where({ attached: true }).invoke('ready');
-		},
-
-		// #### Internal. Attaches a series of views to a selector.
-		//
-		// Checks to see if a matching selector exists, renders the views,
-		// performs the proper DOM operation, and then checks if the view is
-		// attached to the document.
-		_attach: function( selector, views, options ) {
-			var $selector = selector ? this.view.$( selector ) : this.view.$el,
-				managers;
-
-			// Check if we found a location to attach the views.
-			if ( ! $selector.length )
-				return this;
-
-			managers = _.chain( views ).pluck('views').flatten().value();
-
-			// Render the views if necessary.
-			_.each( managers, function( manager ) {
-				if ( manager.rendered )
-					return;
-
-				manager.view.render();
-				manager.rendered = true;
-			}, this );
-
-			// Insert or replace the views.
-			this[ options.add ? 'insert' : 'replace' ]( $selector, _.pluck( views, 'el' ), options );
-
-			// Set attached and trigger ready if the current view is already
-			// attached to the DOM.
-			_.each( managers, function( manager ) {
-				manager.attached = true;
-
-				if ( options.ready )
-					manager.ready();
-			}, this );
-
-			return this;
-		},
-
-		// #### Internal. Checks if the current view is in the DOM.
-		_isReady: function() {
-			var node = this.view.el;
-			while ( node ) {
-				if ( node === document.body )
-					return true;
-				node = node.parentNode;
-			}
-
-			return false;
-		}
-	});
-
 	// wp.media.View
 	// -------------
 	//
 	// The base view class.
-	media.View = Backbone.View.extend({
-		// The constructor for the `Views` manager.
-		Views: media.Views,
-
+	//
+	// Undelegating events, removing events from the model, and
+	// removing events from the controller mirror the code for
+	// `Backbone.View.dispose` in Backbone 0.9.8 development.
+	//
+	// This behavior has since been removed, and should not be used
+	// outside of the media manager.
+	media.View = wp.Backbone.View.extend({
 		constructor: function( options ) {
-			this.views = new this.Views( this, this.views );
-			this.on( 'ready', this.ready, this );
-
 			if ( options && options.controller )
 				this.controller = options.controller;
 
-			Backbone.View.apply( this, arguments );
+			wp.Backbone.View.apply( this, arguments );
 		},
 
 		dispose: function() {
 			// Undelegating events, removing events from the model, and
 			// removing events from the controller mirror the code for
-			// `Backbone.View.dispose` in Backbone master.
+			// `Backbone.View.dispose` in Backbone 0.9.8 development.
 			this.undelegateEvents();
 
 			if ( this.model && this.model.off )
@@ -1206,41 +896,13 @@
 			if ( this.controller && this.controller.off )
 				this.controller.off( null, null, this );
 
-			// Recursively dispose child views.
-			if ( this.views )
-				this.views.dispose();
-
 			return this;
 		},
 
 		remove: function() {
 			this.dispose();
-			return Backbone.View.prototype.remove.apply( this, arguments );
-		},
-
-		render: function() {
-			var options;
-
-			if ( this.prepare )
-				options = this.prepare();
-
-			this.views.detach();
-
-			if ( this.template ) {
-				options = options || {};
-				this.trigger( 'prepare', options );
-				this.$el.html( this.template( options ) );
-			}
-
-			this.views.render();
-			return this;
-		},
-
-		prepare: function() {
-			return this.options;
-		},
-
-		ready: function() {}
+			return wp.Backbone.View.prototype.remove.apply( this, arguments );
+		}
 	});
 
 	/**
@@ -1831,7 +1493,7 @@
 		featuredImageToolbar: function( toolbar ) {
 			this.createSelectToolbar( toolbar, {
 				text:  l10n.setFeaturedImage,
-				state: this.options.state || 'upload'
+				state: this.options.state
 			});
 		},
 
@@ -1859,9 +1521,9 @@
 							controller.close();
 							state.trigger( 'update', state.get('library') );
 
+							// Restore and reset the default state.
+							controller.setState( controller.options.state );
 							controller.reset();
-							// @todo: Make the state activated dynamic (instead of hardcoded).
-							controller.setState('upload');
 						}
 					}
 				}
@@ -2430,6 +2092,11 @@
 				var requires = button.options.requires,
 					disabled = false;
 
+				// Prevent insertion of attachments if any of them are still uploading
+				disabled = _.some( selection.models, function( attachment ) {
+					return attachment.get('uploading') === true;
+				});
+
 				if ( requires.selection && selection && ! selection.length )
 					disabled = true;
 				else if ( requires.library && library && ! library.length )
@@ -2486,11 +2153,11 @@
 			if ( options.event )
 				controller.state().trigger( options.event );
 
-			if ( options.reset )
-				controller.reset();
-
 			if ( options.state )
 				controller.setState( options.state );
+
+			if ( options.reset )
+				controller.reset();
 		}
 	});
 
@@ -3007,7 +2674,7 @@
 		selected: function() {
 			var selection = this.options.selection;
 			if ( selection )
-				return !! selection.getByCid( this.model.cid );
+				return !! selection.get( this.model.cid );
 		},
 
 		select: function( model, collection ) {
@@ -3234,7 +2901,7 @@
 
 			this.collection.on( 'add', function( attachment, attachments, options ) {
 				this.views.add( this.createAttachmentView( attachment ), {
-					at: options.index
+					at: this.collection.indexOf( attachment )
 				});
 			}, this );
 
@@ -3469,7 +3136,7 @@
 			// Build `<option>` elements.
 			this.$el.html( _.chain( this.filters ).map( function( filter, value ) {
 				return {
-					el: this.make( 'option', { value: value }, filter.text ),
+					el: $('<option></option>').val(value).text(filter.text)[0],
 					priority: filter.priority || 50
 				};
 			}, this ).sortBy('priority').pluck('el').value() );
@@ -3964,8 +3631,8 @@
 		},
 
 		updateChanges: function( model, options ) {
-			if ( options.changes )
-				_( options.changes ).chain().keys().each( this.update, this );
+			if ( model.hasChanged() )
+				_( model.changed ).chain().keys().each( this.update, this );
 		}
 	});
 
@@ -4017,7 +3684,7 @@
 				$input = this.$('.link-to-custom'),
 				attachment = this.options.attachment;
 
-			if ( 'none' === linkTo || ( ! attachment && 'custom' !== linkTo ) ) {
+			if ( 'none' === linkTo || 'embed' === linkTo || ( ! attachment && 'custom' !== linkTo ) ) {
 				$input.hide();
 				return;
 			}
@@ -4236,16 +3903,10 @@
 		},
 
 		initialize: function() {
-			this.input = this.make( 'input', {
-				type:  'text',
-				value: this.model.get('url') || ''
-			});
+			this.$input = $('<input/>').attr( 'type', 'text' ).val( this.model.get('url') );
+			this.input = this.$input[0];
 
-			this.spinner = this.make( 'span', {
-				'class': 'spinner'
-			});
-
-			this.$input = $( this.input );
+			this.spinner = $('<span class="spinner" />')[0];
 			this.$el.append([ this.input, this.spinner ]);
 
 			this.model.on( 'change:url', this.render, this );

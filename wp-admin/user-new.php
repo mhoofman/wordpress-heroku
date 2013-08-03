@@ -113,11 +113,10 @@ Please click the following link to confirm the invite:
 	} else {
 		// Adding a new user to this blog
 		$user_details = wpmu_validate_user_signup( $_REQUEST[ 'user_login' ], $_REQUEST[ 'email' ] );
-		unset( $user_details[ 'errors' ]->errors[ 'user_email_used' ] );
 		if ( is_wp_error( $user_details[ 'errors' ] ) && !empty( $user_details[ 'errors' ]->errors ) ) {
 			$add_user_errors = $user_details[ 'errors' ];
 		} else {
-			$new_user_login = apply_filters('pre_user_login', sanitize_user(stripslashes($_REQUEST['user_login']), true));
+			$new_user_login = apply_filters('pre_user_login', sanitize_user(wp_unslash($_REQUEST['user_login']), true));
 			if ( isset( $_POST[ 'noconfirmation' ] ) && is_super_admin() ) {
 				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
 			}
@@ -209,7 +208,7 @@ if ( isset($_GET['update']) ) {
 			case "does_not_exist":
 				$messages[] = __('The requested user does not exist.');
 				break;
-			case "does_not_exist":
+			case "enter_email":
 				$messages[] = __('Please enter a valid email address.');
 				break;
 		}
@@ -310,7 +309,7 @@ foreach ( array( 'user_login' => 'login', 'first_name' => 'firstname', 'last_nam
 	$var = "new_user_$var";
 	if( isset( $_POST['createuser'] ) ) {
 		if ( ! isset($$var) )
-			$$var = isset( $_POST[$post_field] ) ? stripslashes( $_POST[$post_field] ) : '';
+			$$var = isset( $_POST[$post_field] ) ? wp_unslash( $_POST[$post_field] ) : '';
 	} else {
 		$$var = false;
 	}
@@ -341,9 +340,15 @@ foreach ( array( 'user_login' => 'login', 'first_name' => 'firstname', 'last_nam
 	</tr>
 <?php if ( apply_filters('show_password_fields', true) ) : ?>
 	<tr class="form-field form-required">
-		<th scope="row"><label for="pass1"><?php _e('Password'); ?> <span class="description"><?php /* translators: password input field */_e('(twice, required)'); ?></span></label></th>
-		<td><input name="pass1" type="password" id="pass1" autocomplete="off" />
-		<br />
+		<th scope="row"><label for="pass1"><?php _e('Password'); ?> <span class="description"><?php /* translators: password input field */_e('(required)'); ?></span></label></th>
+		<td>
+			<input class="hidden" value=" " /><!-- #24364 workaround -->
+			<input name="pass1" type="password" id="pass1" autocomplete="off" />
+		</td>
+	</tr>
+	<tr class="form-field form-required">
+		<th scope="row"><label for="pass2"><?php _e('Repeat Password'); ?> <span class="description"><?php /* translators: password input field */_e('(required)'); ?></span></label></th>
+		<td>
 		<input name="pass2" type="password" id="pass2" autocomplete="off" />
 		<br />
 		<div id="pass-strength-result"><?php _e('Strength indicator'); ?></div>

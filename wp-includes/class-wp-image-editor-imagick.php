@@ -19,7 +19,7 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 	protected $image = null; // Imagick Object
 
 	function __destruct() {
-		if ( $this->image ) {
+		if ( $this->image instanceof Imagick ) {
 			// we don't need the original in memory anymore
 			$this->image->clear();
 			$this->image->destroy();
@@ -97,7 +97,7 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 				return false;
 
 		try {
-			return ( (bool) Imagick::queryFormats( $imagick_extension ) );
+			return ( (bool) @Imagick::queryFormats( $imagick_extension ) );
 		}
 		catch ( Exception $e ) {
 			return false;
@@ -113,7 +113,7 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 	 * @return boolean|WP_Error True if loaded; WP_Error on failure.
 	 */
 	public function load() {
-		if ( $this->image )
+		if ( $this->image instanceof Imagick )
 			return true;
 
 		if ( ! is_file( $this->file ) && ! preg_match( '|^https?://|', $this->file ) )
@@ -245,10 +245,13 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 	 * Processes current image and saves to disk
 	 * multiple sizes from single source.
 	 *
+	 * 'width' and 'height' are required.
+	 * 'crop' defaults to false when not provided.
+	 *
 	 * @since 3.5.0
 	 * @access public
 	 *
-	 * @param array $sizes { {'width'=>int, 'height'=>int, 'crop'=>bool}, ... }
+	 * @param array $sizes { {'width'=>int, 'height'=>int, ['crop'=>bool]}, ... }
 	 * @return array
 	 */
 	public function multi_resize( $sizes ) {
@@ -259,6 +262,12 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 		foreach ( $sizes as $size => $size_data ) {
 			if ( ! $this->image )
 				$this->image = $orig_image->getImage();
+
+			if ( ! ( isset( $size_data['width'] ) && isset( $size_data['height'] ) ) )
+				continue;
+
+			if ( ! isset( $size_data['crop'] ) )
+				$size_data['crop'] = false;
 
 			$resize_result = $this->resize( $size_data['width'], $size_data['height'], $size_data['crop'] );
 
@@ -356,8 +365,8 @@ class WP_Image_Editor_Imagick extends WP_Image_Editor {
 	 * @since 3.5.0
 	 * @access public
 	 *
-	 * @param boolean $horz Horizontal Flip
-	 * @param boolean $vert Vertical Flip
+	 * @param boolean $horz Flip along Horizontal Axis
+	 * @param boolean $vert Flip along Vertical Axis
 	 * @returns boolean|WP_Error
 	 */
 	public function flip( $horz, $vert ) {

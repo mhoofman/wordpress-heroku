@@ -71,8 +71,6 @@ jQuery(document).ready(function() {
 }
 add_filter('admin_head', 'options_permalink_add_js');
 
-include('./admin-header.php');
-
 $home_path = get_home_path();
 $iis7_permalinks = iis7_supports_permalinks();
 
@@ -115,7 +113,8 @@ if ( isset($_POST['permalink_structure']) || isset($_POST['category_base']) ) {
 		$wp_rewrite->set_tag_base( $tag_base );
 	}
 
-	create_initial_taxonomies();
+	wp_redirect( admin_url( 'options-permalink.php?settings-updated=true' ) );
+	exit;
 }
 
 $permalink_structure = get_option('permalink_structure');
@@ -141,7 +140,9 @@ else
 
 flush_rewrite_rules();
 
-if (isset($_POST['submit'])) : ?>
+require( ABSPATH . 'wp-admin/admin-header.php' );
+
+if ( ! empty( $_GET['settings-updated'] ) ) : ?>
 <div id="message" class="updated"><p><?php
 if ( ! is_multisite() ) {
 	if ( $iis7_permalinks ) {
@@ -188,7 +189,7 @@ $structures = array(
 	4 => $prefix . '/%postname%/',
 );
 ?>
-<h3><?php _e('Common Settings'); ?></h3>
+<h3 class="title"><?php _e('Common Settings'); ?></h3>
 <table class="form-table permalink-structure">
 	<tr>
 		<th><label><input name="selection" type="radio" value="" <?php checked('', $permalink_structure); ?> /> <?php _e('Default'); ?></label></th>
@@ -223,11 +224,11 @@ $structures = array(
 	</tr>
 </table>
 
-<h3><?php _e('Optional'); ?></h3>
+<h3 class="title"><?php _e('Optional'); ?></h3>
 <?php
 $suffix = '';
 if ( ! $is_apache && ! $iis7_permalinks )
-	$suffix = 'index.php/';
+	$suffix = $wp_rewrite->index . '/';
 ?>
 <p><?php
 /* translators: %s is a placeholder that must come at the start of the URL path. */

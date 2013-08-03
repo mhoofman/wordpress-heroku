@@ -3,7 +3,7 @@ Contributors: matt, ryan, andy, mdawaffe, tellyworth, josephscott, lessbloat, eo
 Tags: akismet, comments, spam
 Requires at least: 3.0
 Tested up to: 3.6
-Stable tag: 2.5.8
+Stable tag: 2.5.9
 License: GPLv2 or later
 
 Akismet checks your comments against the Akismet web service to see if they look like spam or not.
@@ -30,6 +30,11 @@ Upload the Akismet plugin to your blog, Activate it, then enter your [Akismet.co
 1, 2, 3: You're done!
 
 == Changelog ==
+
+= 2.5.9 =
+* Update 'Already have a key' link to redirect page rather than depend on javascript
+* Fix some non-translatable strings to be translatable
+* Update Activation banner in plugins page to redirect user to Akismet config page
 
 = 2.5.8 =
 * Simplify the activation process for new users

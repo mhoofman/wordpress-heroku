@@ -7,14 +7,14 @@
  */
 
 /**
- * {@internal Missing Short Description}}
+ * Determine if a comment exists based on author and date.
  *
  * @since 2.0.0
  * @uses $wpdb
  *
  * @param string $comment_author Author of the comment
  * @param string $comment_date Date of the comment
- * @return mixed Comment ID on success.
+ * @return mixed Comment post ID on success.
  */
 function comment_exists($comment_author, $comment_date) {
 	global $wpdb;
@@ -68,11 +68,11 @@ function edit_comment() {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Returns a comment object based on comment ID.
  *
  * @since 2.0.0
  *
- * @param int $id ID of comment to retrieve
+ * @param int $id ID of comment to retrieve.
  * @return bool|object Comment if found. False on failure.
  */
 function get_comment_to_edit( $id ) {

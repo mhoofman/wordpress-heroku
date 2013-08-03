@@ -80,7 +80,7 @@ class Walker {
 	 *
 	 * @param string $output Passed by reference. Used to append additional content.
 	 */
-	function start_el( &$output, $object, $depth, $args, $current_object_id = 0 )  {}
+	function start_el( &$output, $object, $depth = 0, $args = array(), $current_object_id = 0 )  {}
 
 	/**
 	 * Ends the element output, if needed.
@@ -115,7 +115,7 @@ class Walker {
 	 * @param string $output Passed by reference. Used to append additional content.
 	 * @return null Null on failure with no changes to parameters.
 	 */
-	function display_element( $element, &$children_elements, $max_depth, $depth=0, $args, &$output ) {
+	function display_element( $element, &$children_elements, $max_depth, $depth, $args, &$output ) {
 
 		if ( !$element )
 			return;
@@ -123,7 +123,7 @@ class Walker {
 		$id_field = $this->db_fields['id'];
 
 		//display this element
-		if ( is_array( $args[0] ) )
+		if ( isset( $args[0] ) && is_array( $args[0] ) )
 			$args[0]['has_children'] = ! empty( $children_elements[$element->$id_field] );
 		$cb_args = array_merge( array(&$output, $element, $depth), $args);
 		call_user_func_array(array($this, 'start_el'), $cb_args);
