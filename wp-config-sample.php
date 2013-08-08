@@ -83,6 +83,9 @@ define('WPLANG', '');
  */
 define('WP_DEBUG', false);
 
+/** Load static files from itself */
+define("WP_SITEURL", "http://" . $_SERVER["HTTP_HOST"]);
+
 /* That's all, stop editing! Happy blogging. */
 
 /** Absolute path to the WordPress directory. */
