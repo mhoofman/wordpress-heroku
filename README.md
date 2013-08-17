@@ -80,6 +80,15 @@ After deployment WordPress has a few more steps to setup and thats it!
 1. Activate the plugin under 'Plugins', if not already activated.
 2. Input your Amazon S3 credentials in 'Settings'->'WPRO Settings'.
 
+## Email Configuration
+
+[WP SendGrid](http://wordpress.org/plugins/wp-sendgrid/installation/) plugin is included in the repository
+
+1. Install the Heroku SendGrid add on with this command: heroku addons:add sendgrid
+2. Activate the plugin in your wp admin under 'Plugins'
+3. Retrieve your SendMail credentials with this command: heroku config
+4. On the plugin settings page, enter the credentials you retrieved in the previous step (SENDGRID_USERNAME, SENDGRID_PASSWORD)
+
 
 ## Usage
 
