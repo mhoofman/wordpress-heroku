@@ -1,4 +1,23 @@
 <?php
+/* 
+Added Development Environment/localhost check to return localhost URL 
+inspired by http://codex.wordpress.org/Running_a_Development_Copy_of_WordPress
+Author: @khbites
+*/
+
+add_filter ( 'pre_option_home', 'test_localhosts' );
+add_filter ( 'pre_option_siteurl', 'test_localhosts' );
+function test_localhosts( ) {
+  /* DB URL is set with SetEnv in Apache https://github.com/mhoofman/wordpress-heroku#linux-or-manual-apache-config */
+
+ if (preg_match('/localhost/',$_SERVER['DATABASE_URL'])) {
+    preg_match('/(.*)\/wp-.*\/(\w*\.php)+$/', $_SERVER['REQUEST_URI'], $path);
+   return ("http://" . $_SERVER['SERVER_ADDR'] . $path[1]);
+  }
+
+  else return false; // act as normal; will pull main site info from db
+}
+
 /*
 Plugin Name: PostgreSQL for WordPress (PG4WP)
 Plugin URI: http://www.hawkix.net

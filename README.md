@@ -126,6 +126,81 @@ else
 
 * (Re)start Apache, and open http://localhost/wp-admin in a browser.
 
+### Postgres Database syncing
+
+In your local environment you often need to import the current production database. So far I haven't found any good tool compareable to RoR "db:migrate" to sync databases. For now the best workflow for doing changes is:
+
+1. Setup empty local wordpress (see above)
+2. Export heroku pg db
+3. Import db into local wordpress
+4. Do your changes, install plugins, etc.
+5. Test
+6. Put live site into maintainance mode (no new posts, comments, etc)
+7. redo from step 2
+8. export local pg db
+9. import local pg into heroku db
+
+
+#### Export Postgres Heroku to local
+
+To import and export Postgres we use the tool pg_dump and herokus pgbackups function ( https://devcenter.heroku.com/articles/heroku-postgres-import-export )
+
+```
+$ cd YOURAPP-folder/
+YOURAPP-folder$ sudo heroku pgbackups:capture -a YOURAPP --expire
+[sudo] password for startup: 
+
+HEROKU_POSTGRESQL_BLUE_URL (DATABASE_URL)  ----backup--->  b003
+
+Pending...  |
+```
+
+Once this is done you will see it and you will be able to download the dump from a temporary url into a local file. 
+```
+Capturing... done
+Storing... done
+
+YOURAPP-folder$ curl -o latest.dump `heroku pgbackups:url`
+```
+
+This file is a compressed pg_dump file, which we can now import to our local db:
+
+```
+YOURAPP-folder$ pg_restore --verbose --clean --no-acl --no-owner -h localhost -U wordpress -d wordpress latest.dump
+```
+
+when starting your local Wordpress it reads out the $_SERVER['DATABASE_URL'] variable you setup in the previous step. When this points to localhost the home and siteurl will automatically be rewritten (in wp-content/db.php), so you will not need to change these inside the database, where Wordpress normally stores this value (pointing to example.com/blog)
+
+
+#### Export local dev copy to Heroku
+
+Dump your postgres database. From the command line do:
+
+```
+YOURAPP-folder$ dumpfile=`date '+%Y-%m-%d'`.dump
+YOURAPP-folder$ PGPASSWORD=wordpress pg_dump -Fc --no-acl --no-owner -h localhost -U wordpress wordpress > $dumpfile
+```
+
+This creates a file called YYYY-mm-dd.dump (e.g. 2013-10-14.dump) in pg_dump compressed format
+
+You will need to upload this file to a http host. We will use s3cmd (http://s3tools.org/s3cmd) to upload this file to Amazon S3 and then import it to heroku. Alternatively you can use scp/ssh or ftp to your own server.
+
+```
+YOURAPP-folder$ rnd=$RANDOM$RANDOM # generate a random directory name
+YOURAPP-folder$ s3cmd put --acl-public $dumpfile s3://YOUR_S3_BUCKET_NAME/$rnd/
+YOURAPP-folder$ heroku pgbackups:restore HEROKU_POSTGRESQL_COLOR 'https://s3.amazonaws.com/YOUR_S3_BUCKET_NAME/$rnd/$dumpfile'
+HEROKU_POSTGRESQL_COLOR_URL (DATABASE_URL)  <---restore---  YYYY-mm-dd.dump
+
+ !    WARNING: Destructive Action
+ !    This command will affect the app: APP_NAME
+ !    To proceed, type "APP_NAME" or re-run this command with --confirm APP_NAME
+
+
+Retrieving... done
+Restoring... done
+
+YOURAPP-folder$ s3cmd del --recursive s3://YOUR_S3_BUCKET_NAME/$rnd/
+```
 
 ## Updating
 
