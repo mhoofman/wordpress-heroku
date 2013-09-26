@@ -199,8 +199,8 @@ HEROKU_POSTGRESQL_COLOR_URL (DATABASE_URL)  <---restore---  YYYY-mm-dd.dump
 Retrieving... done
 Restoring... done
 
+YOURAPP-folder$ s3cmd del --recursive s3://YOUR_S3_BUCKET_NAME/$rnd/
 ```
-
 
 ## Updating
 
