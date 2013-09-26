@@ -126,7 +126,52 @@ else
 
 * (Re)start Apache, and open http://localhost/wp-admin in a browser.
 
+### Postgres Database syncing
 
+In your local environment you often need to import the current production database. So far I haven't found any good tool compareable to RoR "db:migrate" to sync databases. For now the best workflow for doing changes is:
+
+1. Setup empty local wordpress (see above)
+2. Export heroku pg db
+3. Import db into local wordpress
+4. Do your changes, install plugins, etc.
+5. Test
+6. Put live site into maintainance mode (no new posts, comments, etc)
+7. redo from step 2
+8. export local pg db
+9. import local pg into heroku db
+
+
+#### Export Postgres Heroku to local
+
+To import and export Postgres we use the tool pg_dump and herokus pgbackups function ( https://devcenter.heroku.com/articles/heroku-postgres-import-export )
+
+```
+$ cd YOURAPP-folder/
+YOURAPP-folder$ sudo heroku pgbackups:capture -a YOURAPP --expire
+[sudo] password for startup: 
+
+HEROKU_POSTGRESQL_BLUE_URL (DATABASE_URL)  ----backup--->  b003
+
+Pending...  |
+```
+
+Once this is done you will see it and you will be able to download the dump from a temporary url into a local file. 
+```
+Capturing... done
+Storing... done
+
+YOURAPP-folder$ curl -o latest.dump `heroku pgbackups:url`
+```
+
+This file is a compressed pg_dump file, which we can now import to our local db:
+
+```
+YOURAPP-folder$ pg_restore --verbose --clean --no-acl --no-owner -h localhost -U wordpress -d wordpress latest.dump
+```
+
+
+
+#### Export local dev copy to Heroku
 ## Updating
 
 Updating your WordPress version is just a matter of merging the updates into
