@@ -9,7 +9,7 @@
  *
  * @param object $post
  */
-function post_submit_meta_box($post) {
+function post_submit_meta_box($post, $args = array() ) {
 	global $action;
 
 	$post_type = $post->post_type;
@@ -55,7 +55,7 @@ if ( 'publish' == $post->post_status ) {
 
 <div id="misc-publishing-actions">
 
-<div class="misc-pub-section"><label for="post_status"><?php _e('Status:') ?></label>
+<div class="misc-pub-section misc-pub-post-status"><label for="post_status"><?php _e('Status:') ?></label>
 <span id="post-status-display">
 <?php
 switch ( $post->post_status ) {
@@ -105,7 +105,7 @@ switch ( $post->post_status ) {
 <?php } ?>
 </div><!-- .misc-pub-section -->
 
-<div class="misc-pub-section" id="visibility">
+<div class="misc-pub-section misc-pub-visibility" id="visibility">
 <?php _e('Visibility:'); ?> <span id="post-visibility-display"><?php
 
 if ( 'private' == $post->post_status ) {
@@ -138,7 +138,7 @@ echo esc_html( $visibility_trans ); ?></span>
 <span id="sticky-span"><input id="sticky" name="sticky" type="checkbox" value="sticky" <?php checked( is_sticky( $post->ID ) ); ?> /> <label for="sticky" class="selectit"><?php _e( 'Stick this post to the front page' ); ?></label><br /></span>
 <?php endif; ?>
 <input type="radio" name="visibility" id="visibility-radio-password" value="password" <?php checked( $visibility, 'password' ); ?> /> <label for="visibility-radio-password" class="selectit"><?php _e('Password protected'); ?></label><br />
-<span id="password-span"><label for="post_password"><?php _e('Password:'); ?></label> <input type="text" name="post_password" id="post_password" value="<?php echo esc_attr($post->post_password); ?>" /><br /></span>
+<span id="password-span"><label for="post_password"><?php _e('Password:'); ?></label> <input type="text" name="post_password" id="post_password" value="<?php echo esc_attr($post->post_password); ?>"  maxlength="20" /><br /></span>
 <input type="radio" name="visibility" id="visibility-radio-private" value="private" <?php checked( $visibility, 'private' ); ?> /> <label for="visibility-radio-private" class="selectit"><?php _e('Private'); ?></label><br />
 
 <p>
@@ -171,8 +171,26 @@ if ( 0 != $post->ID ) {
 	$date = date_i18n( $datef, strtotime( current_time('mysql') ) );
 }
 
+if ( ! empty( $args['args']['revisions_count'] ) ) :
+	$revisions_to_keep = wp_revisions_to_keep( $post );
+?>
+<div class="misc-pub-section misc-pub-revisions">
+<?php
+	if ( $revisions_to_keep > 0 && $revisions_to_keep <= $args['args']['revisions_count'] ) {
+		echo '<span title="' . esc_attr( sprintf( __( 'Your site is configured to keep only the last %s revisions.' ),
+			number_format_i18n( $revisions_to_keep ) ) ) . '">';
+		printf( __( 'Revisions: %s' ), '<b>' . number_format_i18n( $args['args']['revisions_count'] ) . '+</b>' );
+		echo '</span>';
+	} else {
+		printf( __( 'Revisions: %s' ), '<b>' . number_format_i18n( $args['args']['revisions_count'] ) . '</b>' );
+	}
+?>
+	<a class="hide-if-no-js" href="<?php echo esc_url( get_edit_post_link( $args['args']['revision_id'] ) ); ?>"><?php _ex( 'Browse', 'revisions' ); ?></a>
+</div>
+<?php endif;
+
 if ( $can_publish ) : // Contributors don't get to choose the date of publish ?>
-<div class="misc-pub-section curtime">
+<div class="misc-pub-section curtime misc-pub-curtime">
 	<span id="timestamp">
 	<?php printf($stamp, $date); ?></span>
 	<a href="#edit_timestamp" class="edit-timestamp hide-if-no-js"><?php _e('Edit') ?></a>
@@ -260,7 +278,7 @@ function attachment_submit_meta_box( $post ) {
 	$stamp = __('Uploaded on: <b>%1$s</b>');
 	$date = date_i18n( $datef, strtotime( $post->post_date ) );
 	?>
-	<div class="misc-pub-section curtime">
+	<div class="misc-pub-section curtime misc-pub-curtime">
 		<span id="timestamp"><?php printf($stamp, $date); ?></span>
 	</div><!-- .misc-pub-section -->
 
@@ -315,9 +333,9 @@ function post_format_meta_box( $post, $box ) {
 			$post_formats[0][] = $post_format;
 	?>
 	<div id="post-formats-select">
-		<input type="radio" name="post_format" class="post-format" id="post-format-0" value="0" <?php checked( $post_format, '0' ); ?> /> <label for="post-format-0"><?php _e('Standard'); ?></label>
+		<input type="radio" name="post_format" class="post-format" id="post-format-0" value="0" <?php checked( $post_format, '0' ); ?> /> <label for="post-format-0" class="post-format-icon post-format-standard"><?php echo get_post_format_string( 'standard' ); ?></label>
 		<?php foreach ( $post_formats[0] as $format ) : ?>
-		<br /><input type="radio" name="post_format" class="post-format" id="post-format-<?php echo esc_attr( $format ); ?>" value="<?php echo esc_attr( $format ); ?>" <?php checked( $post_format, $format ); ?> /> <label for="post-format-<?php echo esc_attr( $format ); ?>"><?php echo esc_html( get_post_format_string( $format ) ); ?></label>
+		<br /><input type="radio" name="post_format" class="post-format" id="post-format-<?php echo esc_attr( $format ); ?>" value="<?php echo esc_attr( $format ); ?>" <?php checked( $post_format, $format ); ?> /> <label for="post-format-<?php echo esc_attr( $format ); ?>" class="post-format-icon post-format-<?php echo esc_attr( $format ); ?>"><?php echo esc_html( get_post_format_string( $format ) ); ?></label>
 		<?php endforeach; ?><br />
 	</div>
 	<?php endif; endif;
@@ -339,27 +357,27 @@ function post_tags_meta_box($post, $box) {
 	extract( wp_parse_args($args, $defaults), EXTR_SKIP );
 	$tax_name = esc_attr($taxonomy);
 	$taxonomy = get_taxonomy($taxonomy);
-	$disabled = !current_user_can($taxonomy->cap->assign_terms) ? 'disabled="disabled"' : '';
+	$user_can_assign_terms = current_user_can( $taxonomy->cap->assign_terms );
 	$comma = _x( ',', 'tag delimiter' );
 ?>
 <div class="tagsdiv" id="<?php echo $tax_name; ?>">
 	<div class="jaxtag">
 	<div class="nojs-tags hide-if-js">
 	<p><?php echo $taxonomy->labels->add_or_remove_items; ?></p>
-	<textarea name="<?php echo "tax_input[$tax_name]"; ?>" rows="3" cols="20" class="the-tags" id="tax-input-<?php echo $tax_name; ?>" <?php echo $disabled; ?>><?php echo str_replace( ',', $comma . ' ', get_terms_to_edit( $post->ID, $tax_name ) ); // textarea_escaped by esc_attr() ?></textarea></div>
- 	<?php if ( current_user_can($taxonomy->cap->assign_terms) ) : ?>
+	<textarea name="<?php echo "tax_input[$tax_name]"; ?>" rows="3" cols="20" class="the-tags" id="tax-input-<?php echo $tax_name; ?>" <?php disabled( ! $user_can_assign_terms ); ?>><?php echo str_replace( ',', $comma . ' ', get_terms_to_edit( $post->ID, $tax_name ) ); // textarea_escaped by esc_attr() ?></textarea></div>
+ 	<?php if ( $user_can_assign_terms ) : ?>
 	<div class="ajaxtag hide-if-no-js">
 		<label class="screen-reader-text" for="new-tag-<?php echo $tax_name; ?>"><?php echo $box['title']; ?></label>
 		<div class="taghint"><?php echo $taxonomy->labels->add_new_item; ?></div>
 		<p><input type="text" id="new-tag-<?php echo $tax_name; ?>" name="newtag[<?php echo $tax_name; ?>]" class="newtag form-input-tip" size="16" autocomplete="off" value="" />
 		<input type="button" class="button tagadd" value="<?php esc_attr_e('Add'); ?>" /></p>
 	</div>
-	<p class="howto"><?php echo esc_attr( $taxonomy->labels->separate_items_with_commas ); ?></p>
+	<p class="howto"><?php echo $taxonomy->labels->separate_items_with_commas; ?></p>
 	<?php endif; ?>
 	</div>
 	<div class="tagchecklist"></div>
 </div>
-<?php if ( current_user_can($taxonomy->cap->assign_terms) ) : ?>
+<?php if ( $user_can_assign_terms ) : ?>
 <p class="hide-if-no-js"><a href="#titlediv" class="tagcloud-link" id="link-<?php echo $tax_name; ?>"><?php echo $taxonomy->labels->choose_from_most_used; ?></a></p>
 <?php endif; ?>
 <?php
@@ -488,7 +506,7 @@ foreach ( $metadata as $key => $value ) {
 		unset( $metadata[ $key ] );
 }
 list_meta( $metadata );
-meta_form(); ?>
+meta_form( $post ); ?>
 </div>
 <p><?php _e('Custom fields can be used to add extra metadata to a post that you can <a href="http://codex.wordpress.org/Using_Custom_Fields" target="_blank">use in your theme</a>.'); ?></p>
 <?php
@@ -602,8 +620,8 @@ function post_author_meta_box($post) {
  *
  * @param object $post
  */
-function post_revisions_meta_box($post) {
-	wp_list_post_revisions();
+function post_revisions_meta_box( $post ) {
+	wp_list_post_revisions( $post );
 }
 
 // -- Page related Meta Boxes
@@ -684,7 +702,7 @@ function link_submit_meta_box($link) {
 </div>
 
 <div id="misc-publishing-actions">
-<div class="misc-pub-section">
+<div class="misc-pub-section misc-pub-private">
 	<label for="link_private" class="selectit"><input id="link_private" name="link_visible" type="checkbox" value="N" <?php checked($link->link_visible, 'N'); ?> /> <?php _e('Keep this link private') ?></label>
 </div>
 </div>
@@ -944,11 +962,11 @@ function link_advanced_meta_box($link) {
 <table class="links-table" cellpadding="0">
 	<tr>
 		<th scope="row"><label for="link_image"><?php _e('Image Address') ?></label></th>
-		<td><input type="text" name="link_image" class="code" id="link_image" value="<?php echo ( isset( $link->link_image ) ? esc_attr($link->link_image) : ''); ?>" /></td>
+		<td><input type="text" name="link_image" class="code" id="link_image" maxlength="255" value="<?php echo ( isset( $link->link_image ) ? esc_attr($link->link_image) : ''); ?>" /></td>
 	</tr>
 	<tr>
 		<th scope="row"><label for="rss_uri"><?php _e('RSS Address') ?></label></th>
-		<td><input name="link_rss" class="code" type="text" id="rss_uri" value="<?php echo ( isset( $link->link_rss ) ? esc_attr($link->link_rss) : ''); ?>" /></td>
+		<td><input name="link_rss" class="code" type="text" id="rss_uri" maxlength="255" value="<?php echo ( isset( $link->link_rss ) ? esc_attr($link->link_rss) : ''); ?>" /></td>
 	</tr>
 	<tr>
 		<th scope="row"><label for="link_notes"><?php _e('Notes') ?></label></th>

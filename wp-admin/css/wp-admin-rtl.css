@@ -23,6 +23,7 @@ TABLE OF CONTENTS:
 	11.1 - Custom Fields
 	11.2 - Post Revisions
 	11.3 - Featured Images
+	11.4 - Post formats
 12.0 - Categories
 13.0 - Tags
 14.0 - Media Screen
@@ -44,6 +45,8 @@ TABLE OF CONTENTS:
 25.0 - TinyMCE tweaks
 26.0 - Full Overlay w/ Sidebar
 27.0 - Customize Loader
+28.0 - Nav Menus
+29.0 - HiDPI
 
 
 ------------------------------------------------------------------------------*/
@@ -688,17 +691,29 @@ form.upgrade .hint {
 .fixed .column-comments {
 	text-align: right;
 }
+
 .fixed .column-comments .vers {
 	padding-left: 0;
 	padding-right: 3px;
 }
+
 .fixed .column-comments a {
 	float: right;
 }
+
+.fixed .column-menus {
+	text-align: right;
+}
+
 .sorting-indicator {
 	margin-left: 0;
 	margin-right: 7px;
 }
+
+tr.wp-locked .locked-indicator {
+	margin: -2px 6px 0 0;
+}
+
 th.sortable a span,
 th.sorted a span {
 	float: right;
@@ -816,8 +831,6 @@ th.sorted a span {
 }
 
 .inline-edit-row fieldset ul.cat-checklist label,
-.inline-edit-row .catshow,
-.inline-edit-row .cathide,
 .inline-edit-row #bulk-titles div {
 	font-family: Tahoma, Arial, sans-serif;
 }
@@ -941,6 +954,23 @@ th.sorted a span {
 	padding-left: 10px;
 }
 
+#post-lock-dialog .post-locked-message a.button {
+	margin-right: 0;
+	margin-left: 10px;
+}
+
+#post-lock-dialog .post-locked-avatar {
+	float: right;
+	margin: 0 0 20px 20px;
+}
+
+#post-lock-dialog .locked-saving img {
+	float: right;
+	margin-right: 0;
+	margin-left: 3px;
+}
+
+
 /*------------------------------------------------------------------------------
   11.1 - Custom Fields
 ------------------------------------------------------------------------------*/
@@ -950,9 +980,113 @@ th.sorted a span {
 /*------------------------------------------------------------------------------
   11.2 - Post Revisions
 ------------------------------------------------------------------------------*/
+.wp-slider .ui-slider-handle.from-handle:before,
+.wp-slider .ui-slider-handle.to-handle:before {
+	height: 8px;
+	width: 7px;
+}
 
-table.diff td, table.diff th {
-	font-family: Consolas, Monaco, monospace;
+.wp-slider .ui-slider-handle.from-handle:before {
+	background-position: -5px -10px;
+	left: 6px;
+}
+
+.wp-slider .ui-slider-handle.to-handle:before {
+	background-position: -4px -29px;
+	left: 6px;
+}
+
+.revision-toggle-compare-mode {
+	right: auto;
+	left: 0;
+}
+
+.revisions .loading-indicator {
+	margin-right: -90px;
+}
+
+body.folded .revisions .loading-indicator {
+	margin-right: -32px;
+}
+
+.revisions-next {
+	float: left;
+}
+
+.revisions-previous {
+	float: right;
+}
+
+.diff-title strong {
+	text-align: left;
+	float: right;
+	margin-right: 0;
+	margin-left: 5px;
+}
+
+.revisions-controls .author-card .avatar,
+.revisions-controls .author-card .author-info {
+	float: right;
+}
+
+.diff-meta input.restore-revision {
+	float: left;
+}
+
+.diff-col-title-added,
+.diff-col-title-removed {
+	text-align: right;
+	float: right;
+}
+
+.revisions-tooltip {
+	margin-left: 0;
+	margin-right: -69px;
+}
+
+.revisions-tooltip.flipped {
+	margin-right: 0;
+	margin-left: -70px;
+}
+
+.ie8 .revisions-tooltip {
+	margin-right: -75px;
+}
+
+.ie8 .revisions-tooltip.flipped {
+	margin-left: -63px;
+}
+
+.revisions-tooltip-arrow {
+	right: 0;
+	margin-left: 0;
+	margin-right: 35px;
+}
+
+.revisions-tooltip.flipped .revisions-tooltip-arrow {
+	margin-right: 0;
+	margin-left: 35px;
+	right: auto;
+	left: 0;
+}
+
+.revisions-tooltip-arrow > span {
+	left: auto;
+	right: 20px;
+}
+
+.revisions-tooltip.flipped .revisions-tooltip-arrow > span {
+	right: auto;
+	left: 20px;
+}
+
+.ie8 .revisions-tooltip-arrow > span {
+	right: 21px;
+}
+
+.revisions-tickmarks > div {
+	float: right;
+	border-width: 0 0 0 1px;
 }
 
 /*------------------------------------------------------------------------------
@@ -961,6 +1095,62 @@ table.diff td, table.diff th {
 
 #select-featured-image a {
 	float: right;
+}
+
+/*------------------------------------------------------------------------------
+  11.4 - Post formats
+------------------------------------------------------------------------------*/
+
+a.post-state-format {
+	margin-right: 0;
+	margin-left: 5px;
+}
+
+label.post-format-icon {
+	margin-left: 0;
+	margin-right: 5px;
+	padding-left: 0px;
+	padding-right: 21px;
+}
+
+.post-format-icon.post-format-standard  {
+	background-position: 100% 0;
+}
+
+.post-format-icon.post-format-image  {
+	background-position: 100% -32px;
+}
+
+.post-format-icon.post-format-gallery {
+	background-position: 100% -64px;
+}
+
+.post-format-icon.post-format-audio {
+	background-position: 100% -96px;
+}
+
+.post-format-icon.post-format-video {
+	background-position: 100% -128px;
+}
+
+.post-format-icon.post-format-chat {
+	background-position: 100% -160px;
+}
+
+.post-format-icon.post-format-status {
+	background-position: 100% -192px;
+}
+
+.post-format-icon.post-format-aside {
+	background-position: 100% -224px;
+}
+
+.post-format-icon.post-format-quote {
+	background-position: 100% -256px;
+}
+
+.post-format-icon.post-format-link {
+	background-position: 100% -288px;
 }
 
 /*------------------------------------------------------------------------------
@@ -1448,6 +1638,18 @@ h2 .nav-tab {
 	font-family: Tahoma, Arial, sans-serif;
 }
 
+#permalink_structure {
+	float: right;
+}
+
+.options-permalink-php code {
+	unicode-bidi: embed;
+}
+
+.options-permalink-php #rules {
+	direction: ltr;
+}
+
 /*------------------------------------------------------------------------------
   21.0 - Admin Footer
 ------------------------------------------------------------------------------*/
@@ -1504,37 +1706,21 @@ h2 .nav-tab {
 	float: right;
 }
 
+.about-wrap .feature-section.two-col div,
 .about-wrap .feature-section.three-col div {
 	margin-right: 0;
 	margin-left: 4.999999999%;
 	float: right;
 }
 
-.about-wrap .feature-section.three-col h4 {
-	text-align: right;
-}
-
-.about-wrap .feature-section.three-col img {
-	margin-right: 5px;
+.about-wrap .feature-section.col .last-feature {
 	margin-left: 0;
 }
 
-.about-wrap .feature-section.three-col .last-feature {
-	margin-left: 0;
-}
-
-.about-wrap .feature-section img {
-	margin: 0 0 10px 0.7%;
-}
-
-.about-wrap .feature-section.images-stagger-right img {
+.about-wrap .feature-section div p img {
 	float: left;
-	margin: 0 2em 12px 5px;
-}
-
-.about-wrap .feature-section.images-stagger-left img {
-	float: right;
-	margin: 0 5px 12px 2em;
+	margin-left: 0;
+	margin-right: 10px;
 }
 
 .about-wrap li.wp-person,
@@ -1544,19 +1730,6 @@ h2 .nav-tab {
 	margin-left: 10px;
 }
 
-@media only screen and (max-width: 768px) {
-	.about-wrap .feature-section img.image-66 {
-		float: none;
-	}
-
-	.about-wrap .feature-section.images-stagger-right img.image-66 {
-		margin-right: 3px;
-	}
-
-	.about-wrap .feature-section.images-stagger-left img.image-66 {
-		margin-left: 3px;
-	}
-}
 
 /*------------------------------------------------------------------------------
   23.0 - Misc
@@ -1590,7 +1763,7 @@ h2 .nav-tab {
 
 }
 .tagchecklist span a {
-	margin: 6px -9px 0pt 0pt;
+	margin: 4px -10px 0 0;
 	float: right;
 }
 
@@ -1717,9 +1890,10 @@ table .column-rating {
 }
 
 /* Collapse Button */
-.wp-full-overlay .collapse-sidebar {
-	right: 0;
+.wp-full-overlay a.collapse-sidebar {
 	left: auto;
+	right: 0;
+	margin-left: 0;
 	margin-right: 15px;
 }
 
@@ -1730,7 +1904,7 @@ table .column-rating {
 .wp-full-overlay .collapse-sidebar-arrow {
 	margin-right: 2px;
 	margin-left: 0;
-	background: transparent url('../images/arrows.png') no-repeat 0 -108px;
+	background: transparent url('../images/arrows.png') no-repeat 1px -108px;
 }
 
 .wp-full-overlay.collapsed .collapse-sidebar-arrow {
@@ -2083,6 +2257,27 @@ body.login {
 	float: right;
 }
 
+.menu-location-menus select {
+	float: right;
+}
+
+.locations-row-links {
+	float: right;
+	margin: 4px 6px 0 0;
+}
+
+.locations-add-menu-link {
+	direction: rtl;
+}
+
+.locations-edit-menu-link {
+	border-left: 1px solid #CCCCCC;
+	border-right: 0;
+	padding-left: 6px;
+	padding-right: 0;
+	float: right;
+}
+
 /* Menu Container */
 #menu-management-liquid {
 	float: right;
@@ -2141,9 +2336,11 @@ body.login {
 }
 
 /* Add Menu Item Boxes */
-.postbox .howto input {
+.postbox .howto input,
+.accordion-container .howto input {
 	float: left;
 }
+
 #nav-menu-theme-locations .button-controls {
 	text-align: left;
 }
@@ -2202,10 +2399,21 @@ body.login {
 .menu-item-handle .item-title {
 	margin-left:13em;
 	margin-right:0;
+	overflow: hidden;
 }
 .menu-item-handle .item-edit {
 	right: auto;
 	left: -20px;
+}
+
+.menu-item-handle .menu-item-title {
+	float: right;
+}
+
+.menu-item-settings .field-move a,
+.menu-item-settings .field-move span {
+	float: right;
+	margin-left: 4px;
 }
 
 /* WARNING: The factor of 30px is hardcoded into the nav-menus javascript. */
@@ -2305,10 +2513,6 @@ body.login {
 	margin-right:0;
 }
 
-.auto-add-pages {
-	float: right;
-}
-
 /* Star ratings */
 div.star-holder {
 	background: url('../images/stars-rtl.png?ver=20121108') repeat-x bottom right;
@@ -2318,39 +2522,22 @@ div.star-holder .star-rating {
 	float: right;
 }
 
+#plugin-information .wrap {
+	margin: 4px 15px 0 0;
+}
+
 #plugin-information ul#sidemenu {
 	left: auto;
 	right: 0;
 }
 
-#plugin-information h2 {
-	margin-right: 0;
-	margin-left: 200px;
-}
-
 #plugin-information .fyi {
-	margin-left: 5px;
-	margin-right: 20px;
-}
-
-#plugin-information .fyi h2 {
-	margin-left: 0;
-}
-
-#plugin-information .fyi ul {
-	padding: 10px 7px 10px 5px;
+	float: right;
 }
 
 #plugin-information #section-screenshots li p {
 	padding-left: 0;
 	padding-right: 20px;
-}
-
-#plugin-information #section-screenshots ol,
-#plugin-information .updated,
-#plugin-information pre {
-	margin-right: 0;
-	margin-left: 215px;
 }
 
 #plugin-information .updated,
@@ -2439,6 +2626,14 @@ h3.tb {
 #TB_ajaxContent #options {
 	right: auto;
 	left: 25px;
+}
+
+#TB_closeAjaxWindow {
+	float: left;
+}
+
+#TB_ajaxWindowTitle {
+	float: right;
 }
 
 #post_status {
@@ -2536,9 +2731,64 @@ div.sidebar-name h3 {
 	direction: ltr;
 }
 
-/**
- * HiDPI Displays
- */
+.control-section .accordion-section-title {
+	font-family: Tahoma, Arial, sans-serif;
+}
+
+.js .accordion-section-title:after {
+	right: auto;
+	left: 20px;
+}
+
+/*------------------------------------------------------------------------------
+  28.0 - Nav Menus
+------------------------------------------------------------------------------*/
+.nav-menus-php .major-publishing-actions .publishing-action {
+	float: left;
+}
+
+.menu-settings dd {
+	float: right;
+}
+
+.manage-menus span {
+	float: right;
+}
+
+.manage-menus select {
+	float: right;
+	margin-right: 0;
+	margin-left: 6px;
+}
+
+.manage-menus .submit-btn {
+	float: right;
+}
+
+.manage-menus .selected-menu {
+	float: right;
+	margin: 5px 0 0 6px;
+}
+
+.nav-menus-php .add-new-menu-action {
+	float: right;
+	margin: 4px 6px 0 0;
+}
+
+.nav-menus-php .meta-sep,
+.nav-menus-php .submitdelete,
+.nav-menus-php .submitcancel {
+	float: right;
+}
+
+.is-submenu {
+	float: right;
+	margin-right: 8px;
+}
+
+/*------------------------------------------------------------------------------
+  29.0 - HiDPI
+------------------------------------------------------------------------------*/
 @media print,
   (-o-min-device-pixel-ratio: 5/4),
   (-webkit-min-device-pixel-ratio: 1.25),
@@ -2572,6 +2822,12 @@ div.sidebar-name h3 {
 	#content-resize-handle {
 		background: transparent url('../images/resize-rtl-2x.gif') no-repeat scroll left bottom;
 	}
+
+	.wp-slider .ui-slider-handle:before {
+		background-image: url(../images/arrows-pr-2x.png);
+		background-size: 16px 102px;
+	}
+
 }
 
 /* =Localized CSS
@@ -2590,8 +2846,6 @@ body.locale-he-il,
 .locale-he-il .inline-edit-row fieldset span.title,
 .locale-he-il .inline-edit-row fieldset span.checkbox-title,
 .locale-he-il .inline-edit-row fieldset ul.cat-checklist label,
-.locale-he-il .inline-edit-row .catshow,
-.locale-he-il .inline-edit-row .cathide,
 .locale-he-il .inline-edit-row #bulk-titles div,
 .locale-he-il p.help,
 .locale-he-il p.description,

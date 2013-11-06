@@ -8,7 +8,7 @@ inlineEditTax = {
 		t.type = $('#the-list').attr('data-wp-lists').substr(5);
 		t.what = '#'+t.type+'-';
 
-		$('.editinline').live('click', function(){
+		$('#the-list').on('click', 'a.editinline', function(){
 			inlineEditTax.edit(this);
 			return false;
 		});
@@ -90,6 +90,9 @@ inlineEditTax = {
 						$('#edit-'+id+' .inline-edit-save .error').html(r).show();
 				} else
 					$('#edit-'+id+' .inline-edit-save .error').html(inlineEditL10n.error).show();
+
+				if ($(row).prev('tr').hasClass('alternate'))
+					$(row).removeClass('alternate');
 			}
 		);
 		return false;

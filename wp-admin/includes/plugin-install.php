@@ -34,14 +34,50 @@ function plugins_api($action, $args = null) {
 	if ( !isset($args->per_page) )
 		$args->per_page = 24;
 
-	// Allows a plugin to override the WordPress.org API entirely.
-	// Use the filter 'plugins_api_result' to merely add results.
-	// Please ensure that a object is returned from the following filters.
-	$args = apply_filters('plugins_api_args', $args, $action);
-	$res = apply_filters('plugins_api', false, $action, $args);
+	/**
+	 * Override the Plugin Install API arguments.
+	 *
+	 * Please ensure that an object is returned.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param object $args   Plugin API arguments.
+	 * @param string $action The type of information being requested from the Plugin Install API.
+	 */
+	$args = apply_filters( 'plugins_api_args', $args, $action );
+
+	/**
+	 * Allows a plugin to override the WordPress.org Plugin Install API entirely.
+	 *
+	 * Please ensure that an object is returned.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param bool|object         The result object. Default is false.
+	 * @param string      $action The type of information being requested from the Plugin Install API.
+	 * @param object      $args   Plugin API arguments.
+	 */
+	$res = apply_filters( 'plugins_api', false, $action, $args );
 
 	if ( false === $res ) {
-		$request = wp_remote_post('http://api.wordpress.org/plugins/info/1.0/', array( 'timeout' => 15, 'body' => array('action' => $action, 'request' => serialize($args))) );
+		$url = $http_url = 'http://api.wordpress.org/plugins/info/1.0/';
+		if ( $ssl = wp_http_supports( array( 'ssl' ) ) )
+			$url = set_url_scheme( $url, 'https' );
+
+		$args = array(
+			'timeout' => 15,
+			'body' => array(
+				'action' => $action,
+				'request' => serialize( $args )
+			)
+		);
+		$request = wp_remote_post( $url, $args );
+
+		if ( $ssl && is_wp_error( $request ) ) {
+			trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="http://wordpress.org/support/">support forums</a>.' ) . ' ' . '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)', headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+			$request = wp_remote_post( $http_url, $args );
+		}
+
 		if ( is_wp_error($request) ) {
 			$res = new WP_Error('plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="http://wordpress.org/support/">support forums</a>.' ), $request->get_error_message() );
 		} else {
@@ -53,7 +89,16 @@ function plugins_api($action, $args = null) {
 		$res->external = true;
 	}
 
-	return apply_filters('plugins_api_result', $res, $action, $args);
+	/**
+	 * Filter the Plugin Install API response results.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param object|WP_Error $res    Response object or WP_Error.
+	 * @param string          $action The type of information being requested from the Plugin Install API.
+	 * @param object          $args   Plugin API arguments.
+	 */
+	return apply_filters( 'plugins_api_result', $res, $action, $args );
 }
 
 /**
@@ -81,7 +126,7 @@ function install_popular_tags( $args = array() ) {
 
 function install_dashboard() {
 	?>
-	<p><?php printf( __( 'Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="http://wordpress.org/extend/plugins/">WordPress Plugin Directory</a> or upload a plugin in .zip format via <a href="%s">this page</a>.' ), self_admin_url( 'plugin-install.php?tab=upload' ) ); ?></p>
+	<p><?php printf( __( 'Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="%1$s">WordPress Plugin Directory</a> or upload a plugin in .zip format via <a href="%2$s">this page</a>.' ), 'http://wordpress.org/plugins/', self_admin_url( 'plugin-install.php?tab=upload' ) ); ?></p>
 
 	<h4><?php _e('Search') ?></h4>
 	<?php install_search_form( false ); ?>
@@ -116,8 +161,8 @@ add_action('install_plugins_dashboard', 'install_dashboard');
  * @since 2.7.0
  */
 function install_search_form( $type_selector = true ) {
-	$type = isset($_REQUEST['type']) ? stripslashes( $_REQUEST['type'] ) : 'term';
-	$term = isset($_REQUEST['s']) ? stripslashes( $_REQUEST['s'] ) : '';
+	$type = isset($_REQUEST['type']) ? wp_unslash( $_REQUEST['type'] ) : 'term';
+	$term = isset($_REQUEST['s']) ? wp_unslash( $_REQUEST['s'] ) : '';
 
 	?><form id="search-plugins" method="get" action="">
 		<input type="hidden" name="tab" value="search" />
@@ -160,7 +205,7 @@ add_action('install_plugins_upload', 'install_plugins_upload', 10, 1);
  *
  */
 function install_plugins_favorites_form() {
-	$user = ! empty( $_GET['user'] ) ? stripslashes( $_GET['user'] ) : get_user_option( 'wporg_favorites' );
+	$user = ! empty( $_GET['user'] ) ? wp_unslash( $_GET['user'] ) : get_user_option( 'wporg_favorites' );
 	?>
 	<p class="install-help"><?php _e( 'If you have marked plugins as favorites on WordPress.org, you can browse them here.' ); ?></p>
 	<form method="get" action="">
@@ -229,7 +274,8 @@ function install_plugin_install_status($api, $loop = false) {
 				if ( current_user_can('install_plugins') )
 					$url = wp_nonce_url(self_admin_url('update.php?action=install-plugin&plugin=' . $api->slug), 'install-plugin_' . $api->slug);
 			} else {
-				$key = array_shift( $key = array_keys($installed_plugin) ); //Use the first plugin regardless of the name, Could have issues for multiple-plugins in one directory if they share different version numbers
+				$key = array_keys( $installed_plugin );
+				$key = array_shift( $key ); //Use the first plugin regardless of the name, Could have issues for multiple-plugins in one directory if they share different version numbers
 				if ( version_compare($api->version, $installed_plugin[ $key ]['Version'], '=') ){
 					$status = 'latest_installed';
 				} elseif ( version_compare($api->version, $installed_plugin[ $key ]['Version'], '<') ) {
@@ -251,7 +297,7 @@ function install_plugin_install_status($api, $loop = false) {
 		}
 	}
 	if ( isset($_GET['from']) )
-		$url .= '&amp;from=' . urlencode(stripslashes($_GET['from']));
+		$url .= '&amp;from=' . urlencode( wp_unslash( $_GET['from'] ) );
 
 	return compact('status', 'url', 'version');
 }
@@ -264,7 +310,7 @@ function install_plugin_install_status($api, $loop = false) {
 function install_plugin_information() {
 	global $tab;
 
-	$api = plugins_api('plugin_information', array('slug' => stripslashes( $_REQUEST['plugin'] ) ));
+	$api = plugins_api( 'plugin_information', array( 'slug' => wp_unslash( $_REQUEST['plugin'] ), 'is_ssl' => is_ssl() ) );
 
 	if ( is_wp_error($api) )
 		wp_die($api);
@@ -295,9 +341,11 @@ function install_plugin_information() {
 			$api->$key = wp_kses( $api->$key, $plugins_allowedtags );
 	}
 
-	$section = isset($_REQUEST['section']) ? stripslashes( $_REQUEST['section'] ) : 'description'; //Default to the Description tab, Do not translate, API returns English.
-	if ( empty($section) || ! isset($api->sections[ $section ]) )
-		$section = array_shift( $section_titles = array_keys((array)$api->sections) );
+	$section = isset( $_REQUEST['section'] ) ? wp_unslash( $_REQUEST['section'] ) : 'description'; //Default to the Description tab, Do not translate, API returns English.
+	if ( empty( $section ) || ! isset( $api->sections[ $section ] ) ) {
+		$section_titles = array_keys( (array) $api->sections );
+		$section = array_shift( $section_titles );
+	}
 
 	iframe_header( __('Plugin Install') );
 	echo "<div id='$tab-header'>\n";
@@ -358,7 +406,7 @@ function install_plugin_information() {
 <?php endif; if ( ! empty($api->downloaded) ) : ?>
 			<li><strong><?php _e('Downloaded:') ?></strong> <?php printf(_n('%s time', '%s times', $api->downloaded), number_format_i18n($api->downloaded)) ?></li>
 <?php endif; if ( ! empty($api->slug) && empty($api->external) ) : ?>
-			<li><a target="_blank" href="http://wordpress.org/extend/plugins/<?php echo $api->slug ?>/"><?php _e('WordPress.org Plugin Page &#187;') ?></a></li>
+			<li><a target="_blank" href="http://wordpress.org/plugins/<?php echo $api->slug ?>/"><?php _e('WordPress.org Plugin Page &#187;') ?></a></li>
 <?php endif; if ( ! empty($api->homepage) ) : ?>
 			<li><a target="_blank" href="<?php echo $api->homepage ?>"><?php _e('Plugin Homepage &#187;') ?></a></li>
 <?php endif; ?>
@@ -386,7 +434,7 @@ function install_plugin_information() {
 			else
 				$title = ucwords( str_replace( '_', ' ', $section_name ) );
 
-			$content = links_add_base_url($content, 'http://wordpress.org/extend/plugins/' . $api->slug . '/');
+			$content = links_add_base_url($content, 'http://wordpress.org/plugins/' . $api->slug . '/');
 			$content = links_add_target($content, '_blank');
 
 			$san_section = esc_attr( $section_name );

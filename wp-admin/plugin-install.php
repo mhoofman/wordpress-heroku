@@ -9,8 +9,10 @@
 if ( !defined( 'IFRAME_REQUEST' ) && isset( $_GET['tab'] ) && ( 'plugin-information' == $_GET['tab'] ) )
 	define( 'IFRAME_REQUEST', true );
 
-/** WordPress Administration Bootstrap */
-require_once('./admin.php');
+/**
+ * WordPress Administration Bootstrap.
+ */
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! current_user_can('install_plugins') )
 	wp_die(__('You do not have sufficient permissions to install plugins on this site.'));
@@ -33,13 +35,21 @@ if ( 'plugin-information' != $tab )
 
 $body_id = $tab;
 
-do_action('install_plugins_pre_' . $tab); //Used to override the general interface, Eg, install or plugin information.
+/**
+ * Fires before each tab on the Install Plugins screen is loaded.
+ *
+ * The dynamic portion of the action hook, $tab, allows for targeting
+ * individual tabs, for instance 'install_plugins_pre_plugin-information'.
+ *
+ * @since 2.7.0
+ */
+do_action( "install_plugins_pre_$tab" );
 
 get_current_screen()->add_help_tab( array(
 'id'		=> 'overview',
 'title'		=> __('Overview'),
 'content'	=>
-	'<p>' . sprintf(__('Plugins hook into WordPress to extend its functionality with custom features. Plugins are developed independently from the core WordPress application by thousands of developers all over the world. All plugins in the official <a href="%s" target="_blank">WordPress.org Plugin Directory</a> are compatible with the license WordPress uses. You can find new plugins to install by searching or browsing the Directory right here in your own Plugins section.'), 'http://wordpress.org/extend/plugins/') . '</p>'
+	'<p>' . sprintf(__('Plugins hook into WordPress to extend its functionality with custom features. Plugins are developed independently from the core WordPress application by thousands of developers all over the world. All plugins in the official <a href="%s" target="_blank">WordPress.org Plugin Directory</a> are compatible with the license WordPress uses. You can find new plugins to install by searching or browsing the Directory right here in your own Plugins section.'), 'http://wordpress.org/plugins/') . '</p>'
 ) );
 get_current_screen()->add_help_tab( array(
 'id'		=> 'adding-plugins',
@@ -57,6 +67,9 @@ get_current_screen()->set_help_sidebar(
 	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
+/**
+ * WordPress Administration Template Header.
+ */
 include(ABSPATH . 'wp-admin/admin-header.php');
 ?>
 <div class="wrap">
@@ -66,7 +79,22 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 <?php $wp_list_table->views(); ?>
 
 <br class="clear" />
-<?php do_action('install_plugins_' . $tab, $paged); ?>
+<?php
+/**
+ * Fires after the plugins list table in each tab of the Install Plugins screen.
+ *
+ * The dynamic portion of the action hook, $tab, allows for targeting
+ * individual tabs, for instance 'install_plugins_plugin-information'.
+ *
+ * @since 2.7.0
+ *
+ * @param int $paged The current page number of the plugins list table.
+ */
+?>
+<?php do_action( "install_plugins_$tab", $paged ); ?>
 </div>
 <?php
+/**
+ * WordPress Administration Template Footer.
+ */
 include(ABSPATH . 'wp-admin/admin-footer.php');

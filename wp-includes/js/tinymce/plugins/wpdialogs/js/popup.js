@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------
  *
  * Copyright 2009, Moxiecode Systems AB
- * Released under LGPL License.
+ * Released under LGPL
  *
  * License: http://tinymce.moxiecode.com/license
  * Contributing: http://tinymce.moxiecode.com/contributing
@@ -155,7 +155,7 @@ var tinyMCEPopup = {
 
 	/**
 	 * Stores the current editor selection for later restoration. This can be useful since some browsers
-	 * looses it's selection if a control element is selected/focused inside the dialogs.
+	 * loses its selection if a control element is selected/focused inside the dialogs.
 	 *
 	 * @method storeSelection
 	 */
@@ -165,15 +165,16 @@ var tinyMCEPopup = {
 
 	/**
 	 * Restores any stored selection. This can be useful since some browsers
-	 * looses it's selection if a control element is selected/focused inside the dialogs.
+	 * loses its selection if a control element is selected/focused inside the dialogs.
 	 *
 	 * @method restoreSelection
 	 */
 	restoreSelection : function() {
 		var t = tinyMCEPopup;
 
-		if (!t.isWindow && tinymce.isIE)
+		if (!t.isWindow && tinymce.isIE) {
 			t.editor.selection.moveToBookmark(t.editor.windowManager.bookmark);
+		}
 	},
 
 	/**
@@ -246,7 +247,7 @@ var tinyMCEPopup = {
 	},
 
 	/**
-	 * Creates a alert dialog. Please don't use the blocking behavior of this
+	 * Creates an alert dialog. Please don't use the blocking behavior of this
 	 * native version use the callback method instead then it can be extended.
 	 *
 	 * @method alert
@@ -280,11 +281,12 @@ var tinyMCEPopup = {
 
 	// Internal functions
 
-	_restoreSelection : function() {
-		var e = window.event.srcElement;
+	_restoreSelection : function(e) {
+		var el = e && e.target ? e.target : window.event.srcElement;
 
-		if (e.nodeName == 'INPUT' && (e.type == 'submit' || e.type == 'button'))
+		if ( el.nodeName == 'INPUT' && ( el.type == 'submit' || el.type == 'button' ) ) {
 			tinyMCEPopup.restoreSelection();
+		}
 	},
 
 /*	_restoreSelection : function() {
@@ -325,11 +327,13 @@ var tinyMCEPopup = {
 		document.body.style.display = '';
 
 		// Restore selection in IE when focus is placed on a non textarea or input element of the type text
-		if (tinymce.isIE) {
+		if ( tinymce.isIE && ! tinymce.isIE11 ) {
 			document.attachEvent('onmouseup', tinyMCEPopup._restoreSelection);
 
 			// Add base target element for it since it would fail with modal dialogs
 			t.dom.add(t.dom.select('head')[0], 'base', {target : '_self'});
+		} else if ( tinymce.isIE11 ) {
+			document.addEventListener('mouseup', tinyMCEPopup._restoreSelection, false);
 		}
 
 		t.restoreSelection();

@@ -209,7 +209,7 @@ class WP_Users_List_Table extends WP_List_Table {
 				continue;
 
 			$style = ( ' class="alternate"' == $style ) ? '' : ' class="alternate"';
-			echo "\n\t", $this->single_row( $user_object, $style, $role, isset( $post_counts ) ? $post_counts[ $userid ] : 0 );
+			echo "\n\t" . $this->single_row( $user_object, $style, $role, isset( $post_counts ) ? $post_counts[ $userid ] : 0 );
 		}
 	}
 
@@ -241,7 +241,7 @@ class WP_Users_List_Table extends WP_List_Table {
 		// Check if the user for this row is editable
 		if ( current_user_can( 'list_users' ) ) {
 			// Set up the user editing link
-			$edit_link = esc_url( add_query_arg( 'wp_http_referer', urlencode( stripslashes( $_SERVER['REQUEST_URI'] ) ), get_edit_user_link( $user_object->ID ) ) );
+			$edit_link = esc_url( add_query_arg( 'wp_http_referer', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), get_edit_user_link( $user_object->ID ) ) );
 
 			// Set up the hover actions for this user
 			$actions = array();
@@ -260,7 +260,7 @@ class WP_Users_List_Table extends WP_List_Table {
 			$actions = apply_filters( 'user_row_actions', $actions, $user_object );
 			$edit .= $this->row_actions( $actions );
 
-			// Set up the checkbox ( because the user is editable, otherwise its empty )
+			// Set up the checkbox ( because the user is editable, otherwise it's empty )
 			$checkbox = '<label class="screen-reader-text" for="cb-select-' . $user_object->ID . '">' . sprintf( __( 'Select %s' ), $user_object->user_login ) . '</label>'
 						. "<input type='checkbox' name='users[]' id='user_{$user_object->ID}' class='$role' value='{$user_object->ID}' />";
 

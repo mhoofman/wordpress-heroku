@@ -179,11 +179,10 @@ class WP_Importer {
 	 */
 	function get_page( $url, $username = '', $password = '', $head = false ) {
 		// Increase the timeout
-		add_filter( 'http_request_timeout', array( &$this, 'bump_request_timeout' ) );
+		add_filter( 'http_request_timeout', array( $this, 'bump_request_timeout' ) );
 
 		$headers = array();
 		$args = array();
-		$args['reject_unsafe_urls'] = true;
 		if ( true === $head )
 			$args['method'] = 'HEAD';
 		if ( !empty( $username ) && !empty( $password ) )
@@ -191,7 +190,7 @@ class WP_Importer {
 
 		$args['headers'] = $headers;
 
-		return wp_remote_request( $url, $args );
+		return wp_safe_remote_request( $url, $args );
 	}
 
 	/**

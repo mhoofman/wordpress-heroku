@@ -37,10 +37,26 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 
 		$nonmenu_tabs = array( 'plugin-information' ); //Valid actions to perform which do not have a Menu item.
 
+		/**
+		 * Filter the tabs shown on the Plugin Install screen.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array $tabs The tabs shown on the Plugin Install screen. Defaults are 'dashboard', 'search',
+		 *                    'upload', 'featured', 'popular', 'new', and 'favorites'.
+		 */
 		$tabs = apply_filters( 'install_plugins_tabs', $tabs );
+
+		/**
+		 * Filter tabs not associated with a menu item on the Plugin Install screen.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array $nonmenu_tabs The tabs that don't have a Menu item on the Plugin Install screen.
+		 */
 		$nonmenu_tabs = apply_filters( 'install_plugins_nonmenu_tabs', $nonmenu_tabs );
 
-		// If a non-valid menu tab has been selected, And its not a non-menu action.
+		// If a non-valid menu tab has been selected, And it's not a non-menu action.
 		if ( empty( $tab ) || ( !isset( $tabs[ $tab ] ) && !in_array( $tab, (array) $nonmenu_tabs ) ) )
 			$tab = key( $tabs );
 
@@ -48,8 +64,8 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 
 		switch ( $tab ) {
 			case 'search':
-				$type = isset( $_REQUEST['type'] ) ? stripslashes( $_REQUEST['type'] ) : 'term';
-				$term = isset( $_REQUEST['s'] ) ? stripslashes( $_REQUEST['s'] ) : '';
+				$type = isset( $_REQUEST['type'] ) ? wp_unslash( $_REQUEST['type'] ) : 'term';
+				$term = isset( $_REQUEST['s'] ) ? wp_unslash( $_REQUEST['s'] ) : '';
 
 				switch ( $type ) {
 					case 'tag':
@@ -73,7 +89,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 				break;
 
 			case 'favorites':
-				$user = isset( $_GET['user'] ) ? stripslashes( $_GET['user'] ) : get_user_option( 'wporg_favorites' );
+				$user = isset( $_GET['user'] ) ? wp_unslash( $_GET['user'] ) : get_user_option( 'wporg_favorites' );
 				update_user_meta( get_current_user_id(), 'wporg_favorites', $user );
 				if ( $user )
 					$args['user'] = $user;
@@ -85,7 +101,21 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 
 			default:
 				$args = false;
+				break;
 		}
+
+		/**
+		 * Filter API request arguments for each Plugin Install screen tab.
+		 *
+		 * The dynamic portion of the hook name, $tab, refers to the plugin install tabs.
+		 * Default tabs are 'dashboard', 'search', 'upload', 'featured', 'popular', 'new',
+		 * and 'favorites'.
+		 *
+		 * @since 3.7.0
+		 *
+		 * @param array|bool $args Plugin Install API arguments.
+		 */
+		$args = apply_filters( "install_plugins_table_api_args_$tab", $args );
 
 		if ( !$args )
 			return;
@@ -124,7 +154,13 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 		if ( 'top' ==  $which ) { ?>
 			<div class="tablenav top">
 				<div class="alignleft actions">
-					<?php do_action( 'install_plugins_table_header' ); ?>
+					<?php
+					/**
+					 * Fires before the Plugin Install table header pagination is displayed.
+					 *
+					 * @since 2.7.0
+					 */
+					do_action( 'install_plugins_table_header' ); ?>
 				</div>
 				<?php $this->pagination( $which ); ?>
 				<br class="clear" />
@@ -218,6 +254,14 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 				}
 			}
 
+			/**
+			 * Filter the install action links for a plugin.
+			 *
+			 * @since 2.7.0
+			 *
+			 * @param array $action_links An array of plugin action hyperlinks. Defaults are links to Details and Install Now.
+			 * @param array $plugin       The plugin currently being listed.
+			 */
 			$action_links = apply_filters( 'plugin_install_action_links', $action_links, $plugin );
 		?>
 		<tr>

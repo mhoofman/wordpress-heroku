@@ -310,7 +310,7 @@ final class WP_Customize_Manager {
 	public function post_value( $setting ) {
 		if ( ! isset( $this->_post_values ) ) {
 			if ( isset( $_POST['customized'] ) )
-				$this->_post_values = json_decode( stripslashes( $_POST['customized'] ), true );
+				$this->_post_values = json_decode( wp_unslash( $_POST['customized'] ), true );
 			else
 				$this->_post_values = false;
 		}
@@ -511,6 +511,8 @@ final class WP_Customize_Manager {
 		foreach ( $this->settings as $setting ) {
 			$setting->save();
 		}
+
+		do_action( 'customize_save_after', $this );
 
 		die;
 	}
@@ -897,9 +899,7 @@ final class WP_Customize_Manager {
 		if ( $menus ) {
 			$choices = array( 0 => __( '&mdash; Select &mdash;' ) );
 			foreach ( $menus as $menu ) {
-				$truncated_name = wp_html_excerpt( $menu->name, 40 );
-				$truncated_name = ( $truncated_name == $menu->name ) ? $menu->name : trim( $truncated_name ) . '&hellip;';
-				$choices[ $menu->term_id ] = $truncated_name;
+				$choices[ $menu->term_id ] = wp_html_excerpt( $menu->name, 40, '&hellip;' );
 			}
 
 			foreach ( $locations as $location => $description ) {
@@ -975,6 +975,7 @@ final class WP_Customize_Manager {
 	 * Callback for validating the header_textcolor value.
 	 *
 	 * Accepts 'blank', and otherwise uses sanitize_hex_color_no_hash().
+	 * Returns default text color if hex color is empty.
 	 *
 	 * @since 3.4.0
 	 *
@@ -982,7 +983,14 @@ final class WP_Customize_Manager {
 	 * @return string
 	 */
 	public function _sanitize_header_textcolor( $color ) {
-		return ( 'blank' === $color ) ? 'blank' : sanitize_hex_color_no_hash( $color );
+		if ( 'blank' === $color )
+			return 'blank';
+
+		$color = sanitize_hex_color_no_hash( $color );
+		if ( empty( $color ) )
+			$color = get_theme_support( 'custom-header', 'default-text-color' );
+
+		return $color;
 	}
 };
 

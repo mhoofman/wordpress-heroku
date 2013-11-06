@@ -13,7 +13,7 @@
 define( 'WP_INSTALLING_NETWORK', true );
 
 /** WordPress Administration Bootstrap */
-require_once( './admin.php' );
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! is_super_admin() )
 	wp_die( __( 'You do not have sufficient permissions to manage options for this site.' ) );
@@ -58,13 +58,20 @@ function allow_subdomain_install() {
 	return true;
 }
 /**
- * Allow subdirectory install
+ * Allow subdirectory install.
  *
  * @since 3.0.0
  * @return bool Whether subdirectory install is allowed
  */
 function allow_subdirectory_install() {
 	global $wpdb;
+        /**
+         * Filter whether to enable the subdirectory install feature in Multisite.
+         *
+         * @since 3.0.0
+         *
+         * @param bool true Whether to enable the subdirectory install feature in Multisite. Default is false.
+         */
 	if ( apply_filters( 'allow_subdirectory_install', false ) )
 		return true;
 
@@ -314,7 +321,7 @@ function network_step2( $errors = false ) {
 	$base              = parse_url( $slashed_home, PHP_URL_PATH );
 	$document_root_fix = str_replace( '\\', '/', realpath( $_SERVER['DOCUMENT_ROOT'] ) );
 	$abspath_fix       = str_replace( '\\', '/', ABSPATH );
-	$home_path         = 0 === strpos( $abspath_fix, $document_root_fix ) ? $document_root_fix . $base : str_replace( '\\', '/', get_home_path() );
+	$home_path         = 0 === strpos( $abspath_fix, $document_root_fix ) ? $document_root_fix . $base : get_home_path();
 	$wp_siteurl_subdir = preg_replace( '#^' . preg_quote( $home_path, '#' ) . '#', '', $abspath_fix );
 	$rewrite_base      = ! empty( $wp_siteurl_subdir ) ? ltrim( trailingslashit( $wp_siteurl_subdir ), '/' ) : '';
 
@@ -374,8 +381,7 @@ define('SUBDOMAIN_INSTALL', <?php echo $subdomain_install ? 'true' : 'false'; ?>
 define('DOMAIN_CURRENT_SITE', '<?php echo $hostname; ?>');
 define('PATH_CURRENT_SITE', '<?php echo $base; ?>');
 define('SITE_ID_CURRENT_SITE', 1);
-define('BLOG_ID_CURRENT_SITE', 1);
-</textarea>
+define('BLOG_ID_CURRENT_SITE', 1);</textarea>
 <?php
 	$keys_salts = array( 'AUTH_KEY' => '', 'SECURE_AUTH_KEY' => '', 'LOGGED_IN_KEY' => '', 'NONCE_KEY' => '', 'AUTH_SALT' => '', 'SECURE_AUTH_SALT' => '', 'LOGGED_IN_SALT' => '', 'NONCE_SALT' => '' );
 	foreach ( $keys_salts as $c => $v ) {
@@ -520,7 +526,7 @@ if ( $_POST ) {
 	$base              = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 	$subdomain_install = allow_subdomain_install() ? !empty( $_POST['subdomain_install'] ) : false;
 	if ( ! network_domain_check() ) {
-		$result = populate_network( 1, get_clean_basedomain(), sanitize_email( $_POST['email'] ), stripslashes( $_POST['sitename'] ), $base, $subdomain_install );
+		$result = populate_network( 1, get_clean_basedomain(), sanitize_email( $_POST['email'] ), wp_unslash( $_POST['sitename'] ), $base, $subdomain_install );
 		if ( is_wp_error( $result ) ) {
 			if ( 1 == count( $result->get_error_codes() ) && 'no_wildcard_dns' == $result->get_error_code() )
 				network_step2( $result );

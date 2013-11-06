@@ -8,7 +8,7 @@
  */
 
 /** Load WordPress Administration Bootstrap */
-require_once( './admin.php' );
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! is_multisite() )
 	wp_die( __( 'Multisite support is not enabled.' ) );
@@ -88,7 +88,7 @@ if ( isset($_REQUEST['action']) && 'add-site' == $_REQUEST['action'] ) {
 		$content_mail = sprintf( __( 'New site created by %1$s
 
 Address: %2$s
-Name: %3$s' ), $current_user->user_login , get_site_url( $id ), stripslashes( $title ) );
+Name: %3$s' ), $current_user->user_login , get_site_url( $id ), wp_unslash( $title ) );
 		wp_mail( get_site_option('admin_email'), sprintf( __( '[%s] New Site Created' ), $current_site->site_name ), $content_mail, 'From: "Site Admin" <' . get_site_option( 'admin_email' ) . '>' );
 		wpmu_welcome_notification( $id, $user_id, $password, $title, array( 'public' => 1 ) );
 		wp_redirect( add_query_arg( array( 'update' => 'added', 'id' => $id ), 'site-new.php' ) );
@@ -107,7 +107,7 @@ if ( isset($_GET['update']) ) {
 $title = __('Add New Site');
 $parent_file = 'sites.php';
 
-require('../admin-header.php');
+require( ABSPATH . 'wp-admin/admin-header.php' );
 
 ?>
 
@@ -150,4 +150,4 @@ if ( ! empty( $messages ) ) {
 	</form>
 </div>
 <?php
-require('../admin-footer.php');
+require( ABSPATH . 'wp-admin/admin-footer.php' );

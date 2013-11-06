@@ -42,7 +42,7 @@ inlineEditPost = {
 		});
 
 		// add events
-		$('a.editinline').live('click', function(){
+		$('#the-list').on('click', 'a.editinline', function(){
 			inlineEditPost.edit(this);
 			return false;
 		});
@@ -52,15 +52,6 @@ inlineEditPost = {
 		).siblings( 'fieldset:last' ).prepend(
 			$('#inline-edit label.inline-edit-tags').clone()
 		);
-
-		// hiearchical taxonomies expandable?
-		$('span.catshow').click(function(){
-			$(this).hide().next().show().parent().next().addClass("cat-hover");
-		});
-
-		$('span.cathide').click(function(){
-			$(this).hide().prev().show().parent().next().removeClass("cat-hover");
-		});
 
 		$('select[name="_status"] option[value="future"]', bulkRow).remove();
 
@@ -72,11 +63,6 @@ inlineEditPost = {
 			} else if ( $('form#posts-filter tr.inline-editor').length > 0 ) {
 				t.revert();
 			}
-		});
-
-		$('#post-query-submit').mousedown(function(e){
-			t.revert();
-			$('select[name^="action"]').val('-1');
 		});
 	},
 
@@ -267,6 +253,10 @@ inlineEditPost = {
 				} else {
 					$('#edit-'+id+' .inline-edit-save .error').html(inlineEditL10n.error).show();
 				}
+
+				if ( $('#post-'+id).prev().hasClass('alternate') ) {
+					$('#post-'+id).removeClass('alternate');
+				}
 			}
 		, 'html');
 		return false;
@@ -299,5 +289,42 @@ inlineEditPost = {
 	}
 };
 
-$(document).ready(function(){inlineEditPost.init();});
-})(jQuery);
+$( document ).ready( function(){ inlineEditPost.init(); } );
+
+// Show/hide locks on posts
+$( document ).on( 'heartbeat-tick.wp-check-locked-posts', function( e, data ) {
+	var locked = data['wp-check-locked-posts'] || {};
+
+	$('#the-list tr').each( function(i, el) {
+		var key = el.id, row = $(el), lock_data, avatar;
+
+		if ( locked.hasOwnProperty( key ) ) {
+			if ( ! row.hasClass('wp-locked') ) {
+				lock_data = locked[key];
+				row.find('.column-title .locked-text').text( lock_data.text );
+				row.find('.check-column checkbox').prop('checked', false);
+
+				if ( lock_data.avatar_src ) {
+					avatar = $('<img class="avatar avatar-18 photo" width="18" height="18" />').attr( 'src', lock_data.avatar_src.replace(/&amp;/g, '&') );
+					row.find('.column-title .locked-avatar').empty().append( avatar );
+				}
+				row.addClass('wp-locked');
+			}
+		} else if ( row.hasClass('wp-locked') ) {
+			// Make room for the CSS animation
+			row.removeClass('wp-locked').delay(1000).find('.locked-info span').empty();
+		}
+	});
+}).on( 'heartbeat-send.wp-check-locked-posts', function( e, data ) {
+	var check = [];
+
+	$('#the-list tr').each( function(i, el) {
+		if ( el.id )
+			check.push( el.id );
+	});
+
+	if ( check.length )
+		data['wp-check-locked-posts'] = check;
+});
+
+}(jQuery));

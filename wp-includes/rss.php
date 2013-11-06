@@ -10,6 +10,7 @@
  *
  * @package External
  * @subpackage MagpieRSS
+ * @deprecated 3.0.0 Use SimplePie instead.
  */
 
 /**
@@ -17,10 +18,13 @@
  */
 _deprecated_file( basename( __FILE__ ), '3.0', WPINC . '/class-simplepie.php' );
 
-/*
- * Hook to use another RSS object instead of MagpieRSS
+/**
+ * Fires before MagpieRSS is loaded, to optionally replace it.
+ *
+ * @since 2.3.0
+ * @deprecated 3.0.0
  */
-do_action('load_feed_engine');
+do_action( 'load_feed_engine' );
 
 /** RSS feed constant. */
 define('RSS', 'RSS');
@@ -422,7 +426,7 @@ function fetch_rss ($url) {
 	else {
 		// Flow
 		// 1. check cache
-		// 2. if there is a hit, make sure its fresh
+		// 2. if there is a hit, make sure it's fresh
 		// 3. if cached obj fails freshness check, fetch remote
 		// 4. if remote fails, return stale object, or error
 
@@ -536,7 +540,7 @@ endif;
  * @return Snoopy style response
  */
 function _fetch_remote_file($url, $headers = "" ) {
-	$resp = wp_remote_request($url, array('headers' => $headers, 'timeout' => MAGPIE_FETCH_TIME_OUT, 'reject_unsafe_urls' => true ));
+	$resp = wp_safe_remote_request( $url, array( 'headers' => $headers, 'timeout' => MAGPIE_FETCH_TIME_OUT ) );
 	if ( is_wp_error($resp) ) {
 		$error = array_shift($resp->errors);
 

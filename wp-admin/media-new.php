@@ -10,7 +10,7 @@
  */
 
 /** Load WordPress Administration Bootstrap */
-require_once('./admin.php');
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if (!current_user_can('upload_files'))
 	wp_die(__('You do not have permission to upload files.'));
@@ -68,7 +68,7 @@ if ( get_user_setting('uploader') || isset( $_GET['browser-uploader'] ) )
 	<?php screen_icon(); ?>
 	<h2><?php echo esc_html( $title ); ?></h2>
 
-	<form enctype="multipart/form-data" method="post" action="<?php echo admin_url('media-new.php'); ?>" class="<?php echo $form_class; ?>" id="file-form">
+	<form enctype="multipart/form-data" method="post" action="<?php echo admin_url('media-new.php'); ?>" class="<?php echo esc_attr( $form_class ); ?>" id="file-form">
 
 	<?php media_upload_form(); ?>
 

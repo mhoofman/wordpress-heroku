@@ -8,7 +8,7 @@
  */
 
 /** Load WordPress Administration Bootstrap */
-require_once( './admin.php' );
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! is_multisite() )
 	wp_die( __( 'Multisite support is not enabled.' ) );
@@ -49,17 +49,13 @@ if ( isset($_REQUEST['action']) && 'update-site' == $_REQUEST['action'] && is_ar
 
 	switch_to_blog( $id );
 
-	$c = 1;
-	$count = count( $_POST['option'] );
 	$skip_options = array( 'allowedthemes' ); // Don't update these options since they are handled elsewhere in the form.
 	foreach ( (array) $_POST['option'] as $key => $val ) {
+		$key = wp_unslash( $key );
+		$val = wp_unslash( $val );
 		if ( $key === 0 || is_array( $val ) || in_array($key, $skip_options) )
 			continue; // Avoids "0 is a protected WP option and may not be modified" error when edit blog options
-		if ( $c == $count )
-			update_option( $key, stripslashes( $val ) );
-		else
-			update_option( $key, stripslashes( $val ), false ); // no need to refresh blog details yet
-		$c++;
+		update_option( $key, $val );
 	}
 
 	do_action( 'wpmu_update_blog_options' );
@@ -81,7 +77,7 @@ $title = sprintf( __('Edit Site: %s'), $site_url_no_http );
 $parent_file = 'sites.php';
 $submenu_file = 'sites.php';
 
-require('../admin-header.php');
+require( ABSPATH . 'wp-admin/admin-header.php' );
 
 ?>
 
@@ -121,7 +117,7 @@ if ( ! empty( $messages ) ) {
 			$class = 'all-options';
 			if ( is_serialized( $option->option_value ) ) {
 				if ( is_serialized_string( $option->option_value ) ) {
-					$option->option_value = esc_html( maybe_unserialize( $option->option_value ), 'single' );
+					$option->option_value = esc_html( maybe_unserialize( $option->option_value ) );
 				} else {
 					$option->option_value = 'SERIALIZED DATA';
 					$disabled = true;
@@ -156,4 +152,4 @@ if ( ! empty( $messages ) ) {
 
 </div>
 <?php
-require('../admin-footer.php');
+require( ABSPATH . 'wp-admin/admin-footer.php' );

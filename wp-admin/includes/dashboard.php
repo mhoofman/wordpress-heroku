@@ -142,11 +142,13 @@ function wp_dashboard_setup() {
 	if ( $update )
 		update_option( 'dashboard_widget_options', $widget_options );
 
+	/** This action is documented in wp-admin/edit-form-advanced.php */
 	do_action('do_meta_boxes', $screen->id, 'normal', '');
+	/** This action is documented in wp-admin/edit-form-advanced.php */
 	do_action('do_meta_boxes', $screen->id, 'side', '');
 }
 
-function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_callback = null ) {
+function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_callback = null, $callback_args = null ) {
 	$screen = get_current_screen();
 	global $wp_dashboard_control_callbacks;
 
@@ -177,7 +179,7 @@ function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_
 	if ( 'dashboard_browser_nag' === $widget_id )
 		$priority = 'high';
 
-	add_meta_box( $widget_id, $widget_name, $callback, $screen, $location, $priority );
+	add_meta_box( $widget_id, $widget_name, $callback, $screen, $location, $priority, $callback_args );
 }
 
 function _wp_dashboard_control_callback( $dashboard, $meta_box ) {
@@ -232,7 +234,7 @@ function wp_dashboard_right_now() {
 
 	$num_tags = wp_count_terms('post_tag');
 
-	$num_comm = wp_count_comments( );
+	$num_comm = wp_count_comments();
 
 	echo "\n\t".'<div class="table table_content">';
 	echo "\n\t".'<p class="sub">' . __('Content') . '</p>'."\n\t".'<table>';
@@ -366,7 +368,7 @@ function wp_dashboard_right_now() {
 
 	if ( $theme->errors() ) {
 		if ( ! is_multisite() || is_super_admin() )
-			echo '<span class="error-message">' . __('ERROR: The themes directory is either empty or doesn&#8217;t exist. Please check your installation.') . '</span>';
+			echo '<span class="error-message">' . sprintf( __( 'ERROR: %s' ), $theme->errors()->get_error_message() ) . '</span>';
 	} elseif ( ! empty($wp_registered_sidebars) ) {
 		$sidebars_widgets = wp_get_sidebars_widgets();
 		$num_widgets = 0;
@@ -589,8 +591,8 @@ function wp_dashboard_recent_drafts( $drafts = false ) {
 			$url = get_edit_post_link( $draft->ID );
 			$title = _draft_or_post_title( $draft->ID );
 			$item = "<h4><a href='$url' title='" . sprintf( __( 'Edit &#8220;%s&#8221;' ), esc_attr( $title ) ) . "'>" . esc_html($title) . "</a> <abbr title='" . get_the_time(__('Y/m/d g:i:s A'), $draft) . "'>" . get_the_time( get_option( 'date_format' ), $draft ) . '</abbr></h4>';
-			if ( $the_content = preg_split( '#[\r\n\t ]#', strip_tags( $draft->post_content ), 11, PREG_SPLIT_NO_EMPTY ) )
-				$item .= '<p>' . join( ' ', array_slice( $the_content, 0, 10 ) ) . ( 10 < count( $the_content ) ? '&hellip;' : '' ) . '</p>';
+			if ( $the_content = wp_trim_words( $draft->post_content, 10 ) )
+				$item .= '<p>' . $the_content . '</p>';
 			$list[] = $item;
 		}
 ?>
@@ -710,7 +712,7 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 		<div id="comment-<?php echo $comment->comment_ID; ?>" <?php comment_class( array( 'comment-item', wp_get_comment_status($comment->comment_ID) ) ); ?>>
 			<?php if ( !$comment->comment_type || 'comment' == $comment->comment_type ) : ?>
 
-			<?php echo get_avatar( $comment, 50 ); ?>
+			<?php echo get_avatar( $comment, 50, 'mystery' ); ?>
 
 			<div class="dashboard-comment-wrap">
 			<h4 class="comment-meta">
@@ -827,7 +829,7 @@ function wp_dashboard_incoming_links_output() {
 			$publisher = "<strong>$publisher</strong>";
 
 		$content = $item->get_content();
-		$content = wp_html_excerpt($content, 50) . ' ...';
+		$content = wp_html_excerpt( $content, 50, ' &hellip;' );
 
 		if ( $link )
 			/* translators: incoming links feed, %1$s is other person, %3$s is content */
@@ -869,7 +871,7 @@ function wp_dashboard_primary_control() {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Display primary dashboard RSS widget feed.
  *
  * @since 2.5.0
  *
@@ -923,8 +925,8 @@ function wp_dashboard_secondary_output() {
 
 function wp_dashboard_plugins() {
 	wp_dashboard_cached_rss_widget( 'dashboard_plugins', 'wp_dashboard_plugins_output', array(
-		'http://wordpress.org/extend/plugins/rss/browse/popular/',
-		'http://wordpress.org/extend/plugins/rss/browse/new/'
+		'http://wordpress.org/plugins/rss/browse/popular/',
+		'http://wordpress.org/plugins/rss/browse/new/'
 	) );
 }
 
@@ -934,8 +936,8 @@ function wp_dashboard_plugins() {
  * @since 2.5.0
  */
 function wp_dashboard_plugins_output() {
-	$popular = fetch_feed( 'http://wordpress.org/extend/plugins/rss/browse/popular/' );
-	$new     = fetch_feed( 'http://wordpress.org/extend/plugins/rss/browse/new/' );
+	$popular = fetch_feed( 'http://wordpress.org/plugins/rss/browse/popular/' );
+	$new     = fetch_feed( 'http://wordpress.org/plugins/rss/browse/new/' );
 
 	if ( false === $plugin_slugs = get_transient( 'plugin_slugs' ) ) {
 		$plugin_slugs = array_keys( get_plugins() );
@@ -1093,8 +1095,9 @@ function wp_dashboard_rss_control( $widget_id, $form_inputs = array() ) {
 	$widget_options[$widget_id]['number'] = $number;
 
 	if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset($_POST['widget-rss'][$number]) ) {
-		$_POST['widget-rss'][$number] = stripslashes_deep( $_POST['widget-rss'][$number] );
+		$_POST['widget-rss'][$number] = wp_unslash( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id] = wp_widget_rss_process( $_POST['widget-rss'][$number] );
+		$widget_options[$widget_id]['number'] = $number;
 		// title is optional. If black, fill it if possible
 		if ( !$widget_options[$widget_id]['title'] && isset($_POST['widget-rss'][$number]['title']) ) {
 			$rss = fetch_feed($widget_options[$widget_id]['url']);
@@ -1114,7 +1117,15 @@ function wp_dashboard_rss_control( $widget_id, $form_inputs = array() ) {
 	wp_widget_rss_form( $widget_options[$widget_id], $form_inputs );
 }
 
-// Display File upload quota on dashboard
+/**
+ * Display file upload quota on dashboard.
+ *
+ * Runs on the activity_box_end hook in wp_dashboard_right_now().
+ *
+ * @since 3.0.0
+ *
+ * @return bool True if not multisite, user can't upload files, or the space check option is disabled.
+*/
 function wp_dashboard_quota() {
 	if ( !is_multisite() || !current_user_can('upload_files') || get_site_option( 'upload_space_check_disabled' ) )
 		return true;
@@ -1217,7 +1228,7 @@ function wp_check_browser_version() {
 			'user-agent'	=> 'WordPress/' . $wp_version . '; ' . home_url()
 		);
 
-		$response = wp_remote_post( 'http://api.wordpress.org/core/browse-happy/1.0/', $options );
+		$response = wp_remote_post( 'http://api.wordpress.org/core/browse-happy/1.1/', $options );
 
 		if ( is_wp_error( $response ) || 200 != wp_remote_retrieve_response_code( $response ) )
 			return false;
@@ -1233,7 +1244,7 @@ function wp_check_browser_version() {
 		 *  'img_src' - string - An image representing the browser
 		 *  'img_src_ssl' - string - An image (over SSL) representing the browser
 		 */
-		$response = maybe_unserialize( wp_remote_retrieve_body( $response ) );
+		$response = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( ! is_array( $response ) )
 			return false;

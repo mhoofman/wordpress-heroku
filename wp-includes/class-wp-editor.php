@@ -152,7 +152,6 @@ final class _WP_Editors {
 	}
 
 	public static function editor_settings($editor_id, $set) {
-		global $editor_styles;
 		$first_run = false;
 
 		if ( empty(self::$first_init) ) {
@@ -176,7 +175,7 @@ final class _WP_Editors {
 				$qtInit = array_merge($qtInit, $set['quicktags']);
 
 			if ( empty($qtInit['buttons']) )
-				$qtInit['buttons'] = 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,spell,close';
+				$qtInit['buttons'] = 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,close';
 
 			if ( $set['dfw'] )
 				$qtInit['buttons'] .= ',fullscreen';
@@ -193,7 +192,7 @@ final class _WP_Editors {
 				self::$baseurl = includes_url('js/tinymce');
 				self::$mce_locale = $mce_locale = ( '' == get_locale() ) ? 'en' : strtolower( substr(get_locale(), 0, 2) ); // only ISO 639-1
 				$no_captions = (bool) apply_filters( 'disable_captions', '' );
-				$plugins = array( 'inlinepopups', 'spellchecker', 'tabfocus', 'paste', 'media', 'fullscreen', 'wordpress', 'wpeditimage', 'wpgallery', 'wplink', 'wpdialogs' );
+				$plugins = array( 'inlinepopups', 'tabfocus', 'paste', 'media', 'fullscreen', 'wordpress', 'wpeditimage', 'wpgallery', 'wplink', 'wpdialogs' );
 				$first_run = true;
 				$ext_plugins = '';
 
@@ -286,20 +285,22 @@ final class _WP_Editors {
 				self::$plugins = $plugins;
 				self::$ext_plugins = $ext_plugins;
 
-				/*
-				translators: These languages show up in the spellchecker drop-down menu, in the order specified, and with the first
-				language listed being the default language. They must be comma-separated and take the format of name=code, where name
-				is the language name (which you may internationalize), and code is a valid ISO 639 language code. Please test the
-				spellchecker with your values.
-				*/
-				$mce_spellchecker_languages = __( 'English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv' );
+				if ( in_array( 'spellchecker', $plugins ) ) {
+					/*
+					translators: These languages show up in the spellchecker drop-down menu, in the order specified, and with the first
+					language listed being the default language. They must be comma-separated and take the format of name=code, where name
+					is the language name (which you may internationalize), and code is a valid ISO 639 language code. Please test the
+					spellchecker with your values.
+					*/
+					$mce_spellchecker_languages = __( 'English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv' );
 
-				/*
-				The following filter allows localization scripts to change the languages displayed in the spellchecker's drop-down menu.
-				By default it uses Google's spellchecker API, but can be configured to use PSpell/ASpell if installed on the server.
-				The + sign marks the default language. More: http://www.tinymce.com/wiki.php/Plugin:spellchecker.
-				*/
-				$mce_spellchecker_languages = apply_filters( 'mce_spellchecker_languages', '+' . $mce_spellchecker_languages );
+					/*
+					The following filter allows localization scripts to change the languages displayed in the spellchecker's drop-down menu.
+					By default it uses Google's spellchecker API, but can be configured to use PSpell/ASpell if installed on the server.
+					The + sign marks the default language. More: http://www.tinymce.com/wiki.php/Plugin:spellchecker.
+					*/
+					$mce_spellchecker_languages = apply_filters( 'mce_spellchecker_languages', '+' . $mce_spellchecker_languages );
+				}
 
 				self::$first_init = array(
 					'mode' => 'exact',
@@ -307,7 +308,6 @@ final class _WP_Editors {
 					'theme' => 'advanced',
 					'skin' => 'wp_theme',
 					'language' => self::$mce_locale,
-					'spellchecker_languages' => $mce_spellchecker_languages,
 					'theme_advanced_toolbar_location' => 'top',
 					'theme_advanced_toolbar_align' => 'left',
 					'theme_advanced_statusbar_location' => 'bottom',
@@ -344,20 +344,36 @@ final class _WP_Editors {
 					'paste_strip_class_attributes' => 'all',
 					'paste_text_use_dialog' => true,
 					'webkit_fake_resize' => false,
-					'spellchecker_rpc_url' => self::$baseurl . '/plugins/spellchecker/rpc.php',
+					'preview_styles' => 'font-family font-weight text-decoration text-transform',
 					'schema' => 'html5',
 					'wpeditimage_disable_captions' => $no_captions,
 					'wp_fullscreen_content_css' => self::$baseurl . '/plugins/wpfullscreen/css/wp-fullscreen.css',
 					'plugins' => implode( ',', $plugins )
 				);
 
+				if ( in_array( 'spellchecker', $plugins ) ) {
+					self::$first_init['spellchecker_rpc_url'] = self::$baseurl . '/plugins/spellchecker/rpc.php';
+					self::$first_init['spellchecker_languages'] = $mce_spellchecker_languages;
+				}
+
 				// load editor_style.css if the current theme supports it
-				if ( ! empty( $editor_styles ) && is_array( $editor_styles ) ) {
+				if ( ! empty( $GLOBALS['editor_styles'] ) && is_array( $GLOBALS['editor_styles'] ) ) {
+					$editor_styles = $GLOBALS['editor_styles'];
+
 					$mce_css = array();
-					$editor_styles = array_unique($editor_styles);
+					$editor_styles = array_unique( array_filter( $editor_styles ) );
 					$style_uri = get_stylesheet_directory_uri();
 					$style_dir = get_stylesheet_directory();
 
+					// Support externally referenced styles (like, say, fonts).
+					foreach ( $editor_styles as $key => $file ) {
+						if ( preg_match( '~^(https?:)?//~', $file ) ) {
+							$mce_css[] = esc_url_raw( $file );
+							unset( $editor_styles[ $key ] );
+						}
+					}
+
+					// Look in a parent theme first, that way child theme CSS overrides.
 					if ( is_child_theme() ) {
 						$template_uri = get_template_directory_uri();
 						$template_dir = get_template_directory();
@@ -396,8 +412,16 @@ final class _WP_Editors {
 
 			$body_class = $editor_id;
 
-			if ( $post = get_post() )
-				$body_class .= ' post-type-' . $post->post_type;
+			if ( $post = get_post() ) {
+				$body_class .= ' post-type-' . sanitize_html_class( $post->post_type ) . ' post-status-' . sanitize_html_class( $post->post_status );
+				if ( post_type_supports( $post->post_type, 'post-formats' ) ) {
+					$post_format = get_post_format( $post );
+					if ( $post_format && ! is_wp_error( $post_format ) )
+						$body_class .= ' post-format-' . sanitize_html_class( $post_format );
+					else
+						$body_class .= ' post-format-standard';
+				}
+			}
 
 			if ( !empty($set['tinymce']['body_class']) ) {
 				$body_class .= ' ' . $set['tinymce']['body_class'];
@@ -774,6 +798,19 @@ final class _WP_Editors {
 
 		$query['offset'] = $args['pagenum'] > 1 ? $query['posts_per_page'] * ( $args['pagenum'] - 1 ) : 0;
 
+		/**
+		 * Filter the link query arguments.
+		 *
+		 * Allows modification of the link query arguments before querying.
+		 *
+		 * @see WP_Query for a full list of arguments
+		 *
+		 * @since 3.7.0
+		 *
+		 * @param array $query An array of WP_Query arguments.
+		 */
+		$query = apply_filters( 'wp_link_query_args', $query );
+
 		// Do main query.
 		$get_posts = new WP_Query;
 		$posts = $get_posts->query( $query );
@@ -797,7 +834,26 @@ final class _WP_Editors {
 			);
 		}
 
-		return $results;
+		/**
+		 * Filter the link query results.
+		 *
+		 * Allows modification of the returned link query results.
+		 *
+		 * @since 3.7.0
+		 *
+		 * @param array $results {
+		 *     An associative array of query results.
+		 *
+		 *     @type array {
+		 *         @type int    'ID'        The post ID.
+		 *         @type string 'title'     The trimmed, escaped post title.
+		 *         @type string 'permalink' The post permalink.
+		 *         @type string 'info'      A 'Y/m/d'-formatted date for 'post' post type, the 'singular_name' post type label otherwise.
+		 *     }
+		 * }
+		 * @param array $query   An array of WP_Query arguments. @see 'wp_link_query_args' filter
+		 */
+		return apply_filters( 'wp_link_query', $results, $query );
 	}
 
 	/**

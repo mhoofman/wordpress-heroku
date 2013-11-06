@@ -8,7 +8,7 @@
  */
 
 /** Load WordPress Administration Bootstrap */
-require_once( './admin.php' );
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! is_multisite() )
 	wp_die( __( 'Multisite support is not enabled.' ) );
@@ -85,12 +85,10 @@ if ( $action ) {
 			if ( !empty( $_POST['newuser'] ) ) {
 				$update = 'adduser';
 				$newuser = $_POST['newuser'];
-				$userid = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM " . $wpdb->users . " WHERE user_login = %s", $newuser ) );
-				if ( $userid ) {
-					$blog_prefix = $wpdb->get_blog_prefix( $id );
-					$user = $wpdb->get_var( "SELECT user_id FROM " . $wpdb->usermeta . " WHERE user_id='$userid' AND meta_key='{$blog_prefix}capabilities'" );
-					if ( $user == false )
-						add_user_to_blog( $id, $userid, $_POST['new_role'] );
+				$user = get_user_by( 'login', $newuser );
+				if ( $user && $user->exists() ) {
+					if ( ! is_user_member_of_blog( $user->ID, $id ) )
+						add_user_to_blog( $id, $user->ID, $_POST['new_role'] );
 					else
 						$update = 'err_add_member';
 				} else {
@@ -169,7 +167,7 @@ $submenu_file = 'sites.php';
 if ( ! wp_is_large_network( 'users' ) && apply_filters( 'show_network_site_users_add_existing_form', true ) )
 	wp_enqueue_script( 'user-suggest' );
 
-require('../admin-header.php'); ?>
+require( ABSPATH . 'wp-admin/admin-header.php' ); ?>
 
 <script type='text/javascript'>
 /* <![CDATA[ */
@@ -309,4 +307,4 @@ endif; ?>
 <?php endif; ?>
 </div>
 <?php
-require('../admin-footer.php');
+require( ABSPATH . 'wp-admin/admin-footer.php' );

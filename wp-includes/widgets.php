@@ -71,13 +71,6 @@ class WP_Widget {
 	// Functions you'll need to call.
 
 	/**
-	 * PHP4 constructor
-	 */
-	function WP_Widget( $id_base = false, $name, $widget_options = array(), $control_options = array() ) {
-		WP_Widget::__construct( $id_base, $name, $widget_options, $control_options );
-	}
-
-	/**
 	 * PHP5 constructor
 	 *
 	 * @param string $id_base Optional Base ID for the widget, lower case,
@@ -90,12 +83,19 @@ class WP_Widget {
 	 *	 - width: required if more than 250px
 	 *	 - height: currently not used but may be needed in the future
 	 */
-	function __construct( $id_base = false, $name, $widget_options = array(), $control_options = array() ) {
+	function __construct( $id_base, $name, $widget_options = array(), $control_options = array() ) {
 		$this->id_base = empty($id_base) ? preg_replace( '/(wp_)?widget_/', '', strtolower(get_class($this)) ) : strtolower($id_base);
 		$this->name = $name;
 		$this->option_name = 'widget_' . $this->id_base;
 		$this->widget_options = wp_parse_args( $widget_options, array('classname' => $this->option_name) );
 		$this->control_options = wp_parse_args( $control_options, array('id_base' => $this->id_base) );
+	}
+
+	/**
+	 * PHP4 constructor
+	 */
+	function WP_Widget( $id_base, $name, $widget_options = array(), $control_options = array() ) {
+		WP_Widget::__construct( $id_base, $name, $widget_options, $control_options );
 	}
 
 	/**
@@ -509,34 +509,45 @@ function register_sidebars($number = 1, $args = array()) {
 /**
  * Builds the definition for a single sidebar and returns the ID.
  *
- * The $args parameter takes either a string or an array with 'name' and 'id'
- * contained in either usage. It will be noted that the values will be applied
- * to all sidebars, so if creating more than one, it will be advised to allow
- * for WordPress to create the defaults for you.
+ * Accepts either a string or an array and then parses that against a set
+ * of default arguments for the new sidebar. WordPress will automatically
+ * generate a sidebar ID and name based on the current number of registered
+ * sidebars if those arguments are not included.
  *
- * Example for string would be <code>'name=whatever;id=whatever1'</code> and for
- * the array it would be <code>array(
- *    'name' => 'whatever',
- *    'id' => 'whatever1')</code>.
+ * When allowing for automatic generation of the name and ID parameters, keep
+ * in mind that the incrementor for your sidebar can change over time depending
+ * on what other plugins and themes are installed.
  *
- * name - The name of the sidebar, which presumably the title which will be
- *     displayed.
- * id - The unique identifier by which the sidebar will be called by.
- * before_widget - The content that will prepended to the widgets when they are
- *     displayed.
- * after_widget - The content that will be appended to the widgets when they are
- *     displayed.
- * before_title - The content that will be prepended to the title when displayed.
- * after_title - the content that will be appended to the title when displayed.
+ * If theme support for 'widgets' has not yet been added when this function is
+ * called, it will be automatically enabled through the use of add_theme_support()
  *
- * <em>Content</em> is assumed to be HTML and should be formatted as such, but
- * doesn't have to be.
+ * Arguments passed as a string should be separated by '&':
+ *
+ *     e.g. 'name=Sidebar&id=my_prefix_sidebar'
+ *
+ * The same arguments passed as an array:
+ *
+ *     array(
+ *         'name' => 'Sidebar',
+ *         'id'   => 'my_prefix_sidebar',
+ *     )
+ *
+ * Arguments:
+ *     name          - The name or title of the sidebar displayed in the admin dashboard.
+ *     id            - The unique identifier by which the sidebar will be called.
+ *     before_widget - HTML content that will be prepended to each widget's HTML output
+ *                     when assigned to this sidebar.
+ *     after_widget  - HTML content that will be appended to each widget's HTML output
+ *                     when assigned to this sidebar.
+ *     before_title  - HTML content that will be prepended to the sidebar title when displayed.
+ *     after_title   - HTML content that will be appended to the sidebar title when displayed.
  *
  * @since 2.2.0
  * @uses $wp_registered_sidebars Stores the new sidebar in this array by sidebar ID.
+ * @uses add_theme_support() to ensure widget support has been added.
  *
- * @param string|array $args Builds Sidebar based off of 'name' and 'id' values
- * @return string The sidebar id that was added.
+ * @param string|array $args Arguments for the sidebar being registered.
+ * @return string Sidebar ID added to $wp_registered_sidebars global.
  */
 function register_sidebar($args = array()) {
 	global $wp_registered_sidebars;
@@ -822,20 +833,13 @@ function wp_unregister_widget_control($id) {
 /**
  * Display dynamic sidebar.
  *
- * By default it displays the default sidebar or 'sidebar-1'. The 'sidebar-1' is
- * not named by the theme, the actual name is '1', but 'sidebar-' is added to
- * the registered sidebars for the name. If you named your sidebar 'after-post',
- * then the parameter $index will still be 'after-post', but the lookup will be
- * for 'sidebar-after-post'.
- *
- * It is confusing for the $index parameter, but just know that it should just
- * work. When you register the sidebar in the theme, you will use the same name
- * for this function or "Pay no heed to the man behind the curtain." Just accept
- * it as an oddity of WordPress sidebar register and display.
+ * By default this displays the default sidebar or 'sidebar-1'. If your theme specifies the 'id' or
+ * 'name' parameter for its registered sidebars you can pass an id or name as the $index parameter.
+ * Otherwise, you can pass in a numerical index to display the sidebar at that index.
  *
  * @since 2.2.0
  *
- * @param int|string $index Optional, default is 1. Name or ID of dynamic sidebar.
+ * @param int|string $index Optional, default is 1. Index, name or ID of dynamic sidebar.
  * @return bool True, if widget sidebar was found and called. False if not found or not called.
  */
 function dynamic_sidebar($index = 1) {
@@ -854,11 +858,9 @@ function dynamic_sidebar($index = 1) {
 	}
 
 	$sidebars_widgets = wp_get_sidebars_widgets();
-	if ( empty( $sidebars_widgets ) )
+	if ( empty( $wp_registered_sidebars[ $index ] ) || empty( $sidebars_widgets[ $index ] ) || ! is_array( $sidebars_widgets[ $index ] ) ) {
 		return false;
-
-	if ( empty($wp_registered_sidebars[$index]) || !array_key_exists($index, $sidebars_widgets) || !is_array($sidebars_widgets[$index]) || empty($sidebars_widgets[$index]) )
-		return false;
+	}
 
 	$sidebar = $wp_registered_sidebars[$index];
 
@@ -973,10 +975,8 @@ function is_dynamic_sidebar() {
 function is_active_sidebar( $index ) {
 	$index = ( is_int($index) ) ? "sidebar-$index" : sanitize_title($index);
 	$sidebars_widgets = wp_get_sidebars_widgets();
-	if ( !empty($sidebars_widgets[$index]) )
-		return true;
-
-	return false;
+	$is_active_sidebar = ! empty( $sidebars_widgets[$index] );
+	return $is_active_sidebar;
 }
 
 /* Internal Functions */
@@ -997,7 +997,7 @@ function wp_get_sidebars_widgets($deprecated = true) {
 	if ( $deprecated !== true )
 		_deprecated_argument( __FUNCTION__, '2.8.1' );
 
-	global $wp_registered_widgets, $_wp_sidebars_widgets, $sidebars_widgets;
+	global $_wp_sidebars_widgets, $sidebars_widgets;
 
 	// If loading from front page, consult $_wp_sidebars_widgets rather than options
 	// to see if wp_convert_widget_settings() has made manipulations in memory.
@@ -1161,7 +1161,7 @@ function _wp_sidebars_changed() {
 
 // look for "lost" widgets, this has to run at least on each theme change
 function retrieve_widgets($theme_changed = false) {
-	global $wp_registered_widget_updates, $wp_registered_sidebars, $sidebars_widgets, $wp_registered_widgets;
+	global $wp_registered_sidebars, $sidebars_widgets, $wp_registered_widgets;
 
 	$registered_sidebar_keys = array_keys( $wp_registered_sidebars );
 	$orphaned = 0;

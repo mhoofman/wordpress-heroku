@@ -29,6 +29,12 @@ if ( post_type_supports($post_type, 'editor') || post_type_supports($post_type, 
 	wp_enqueue_media( array( 'post' => $post_ID ) );
 }
 
+// Add the local autosave notice HTML
+add_action( 'admin_footer', '_local_storage_notice' );
+
+/*
+ * @todo Document the $messages array(s).
+ */
 $messages = array();
 $messages['post'] = array(
 	 0 => '', // Unused. Messages start at index 1.
@@ -61,6 +67,13 @@ $messages['page'] = array(
 );
 $messages['attachment'] = array_fill( 1, 10, __( 'Media attachment updated.' ) ); // Hack, for now.
 
+/**
+ * Filter the post updated messages.
+ *
+ * @since 3.0.0
+ *
+ * @param array $messages Post updated messages. For defaults @see $messages declarations above.
+ */
 $messages = apply_filters( 'post_updated_messages', $messages );
 
 $message = false;
@@ -95,13 +108,29 @@ if ( $autosave && mysql2date( 'U', $autosave->post_modified_gmt, false ) > mysql
 			break;
 		}
 	}
+	// If this autosave isn't different from the current post, begone.
+	if ( ! $notice )
+		wp_delete_post_revision( $autosave->ID );
 	unset($autosave_field, $_autosave_field);
 }
 
 $post_type_object = get_post_type_object($post_type);
 
 // All meta boxes should be defined and added before the first do_meta_boxes() call (or potentially during the do_meta_boxes action).
-require_once('./includes/meta-boxes.php');
+require_once( ABSPATH . 'wp-admin/includes/meta-boxes.php' );
+
+
+$publish_callback_args = null;
+if ( post_type_supports($post_type, 'revisions') && 'auto-draft' != $post->post_status ) {
+	$revisions = wp_get_post_revisions( $post_ID );
+
+	// We should aim to show the revisions metabox only when there are revisions.
+	if ( count( $revisions ) > 1 ) {
+		reset( $revisions ); // Reset pointer for key()
+		$publish_callback_args = array( 'revisions_count' => count( $revisions ), 'revision_id' => key( $revisions ) );
+		add_meta_box('revisionsdiv', __('Revisions'), 'post_revisions_meta_box', null, 'normal', 'core');
+	}
+}
 
 if ( 'attachment' == $post_type ) {
 	wp_enqueue_script( 'image-edit' );
@@ -109,7 +138,7 @@ if ( 'attachment' == $post_type ) {
 	add_meta_box( 'submitdiv', __('Save'), 'attachment_submit_meta_box', null, 'side', 'core' );
 	add_action( 'edit_form_after_title', 'edit_form_image_editor' );
 } else {
-	add_meta_box( 'submitdiv', __( 'Publish' ), 'post_submit_meta_box', null, 'side', 'core' );
+	add_meta_box( 'submitdiv', __( 'Publish' ), 'post_submit_meta_box', null, 'side', 'core', $publish_callback_args );
 }
 
 if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post_type, 'post-formats' ) )
@@ -117,23 +146,32 @@ if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post_type,
 
 // all taxonomies
 foreach ( get_object_taxonomies( $post ) as $tax_name ) {
-	$taxonomy = get_taxonomy($tax_name);
+	$taxonomy = get_taxonomy( $tax_name );
 	if ( ! $taxonomy->show_ui )
 		continue;
 
 	$label = $taxonomy->labels->name;
 
-	if ( !is_taxonomy_hierarchical($tax_name) )
-		add_meta_box('tagsdiv-' . $tax_name, $label, 'post_tags_meta_box', null, 'side', 'core', array( 'taxonomy' => $tax_name ));
+	if ( ! is_taxonomy_hierarchical( $tax_name ) )
+		$tax_meta_box_id = 'tagsdiv-' . $tax_name;
 	else
-		add_meta_box($tax_name . 'div', $label, 'post_categories_meta_box', null, 'side', 'core', array( 'taxonomy' => $tax_name ));
+		$tax_meta_box_id = $tax_name . 'div';
+
+	add_meta_box( $tax_meta_box_id, $label, $taxonomy->meta_box_cb, null, 'side', 'core', array( 'taxonomy' => $tax_name ) );
 }
 
 if ( post_type_supports($post_type, 'page-attributes') )
 	add_meta_box('pageparentdiv', 'page' == $post_type ? __('Page Attributes') : __('Attributes'), 'page_attributes_meta_box', null, 'side', 'core');
 
-if ( current_theme_supports( 'post-thumbnails', $post_type ) && post_type_supports( $post_type, 'thumbnail' ) )
-		add_meta_box('postimagediv', __('Featured Image'), 'post_thumbnail_meta_box', null, 'side', 'low');
+$audio_post_support = $video_post_support = false;
+$theme_support = current_theme_supports( 'post-thumbnails', $post_type ) && post_type_supports( $post_type, 'thumbnail' );
+if ( 'attachment' === $post_type && ! empty( $post->post_mime_type ) ) {
+	$audio_post_support = 0 === strpos( $post->post_mime_type, 'audio/' ) && current_theme_supports( 'post-thumbnails', 'attachment:audio' ) && post_type_supports( 'attachment:audio', 'thumbnail' );
+	$video_post_support = 0 === strpos( $post->post_mime_type, 'video/' ) && current_theme_supports( 'post-thumbnails', 'attachment:video' ) && post_type_supports( 'attachment:video', 'thumbnail' );
+}
+
+if ( $theme_support || $audio_post_support || $video_post_support )
+	add_meta_box('postimagediv', __('Featured Image'), 'post_thumbnail_meta_box', null, 'side', 'low');
 
 if ( post_type_supports($post_type, 'excerpt') )
 	add_meta_box('postexcerpt', __('Excerpt'), 'post_excerpt_meta_box', null, 'normal', 'core');
@@ -144,7 +182,16 @@ if ( post_type_supports($post_type, 'trackbacks') )
 if ( post_type_supports($post_type, 'custom-fields') )
 	add_meta_box('postcustom', __('Custom Fields'), 'post_custom_meta_box', null, 'normal', 'core');
 
-do_action('dbx_post_advanced', $post);
+/**
+ * Fires in the middle of built-in meta box registration.
+ *
+ * @since 2.1.0
+ * @deprecated 3.7.0 Use 'add_meta_boxes' instead.
+ *
+ * @param WP_Post $post Post object.
+ */
+do_action( 'dbx_post_advanced', $post );
+
 if ( post_type_supports($post_type, 'comments') )
 	add_meta_box('commentstatusdiv', __('Discussion'), 'post_comment_status_meta_box', null, 'normal', 'core');
 
@@ -159,15 +206,43 @@ if ( post_type_supports($post_type, 'author') ) {
 		add_meta_box('authordiv', __('Author'), 'post_author_meta_box', null, 'normal', 'core');
 }
 
-if ( post_type_supports($post_type, 'revisions') && 0 < $post_ID && wp_get_post_revisions( $post_ID ) )
-	add_meta_box('revisionsdiv', __('Revisions'), 'post_revisions_meta_box', null, 'normal', 'core');
+/**
+ * Fires after all built-in meta boxes have been added.
+ *
+ * @since 3.0.0
+ *
+ * @param string  $post_type Post type.
+ * @param WP_Post $post      Post object.
+ */
+do_action( 'add_meta_boxes', $post_type, $post );
 
-do_action('add_meta_boxes', $post_type, $post);
-do_action('add_meta_boxes_' . $post_type, $post);
+/**
+ * Fires after all built-in meta boxes have been added, contextually for the given post type.
+ *
+ * The dynamic portion of the hook, $post_type, refers to the post type of the post.
+ *
+ * @since 3.0.0
+ *
+ * @param WP_Post $post Post object.
+ */
+do_action( 'add_meta_boxes_' . $post_type, $post );
 
-do_action('do_meta_boxes', $post_type, 'normal', $post);
-do_action('do_meta_boxes', $post_type, 'advanced', $post);
-do_action('do_meta_boxes', $post_type, 'side', $post);
+/**
+ * Fires after meta boxes have been added.
+ *
+ * Fires once for each of the default meta box contexts: normal, advanced, and side.
+ *
+ * @since 3.0.0
+ *
+ * @param string  $post_type Post type of the post.
+ * @param string  $context   string  Meta box context.
+ * @param WP_Post $post      Post object.
+ */
+do_action( 'do_meta_boxes', $post_type, 'normal', $post );
+/** This action is documented in wp-admin/edit-form-advanced.php */
+do_action( 'do_meta_boxes', $post_type, 'advanced', $post );
+/** This action is documented in wp-admin/edit-form-advanced.php */
+do_action( 'do_meta_boxes', $post_type, 'side', $post );
 
 add_screen_option('layout_columns', array('max' => 2, 'default' => 2) );
 
@@ -280,7 +355,7 @@ if ( 'post' == $post_type ) {
 	) );
 }
 
-require_once('./admin-header.php');
+require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 
 <div class="wrap">
@@ -288,15 +363,29 @@ require_once('./admin-header.php');
 <h2><?php
 echo esc_html( $title );
 if ( isset( $post_new_file ) && current_user_can( $post_type_object->cap->create_posts ) )
-	echo ' <a href="' . esc_url( $post_new_file ) . '" class="add-new-h2">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
+	echo ' <a href="' . esc_url( admin_url( $post_new_file ) ) . '" class="add-new-h2">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
 ?></h2>
 <?php if ( $notice ) : ?>
-<div id="notice" class="error"><p><?php echo $notice ?></p></div>
+<div id="notice" class="error"><p id="has-newer-autosave"><?php echo $notice ?></p></div>
 <?php endif; ?>
 <?php if ( $message ) : ?>
 <div id="message" class="updated"><p><?php echo $message; ?></p></div>
 <?php endif; ?>
-<form name="post" action="post.php" method="post" id="post"<?php do_action('post_edit_form_tag', $post); ?>>
+<div id="lost-connection-notice" class="error hidden">
+	<p><span class="spinner"></span> <?php _e( '<strong>Connection lost.</strong> Saving has been disabled until you&#8217;re reconnected.' ); ?>
+	<span class="hide-if-no-sessionstorage"><?php _e( 'We&#8217;re backing up this post in your browser, just in case.' ); ?></span>
+	</p>
+</div>
+<?php
+/**
+ * Fires inside the post editor <form> tag.
+ *
+ * @since 3.0.0
+ *
+ * @param WP_Post $post Post object.
+ */
+?>
+<form name="post" action="post.php" method="post" id="post"<?php do_action( 'post_edit_form_tag', $post ); ?>>
 <?php wp_nonce_field($nonce_action); ?>
 <input type="hidden" id="user-id" name="user_ID" value="<?php echo (int) $user_ID ?>" />
 <input type="hidden" id="hiddenaction" name="action" value="<?php echo esc_attr( $form_action ) ?>" />
@@ -304,7 +393,7 @@ if ( isset( $post_new_file ) && current_user_can( $post_type_object->cap->create
 <input type="hidden" id="post_author" name="post_author" value="<?php echo esc_attr( $post->post_author ); ?>" />
 <input type="hidden" id="post_type" name="post_type" value="<?php echo esc_attr( $post_type ) ?>" />
 <input type="hidden" id="original_post_status" name="original_post_status" value="<?php echo esc_attr( $post->post_status) ?>" />
-<input type="hidden" id="referredby" name="referredby" value="<?php echo esc_url(stripslashes(wp_get_referer())); ?>" />
+<input type="hidden" id="referredby" name="referredby" value="<?php echo esc_url(wp_get_referer()); ?>" />
 <?php if ( ! empty( $active_post_lock ) ) { ?>
 <input type="hidden" id="active_post_lock" value="<?php echo esc_attr( implode( ':', $active_post_lock ) ); ?>" />
 <?php
@@ -319,13 +408,35 @@ wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false );
 wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 ?>
 
-<div id="poststuff">
+<?php
+/**
+ * Fires at the beginning of the edit form.
+ *
+ * At this point, the required hidden fields and nonces have already been output.
+ *
+ * @since 3.7.0
+ *
+ * @param WP_Post $post Post object.
+ */
+do_action( 'edit_form_top', $post ); ?>
 
+<div id="poststuff">
 <div id="post-body" class="metabox-holder columns-<?php echo 1 == get_current_screen()->get_columns() ? '1' : '2'; ?>">
 <div id="post-body-content">
+
 <?php if ( post_type_supports($post_type, 'title') ) { ?>
 <div id="titlediv">
 <div id="titlewrap">
+	<?php
+	/**
+	 * Filter the title field placeholder text.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param string  $text Placeholder text. Default 'Enter title here'.
+	 * @param WP_Post $post Post object.
+	 */
+	?>
 	<label class="screen-reader-text" id="title-prompt-text" for="title"><?php echo apply_filters( 'enter_title_here', __( 'Enter title here' ), $post ); ?></label>
 	<input type="text" name="post_title" size="30" value="<?php echo esc_attr( htmlspecialchars( $post->post_title ) ); ?>" id="title" autocomplete="off" />
 </div>
@@ -333,13 +444,16 @@ wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 <?php
 $sample_permalink_html = $post_type_object->public ? get_sample_permalink_html($post->ID) : '';
 $shortlink = wp_get_shortlink($post->ID, 'post');
-if ( !empty($shortlink) )
+$permalink = get_permalink( $post->ID );
+if ( !empty( $shortlink ) && $shortlink !== $permalink && $permalink !== home_url('?page_id=' . $post->ID) )
     $sample_permalink_html .= '<input id="shortlink" type="hidden" value="' . esc_attr($shortlink) . '" /><a href="#" class="button button-small" onclick="prompt(&#39;URL:&#39;, jQuery(\'#shortlink\').val()); return false;">' . __('Get Shortlink') . '</a>';
 
-if ( $post_type_object->public && ! ( 'pending' == get_post_status( $post ) && !current_user_can( $post_type_object->cap->publish_posts ) ) ) { ?>
+if ( $post_type_object->public && ! ( 'pending' == get_post_status( $post ) && !current_user_can( $post_type_object->cap->publish_posts ) ) ) {
+	$has_sample_permalink = $sample_permalink_html && 'auto-draft' != $post->post_status;
+?>
 	<div id="edit-slug-box" class="hide-if-no-js">
 	<?php
-		if ( $sample_permalink_html && 'auto-draft' != $post->post_status )
+		if ( $has_sample_permalink )
 			echo $sample_permalink_html;
 	?>
 	</div>
@@ -353,15 +467,24 @@ wp_nonce_field( 'samplepermalink', 'samplepermalinknonce', false );
 </div><!-- /titlediv -->
 <?php
 }
-
+/**
+ * Fires after the title field.
+ *
+ * @since 3.5.0
+ *
+ * @param WP_Post $post Post object.
+ */
 do_action( 'edit_form_after_title', $post );
 
 if ( post_type_supports($post_type, 'editor') ) {
 ?>
-<div id="postdivrich" class="postarea">
+<div id="postdivrich" class="postarea edit-form-section">
 
-<?php wp_editor($post->post_content, 'content', array('dfw' => true, 'tabfocus_elements' => 'sample-permalink,post-preview', 'editor_height' => 360) ); ?>
-
+<?php wp_editor( $post->post_content, 'content', array(
+	'dfw' => true,
+	'tabfocus_elements' => 'insert-media-button,save-post',
+	'editor_height' => 360,
+) ); ?>
 <table id="post-status-info" cellspacing="0"><tbody><tr>
 	<td id="wp-word-count"><?php printf( __( 'Word count: %s' ), '<span class="word-count">0</span>' ); ?></td>
 	<td class="autosave-info">
@@ -369,8 +492,7 @@ if ( post_type_supports($post_type, 'editor') ) {
 <?php
 	if ( 'auto-draft' != $post->post_status ) {
 		echo '<span id="last-edit">';
-		if ( $last_id = get_post_meta($post_ID, '_edit_last', true) ) {
-			$last_user = get_userdata($last_id);
+		if ( $last_user = get_userdata( get_post_meta( $post_ID, '_edit_last', true ) ) ) {
 			printf(__('Last edited by %1$s on %2$s at %3$s'), esc_html( $last_user->display_name ), mysql2date(get_option('date_format'), $post->post_modified), mysql2date(get_option('time_format'), $post->post_modified));
 		} else {
 			printf(__('Last edited on %1$s at %2$s'), mysql2date(get_option('date_format'), $post->post_modified), mysql2date(get_option('time_format'), $post->post_modified));
@@ -381,18 +503,46 @@ if ( post_type_supports($post_type, 'editor') ) {
 </tr></tbody></table>
 
 </div>
-<?php } ?>
-
-<?php do_action( 'edit_form_after_editor', $post ); ?>
+<?php }
+/**
+ * Fires after the content editor.
+ *
+ * @since 3.5.0
+ *
+ * @param WP_Post $post Post object.
+ */
+do_action( 'edit_form_after_editor', $post );
+?>
 </div><!-- /post-body-content -->
 
 <div id="postbox-container-1" class="postbox-container">
 <?php
 
-if ( 'page' == $post_type )
-	do_action('submitpage_box', $post);
-else
-	do_action('submitpost_box', $post);
+if ( 'page' == $post_type ) {
+	/**
+	 * Fires before meta boxes with 'side' context are output for the 'page' post type.
+	 *
+	 * The submitpage box is a meta box with 'side' context, so this hook fires just before it is output.
+	 *
+	 * @since 2.5.0
+	 *
+	 * @param WP_Post $post Post object.
+	 */
+	do_action( 'submitpage_box', $post );
+}
+else {
+	/**
+	 * Fires before meta boxes with 'side' context are output for all post types other than 'page'.
+	 *
+	 * The submitpost box is a meta box with 'side' context, so this hook fires just before it is output.
+	 *
+	 * @since 2.5.0
+	 *
+	 * @param WP_Post $post Post object.
+	 */
+	do_action( 'submitpost_box', $post );
+}
+
 
 do_meta_boxes($post_type, 'side', $post);
 
@@ -403,18 +553,41 @@ do_meta_boxes($post_type, 'side', $post);
 
 do_meta_boxes(null, 'normal', $post);
 
-if ( 'page' == $post_type )
-	do_action('edit_page_form', $post);
-else
-	do_action('edit_form_advanced', $post);
+if ( 'page' == $post_type ) {
+	/**
+	 * Fires after 'normal' context meta boxes have been output for the 'page' post type.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @param WP_Post $post Post object.
+	 */
+	do_action( 'edit_page_form', $post );
+}
+else {
+	/**
+	 * Fires after 'normal' context meta boxes have been output for all post types other than 'page'.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @param WP_Post $post Post object.
+	 */
+	do_action( 'edit_form_advanced', $post );
+}
+
 
 do_meta_boxes(null, 'advanced', $post);
 
 ?>
 </div>
 <?php
-
-do_action('dbx_post_sidebar', $post);
+/**
+ * Fires after all meta box sections have been output, before the closing #post-body div.
+ *
+ * @since 2.1.0
+ *
+ * @param WP_Post $post Post object.
+ */
+do_action( 'dbx_post_sidebar', $post );
 
 ?>
 </div><!-- /post-body -->
@@ -428,7 +601,7 @@ if ( post_type_supports( $post_type, 'comments' ) )
 	wp_comment_reply();
 ?>
 
-<?php if ( (isset($post->post_title) && '' == $post->post_title) || (isset($_GET['message']) && 2 > $_GET['message']) ) : ?>
+<?php if ( post_type_supports( $post_type, 'title' ) && '' === $post->post_title ) : ?>
 <script type="text/javascript">
 try{document.post.title.focus();}catch(e){}
 </script>

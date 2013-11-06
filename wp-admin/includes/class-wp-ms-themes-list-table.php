@@ -84,7 +84,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 
 		if ( $s ) {
 			$status = 'search';
-			$themes['search'] = array_filter( array_merge( $themes['all'], $themes['broken'] ), array( &$this, '_search_callback' ) );
+			$themes['search'] = array_filter( array_merge( $themes['all'], $themes['broken'] ), array( $this, '_search_callback' ) );
 		}
 
 		$totals = array();
@@ -108,7 +108,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 				if ( 'ASC' == $order )
 					$this->items = array_reverse( $this->items );
 			} else {
-				uasort( $this->items, array( &$this, '_order_callback' ) );
+				uasort( $this->items, array( $this, '_order_callback' ) );
 			}
 		}
 
@@ -126,7 +126,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 	function _search_callback( $theme ) {
 		static $term;
 		if ( is_null( $term ) )
-			$term = stripslashes( $_REQUEST['s'] );
+			$term = wp_unslash( $_REQUEST['s'] );
 
 		foreach ( array( 'Name', 'Description', 'Author', 'Author', 'AuthorURI' ) as $field ) {
 			// Don't mark up; Do translate.
@@ -243,11 +243,11 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 	}
 
 	function display_rows() {
-		foreach ( $this->items as $key => $theme )
-			$this->single_row( $key, $theme );
+		foreach ( $this->items as $theme )
+			$this->single_row( $theme );
 	}
 
-	function single_row( $key, $theme ) {
+	function single_row( $theme ) {
 		global $status, $page, $s, $totals;
 
 		$context = $status;
@@ -284,8 +284,8 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 		if ( ! $allowed && current_user_can( 'delete_themes' ) && ! $this->is_site_themes && $stylesheet != get_option( 'stylesheet' ) && $stylesheet != get_option( 'template' ) )
 			$actions['delete'] = '<a href="' . esc_url( wp_nonce_url( 'themes.php?action=delete-selected&amp;checked[]=' . $theme_key . '&amp;theme_status=' . $context . '&amp;paged=' . $page . '&amp;s=' . $s, 'bulk-themes' ) ) . '" title="' . esc_attr__( 'Delete this theme' ) . '" class="delete">' . __( 'Delete' ) . '</a>';
 
-		$actions = apply_filters( 'theme_action_links', array_filter( $actions ), $stylesheet, $theme, $context );
-		$actions = apply_filters( "theme_action_links_$stylesheet", $actions, $stylesheet, $theme, $context );
+		$actions = apply_filters( 'theme_action_links', array_filter( $actions ), $theme, $context );
+		$actions = apply_filters( "theme_action_links_$stylesheet", $actions, $theme, $context );
 
 		$class = ! $allowed ? 'inactive' : 'active';
 		$checkbox_id = "checkbox_" . md5( $theme->get('Name') );

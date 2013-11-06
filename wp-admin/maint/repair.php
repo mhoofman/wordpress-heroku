@@ -7,7 +7,7 @@
  */
 define('WP_REPAIRING', true);
 
-require_once('../../wp-load.php');
+require_once( dirname( dirname( dirname( __FILE__ ) ) ) . '/wp-load.php' );
 
 header( 'Content-Type: text/html; charset=utf-8' );
 ?>
@@ -21,7 +21,7 @@ header( 'Content-Type: text/html; charset=utf-8' );
 	?>
 </head>
 <body class="wp-core-ui">
-<h1 id="logo"><a href="<?php esc_attr_e( 'http://wordpress.org/' ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
+<h1 id="logo"><a href="<?php echo esc_url( __( 'http://wordpress.org/' ) ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
 
 <?php
 
@@ -38,7 +38,14 @@ if ( ! defined( 'WP_ALLOW_REPAIR' ) ) {
 	if ( is_multisite() && ! $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->sitecategories'" ) )
 		unset( $tables['sitecategories'] );
 
-	$tables = array_merge( $tables, (array) apply_filters( 'tables_to_repair', array() ) ); // Return tables with table prefixes.
+	/**
+	 * Filter additional database tables to repair.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param array $tables Array of prefixed table names to be repaired.
+	 */
+	$tables = array_merge( $tables, (array) apply_filters( 'tables_to_repair', array() ) );
 
 	// Loop over the tables, checking and repairing as needed.
 	foreach ( $tables as $table ) {

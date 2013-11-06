@@ -115,7 +115,7 @@ if ( !function_exists('get_userdata') ) :
  * @since 0.71
  *
  * @param int $user_id User ID
- * @return bool|object False on failure, WP_User object on success
+ * @return WP_User|bool WP_User object on success, false on failure.
  */
 function get_userdata( $user_id ) {
 	return get_user_by( 'id', $user_id );
@@ -130,7 +130,7 @@ if ( !function_exists('get_user_by') ) :
  *
  * @param string $field The field to retrieve the user with. id | slug | email | login
  * @param int|string $value A value for $field. A user ID, slug, email address, or login name.
- * @return bool|object False on failure, WP_User object on success
+ * @return WP_User|bool WP_User object on success, false on failure.
  */
 function get_user_by( $field, $value ) {
 	$userdata = WP_User::get_data_by( $field, $value );
@@ -448,12 +448,10 @@ function wp_mail( $to, $subject, $message, $headers = '', $attachments = array()
 
 	// Send!
 	try {
-		$phpmailer->Send();
+		return $phpmailer->Send();
 	} catch ( phpmailerException $e ) {
 		return false;
 	}
-
-	return true;
 }
 endif;
 
@@ -465,7 +463,7 @@ if ( !function_exists('wp_authenticate') ) :
  *
  * @param string $username User's username
  * @param string $password User's password
- * @return WP_Error|WP_User WP_User object if login successful, otherwise WP_Error object.
+ * @return WP_User|WP_Error WP_User object if login successful, otherwise WP_Error object.
  */
 function wp_authenticate($username, $password) {
 	$username = sanitize_user($username);
@@ -651,9 +649,12 @@ if ( !function_exists('wp_set_auth_cookie') ) :
  */
 function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 	if ( $remember ) {
-		$expiration = $expire = time() + apply_filters('auth_cookie_expiration', 1209600, $user_id, $remember);
+		$expiration = time() + apply_filters('auth_cookie_expiration', 14 * DAY_IN_SECONDS, $user_id, $remember);
+		// Ensure the browser will continue to send the cookie after the expiration time is reached.
+		// Needed for the login grace period in wp_validate_auth_cookie().
+		$expire = $expiration + ( 12 * HOUR_IN_SECONDS );
 	} else {
-		$expiration = time() + apply_filters('auth_cookie_expiration', 172800, $user_id, $remember);
+		$expiration = time() + apply_filters('auth_cookie_expiration', 2 * DAY_IN_SECONDS, $user_id, $remember);
 		$expire = 0;
 	}
 
@@ -816,7 +817,8 @@ function check_admin_referer($action = -1, $query_arg = '_wpnonce') {
 	}
 	do_action('check_admin_referer', $action, $result);
 	return $result;
-}endif;
+}
+endif;
 
 if ( !function_exists('check_ajax_referer') ) :
 /**
@@ -828,10 +830,14 @@ if ( !function_exists('check_ajax_referer') ) :
  * @param string $query_arg where to look for nonce in $_REQUEST (since 2.5)
  */
 function check_ajax_referer( $action = -1, $query_arg = false, $die = true ) {
-	if ( $query_arg )
-		$nonce = $_REQUEST[$query_arg];
-	else
-		$nonce = isset($_REQUEST['_ajax_nonce']) ? $_REQUEST['_ajax_nonce'] : $_REQUEST['_wpnonce'];
+	$nonce = '';
+
+	if ( $query_arg && isset( $_REQUEST[ $query_arg ] ) )
+		$nonce = $_REQUEST[ $query_arg ];
+	elseif ( isset( $_REQUEST['_ajax_nonce'] ) )
+		$nonce = $_REQUEST['_ajax_nonce'];
+	elseif ( isset( $_REQUEST['_wpnonce'] ) )
+		$nonce = $_REQUEST['_wpnonce'];
 
 	$result = wp_verify_nonce( $nonce, $action );
 
@@ -855,17 +861,34 @@ if ( !function_exists('wp_redirect') ) :
  * @since 1.5.1
  * @uses apply_filters() Calls 'wp_redirect' hook on $location and $status.
  *
- * @param string $location The path to redirect to
- * @param int $status Status code to use
- * @return bool False if $location is not set
+ * @param string $location The path to redirect to.
+ * @param int $status Status code to use.
+ * @return bool False if $location is not provided, true otherwise.
  */
 function wp_redirect($location, $status = 302) {
 	global $is_IIS;
 
-	$location = apply_filters('wp_redirect', $location, $status);
-	$status = apply_filters('wp_redirect_status', $status, $location);
+	/**
+	 * Filter the redirect location.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $location The path to redirect to.
+	 * @param int    $status   Status code to use.
+	 */
+	$location = apply_filters( 'wp_redirect', $location, $status );
 
-	if ( !$location ) // allows the wp_redirect filter to cancel a redirect
+	/**
+	 * Filter the redirect status code.
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param int    $status   Status code to use.
+	 * @param string $location The path to redirect to.
+	 */
+	$status = apply_filters( 'wp_redirect_status', $status, $location );
+
+	if ( ! $location )
 		return false;
 
 	$location = wp_sanitize_redirect($location);
@@ -874,6 +897,8 @@ function wp_redirect($location, $status = 302) {
 		status_header($status); // This causes problems on IIS and some FastCGI setups
 
 	header("Location: $location", true, $status);
+
+	return true;
 }
 endif;
 
@@ -943,6 +968,7 @@ if ( !function_exists('wp_validate_redirect') ) :
  * @return string redirect-sanitized URL
  **/
 function wp_validate_redirect($location, $default = '') {
+	$location = trim( $location );
 	// browsers will assume 'http' is your protocol, and will obey a redirect to a URL starting with '//'
 	if ( substr($location, 0, 2) == '//' )
 		$location = 'http:' . $location;
@@ -987,6 +1013,9 @@ if ( ! function_exists('wp_notify_postauthor') ) :
  */
 function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	$comment = get_comment( $comment_id );
+	if ( empty( $comment ) )
+		return false;
+
 	$post    = get_post( $comment->comment_post_ID );
 	$author  = get_userdata( $post->post_author );
 
@@ -996,6 +1025,10 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 
 	// The author moderated a comment on his own post
 	if ( $post->post_author == get_current_user_id() )
+		return false;
+
+	// The post author is no longer a member of the blog
+	if ( ! user_can( $post->post_author, 'read_post', $post->ID ) )
 		return false;
 
 	// If there's no email to send the comment to
@@ -1042,11 +1075,14 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	}
 	$notify_message .= get_permalink($comment->comment_post_ID) . "#comments\r\n\r\n";
 	$notify_message .= sprintf( __('Permalink: %s'), get_permalink( $comment->comment_post_ID ) . '#comment-' . $comment_id ) . "\r\n";
-	if ( EMPTY_TRASH_DAYS )
-		$notify_message .= sprintf( __('Trash it: %s'), admin_url("comment.php?action=trash&c=$comment_id") ) . "\r\n";
-	else
-		$notify_message .= sprintf( __('Delete it: %s'), admin_url("comment.php?action=delete&c=$comment_id") ) . "\r\n";
-	$notify_message .= sprintf( __('Spam it: %s'), admin_url("comment.php?action=spam&c=$comment_id") ) . "\r\n";
+
+	if ( user_can( $post->post_author, 'edit_comment', $comment_id ) ) {
+		if ( EMPTY_TRASH_DAYS )
+			$notify_message .= sprintf( __('Trash it: %s'), admin_url("comment.php?action=trash&c=$comment_id") ) . "\r\n";
+		else
+			$notify_message .= sprintf( __('Delete it: %s'), admin_url("comment.php?action=delete&c=$comment_id") ) . "\r\n";
+		$notify_message .= sprintf( __('Spam it: %s'), admin_url("comment.php?action=spam&c=$comment_id") ) . "\r\n";
+	}
 
 	$wp_email = 'wordpress@' . preg_replace('#^www\.#', '', strtolower($_SERVER['SERVER_NAME']));
 
@@ -1066,11 +1102,16 @@ function wp_notify_postauthor( $comment_id, $comment_type = '' ) {
 	if ( isset($reply_to) )
 		$message_headers .= $reply_to . "\n";
 
-	$notify_message = apply_filters('comment_notification_text', $notify_message, $comment_id);
-	$subject = apply_filters('comment_notification_subject', $subject, $comment_id);
-	$message_headers = apply_filters('comment_notification_headers', $message_headers, $comment_id);
+	$emails = array( $author->user_email );
 
-	@wp_mail( $author->user_email, $subject, $notify_message, $message_headers );
+	$emails          = apply_filters( 'comment_notification_recipients', $emails,          $comment_id );
+	$notify_message  = apply_filters( 'comment_notification_text',       $notify_message,  $comment_id );
+	$subject         = apply_filters( 'comment_notification_subject',    $subject,         $comment_id );
+	$message_headers = apply_filters( 'comment_notification_headers',    $message_headers, $comment_id );
+
+	foreach ( $emails as $email ) {
+		@wp_mail( $email, $subject, $notify_message, $message_headers );
+	}
 
 	return true;
 }
@@ -1096,9 +1137,9 @@ function wp_notify_moderator($comment_id) {
 	$post = get_post($comment->comment_post_ID);
 	$user = get_userdata( $post->post_author );
 	// Send to the administration and to the post author if the author can modify the comment.
-	$email_to = array( get_option('admin_email') );
+	$emails = array( get_option('admin_email') );
 	if ( user_can($user->ID, 'edit_comment', $comment_id) && !empty($user->user_email) && ( get_option('admin_email') != $user->user_email) )
-		$email_to[] = $user->user_email;
+		$emails[] = $user->user_email;
 
 	$comment_author_domain = @gethostbyaddr($comment->comment_author_IP);
 	$comments_waiting = $wpdb->get_var("SELECT count(comment_ID) FROM $wpdb->comments WHERE comment_approved = '0'");
@@ -1148,12 +1189,14 @@ function wp_notify_moderator($comment_id) {
 	$subject = sprintf( __('[%1$s] Please moderate: "%2$s"'), $blogname, $post->post_title );
 	$message_headers = '';
 
-	$notify_message = apply_filters('comment_moderation_text', $notify_message, $comment_id);
-	$subject = apply_filters('comment_moderation_subject', $subject, $comment_id);
-	$message_headers = apply_filters('comment_moderation_headers', $message_headers);
+	$emails          = apply_filters( 'comment_moderation_recipients', $emails,          $comment_id );
+	$notify_message  = apply_filters( 'comment_moderation_text',       $notify_message,  $comment_id );
+	$subject         = apply_filters( 'comment_moderation_subject',    $subject,         $comment_id );
+	$message_headers = apply_filters( 'comment_moderation_headers',    $message_headers, $comment_id );
 
-	foreach ( $email_to as $email )
-		@wp_mail($email, $subject, $notify_message, $message_headers);
+	foreach ( $emails as $email ) {
+		@wp_mail( $email, $subject, $notify_message, $message_headers );
+	}
 
 	return true;
 }
@@ -1192,27 +1235,24 @@ if ( !function_exists('wp_new_user_notification') ) :
 function wp_new_user_notification($user_id, $plaintext_pass = '') {
 	$user = get_userdata( $user_id );
 
-	$user_login = stripslashes($user->user_login);
-	$user_email = stripslashes($user->user_email);
-
 	// The blogname option is escaped with esc_html on the way into the database in sanitize_option
 	// we want to reverse this for the plain text arena of emails.
 	$blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
 
 	$message  = sprintf(__('New user registration on your site %s:'), $blogname) . "\r\n\r\n";
-	$message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
-	$message .= sprintf(__('E-mail: %s'), $user_email) . "\r\n";
+	$message .= sprintf(__('Username: %s'), $user->user_login) . "\r\n\r\n";
+	$message .= sprintf(__('E-mail: %s'), $user->user_email) . "\r\n";
 
 	@wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message);
 
 	if ( empty($plaintext_pass) )
 		return;
 
-	$message  = sprintf(__('Username: %s'), $user_login) . "\r\n";
+	$message  = sprintf(__('Username: %s'), $user->user_login) . "\r\n";
 	$message .= sprintf(__('Password: %s'), $plaintext_pass) . "\r\n";
 	$message .= wp_login_url() . "\r\n";
 
-	wp_mail($user_email, sprintf(__('[%s] Your username and password'), $blogname), $message);
+	wp_mail($user->user_email, sprintf(__('[%s] Your username and password'), $blogname), $message);
 
 }
 endif;
@@ -1416,7 +1456,7 @@ function wp_hash_password($password) {
 		$wp_hasher = new PasswordHash(8, true);
 	}
 
-	return $wp_hasher->HashPassword($password);
+	return $wp_hasher->HashPassword( trim( $password ) );
 }
 endif;
 
@@ -1563,7 +1603,7 @@ if ( !function_exists('wp_set_password') ) :
 function wp_set_password( $password, $user_id ) {
 	global $wpdb;
 
-	$hash = wp_hash_password($password);
+	$hash = wp_hash_password( $password );
 	$wpdb->update($wpdb->users, array('user_pass' => $hash, 'user_activation_key' => ''), array('ID' => $user_id) );
 
 	wp_cache_delete($user_id, 'users');
@@ -1660,6 +1700,7 @@ function get_avatar( $id_or_email, $size = '96', $default = '', $alt = false ) {
 		if ( !empty( $rating ) )
 			$out .= "&amp;r={$rating}";
 
+		$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
 		$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
 	} else {
 		$avatar = "<img alt='{$safe_alt}' src='{$default}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
@@ -1708,16 +1749,20 @@ function wp_text_diff( $left_string, $right_string, $args = null ) {
 
 	$left_lines  = explode("\n", $left_string);
 	$right_lines = explode("\n", $right_string);
-
 	$text_diff = new Text_Diff($left_lines, $right_lines);
-	$renderer  = new WP_Text_Diff_Renderer_Table();
+	$renderer  = new WP_Text_Diff_Renderer_Table( $args );
 	$diff = $renderer->render($text_diff);
 
 	if ( !$diff )
 		return '';
 
 	$r  = "<table class='diff'>\n";
-	$r .= "<col class='ltype' /><col class='content' /><col class='ltype' /><col class='content' />";
+
+	if ( ! empty( $args[ 'show_split_view' ] ) ) {
+		$r .= "<col class='content diffsplit left' /><col class='content diffsplit middle' /><col class='content diffsplit right' />";
+	} else {
+		$r .= "<col class='content' />";
+	}
 
 	if ( $args['title'] || $args['title_left'] || $args['title_right'] )
 		$r .= "<thead>";
@@ -1738,3 +1783,4 @@ function wp_text_diff( $left_string, $right_string, $args = null ) {
 	return $r;
 }
 endif;
+

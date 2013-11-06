@@ -8,7 +8,7 @@
  */
 
 /** Load WordPress Administration Bootstrap */
-require_once( './admin.php' );
+require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! is_multisite() )
 	wp_die( __( 'Multisite support is not enabled.' ) );
@@ -73,13 +73,13 @@ if ( isset( $_GET['action'] ) ) {
 				?>
 			</head>
 			<body class="wp-core-ui">
-				<h1 id="logo"><a href="<?php esc_attr_e( 'http://wordpress.org/' ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
+				<h1 id="logo"><a href="<?php echo esc_url( __( 'http://wordpress.org/' ) ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
 				<form action="sites.php?action=<?php echo esc_attr( $_GET['action2'] ) ?>" method="post">
 					<input type="hidden" name="action" value="<?php echo esc_attr( $_GET['action2'] ) ?>" />
 					<input type="hidden" name="id" value="<?php echo esc_attr( $id ); ?>" />
 					<input type="hidden" name="_wp_http_referer" value="<?php echo esc_attr( wp_get_referer() ); ?>" />
 					<?php wp_nonce_field( $_GET['action2'], '_wpnonce', false ); ?>
-					<p><?php echo esc_html( stripslashes( $_GET['msg'] ) ); ?></p>
+					<p><?php echo esc_html( wp_unslash( $_GET['msg'] ) ); ?></p>
 					<?php submit_button( __('Confirm'), 'button' ); ?>
 				</form>
 			</body>
@@ -225,7 +225,7 @@ if ( isset( $_GET['updated'] ) ) {
 
 $wp_list_table->prepare_items();
 
-require_once( '../admin-header.php' );
+require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 
 <div class="wrap">
@@ -254,4 +254,4 @@ require_once( '../admin-header.php' );
 </div>
 <?php
 
-require_once( '../admin-footer.php' ); ?>
+require_once( ABSPATH . 'wp-admin/admin-footer.php' ); ?>

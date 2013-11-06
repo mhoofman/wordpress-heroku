@@ -97,6 +97,11 @@ class WP_Image_Editor_GD extends WP_Image_Editor {
 		if ( ! $size )
 			return new WP_Error( 'invalid_image', __('Could not read image size.'), $this->file );
 
+		if ( function_exists( 'imagealphablending' ) && function_exists( 'imagesavealpha' ) ) {
+			imagealphablending( $this->image, false );
+			imagesavealpha( $this->image, true );
+		}
+
 		$this->update_size( $size[0], $size[1] );
 		$this->mime_type = $size['mime'];
 
@@ -170,20 +175,33 @@ class WP_Image_Editor_GD extends WP_Image_Editor {
 	}
 
 	/**
-	 * Processes current image and saves to disk
-	 * multiple sizes from single source.
+	 * Resize multiple images from a single source.
 	 *
 	 * @since 3.5.0
 	 * @access public
 	 *
-	 * @param array $sizes { {'width'=>int, 'height'=>int, 'crop'=>bool}, ... }
-	 * @return array
+	 * @param array $sizes {
+	 *     An array of image size arrays. Default sizes are 'small', 'medium', 'large'.
+	 *
+	 *     @type array $size {
+	 *         @type int  $width  Image width.
+	 *         @type int  $height Image height.
+	 *         @type bool $crop   Optional. Whether to crop the image. Default false.
+	 *     }
+	 * }
+	 * @return array An array of resized images metadata by size.
 	 */
 	public function multi_resize( $sizes ) {
 		$metadata = array();
 		$orig_size = $this->size;
 
 		foreach ( $sizes as $size => $size_data ) {
+			if ( ! ( isset( $size_data['width'] ) && isset( $size_data['height'] ) ) )
+				continue;
+
+			if ( ! isset( $size_data['crop'] ) )
+				$size_data['crop'] = false;
+
 			$image = $this->_resize( $size_data['width'], $size_data['height'], $size_data['crop'] );
 
 			if( ! is_wp_error( $image ) ) {
@@ -279,8 +297,8 @@ class WP_Image_Editor_GD extends WP_Image_Editor {
 	 * @since 3.5.0
 	 * @access public
 	 *
-	 * @param boolean $horz Horizontal Flip
-	 * @param boolean $vert Vertical Flip
+	 * @param boolean $horz Flip along Horizontal Axis
+	 * @param boolean $vert Flip along Vertical Axis
 	 * @returns boolean|WP_Error
 	 */
 	public function flip( $horz, $vert ) {
@@ -386,5 +404,23 @@ class WP_Image_Editor_GD extends WP_Image_Editor {
 				header( 'Content-Type: image/jpeg' );
 				return imagejpeg( $this->image, null, $this->quality );
 		}
+	}
+
+	/**
+	 * Either calls editor's save function or handles file as a stream.
+	 *
+	 * @since 3.5.0
+	 * @access protected
+	 *
+	 * @param string|stream $filename
+	 * @param callable $function
+	 * @param array $arguments
+	 * @return boolean
+	 */
+	protected function make_image( $filename, $function, $arguments ) {
+		if ( wp_is_stream( $filename ) )
+			$arguments[1] = null;
+
+		return parent::make_image( $filename, $function, $arguments );
 	}
 }

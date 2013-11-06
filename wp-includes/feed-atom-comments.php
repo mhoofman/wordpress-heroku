@@ -48,7 +48,8 @@ if ( have_comments() ) : while ( have_comments() ) : the_comment();
 		<title><?php
 			if ( !is_singular() ) {
 				$title = get_the_title($comment_post->ID);
-				$title = apply_filters('the_title_rss', $title);
+				/** This filter is documented in wp-includes/feed.php */
+				$title = apply_filters( 'the_title_rss', $title );
 				printf(ent2ncr(__('Comment on %1$s by %2$s')), $title, get_comment_author_rss());
 			} else {
 				printf(ent2ncr(__('By: %s')), get_comment_author_rss());
@@ -75,7 +76,7 @@ if ( have_comments() ) : while ( have_comments() ) : the_comment();
 		<thr:in-reply-to ref="<?php the_guid(); ?>" href="<?php the_permalink_rss() ?>" type="<?php bloginfo_rss('html_type'); ?>" />
 <?php else : // This comment is in reply to another comment
 	$parent_comment = get_comment($comment->comment_parent);
-	// The rel attribute below and the id tag above should be GUIDs, but WP doesn't create them for comments (unlike posts). Either way, its more important that they both use the same system
+	// The rel attribute below and the id tag above should be GUIDs, but WP doesn't create them for comments (unlike posts). Either way, it's more important that they both use the same system
 ?>
 		<thr:in-reply-to ref="<?php comment_guid($parent_comment) ?>" href="<?php echo get_comment_link($parent_comment) ?>" type="<?php bloginfo_rss('html_type'); ?>" />
 <?php endif;

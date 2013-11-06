@@ -39,10 +39,10 @@ function akismet_load_js_and_css() {
 		'plugins_page_akismet-key-config', 
 		'jetpack_page_akismet-key-config',
 	) ) ) {
-		wp_register_style( 'akismet.css', AKISMET_PLUGIN_URL . 'akismet.css', array(), '2.5.4.4' );
+		wp_register_style( 'akismet.css', AKISMET_PLUGIN_URL . 'akismet.css', array(), '2.5.9' );
 		wp_enqueue_style( 'akismet.css');
 	
-		wp_register_script( 'akismet.js', AKISMET_PLUGIN_URL . 'akismet.js', array('jquery'), '2.5.4.6' );
+		wp_register_script( 'akismet.js', AKISMET_PLUGIN_URL . 'akismet.js', array('jquery'), '2.5.9' );
 		wp_enqueue_script( 'akismet.js' );
 		wp_localize_script( 'akismet.js', 'WPAkismet', array(
 			'comment_author_url_nonce' => wp_create_nonce( 'comment_author_url_nonce' )
@@ -67,11 +67,14 @@ add_filter( 'plugin_action_links', 'akismet_plugin_action_links', 10, 2 );
 function akismet_conf() {
 	global $akismet_nonce, $current_user;
 	
-	$new_key_link  = 'https://akismet.com/get/';
-	$api_key       = akismet_get_key();
-	$show_key_form = $api_key;
-	$key_status    = 'empty';
-	$saved_ok      = false;
+	$new_key_link    = 'https://akismet.com/get/';
+	$config_link     = esc_url( add_query_arg( array( 'page' => 'akismet-key-config', 'show' => 'enter-api-key' ), class_exists( 'Jetpack' ) ? admin_url( 'admin.php' ) : admin_url( 'plugins.php' ) ) );
+	$stats_link      = esc_url( add_query_arg( array( 'page' => 'akismet-stats-display' ), class_exists( 'Jetpack' ) ? admin_url( 'admin.php' ) : admin_url( 'index.php' ) ) );
+	$api_key         = akismet_get_key();
+	$show_key_form   = $api_key;
+	$key_status      = 'empty';
+	$saved_ok        = false;
+	$key_status_text = '';
 	
 	$ms = array();
 
@@ -98,17 +101,17 @@ function akismet_conf() {
 				$ms[] = 'key_empty';
 		}  
 		else
-			$key_status = akismet_verify_key( $key );
-
+			$key_status = akismet_verify_key( $key );		
+		
 		if ( $key != $api_key && $key_status == 'valid' ) {
-			update_option('wordpress_api_key', $key);
 			$ms[] = 'new_key_valid';
+			update_option('wordpress_api_key', $key);
 		}
 		elseif ( $key_status == 'invalid' )
 			$ms[] = 'new_key_invalid';
 		elseif ( $key_status == 'failed' )
 			$ms[] = 'new_key_failed';
-			
+
 		$api_key = $key_status == 'valid' ? $key : false;
 
 		if ( isset( $_POST['akismet_discard_month'] ) )
@@ -129,6 +132,9 @@ function akismet_conf() {
 		$show_key_form = true;
 		check_admin_referer( $akismet_nonce );
 		akismet_get_server_connectivity(0);
+	}
+	elseif ( isset( $_GET['show'] ) && $_GET['show'] == 'enter-api-key' ) {
+		$show_key_form = true;
 	}
 	
 	if ( $show_key_form ) {
@@ -154,7 +160,14 @@ function akismet_conf() {
 			elseif ( !empty( $key ) && $key_status == 'failed' )
 				$ms[] = 'key_failed';
 		}
-	}
+	}	
+		
+	$key_status_strings = array( 
+	 	'empty'   => __( 'Empty' ), 
+		'valid'   => __( 'Valid' ), 
+		'invalid' => __( 'Invalid' ), 
+		'failed'  => __( 'Failed' ), 
+ 	);
 
 	$messages = array(
 		'new_key_empty'   => array( 'class' => 'updated fade', 'text' => __('Your key has been cleared.' ) ),
@@ -174,7 +187,7 @@ function akismet_conf() {
 	<?php if ( !$api_key ) : ?>
 	<h2 class="ak-header"><?php _e('Akismet'); ?></h2>
 	<?php else: ?>
-	<h2 class="ak-header"><?php printf( __( 'Akismet <a href="%s" class="add-new-h2">Stats</a>' ), esc_url( add_query_arg( array( 'page' => 'akismet-stats-display' ), class_exists( 'Jetpack' ) ? admin_url( 'admin.php' ) : admin_url( 'index.php' ) ) ) ); ?></h2>
+	<h2 class="ak-header"><?php printf( __( 'Akismet <a href="%s" class="add-new-h2">Stats</a>' ), $stats_link ); ?></h2>
 	<?php endif; ?>
 	<div class="no-key <?php echo $show_key_form ? 'hidden' : '';?>">
 		<p><?php _e('Akismet eliminates the comment and trackback spam you get on your site. To use Akismet you may need to sign up for an API key. Click the button below to get started.'); ?></p>
@@ -182,10 +195,10 @@ function akismet_conf() {
 			<input type="hidden" name="return" value="1"/> 
 			<input type="hidden" name="jetpack" value="<?php echo (string) class_exists( 'Jetpack' );?>"/>
 			<input type="hidden" name="user" value="<?php echo esc_attr( $current_user->user_login );?>"/>
-			<input type="submit" class="button button-primary" value="<?php echo esc_attr( __('Create a new Akismet Key') ); ?>"/>
+			<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Create a new Akismet Key' ); ?>"/>
 		</form>
 		<br/>
-		<a href="#" class="switch-have-key"><?php _e('I already have a key'); ?></a>
+		<a href="<?php echo $config_link;?>"><?php _e('I already have a key'); ?></a>
 	</div>
 	<div class="have-key <?php echo $show_key_form ? '' : 'hidden';?>">
 		<?php if ( !empty($_POST['submit'] ) && $saved_ok ) : ?>
@@ -203,7 +216,7 @@ function akismet_conf() {
 					<tr>
 						<th><label for="key"><?php _e('Akismet API Key');?></label></th>
 						<td>
-							<input id="key" name="key" type="text" size="15" maxlength="12" value="<?php echo esc_html( get_option('wordpress_api_key') ); ?>" class="regular-text code <?php echo $key_status;?>"><div class="under-input key-status <?php echo $key_status;?>"><?php echo ucfirst( $key_status );?></div>
+							<input id="key" name="key" type="text" size="15" maxlength="12" value="<?php echo esc_attr( get_option('wordpress_api_key') ); ?>" class="regular-text code <?php echo $key_status;?>"><div class="under-input key-status <?php echo $key_status;?>"><?php echo isset( $key_status_strings[ $key_status ] ) ? $key_status_strings[ $key_status ] : '';?></div>
 							<p class="need-key description"><?php printf( __('You must enter a valid Akismet API key here. If you need an API key, you can <a href="%s">create one here</a>'), '#' );?></p>
 						</td>
 					</tr>
@@ -212,8 +225,8 @@ function akismet_conf() {
 						<th scope="row"><?php _e('Settings');?></th>
 						<td>
 							<fieldset><legend class="screen-reader-text"><span><?php _e('Settings');?></span></legend>
-							<label for="akismet_discard_month" title="<?php echo esc_attr( __( 'Auto-detete old spam' ) ); ?>"><input name="akismet_discard_month" id="akismet_discard_month" value="true" type="checkbox" <?php echo get_option('akismet_discard_month') == 'true' ? 'checked="checked"':''; ?>> <span><?php _e('Auto-delete spam submitted on posts more than a month old.'); ?></span></label><br>
-							<label for="akismet_show_user_comments_approved" title="<?php echo esc_attr( __( 'Show approved comments' ) ); ?>"><input name="akismet_show_user_comments_approved" id="akismet_show_user_comments_approved" value="true" type="checkbox" <?php echo get_option('akismet_show_user_comments_approved') == 'true' ? 'checked="checked"':''; ?>> <span><?php _e('Show the number of comments you\'ve approved beside each comment author.'); ?></span></label>
+							<label for="akismet_discard_month" title="<?php esc_attr_e( 'Auto-detete old spam' ); ?>"><input name="akismet_discard_month" id="akismet_discard_month" value="true" type="checkbox" <?php echo get_option('akismet_discard_month') == 'true' ? 'checked="checked"':''; ?>> <span><?php _e('Auto-delete spam submitted on posts more than a month old.'); ?></span></label><br>
+							<label for="akismet_show_user_comments_approved" title="<?php esc_attr_e( 'Show approved comments' ); ?>"><input name="akismet_show_user_comments_approved" id="akismet_show_user_comments_approved" value="true" type="checkbox" <?php echo get_option('akismet_show_user_comments_approved') == 'true' ? 'checked="checked"':''; ?>> <span><?php _e('Show the number of comments you\'ve approved beside each comment author.'); ?></span></label>
 							</fieldset>
 						</td>
 					</tr>
@@ -301,12 +314,13 @@ function akismet_conf() {
 function akismet_stats_display() {
 	global $akismet_api_host, $akismet_api_port;
 	
-	$blog    = urlencode( get_bloginfo('url') );
-	$api_key = akismet_get_key();?>
+	$blog        = urlencode( get_bloginfo('url') );
+	$api_key     = akismet_get_key();
+	$config_link = esc_url( add_query_arg( array( 'page' => 'akismet-key-config' ), class_exists( 'Jetpack' ) ? admin_url( 'admin.php' ) : admin_url( 'plugins.php' ) ) );?>
 	
 <div class="wrap"><?php	
 	if ( !$api_key ) :?>
-	<div id="akismet-warning" class="updated fade"><p><strong><?php _e('Akismet is almost ready.');?></strong> <?php printf( __( 'You must <a href="%1$s">enter your Akismet API key</a> for it to work.' ), esc_url( add_query_arg( array( 'page' => 'akismet-key-config' ), admin_url( 'admin.php' ) ) ) );?></p></div><?php
+	<div id="akismet-warning" class="updated fade"><p><strong><?php _e('Akismet is almost ready.');?></strong> <?php printf( __( 'You must <a href="%1$s">enter your Akismet API key</a> for it to work.' ), $config_link );?></p></div><?php
 	else :?>
 	<iframe src="<?php echo esc_url( sprintf( '%s://akismet.com/web/1.0/user-stats.php?blog=%s&api_key=%s', is_ssl()?'https':'http', $blog, $api_key ) ); ?>" width="100%" height="2500px" frameborder="0" id="akismet-stats-frame"></iframe><?php
 	endif;?>
@@ -368,7 +382,7 @@ function akismet_admin_warnings() {
 					<style type="text/css">  
 .akismet_activate{min-width:825px;border:1px solid #4F800D;padding:5px;margin:15px 0;background:#83AF24;background-image:-webkit-gradient(linear,0% 0,80% 100%,from(#83AF24),to(#4F800D));background-image:-moz-linear-gradient(80% 100% 120deg,#4F800D,#83AF24);-moz-border-radius:3px;border-radius:3px;-webkit-border-radius:3px;position:relative;overflow:hidden}.akismet_activate .aa_a{position:absolute;top:-5px;right:10px;font-size:140px;color:#769F33;font-family:Georgia, "Times New Roman", Times, serif;z-index:1}.akismet_activate .aa_button{font-weight:bold;border:1px solid #029DD6;border-top:1px solid #06B9FD;font-size:15px;text-align:center;padding:9px 0 8px 0;color:#FFF;background:#029DD6;background-image:-webkit-gradient(linear,0% 0,0% 100%,from(#029DD6),to(#0079B1));background-image:-moz-linear-gradient(0% 100% 90deg,#0079B1,#029DD6);-moz-border-radius:2px;border-radius:2px;-webkit-border-radius:2px}.akismet_activate .aa_button:hover{text-decoration:none !important;border:1px solid #029DD6;border-bottom:1px solid #00A8EF;font-size:15px;text-align:center;padding:9px 0 8px 0;color:#F0F8FB;background:#0079B1;background-image:-webkit-gradient(linear,0% 0,0% 100%,from(#0079B1),to(#0092BF));background-image:-moz-linear-gradient(0% 100% 90deg,#0092BF,#0079B1);-moz-border-radius:2px;border-radius:2px;-webkit-border-radius:2px}.akismet_activate .aa_button_border{border:1px solid #006699;-moz-border-radius:2px;border-radius:2px;-webkit-border-radius:2px;background:#029DD6;background-image:-webkit-gradient(linear,0% 0,0% 100%,from(#029DD6),to(#0079B1));background-image:-moz-linear-gradient(0% 100% 90deg,#0079B1,#029DD6)}.akismet_activate .aa_button_container{cursor:pointer;display:inline-block;background:#DEF1B8;padding:5px;-moz-border-radius:2px;border-radius:2px;-webkit-border-radius:2px;width:266px}.akismet_activate .aa_description{position:absolute;top:22px;left:285px;margin-left:25px;color:#E5F2B1;font-size:15px;z-index:1000}.akismet_activate .aa_description strong{color:#FFF;font-weight:normal}
 					</style>                       
-					<form name="akismet_activate" action="https://akismet.com/get/" method="POST"> 
+					<form name="akismet_activate" action="'.esc_url( add_query_arg( array( 'page' => 'akismet-key-config' ), class_exists( 'Jetpack' ) ? admin_url( 'admin.php' ) : admin_url( 'plugins.php' ) ) ).'" method="POST"> 
 						<input type="hidden" name="return" value="1"/>
 						<input type="hidden" name="jetpack" value="'.(string) class_exists( 'Jetpack' ).'"/>
 						<input type="hidden" name="user" value="'.esc_attr( $current_user->user_login ).'"/>
@@ -376,10 +390,10 @@ function akismet_admin_warnings() {
 							<div class="aa_a">A</div>     
 							<div class="aa_button_container" onclick="document.akismet_activate.submit();">  
 								<div class="aa_button_border">          
-									<div class="aa_button">Activate your Akismet account</div>  
+									<div class="aa_button">'.__('Activate your Akismet account').'</div>  
 								</div>  
 							</div>  
-							<div class="aa_description"><strong>Almost done</strong> - activate your account and say goodbye to comment spam.</div>  
+							<div class="aa_description">'.__('<strong>Almost done</strong> - activate your account and say goodbye to comment spam').'</div>  
 						</div>  
 					</form>  
 				</div>  

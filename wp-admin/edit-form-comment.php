@@ -23,7 +23,7 @@ if ( !defined('ABSPATH') )
 <input type="hidden" name="comment_post_ID" value="<?php echo esc_attr( $comment->comment_post_ID ); ?>" />
 
 <div id="post-body" class="metabox-holder columns-2">
-<div id="post-body-content">
+<div id="post-body-content" class="edit-form-section">
 <div id="namediv" class="stuffbox">
 <h3><label for="name"><?php _e( 'Author' ) ?></label></h3>
 <div class="inside">
@@ -63,7 +63,7 @@ if ( !defined('ABSPATH') )
 
 <div id="postdiv" class="postarea">
 <?php
-	$quicktags_settings = array( 'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,spell,close' );
+	$quicktags_settings = array( 'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,close' );
 	wp_editor( $comment->comment_content, 'content', array( 'media_buttons' => false, 'tinymce' => false, 'quicktags' => $quicktags_settings ) );
 	wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false ); ?>
 </div>
@@ -85,13 +85,19 @@ if ( !defined('ABSPATH') )
 
 <div id="misc-publishing-actions">
 
-<div class="misc-pub-section" id="comment-status-radio">
+<div class="misc-pub-section misc-pub-comment-status" id="comment-status-radio">
 <label class="approved"><input type="radio"<?php checked( $comment->comment_approved, '1' ); ?> name="comment_status" value="1" /><?php /* translators: comment type radio button */ _ex('Approved', 'adjective') ?></label><br />
 <label class="waiting"><input type="radio"<?php checked( $comment->comment_approved, '0' ); ?> name="comment_status" value="0" /><?php /* translators: comment type radio button */ _ex('Pending', 'adjective') ?></label><br />
 <label class="spam"><input type="radio"<?php checked( $comment->comment_approved, 'spam' ); ?> name="comment_status" value="spam" /><?php /* translators: comment type radio button */ _ex('Spam', 'adjective'); ?></label>
 </div>
 
-<div class="misc-pub-section curtime">
+<?php if ( $ip = get_comment_author_IP() ) : ?>
+<div class="misc-pub-section misc-pub-comment-author-ip">
+	<?php _e( 'IP address:' ); ?> <strong><a href="<?php echo esc_url( sprintf( 'http://whois.arin.net/rest/ip/%s', $ip ) ); ?>"><?php echo esc_html( $ip ); ?></a></strong>
+</div>
+<?php endif; ?>
+
+<div class="misc-pub-section curtime misc-pub-curtime">
 <?php
 // translators: Publish box date format, see http://php.net/date
 $datef = __( 'M j, Y @ G:i' );
@@ -132,7 +138,7 @@ do_meta_boxes(null, 'normal', $comment);
 
 <input type="hidden" name="c" value="<?php echo esc_attr($comment->comment_ID) ?>" />
 <input type="hidden" name="p" value="<?php echo esc_attr($comment->comment_post_ID) ?>" />
-<input name="referredby" type="hidden" id="referredby" value="<?php echo esc_url(stripslashes(wp_get_referer())); ?>" />
+<input name="referredby" type="hidden" id="referredby" value="<?php echo esc_url( wp_get_referer() ); ?>" />
 <?php wp_original_referer_field(true, 'previous'); ?>
 <input type="hidden" name="noredir" value="1" />
 

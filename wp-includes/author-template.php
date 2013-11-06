@@ -26,6 +26,13 @@ function get_the_author($deprecated = '') {
 	if ( !empty( $deprecated ) )
 		_deprecated_argument( __FUNCTION__, '2.1' );
 
+	/**
+	 * Filter the display name of the current post's author.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string $authordata->display_name The author's display name.
+	 */
 	return apply_filters('the_author', is_object($authordata) ? $authordata->display_name : null);
 }
 
@@ -71,6 +78,14 @@ function the_author( $deprecated = '', $deprecated_echo = true ) {
 function get_the_modified_author() {
 	if ( $last_id = get_post_meta( get_post()->ID, '_edit_last', true) ) {
 		$last_user = get_userdata($last_id);
+
+		/**
+		 * Filter the display name of the author who last edited the current post.
+		 *
+		 * @since 2.8.0
+		 *
+		 * @param string $last_user->display_name The author's display name.
+		 */
 		return apply_filters('the_modified_author', $last_user->display_name);
 	}
 }
@@ -108,6 +123,16 @@ function get_the_author_meta( $field = '', $user_id = false ) {
 
 	$value = isset( $authordata->$field ) ? $authordata->$field : '';
 
+	/**
+	 * Filter the value of the requested user metadata.
+	 *
+	 * The filter name is dynamic and depends on the $field parameter of the function.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param string $value   The value of the metadata.
+	 * @param int    $user_id The user ID.
+	 */
 	return apply_filters( 'get_the_author_' . $field, $value, $user_id );
 }
 
@@ -119,8 +144,20 @@ function get_the_author_meta( $field = '', $user_id = false ) {
  * @param int $user_id Optional. User ID.
  * @echo string The author's field from the current author's DB object.
  */
-function the_author_meta($field = '', $user_id = false) {
-	echo apply_filters('the_author_' . $field, get_the_author_meta($field, $user_id), $user_id);
+function the_author_meta( $field = '', $user_id = false ) {
+	$author_meta = get_the_author_meta( $field, $user_id );
+
+	/**
+	 * The value of the requested user metadata.
+	 *
+	 * The filter name is dynamic and depends on the $field parameter of the function.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param string $author_meta The value of the metadata.
+	 * @param int    $user_id     The user ID.
+	 */
+	echo apply_filters( 'the_author_' . $field, $author_meta, $user_id );
 }
 
 /**
@@ -134,7 +171,7 @@ function the_author_meta($field = '', $user_id = false) {
  */
 function get_the_author_link() {
 	if ( get_the_author_meta('url') ) {
-		return '<a href="' . get_the_author_meta('url') . '" title="' . esc_attr( sprintf(__("Visit %s&#8217;s website"), get_the_author()) ) . '" rel="author external">' . get_the_author() . '</a>';
+		return '<a href="' . esc_url( get_the_author_meta('url') ) . '" title="' . esc_attr( sprintf(__("Visit %s&#8217;s website"), get_the_author()) ) . '" rel="author external">' . get_the_author() . '</a>';
 	} else {
 		return get_the_author();
 	}
@@ -200,10 +237,18 @@ function the_author_posts_link($deprecated = '') {
 		return false;
 	$link = sprintf(
 		'<a href="%1$s" title="%2$s" rel="author">%3$s</a>',
-		get_author_posts_url( $authordata->ID, $authordata->user_nicename ),
+		esc_url( get_author_posts_url( $authordata->ID, $authordata->user_nicename ) ),
 		esc_attr( sprintf( __( 'Posts by %s' ), get_the_author() ) ),
 		get_the_author()
 	);
+
+	/**
+	 * Filter the link to the author page of the author of the current post.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string $link HTML link.
+	 */
 	echo apply_filters( 'the_author_posts_link', $link );
 }
 
@@ -232,7 +277,16 @@ function get_author_posts_url($author_id, $author_nicename = '') {
 		$link = home_url( user_trailingslashit( $link ) );
 	}
 
-	$link = apply_filters('author_link', $link, $author_id, $author_nicename);
+	/**
+	 * Filter the URL to the author's page.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $link            The URL to the author's page.
+	 * @param int    $author_id       The author's id.
+	 * @param string $author_nicename The author's nice name.
+	 */
+	$link = apply_filters( 'author_link', $link, $author_id, $author_nicename );
 
 	return $link;
 }
@@ -244,7 +298,7 @@ function get_author_posts_url($author_id, $author_nicename = '') {
  * <li>optioncount (boolean) (false): Show the count in parenthesis next to the
  * author's name.</li>
  * <li>exclude_admin (boolean) (true): Exclude the 'admin' user that is
- * installed bydefault.</li>
+ * installed by default.</li>
  * <li>show_fullname (boolean) (false): Show their full names.</li>
  * <li>hide_empty (boolean) (true): Don't show authors without any posts.</li>
  * <li>feed (string) (''): If isn't empty, show links to author's feeds.</li>
@@ -372,12 +426,19 @@ function wp_list_authors($args = '') {
 function is_multi_author() {
 	global $wpdb;
 
-	if ( false === ( $is_multi_author = wp_cache_get('is_multi_author', 'posts') ) ) {
+	if ( false === ( $is_multi_author = get_transient( 'is_multi_author' ) ) ) {
 		$rows = (array) $wpdb->get_col("SELECT DISTINCT post_author FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish' LIMIT 2");
 		$is_multi_author = 1 < count( $rows ) ? 1 : 0;
-		wp_cache_set('is_multi_author', $is_multi_author, 'posts');
+		set_transient( 'is_multi_author', $is_multi_author );
 	}
 
+	/**
+	 * Filter whether the site has more than one author with published posts.
+	 *
+	 * @since 3.2.0
+	 *
+	 * @param bool $is_multi_author Whether $is_multi_author should evaluate as true.
+	 */
 	return apply_filters( 'is_multi_author', (bool) $is_multi_author );
 }
 
@@ -387,6 +448,6 @@ function is_multi_author() {
  * @private
  */
 function __clear_multi_author_cache() {
-	wp_cache_delete('is_multi_author', 'posts');
+	delete_transient( 'is_multi_author' );
 }
 add_action('transition_post_status', '__clear_multi_author_cache');
