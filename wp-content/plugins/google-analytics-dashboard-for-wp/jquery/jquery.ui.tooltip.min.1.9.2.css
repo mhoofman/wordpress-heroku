@@ -1,0 +1,5 @@
+/*! jQuery UI - v1.9.2 - 2013-09-22
+* http://jqueryui.com
+* Copyright 2013 jQuery Foundation and other contributors; Licensed MIT */
+.ui-tooltip{padding:8px;position:absolute;z-index:9999;max-width:300px;-webkit-box-shadow:0 0 5px #aaa;box-shadow:0 0 5px #aaa}* html .ui-tooltip{background-image:none}body .ui-tooltip{border-width:2px}
+.ui-widget { font-family: Verdana,Arial,sans-serif; font-size: 1.1em; }.ui-widget .ui-widget { font-size: 1em; }.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button { font-family: Verdana,Arial,sans-serif; font-size: 1em; }.ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }.ui-widget-content a { color: #222222; }.ui-widget-header { border: 1px solid #aaaaaa; background: #cccccc url(images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% 50% repeat-x; color: #222222; font-weight: bold; }.ui-widget-header a { color: #222222; }
