@@ -1,0 +1,711 @@
+# Copyright (C) 2013 
+# This file is distributed under the same license as the  package.
+msgid ""
+msgstr ""
+"Project-Id-Version:  \n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/google-analytics-for-"
+"wordpress\n"
+"POT-Creation-Date: 2013-03-11 15:31:09+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2013-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: admin/class-admin.php:30
+msgid "Google Analytics Configuration"
+msgstr ""
+
+#: admin/class-admin.php:31
+msgid "Google Analytics"
+msgstr ""
+
+#: admin/class-admin.php:129
+msgid ""
+"The maximum number of allowed custom variables in Google Analytics is 5, "
+"please unselect one of the other custom variables before selecting this one."
+msgstr ""
+
+#: admin/class-admin.php:136
+msgid ""
+"That's not a valid UA ID, please make sure it matches the expected pattern "
+"of: UA-XXXXXX-X, and that there are no spaces or other characters in the "
+"input field."
+msgstr ""
+
+#: admin/class-admin.php:151
+msgid "Having problems?"
+msgstr ""
+
+#: admin/class-admin.php:152
+msgid ""
+"If you're having problems with this plugin, please refer to its <a "
+"href='%s'>FAQ page</a>."
+msgstr ""
+
+#: admin/class-admin.php:171
+msgid "Google Analytics settings reset."
+msgstr ""
+
+#: admin/class-admin.php:174
+msgid "You cannot edit the Google Analytics for WordPress options."
+msgstr ""
+
+#: admin/class-admin.php:220
+msgid "Google Analytics settings updated."
+msgstr ""
+
+#: admin/class-admin.php:227
+msgid "Update Google Analytics Settings &raquo;"
+msgstr ""
+
+#: admin/class-admin.php:263
+msgid "Google Analytics for WordPress Configuration"
+msgstr ""
+
+#: admin/class-admin.php:275
+msgid ""
+"Please authenticate with Google Analytics to retrieve your tracking code:"
+msgstr ""
+
+#: admin/class-admin.php:275
+msgid "Click here to authenticate with Google"
+msgstr ""
+
+#: admin/class-admin.php:340
+msgid "Please select the correct Analytics Account"
+msgstr ""
+
+#: admin/class-admin.php:349
+msgid "Please select the correct Analytics account to track:"
+msgstr ""
+
+#: admin/class-admin.php:351
+msgid "Profile"
+msgstr ""
+
+#: admin/class-admin.php:363
+msgid ""
+"Please note that if you have several profiles of the same website, it "
+"doesn't matter which profile you select, and in fact another profile might "
+"show as selected later. You can check whether they're profiles for the same "
+"site by checking if they have the same UA code. If that's true, tracking "
+"will be correct."
+msgstr ""
+
+#: admin/class-admin.php:365
+msgid "Refresh this listing or switch to another account: "
+msgstr ""
+
+#: admin/class-admin.php:367
+msgid ""
+"Unfortunately, an error occurred while connecting to Google, please try "
+"again:"
+msgstr ""
+
+#: admin/class-admin.php:371
+msgid "Re-authenticate with Google"
+msgstr ""
+
+#: admin/class-admin.php:373
+msgid "Select another Analytics Profile &raquo;"
+msgstr ""
+
+#: admin/class-admin.php:375
+msgid "Manually enter your UA code: "
+msgstr ""
+
+#: admin/class-admin.php:380
+msgid "Analytics Profile"
+msgstr ""
+
+#: admin/class-admin.php:381
+msgid "Manually enter your UA code"
+msgstr ""
+
+#: admin/class-admin.php:384
+msgid "In the header (default)"
+msgstr ""
+
+#: admin/class-admin.php:384
+msgid "Insert manually"
+msgstr ""
+
+#: admin/class-admin.php:387
+msgid "Notice"
+msgstr ""
+
+#: admin/class-admin.php:387
+msgid ""
+"You switched your theme, please make sure your Google Analytics tracking is "
+"still ok. Save your settings to make sure Google Analytics gets loaded "
+"properly."
+msgstr ""
+
+#: admin/class-admin.php:390
+msgid ""
+"The header is by far the best spot to place the tracking code. If you'd "
+"rather place the code manually, switch to manual placement. For more info "
+"%sread this page%s."
+msgstr ""
+
+#: admin/class-admin.php:391
+msgid ""
+"%sFollow the instructions here%s to choose the location for your tracking "
+"code manually."
+msgstr ""
+
+#: admin/class-admin.php:395
+msgid "Where should the tracking code be placed"
+msgstr ""
+
+#: admin/class-admin.php:401
+msgid "Track outbound clicks &amp; downloads"
+msgstr ""
+
+#: admin/class-admin.php:402
+msgid ""
+"Clicks &amp; downloads will be tracked as events, you can find these under "
+"Content &raquo; Event Tracking in your Google Analytics reports."
+msgstr ""
+
+#: admin/class-admin.php:407
+msgid "Show advanced settings"
+msgstr ""
+
+#: admin/class-admin.php:408
+msgid ""
+"Only adviced for advanced users who know their way around Google Analytics"
+msgstr ""
+
+#: admin/class-admin.php:413
+msgid "Allow tracking of anonymous data"
+msgstr ""
+
+#: admin/class-admin.php:414
+msgid ""
+"By allowing us to track anonymous data we can better help you, because we "
+"know with which WordPress configurations, themes and plugins we should test. "
+"No personal data will be submitted."
+msgstr ""
+
+#: admin/class-admin.php:417
+msgid "Google Analytics Settings"
+msgstr ""
+
+#: admin/class-admin.php:420
+msgid ""
+"Google Analytics allows you to save up to 5 custom variables on each page, "
+"and this plugin helps you make the most use of these! Check which custom "
+"variables you'd like the plugin to save for you below. Please note that "
+"these will only be saved when they are actually available."
+msgstr ""
+
+#: admin/class-admin.php:421
+msgid ""
+"If you want to start using these custom variables, go to Visitors &raquo; "
+"Custom Variables in your Analytics reports."
+msgstr ""
+
+#: admin/class-admin.php:424
+msgid "Logged in Users"
+msgstr ""
+
+#: admin/class-admin.php:425
+msgid ""
+"Allows you to easily remove logged in users from your reports, or to segment "
+"by different user roles. The users primary role will be logged."
+msgstr ""
+
+#: admin/class-admin.php:430
+msgid "Post type"
+msgstr ""
+
+#: admin/class-admin.php:431
+msgid ""
+"Allows you to see pageviews per post type, especially useful if you use "
+"multiple custom post types."
+msgstr ""
+
+#: admin/class-admin.php:436
+msgid "Author Name"
+msgstr ""
+
+#: admin/class-admin.php:437
+msgid "Allows you to see pageviews per author."
+msgstr ""
+
+#: admin/class-admin.php:442
+msgid "Tags"
+msgstr ""
+
+#: admin/class-admin.php:443
+msgid "Allows you to see pageviews per tags using advanced segments."
+msgstr ""
+
+#: admin/class-admin.php:448
+msgid "Publication year"
+msgstr ""
+
+#: admin/class-admin.php:449
+msgid ""
+"Allows you to see pageviews per year of publication, showing you if your old "
+"posts still get traffic."
+msgstr ""
+
+#: admin/class-admin.php:454
+msgid "Single Category"
+msgstr ""
+
+#: admin/class-admin.php:455
+msgid ""
+"Allows you to see pageviews per category, works best when each post is in "
+"only one category."
+msgstr ""
+
+#: admin/class-admin.php:460
+msgid "All Categories"
+msgstr ""
+
+#: admin/class-admin.php:461
+msgid ""
+"Allows you to see pageviews per category using advanced segments, should be "
+"used when you use multiple categories per post."
+msgstr ""
+
+#: admin/class-admin.php:466
+msgid "Custom Variables Settings"
+msgstr ""
+
+#: admin/class-admin.php:471
+msgid "Ignore users"
+msgstr ""
+
+#: admin/class-admin.php:472
+msgid ""
+"Users of the role you select and higher will be ignored, so if you select "
+"Editor, all Editors and Administrators will be ignored."
+msgstr ""
+
+#: admin/class-admin.php:474
+msgid "Ignore no-one"
+msgstr ""
+
+#: admin/class-admin.php:475
+msgid "Administrator"
+msgstr ""
+
+#: admin/class-admin.php:476
+msgid "Editor"
+msgstr ""
+
+#: admin/class-admin.php:477
+msgid "Author"
+msgstr ""
+
+#: admin/class-admin.php:478
+msgid "Contributor"
+msgstr ""
+
+#: admin/class-admin.php:479
+msgid "Subscriber (ignores all logged in users)"
+msgstr ""
+
+#: admin/class-admin.php:484
+msgid "Track outbound clicks as pageviews"
+msgstr ""
+
+#: admin/class-admin.php:485
+msgid ""
+"You do not need to enable this to enable outbound click tracking, this "
+"changes the default behavior of tracking clicks as events to tracking them "
+"as pageviews. This is therefore not recommended, as this would skew your "
+"statistics, but <em>is</em> sometimes necessary when you need to set "
+"outbound clicks as goals."
+msgstr ""
+
+#: admin/class-admin.php:490
+msgid "Track downloads as pageviews"
+msgstr ""
+
+#: admin/class-admin.php:491
+msgid ""
+"Not recommended, as this would skew your statistics, but it does make it "
+"possible to track downloads as goals."
+msgstr ""
+
+#: admin/class-admin.php:496
+msgid "Extensions of files to track as downloads"
+msgstr ""
+
+#: admin/class-admin.php:502
+msgid "Prefix to use in Analytics before the tracked pageviews"
+msgstr ""
+
+#: admin/class-admin.php:503
+msgid ""
+"This prefix is used before all pageviews, they are then segmented "
+"automatically after that. If nothing is entered here, <code>/yoast-ga/</"
+"code> is used."
+msgstr ""
+
+#: admin/class-admin.php:509
+msgid "Track full URL of outbound clicks or just the domain"
+msgstr ""
+
+#: admin/class-admin.php:511
+msgid "Just the domain"
+msgstr ""
+
+#: admin/class-admin.php:512
+msgid "Track the complete URL"
+msgstr ""
+
+#: admin/class-admin.php:518
+msgid "Subdomain Tracking"
+msgstr ""
+
+#: admin/class-admin.php:519
+msgid ""
+"This allows you to set the domain that's set by %s<code>setDomainName</code>"
+"%s for tracking subdomains, if empty this will not be set."
+msgstr ""
+
+#: admin/class-admin.php:524
+msgid "Enable Cross Domain Tracking"
+msgstr ""
+
+#: admin/class-admin.php:525
+msgid ""
+"This allows you to enable %sCross-Domain Tracking%s for this site.  When "
+"endabled <code>_setAllowLinker:</code> will be enabled if it is not already."
+msgstr ""
+
+#: admin/class-admin.php:530
+msgid "Cross-Domain Tracking, Primary Domain"
+msgstr ""
+
+#: admin/class-admin.php:531
+msgid ""
+"Set the primary domain used in %s<code>setDomainName</code>%s for cross "
+"domain tracking (eg. <code>example-petstore.com</code> ), if empty this will "
+"default to your configured Home URL."
+msgstr ""
+
+#: admin/class-admin.php:536
+msgid "Cross-Domain Tracking, Other Domains"
+msgstr ""
+
+#: admin/class-admin.php:537
+msgid ""
+"All links to these domains will have the <a href=\"http://code.google.com/"
+"apis/analytics/docs/tracking/gaTrackingSite.html#multipleDomains"
+"\"><code>_link</code></a> code automatically attached.  Separate domains/sub-"
+"domains with commas (eg. <code>dogs.example-petstore.com, cats.example-"
+"petstore.com</code>)"
+msgstr ""
+
+#: admin/class-admin.php:542
+msgid "Custom Code"
+msgstr ""
+
+#: admin/class-admin.php:543
+msgid ""
+"Not for the average user: this allows you to add a line of code, to be added "
+"before the <code>trackPageview</code> call."
+msgstr ""
+
+#: admin/class-admin.php:548
+msgid "Track AdSense"
+msgstr ""
+
+#: admin/class-admin.php:549
+msgid ""
+"This requires integration of your Analytics and AdSense account, for help, "
+"<a href=\"http://google.com/support/analytics/bin/answer.py?"
+"answer=92625\">look here</a>."
+msgstr ""
+
+#: admin/class-admin.php:554
+msgid "Host ga.js locally"
+msgstr ""
+
+#: admin/class-admin.php:556
+msgid "You have to provide a URL to your ga.js file:"
+msgstr ""
+
+#: admin/class-admin.php:559
+msgid ""
+"For some reasons you might want to use a locally hosted ga.js file, or "
+"another ga.js file, check the box and then please enter the full URL "
+"including http here."
+msgstr ""
+
+#: admin/class-admin.php:563
+msgid "Track extra Search Engines"
+msgstr ""
+
+#: admin/class-admin.php:565
+msgid ""
+"You can provide a custom URL to the extra search engines file if you want:"
+msgstr ""
+
+#: admin/class-admin.php:571
+msgid "Tag links in RSS feed with campaign variables"
+msgstr ""
+
+#: admin/class-admin.php:572
+msgid ""
+"Do not use this feature if you use FeedBurner, as FeedBurner can do this "
+"automatically, and better than this plugin can. Check <a href=\"http://www."
+"google.com/support/feedburner/bin/answer.py?hl=en&amp;answer=165769\">this "
+"help page</a> for info on how to enable this feature in FeedBurner."
+msgstr ""
+
+#: admin/class-admin.php:577
+msgid "Add tracking to the login and registration forms"
+msgstr ""
+
+#: admin/class-admin.php:582
+msgid "Add tracking to the comment forms"
+msgstr ""
+
+#: admin/class-admin.php:587
+msgid "Use # instead of ? for Campaign tracking"
+msgstr ""
+
+#: admin/class-admin.php:588
+msgid ""
+"This adds a <code><a href=\"http://code.google.com/apis/analytics/docs/"
+"gaJSApiCampaignTracking.html#_gat.GA_Tracker_._setAllowAnchor"
+"\">_setAllowAnchor</a></code> call to your tracking code, and makes RSS link "
+"tagging use a # as well."
+msgstr ""
+
+#: admin/class-admin.php:593
+msgid "Add <code>_setAllowLinker</code>"
+msgstr ""
+
+#: admin/class-admin.php:594
+msgid ""
+"This adds a <code><a href=\"http://code.google.com/apis/analytics/docs/gaJS/"
+"gaJSApiDomainDirectory.html#_gat.GA_Tracker_._setAllowLinker"
+"\">_setAllowLinker</a></code> call to your tracking code,  allowing you to "
+"use <code>_link</code> and related functions."
+msgstr ""
+
+#: admin/class-admin.php:599
+msgid "Set <code>_setAllowHash</code> to false"
+msgstr ""
+
+#: admin/class-admin.php:600
+msgid ""
+"This sets <code><a href=\"http://code.google.com/apis/analytics/docs/gaJS/"
+"gaJSApiDomainDirectory.html#_gat.GA_Tracker_._setAllowHash\">_setAllowHash</"
+"a></code> to false, allowing you to track subdomains etc."
+msgstr ""
+
+#: admin/class-admin.php:605
+msgid "Anonymize IP's"
+msgstr ""
+
+#: admin/class-admin.php:606
+msgid ""
+"This adds <code><a href=\"http://code.google.com/apis/analytics/docs/gaJS/"
+"gaJSApi_gat.html#_gat._anonymizeIp\">_anonymizeIp</a></code>, telling Google "
+"Analytics to anonymize the information sent by the tracker objects by "
+"removing the last octet of the IP address prior to its storage."
+msgstr ""
+
+#: admin/class-admin.php:610
+msgid "Advanced Settings"
+msgstr ""
+
+#: admin/class-admin.php:615
+msgid "Internal links to track as outbound"
+msgstr ""
+
+#: admin/class-admin.php:616
+msgid ""
+"If you want to track all internal links that begin with <code>/out/</code>, "
+"enter <code>/out/</code> in the box above. If you have multiple prefixes you "
+"can separate them with comma's: <code>/out/,/recommends/</code>"
+msgstr ""
+
+#: admin/class-admin.php:621
+msgid "Label to use"
+msgstr ""
+
+#: admin/class-admin.php:622
+msgid ""
+"The label to use for these links, this will be added to where the click came "
+"from, so if the label is \"aff\", the label for a click from the content of "
+"an article becomes \"outbound-article-aff\"."
+msgstr ""
+
+#: admin/class-admin.php:626
+msgid "Internal Links to Track as Outbound"
+msgstr ""
+
+#: admin/class-admin.php:629
+msgid ""
+"The WordPress e-Commerce plugin has been detected. This plugin can "
+"automatically add transaction tracking for you. To do that, <a href=\"http://"
+"yoast.com/wordpress/google-analytics/enable-ecommerce/\">enable e-commerce "
+"for your reports in Google Analytics</a> and then check the box below."
+msgstr ""
+
+#: admin/class-admin.php:633 admin/class-admin.php:646
+msgid "Enable transaction tracking"
+msgstr ""
+
+#: admin/class-admin.php:636
+msgid "WordPress e-Commerce Settings"
+msgstr ""
+
+#: admin/class-admin.php:642
+msgid ""
+"The Shopp e-Commerce plugin has been detected. This plugin can automatically "
+"add transaction tracking for you. To do that, <a href=\"http://www.google."
+"com/support/googleanalytics/bin/answer.py?hl=en&amp;answer=55528\">enable e-"
+"commerce for your reports in Google Analytics</a> and then check the box "
+"below."
+msgstr ""
+
+#: admin/class-admin.php:649
+msgid "Shopp e-Commerce Settings"
+msgstr ""
+
+#: admin/class-admin.php:652
+msgid ""
+"If you want to confirm that tracking on your blog is working as it should, "
+"enable this option and check the console in %sFirebug%s (for Firefox), "
+"%sFirebug Lite%s (for other browsers) or Chrome &amp; Safari's Web "
+"Inspector. Be absolutely sure to disable debugging afterwards, as it is "
+"slower than normal tracking."
+msgstr ""
+
+#: admin/class-admin.php:653
+msgid "Note"
+msgstr ""
+
+#: admin/class-admin.php:653
+msgid "the debugging and firebug scripts are only loaded for admins."
+msgstr ""
+
+#: admin/class-admin.php:657
+msgid "Enable debug mode"
+msgstr ""
+
+#: admin/class-admin.php:662
+msgid "Enable Firebug Lite"
+msgstr ""
+
+#: admin/class-admin.php:665
+msgid "Debug Mode"
+msgstr ""
+
+#: admin/class-admin.php:670
+msgid "Do you really want to reset all settings?"
+msgstr ""
+
+#: admin/class-admin.php:674
+msgid "Reset All Settings &raquo;"
+msgstr ""
+
+#: admin/class-admin.php:683
+msgid "Help Spread the Word!"
+msgstr ""
+
+#: admin/class-admin.php:683
+msgid ""
+"Want to help make this plugin even better? All donations are used to improve "
+"this plugin, so donate $20, $50 or $100 now!"
+msgstr ""
+
+#: admin/class-admin.php:689
+msgid "Or you could:"
+msgstr ""
+
+#: admin/class-admin.php:691
+msgid "Rate the plugin 5★ on WordPress.org"
+msgstr ""
+
+#: admin/class-admin.php:692
+msgid "Help out other users in the forums"
+msgstr ""
+
+#: admin/class-admin.php:693
+msgid "Blog about it & link to the %1$splugin page%2$s"
+msgstr ""
+
+#: admin/class-admin.php:755
+msgid "Google Analytics is not active."
+msgstr ""
+
+#: admin/class-admin.php:755
+msgid ""
+"You must %sselect which Analytics Profile to track%s before it can work."
+msgstr ""
+
+#: admin/class-pointer.php:37
+msgid "Help improve Google Analytics for WordPress"
+msgstr ""
+
+#: admin/class-pointer.php:38
+msgid ""
+"You've just installed Google Analytics for WordPress by Yoast. Please helps "
+"us improve it by allowing us to gather anonymous usage stats so we know "
+"which configurations, plugins and themes to test with."
+msgstr ""
+
+#: admin/class-pointer.php:43
+msgid "Allow tracking"
+msgstr ""
+
+#: admin/class-pointer.php:49
+msgid "Do not allow tracking"
+msgstr ""
+
+#: admin/yst_plugin_tools.php:54
+msgid "Settings"
+msgstr ""
+
+#: admin/yst_plugin_tools.php:170
+msgid "Why not do any or all of the following:"
+msgstr ""
+
+#: admin/yst_plugin_tools.php:172
+msgid "Link to it so other folks can find out about it."
+msgstr ""
+
+#: admin/yst_plugin_tools.php:173
+msgid "Give it a 5 star rating on WordPress.org."
+msgstr ""
+
+#: admin/yst_plugin_tools.php:174
+msgid "Let other people know that it works with your WordPress setup."
+msgstr ""
+
+#: admin/yst_plugin_tools.php:176
+msgid "Like this plugin?"
+msgstr ""
+
+#: frontend/class-frontend.php:75
+msgid ""
+"Google Analytics tracking code not shown because you haven't setup Google "
+"Analytics for WordPress yet."
+msgstr ""
+
+#: frontend/class-frontend.php:310
+msgid ""
+"Google Analytics tracking code not shown because users over level %s are "
+"ignored."
+msgstr ""
+
+#: frontend/class-frontend.php:661
+msgid ""
+"Please set Google Analytics position to \"manual\" in the settings, or "
+"remove this call to yoast_analytics();"
+msgstr ""
