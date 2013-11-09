@@ -1,0 +1,3 @@
+[submodule "wp-content/plugins/wpro"]
+	path = wp-content/plugins/wpro
+	url = git://github.com/alfreddatakillen/wpro.git

@@ -2,3 +2,15 @@
 wp-config.php
 # Do not push postgres database dumps with private info out to the master github repo
 *.dump
+# Sitemaps are generated in development by the google-sitemap plugin
+sitemap.xml*
+# various helper scripts
+chst
+chwww
+db.*sh
+# submodules that cause temporary problems when switching branches
+# e.g. mv wpro wpro.submodule
+#      git checkout master
+#      git checkout development
+#      mv wpro.submodule wpro
+*.submodule
