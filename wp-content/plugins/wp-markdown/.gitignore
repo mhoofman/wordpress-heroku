@@ -1,0 +1,10 @@
+*~
+.project
+.settings
+.buildpath
+.metadata
+compiler.jar
+dist
+externs.js
+externs-converter.js
+Makefile

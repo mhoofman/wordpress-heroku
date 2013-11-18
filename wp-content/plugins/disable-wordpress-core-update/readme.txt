@@ -5,15 +5,17 @@ Requires at least: 2.3
 Tested up to: 3.7
 Stable tag: trunk
 
-Disables the WordPress core update checking and notification system.
+Disables WordPress core update checks and notifications.
 
 == Description ==
 
-Completely disables the core update checking system in WordPress. The plugin prevents WordPress from checking for updates, and prevents any notifications from being displayed in the admin area. Ideal for administrators of multiple WordPress installations.
+Completely disables the core update checking system in WordPress. This prevents WordPress from checking for core updates, and prevents any notifications from being displayed in the admin area. Ideal for administrators of multiple WordPress installations.
 
 = Please note! =
 
 It's *very* important that you keep your WordPress installation(s) up to date. If you don't, your blog or website could be susceptible to security vulnerabilities or performance issues. If you use this plugin, you must make sure you keep yourself informed of new WordPress releases and update your WordPress installation(s) as new versions are released.
+
+See also: [Disable WordPress plugin updates](http://wordpress.org/plugins/disable-wordpress-plugin-updates/) and [Disable WordPress theme updates](http://wordpress.org/plugins/disable-wordpress-theme-updates/).
 
 == Installation ==
 
@@ -32,16 +34,19 @@ Yes, this plugin completely disables all core update checks, so the automatic up
 
 = Can I disable the plugin update notifications too? =
 
-Yes. Please see the [Disable WordPress Plugin Updates](http://wordpress.org/extend/plugins/disable-wordpress-plugin-updates/) plugin.
+Yes. See the [Disable WordPress Plugin Updates](http://wordpress.org/extend/plugins/disable-wordpress-plugin-updates/) plugin.
 
 = Can I disable the theme update notifications too? =
 
-Yes. Please see the [Disable WordPress Theme Updates](http://wordpress.org/extend/plugins/disable-wordpress-theme-updates/) plugin.
+Yes. See the [Disable WordPress Theme Updates](http://wordpress.org/extend/plugins/disable-wordpress-theme-updates/) plugin.
 
 == Changelog ==
 
+= 1.5 =
+* Force the plugin to be network enabled.
+
 = 1.4 =
-* Preemptive support for WordPress 3.0.
+* Support for WordPress 3.0.
 
 = 1.3 =
 * Support for WordPress 2.8.

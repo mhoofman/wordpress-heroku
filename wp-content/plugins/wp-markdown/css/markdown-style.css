@@ -1,0 +1,33 @@
+/* MarkDown editor */
+.wmd-panel{min-width: 500px;width: 100%;}
+.wmd-button-bar {width: 100%;}
+.wmd-preview {border: 2px dotted #CCCCCC;clear: both;color: #555555;font-size: 14px !important;line-height: 1.4em !important;margin-bottom: 5px;margin-right: 5px;padding: 3px;width: 100%;}
+.wmd-preview pre{background:none;border:none;}
+.wmd-preview pre code{display:block!important;}
+.wmd-preview code{display:inline;background-color: #F0FFF8;border: 1px solid #CEEFE1;font-size: 13px;padding: 1px 3px;margin:0px;}
+.wmd-help-spaces{background: white;}
+.wmd-button-row {position: relative; margin-left: 5px;margin-right: 5px;margin-bottom: 0px;margin-top: 10px;padding: 0px; height: 20px;}
+.wmd-spacer{width: 1px; height: 20px;margin-left: 14px;position: absolute;background-color: Silver;display: inline-block; list-style: none;}
+.wmd-button {width: 20px;height: 20px;padding-left: 2px;padding-right: 3px;position: absolute;display: inline-block;list-style: none;cursor: pointer;}
+.wmd-button > span {background-image: url(wmd-buttons.png);background-repeat: no-repeat;background-position: 0px 0px;width: 20px;height: 20px;display: inline-block;}
+.wmd-spacer1{left: 50px;}.wmd-spacer2{left: 175px;}.wmd-spacer3{left: 300px;}
+.wmd-prompt-background{background-color: Black;}
+.wmd-prompt-dialog{border: 1px solid #999999;background-color: #FDFDF5;}
+.wmd-prompt-dialog > div {font-size: 0.8em;font-family: arial, helvetica, sans-serif;text-align: center;}
+.wmd-prompt-dialog > form > input[type="text"] {border: 1px solid #999999;color: black;}
+.wmd-prompt-dialog > form > input[type="button"]{font-family: trebuchet MS, helvetica, sans-serif;font-size: 0.8em;font-weight: bold;}
+
+/* Undoing bbPress styling */
+body.page .bbp-reply-form code, 
+body.page .bbp-topic-form code, 
+body.single-topic .bbp-reply-form code, 
+body.single-forum .bbp-topic-form code, 
+body.topic-edit .bbp-topic-form code, 
+body.reply-edit .bbp-reply-form code{width: auto;display: inline;padding: 5px;}
+
+/*Markdow Admin*/
+#ed_toolbar .wmd-button-row{margin:5px 0px}
+#postdivrich .wmd-preview {margin-right:-10px;padding:10px;width:97.1%}
+#postdivrich blockquote{font-family: Georgia,"Bitstream Charter",serif;font-style: italic;font-weight: normal;margin: 0 3em;}
+#postdivrich .wmd-preview ul{list-style: square;margin-left: 2em;}
+.wp-admin .wmd-prompt-dialog > div {font-size: 1em;}

@@ -1,0 +1,68 @@
+td.yst_desc {
+    font-weight: normal;
+    font-size: 13px;
+    line-height: 14px;
+    color: #777;
+}
+
+tr.yst_row {
+    padding: 5px 0 0 0;
+    margin: 5px 0 0 0;
+}
+
+tr.yst_row.even {
+    background-color: #f6f6f6;
+}
+
+div.inside ul {
+    margin-left: 20px;
+}
+
+div.inside ul li {
+    list-style: square;
+    line-height: 16px;
+}
+
+div.inside a, div.inside a.rsswidget {
+    font-family: 'Lucida Grande', Verdana, Arial, 'Bitstream Vera Sans', sans-serif;
+    text-decoration: none;
+}
+
+div.inside a:hover, div.inside a.rsswidget:hover {
+    text-decoration: underline;
+}
+
+.text, .select {
+    width: 250px;
+}
+
+.postbox p {
+    text-align: left;
+    margin: 0 10px 10px 10px;
+    font-size: 13px;
+    line-height: 150%;
+}
+
+.postbox pre {
+    margin: 5px 10px;
+    padding: 4px;
+    background: lightyellow;
+}
+
+div.inside .button:hover, div.inside .button-primary:hover {
+    text-decoration: none;
+}
+
+.postbox#spread {
+    border: green solid 2px;
+}
+
+.postbox#spread strong {
+    color: green;
+    font-weight: bold;
+    font-size: 105%;
+}
+
+.postbox {
+    margin: 0 10px 10px 0;
+}
