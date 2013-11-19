@@ -555,7 +555,7 @@ function populate_options() {
 		a.option_name LIKE '\_transient\_%' AND
 		a.option_name NOT LIKE '\_transient\_timeout\_%' AND
 		b.option_name = CONCAT( '_transient_timeout_', SUBSTRING( a.option_name, 12 ) )
-		AND b.option_value < $time RETURNING b.option_id)
+		AND b.option_value < text($time) RETURNING b.option_id)
 		DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
 
 	if ( is_main_site() && is_main_network() ) {
@@ -563,7 +563,7 @@ function populate_options() {
 			a.option_name LIKE '\_site\_transient\_%' AND
 			a.option_name NOT LIKE '\_site\_transient\_timeout\_%' AND
 			b.option_name = CONCAT( '_site_transient_timeout_', SUBSTRING( a.option_name, 17 ) )
-			AND b.option_value < $time RETURNING b.option_id)
+			AND b.option_value < text($time) RETURNING b.option_id)
 			DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
     }
 }
