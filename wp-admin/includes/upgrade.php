@@ -1241,7 +1241,7 @@ function upgrade_network() {
 			a.meta_key NOT LIKE '\_site\_transient\_timeout\_%' AND
 			b.meta_key = CONCAT( '_site_transient_timeout_', SUBSTRING( a.meta_key, 17 ) )
 			AND b.meta_value < $time RETURNING b.option_id)
-                        DELETE FROM wp_options WHERE option_id in (select option_id from bx))";
+                        DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
 	}
 
 	// 2.8

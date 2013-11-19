@@ -556,7 +556,7 @@ function populate_options() {
 		a.option_name NOT LIKE '\_transient\_timeout\_%' AND
 		b.option_name = CONCAT( '_transient_timeout_', SUBSTRING( a.option_name, 12 ) )
 		AND b.option_value < $time RETURNING b.option_id)
-		DELETE FROM wp_options WHERE option_id in (select option_id from bx))";
+		DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
 
 	if ( is_main_site() && is_main_network() ) {
 		$wpdb->query("WITH bx AS (DELETE FROM $wpdb->options a USING $wpdb->options b WHERE
@@ -564,7 +564,7 @@ function populate_options() {
 			a.option_name NOT LIKE '\_site\_transient\_timeout\_%' AND
 			b.option_name = CONCAT( '_site_transient_timeout_', SUBSTRING( a.option_name, 17 ) )
 			AND b.option_value < $time RETURNING b.option_id)
-			DELETE FROM wp_options WHERE option_id in (select option_id from bx))";
+			DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
     }
 }
 
