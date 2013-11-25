@@ -554,26 +554,6 @@ function wp_nav_menu_disabled_check( $nav_menu_selected_id ) {
 }
 
 /**
- * Check whether to disable the Menu Locations meta box submit button
- *
- * @since 3.6.0
- *
- * @uses global $one_theme_location_no_menus to determine if no menus exist
- * @uses disabled() to output the disabled attribute in $other_attributes param in submit_button()
- *
- * @param int|string $nav_menu_selected_id (id, name or slug) of the currently-selected menu
- * @return string Disabled attribute if at least one menu exists, false if not
-*/
-function wp_nav_menu_disabled_check( $nav_menu_selected_id ) {
-	global $one_theme_location_no_menus;
-
-	if ( $one_theme_location_no_menus )
-		return false;
-
-	return disabled( $nav_menu_selected_id, 0 );
-}
-
-/**
  * Displays a metabox for the custom links menu item.
  *
  * @since 3.0.0
