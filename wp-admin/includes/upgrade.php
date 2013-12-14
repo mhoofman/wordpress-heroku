@@ -100,8 +100,8 @@ if ( !function_exists('wp_install_defaults') ) :
  *
  * @param int $user_id User ID.
  */
-function wp_install_defaults($user_id) {
-	global $wpdb, $wp_rewrite, $current_site, $table_prefix;
+function wp_install_defaults( $user_id ) {
+	global $wpdb, $wp_rewrite, $table_prefix;
 
 	// Default category
 	$cat_name = __('Uncategorized');
@@ -135,7 +135,7 @@ function wp_install_defaults($user_id) {
 			$first_post = __( 'Welcome to <a href="SITE_URL">SITE_NAME</a>. This is your first post. Edit or delete it, then start blogging!' );
 
 		$first_post = str_replace( "SITE_URL", esc_url( network_home_url() ), $first_post );
-		$first_post = str_replace( "SITE_NAME", $current_site->site_name, $first_post );
+		$first_post = str_replace( "SITE_NAME", get_current_site()->site_name, $first_post );
 	} else {
 		$first_post = __('Welcome to WordPress. This is your first post. Edit or delete it, then start blogging!');
 	}
@@ -218,7 +218,7 @@ As a new WordPress user, you should go to <a href=\"%s\">your dashboard</a> to d
 	update_option( 'widget_archives', array ( 2 => array ( 'title' => '', 'count' => 0, 'dropdown' => 0 ), '_multiwidget' => 1 ) );
 	update_option( 'widget_categories', array ( 2 => array ( 'title' => '', 'count' => 0, 'hierarchical' => 0, 'dropdown' => 0 ), '_multiwidget' => 1 ) );
 	update_option( 'widget_meta', array ( 2 => array ( 'title' => '' ), '_multiwidget' => 1 ) );
-	update_option( 'sidebars_widgets', array ( 'wp_inactive_widgets' => array (), 'sidebar-1' => array ( 0 => 'search-2', 1 => 'recent-posts-2', 2 => 'recent-comments-2', 3 => 'archives-2', 4 => 'categories-2', 5 => 'meta-2', ), 'sidebar-2' => array (),'array_version' => 3 ) );
+	update_option( 'sidebars_widgets', array ( 'wp_inactive_widgets' => array (), 'sidebar-1' => array ( 0 => 'search-2', 1 => 'recent-posts-2', 2 => 'recent-comments-2', 3 => 'archives-2', 4 => 'categories-2', 5 => 'meta-2', ), 'sidebar-2' => array (), 'sidebar-3' => array (), 'array_version' => 3 ) );
 
 	if ( ! is_multisite() )
 		update_user_meta( $user_id, 'show_welcome_panel', 1 );
@@ -404,6 +404,12 @@ function upgrade_all() {
 
 	if ( $wp_current_db_version < 25824 )
 		upgrade_370();
+
+	if ( $wp_current_db_version < 26148 )
+		upgrade_372();
+
+	if ( $wp_current_db_version < 26691 )
+		upgrade_380();
 
 	maybe_disable_link_manager();
 
@@ -1223,6 +1229,29 @@ function upgrade_370() {
 }
 
 /**
+ * Execute changes made in WordPress 3.7.2.
+ *
+ * @since 3.7.2
+ * @since 3.8.0
+ */
+function upgrade_372() {
+	global $wp_current_db_version;
+	if ( $wp_current_db_version < 26148 )
+		wp_clear_scheduled_hook( 'wp_maybe_auto_update' );
+}
+
+/**
+ * Execute changes made in WordPress 3.8.0.
+ *
+ * @since 3.8.0
+ */
+function upgrade_380() {
+	global $wp_current_db_version;
+	if ( $wp_current_db_version < 26691 ) {
+		deactivate_plugins( array( 'mp6/mp6.php' ), true );
+	}
+}
+/**
  * Execute network level changes
  *
  * @since 3.0.0
@@ -1236,12 +1265,12 @@ function upgrade_network() {
 		// The multi-table delete syntax is used to delete the transient record from table a,
 		// and the corresponding transient_timeout record from table b.
 		$time = time();
-		$wpdb->query("WITH bx AS (DELETE FROM $wpdb->sitemeta a USING $wpdb->sitemeta b WHERE
-			a.meta_key LIKE '\_site\_transient\_%' AND
-			a.meta_key NOT LIKE '\_site\_transient\_timeout\_%' AND
-			b.meta_key = CONCAT( '_site_transient_timeout_', SUBSTRING( a.meta_key, 17 ) )
-			AND b.meta_value < text($time) RETURNING b.option_id)
-                        DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
+        $wpdb->query("WITH bx AS (DELETE FROM $wpdb->sitemeta a USING $wpdb->sitemeta b WHERE
+                a.meta_key LIKE '\_site\_transient\_%' AND
+                a.meta_key NOT LIKE '\_site\_transient\_timeout\_%' AND
+                b.meta_key = CONCAT( '_site_transient_timeout_', SUBSTRING( a.meta_key, 17 ) )
+                AND b.meta_value < text($time) RETURNING b.option_id)
+                DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
 	}
 
 	// 2.8
@@ -1535,13 +1564,15 @@ function dbDelta( $queries = '', $execute = true ) {
 	$global_tables = $wpdb->tables( 'global' );
 	foreach ( $cqueries as $table => $qry ) {
 		// Upgrade global tables only for the main site. Don't upgrade at all if DO_NOT_UPGRADE_GLOBAL_TABLES is defined.
-		if ( in_array( $table, $global_tables ) && ( !is_main_site() || defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) )
+		if ( in_array( $table, $global_tables ) && ( !is_main_site() || defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) ) {
+			unset( $cqueries[ $table ], $for_update[ $table ] );
 			continue;
+		}
 
 		// Fetch the table column structure from the database
-		$wpdb->suppress_errors();
+		$suppress = $wpdb->suppress_errors();
 		$tablefields = $wpdb->get_results("DESCRIBE {$table};");
-		$wpdb->suppress_errors( false );
+		$wpdb->suppress_errors( $suppress );
 
 		if ( ! $tablefields )
 			continue;
@@ -1993,7 +2024,7 @@ function maybe_disable_link_manager() {
  * @since 2.9.0
  */
 function pre_schema_upgrade() {
-	global $wp_current_db_version, $wp_db_version, $wpdb;
+	global $wp_current_db_version, $wpdb;
 
 	// Upgrade versions prior to 2.9
 	if ( $wp_current_db_version < 11557 ) {

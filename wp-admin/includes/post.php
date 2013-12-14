@@ -434,6 +434,9 @@ function bulk_edit_posts( $post_data = null ) {
 			else
 				unstick_post( $post_ID );
 		}
+
+		if ( isset( $post_data['post_format'] ) )
+			set_post_format( $post_ID, $post_data['post_format'] );
 	}
 
 	return array( 'updated' => $updated, 'skipped' => $skipped, 'locked' => $locked );
@@ -1182,7 +1185,7 @@ function wp_check_post_lock( $post_id ) {
 	$time = $lock[0];
 	$user = isset( $lock[1] ) ? $lock[1] : get_post_meta( $post->ID, '_edit_last', true );
 
-	$time_window = apply_filters( 'wp_check_post_lock_window', 120 );
+	$time_window = apply_filters( 'wp_check_post_lock_window', 150 );
 
 	if ( $time && $time > time() - $time_window && $user != get_current_user_id() )
 		return $user;

@@ -132,23 +132,6 @@ if ( post_type_supports($post_type, 'revisions') && 'auto-draft' != $post->post_
 	}
 }
 
-
-$publish_callback_args = null;
-if ( post_type_supports($post_type, 'revisions') && 'auto-draft' != $post->post_status ) {
-	$revisions = wp_get_post_revisions( $post_ID );
-
-	// Check if the revisions have been upgraded
-	if ( ! empty( $revisions ) && _wp_get_post_revision_version( end( $revisions ) ) < 1 )
-		_wp_upgrade_revisions_of_post( $post, $revisions );
-
-	// We should aim to show the revisions metabox only when there are revisions.
-	if ( count( $revisions ) > 1 ) {
-		reset( $revisions ); // Reset pointer for key()
-		$publish_callback_args = array( 'revisions_count' => count( $revisions ), 'revision_id' => key( $revisions ) );
-		add_meta_box('revisionsdiv', __('Revisions'), 'post_revisions_meta_box', null, 'normal', 'core');
-	}
-}
-
 if ( 'attachment' == $post_type ) {
 	wp_enqueue_script( 'image-edit' );
 	wp_enqueue_style( 'imgareaselect' );
@@ -164,7 +147,7 @@ if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post_type,
 // all taxonomies
 foreach ( get_object_taxonomies( $post ) as $tax_name ) {
 	$taxonomy = get_taxonomy( $tax_name );
-	if ( ! $taxonomy->show_ui )
+	if ( ! $taxonomy->show_ui || false === $taxonomy->meta_box_cb )
 		continue;
 
 	$label = $taxonomy->labels->name;
@@ -376,7 +359,6 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 
 <div class="wrap">
-<?php screen_icon(); ?>
 <h2><?php
 echo esc_html( $title );
 if ( isset( $post_new_file ) && current_user_can( $post_type_object->cap->create_posts ) )
@@ -574,7 +556,7 @@ if ( 'page' == $post_type ) {
 	/**
 	 * Fires after 'normal' context meta boxes have been output for the 'page' post type.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.0
 	 *
 	 * @param WP_Post $post Post object.
 	 */
@@ -584,7 +566,7 @@ else {
 	/**
 	 * Fires after 'normal' context meta boxes have been output for all post types other than 'page'.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.0
 	 *
 	 * @param WP_Post $post Post object.
 	 */
