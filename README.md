@@ -29,6 +29,12 @@ Promote the database (replace COLOR with the color name from the above output)
     $ heroku pg:promote HEROKU_POSTGRESQL_COLOR
     Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
 
+Add the ability to send email (i.e. Password Resets etc)
+
+    $ heroku addons:add sendgrid:starter
+    Adding sendgrid:starter on your-app... done, v14 (free)
+    Use `heroku addons:docs sendgrid` to view documentation.
+
 Create a new branch for any configuration/setup changes needed
 
     $ git checkout -b production
