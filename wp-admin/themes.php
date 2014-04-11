@@ -142,7 +142,7 @@ endif;
 $ct = wp_get_theme();
 
 if ( $ct->errors() && ( ! is_multisite() || current_user_can( 'manage_network_themes' ) ) ) {
-	echo '<p class="error-message">' . sprintf( __( 'ERROR: %s' ), $ct->errors()->get_error_message() ) . '</p>';
+	echo '<div class="error"><p>' . sprintf( __( 'ERROR: %s' ), $ct->errors()->get_error_message() ) . '</p></div>';
 }
 
 /*
@@ -312,9 +312,9 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 	<div class="theme-backdrop"></div>
 	<div class="theme-wrap">
 		<div class="theme-header">
-			<button alt="<?php _e( 'Show previous theme' ); ?>" class="left dashicons dashicons-no"></button>
-			<button alt="<?php _e( 'Show next theme' ); ?>" class="right dashicons dashicons-no"></button>
-			<button alt="<?php _e( 'Close overlay' ); ?>" class="close dashicons dashicons-no"></button>
+			<button class="left dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show previous theme' ); ?></span></button>
+			<button class="right dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show next theme' ); ?></span></button>
+			<button class="close dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Close overlay' ); ?></span></button>
 		</div>
 		<div class="theme-about">
 			<div class="theme-screenshots">

@@ -1248,8 +1248,7 @@ function get_the_password_form( $post = 0 ) {
 	$label = 'pwbox-' . ( empty($post->ID) ? rand() : $post->ID );
 	$output = '<form action="' . esc_url( site_url( 'wp-login.php?action=postpass', 'login_post' ) ) . '" class="post-password-form" method="post">
 	<p>' . __( 'This content is password protected. To view it please enter your password below:' ) . '</p>
-	<p><label for="' . $label . '">' . __( 'Password:' ) . ' <input name="post_password" id="' . $label . '" type="password" size="20" /></label> <input type="submit" name="Submit" value="' . esc_attr__( 'Submit' ) . '" /></p>
-	</form>
+	<p><label for="' . $label . '">' . __( 'Password:' ) . ' <input name="post_password" id="' . $label . '" type="password" size="20" /></label> <input type="submit" name="Submit" value="' . esc_attr__( 'Submit' ) . '" /></p></form>
 	';
 	return apply_filters( 'the_password_form', $output );
 }
@@ -1443,3 +1442,22 @@ function wp_list_post_revisions( $post_id = 0, $type = 'all' ) {
 	echo $rows;
 	echo "</ul>";
 }
+
+/**
+ * Dashboard CSS fixes for 3.8.2.
+ *
+ * This function cheaply fixes #WP27082 and #WP26910 in lieu of
+ * changing the massive wp-admin.css file in a point release.
+ * This lucky includes file was already receiving an update.
+ *
+ * @since 3.8.2
+ * @access private
+ */
+function wp_382_css_hotfix() {
+	echo '<style type="text/css">
+#activity-widget #the-comment-list .comment-item { position: relative; }
+.tagsdiv .newtag { padding: 6px 10px; height: auto; }
+</style>
+';
+}
+add_action( 'admin_print_styles', 'wp_382_css_hotfix', 30 );
