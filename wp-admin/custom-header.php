@@ -40,10 +40,10 @@ class Custom_Image_Header {
 	 * @since 3.0.0
 	 * @access private
 	 */
-	var $default_headers = array();
+	var $default_headers;
 
 	/**
-	 * Holds custom headers uploaded by the user
+	 * Holds custom headers uploaded by the user.
 	 *
 	 * @var array
 	 * @since 3.2.0
@@ -73,6 +73,11 @@ class Custom_Image_Header {
 		$this->admin_image_div_callback = $admin_image_div_callback;
 
 		add_action( 'admin_menu', array( $this, 'init' ) );
+
+		add_action( 'customize_save_after',         array( $this, 'customize_set_last_used' ) );
+		add_action( 'wp_ajax_custom-header-crop',   array( $this, 'ajax_header_crop'        ) );
+		add_action( 'wp_ajax_custom-header-add',    array( $this, 'ajax_header_add'         ) );
+		add_action( 'wp_ajax_custom-header-remove', array( $this, 'ajax_header_remove'      ) );
 	}
 
 	/**
@@ -93,6 +98,7 @@ class Custom_Image_Header {
 		add_action("admin_head-$page", array($this, 'js'), 50);
 		if ( $this->admin_header_callback )
 			add_action("admin_head-$page", $this->admin_header_callback, 51);
+
 	}
 
 	/**
@@ -131,7 +137,7 @@ class Custom_Image_Header {
 		get_current_screen()->set_help_sidebar(
 			'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
 			'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Header_Screen" target="_blank">Documentation on Custom Header</a>' ) . '</p>' .
-			'<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
+			'<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
 		);
 	}
 
@@ -177,7 +183,7 @@ class Custom_Image_Header {
 	/**
 	 * Set up the enqueue for the CSS files
 	 *
-	 * @since 2.7
+	 * @since 2.7.0
 	 */
 	function css_includes() {
 		$step = $this->step();
@@ -248,6 +254,10 @@ class Custom_Image_Header {
 		if ( !isset($_wp_default_headers) )
 			return;
 
+		if ( is_array( $this->default_headers ) ) {
+			return;
+		}
+
 		$this->default_headers = $_wp_default_headers;
 		$template_directory_uri = get_template_directory_uri();
 		$stylesheet_directory_uri = get_stylesheet_directory_uri();
@@ -255,7 +265,6 @@ class Custom_Image_Header {
 			$this->default_headers[$header]['url'] =  sprintf( $this->default_headers[$header]['url'], $template_directory_uri, $stylesheet_directory_uri );
 			$this->default_headers[$header]['thumbnail_url'] =  sprintf( $this->default_headers[$header]['thumbnail_url'], $template_directory_uri, $stylesheet_directory_uri );
 		}
-
 	}
 
 	/**
@@ -450,7 +459,7 @@ class Custom_Image_Header {
 ?>
 
 <div class="wrap">
-<h2><?php _e('Custom Header'); ?></h2>
+<h2><?php _e( 'Custom Header' ); ?></h2>
 
 <?php if ( ! empty( $this->updated ) ) { ?>
 <div id="message" class="updated">
@@ -464,11 +473,12 @@ class Custom_Image_Header {
 <tbody>
 
 <?php if ( get_custom_header() || display_header_text() ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Preview' ); ?></th>
 <td>
-	<?php if ( $this->admin_image_div_callback ) {
-	  call_user_func( $this->admin_image_div_callback );
+	<?php
+	if ( $this->admin_image_div_callback ) {
+		call_user_func( $this->admin_image_div_callback );
 	} else {
 		$custom_header = get_custom_header();
 		$header_image_style = 'background-image:url(' . esc_url( get_header_image() ) . ');';
@@ -493,7 +503,7 @@ class Custom_Image_Header {
 <?php endif; ?>
 
 <?php if ( current_theme_supports( 'custom-header', 'uploads' ) ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Select Image' ); ?></th>
 <td>
 	<p><?php _e( 'You can select an image to be shown at the top of your site by uploading from your computer or choosing from your media library. After selecting an image you will be able to crop it.' ); ?><br />
@@ -547,7 +557,7 @@ class Custom_Image_Header {
 <table class="form-table">
 <tbody>
 	<?php if ( get_uploaded_header_images() ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Uploaded Images' ); ?></th>
 <td>
 	<p><?php _e( 'You can choose one of your previously uploaded headers, or show a random one.' ) ?></p>
@@ -558,7 +568,7 @@ class Custom_Image_Header {
 </tr>
 	<?php endif;
 	if ( ! empty( $this->default_headers ) ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Default Images' ); ?></th>
 <td>
 <?php if ( current_theme_supports( 'custom-header', 'uploads' ) ) : ?>
@@ -573,7 +583,7 @@ class Custom_Image_Header {
 </tr>
 	<?php endif;
 	if ( get_header_image() ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Remove Image' ); ?></th>
 <td>
 	<p><?php _e( 'This will remove the header image. You will not be able to restore any customizations.' ) ?></p>
@@ -584,7 +594,7 @@ class Custom_Image_Header {
 
 	$default_image = get_theme_support( 'custom-header', 'default-image' );
 	if ( $default_image && get_header_image() != $default_image ) : ?>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Reset Image' ); ?></th>
 <td>
 	<p><?php _e( 'This will restore the original header image. You will not be able to restore any customizations.' ) ?></p>
@@ -601,7 +611,7 @@ class Custom_Image_Header {
 
 <table class="form-table">
 <tbody>
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e( 'Header Text' ); ?></th>
 <td>
 	<p>
@@ -610,7 +620,7 @@ class Custom_Image_Header {
 </td>
 </tr>
 
-<tr valign="top" class="displaying-header-text">
+<tr class="displaying-header-text">
 <th scope="row"><?php _e( 'Text Color' ); ?></th>
 <td>
 	<p>
@@ -818,32 +828,15 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		$attachment_id = absint( $_POST['attachment_id'] );
 		$original = get_attached_file($attachment_id);
 
-
-		$max_width = 0;
-		// For flex, limit size of image displayed to 1500px unless theme says otherwise
-		if ( current_theme_supports( 'custom-header', 'flex-width' ) )
-			$max_width = 1500;
-
-		if ( current_theme_supports( 'custom-header', 'max-width' ) )
-			$max_width = max( $max_width, get_theme_support( 'custom-header', 'max-width' ) );
-		$max_width = max( $max_width, get_theme_support( 'custom-header', 'width' ) );
-
-		if ( ( current_theme_supports( 'custom-header', 'flex-height' ) && ! current_theme_supports( 'custom-header', 'flex-width' ) ) || $_POST['width'] > $max_width )
-			$dst_height = absint( $_POST['height'] * ( $max_width / $_POST['width'] ) );
-		elseif ( current_theme_supports( 'custom-header', 'flex-height' ) && current_theme_supports( 'custom-header', 'flex-width' ) )
-			$dst_height = absint( $_POST['height'] );
-		else
-			$dst_height = get_theme_support( 'custom-header', 'height' );
-
-		if ( ( current_theme_supports( 'custom-header', 'flex-width' ) && ! current_theme_supports( 'custom-header', 'flex-height' ) ) || $_POST['width'] > $max_width )
-			$dst_width = absint( $_POST['width'] * ( $max_width / $_POST['width'] ) );
-		elseif ( current_theme_supports( 'custom-header', 'flex-width' ) && current_theme_supports( 'custom-header', 'flex-height' ) )
-			$dst_width = absint( $_POST['width'] );
-		else
-			$dst_width = get_theme_support( 'custom-header', 'width' );
+		$dimensions = $this->get_header_dimensions( array(
+			'height' => $_POST['height'],
+			'width'  => $_POST['width'],
+		) );
+		$height = $dimensions['dst_height'];
+		$width = $dimensions['dst_width'];
 
 		if ( empty( $_POST['skip-cropping'] ) )
-			$cropped = wp_crop_image( $attachment_id, (int) $_POST['x1'], (int) $_POST['y1'], (int) $_POST['width'], (int) $_POST['height'], $dst_width, $dst_height );
+			$cropped = wp_crop_image( $attachment_id, (int) $_POST['x1'], (int) $_POST['y1'], (int) $_POST['width'], (int) $_POST['height'], $width, $height );
 		elseif ( ! empty( $_POST['create-new-attachment'] ) )
 			$cropped = _copy_image_file( $attachment_id );
 		else
@@ -855,31 +848,15 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		/** This filter is documented in wp-admin/custom-header.php */
 		$cropped = apply_filters( 'wp_create_file_in_uploads', $cropped, $attachment_id ); // For replication
 
-		$parent = get_post($attachment_id);
-		$parent_url = $parent->guid;
-		$url = str_replace( basename( $parent_url ), basename( $cropped ), $parent_url );
+		$object = $this->create_attachment_object( $cropped, $attachment_id );
 
-		$size = @getimagesize( $cropped );
-		$image_type = ( $size ) ? $size['mime'] : 'image/jpeg';
-
-		// Construct the object array
-		$object = array(
-			'ID' => $attachment_id,
-			'post_title' => basename($cropped),
-			'post_content' => $url,
-			'post_mime_type' => $image_type,
-			'guid' => $url,
-			'context' => 'custom-header'
-		);
 		if ( ! empty( $_POST['create-new-attachment'] ) )
 			unset( $object['ID'] );
 
 		// Update the attachment
-		$attachment_id = wp_insert_attachment( $object, $cropped );
-		wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $cropped ) );
+		$attachment_id = $this->insert_attachment( $object, $cropped );
 
-		$width = $dst_width;
-		$height = $dst_height;
+		$url = $object['guid'];
 		$this->set_header_image( compact( 'url', 'attachment_id', 'width', 'height' ) );
 
 		// cleanup
@@ -1039,5 +1016,270 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 
 		set_theme_mod( 'header_image', $default );
 		set_theme_mod( 'header_image_data', (object) $default_data );
+	}
+
+	/**
+	 * Calculate width and height based on what the currently selected theme supports.
+	 *
+	 * @return array dst_height and dst_width of header image.
+	 */
+	final public function get_header_dimensions( $dimensions ) {
+		$max_width = 0;
+		$width = absint( $dimensions['width'] );
+		$height = absint( $dimensions['height'] );
+		$theme_height = get_theme_support( 'custom-header', 'height' );
+		$theme_width = get_theme_support( 'custom-header', 'width' );
+		$has_flex_width = current_theme_supports( 'custom-header', 'flex-width' );
+		$has_flex_height = current_theme_supports( 'custom-header', 'flex-height' );
+		$has_max_width = current_theme_supports( 'custom-header', 'max-width' ) ;
+		$dst = array( 'dst_height' => null, 'dst_height' => null );
+
+		// For flex, limit size of image displayed to 1500px unless theme says otherwise
+		if ( $has_flex_width ) {
+			$max_width = 1500;
+		}
+
+		if ( $has_max_width ) {
+			$max_width = max( $max_width, get_theme_support( 'custom-header', 'max-width' ) );
+		}
+		$max_width = max( $max_width, $theme_width );
+
+		if ( $has_flex_height && ( ! $has_flex_width || $width > $max_width ) ) {
+			$dst['dst_height'] = absint( $height * ( $max_width / $width ) );
+		}
+		elseif ( $has_flex_height && $has_flex_width ) {
+			$dst['dst_height'] = $height;
+		}
+		else {
+			$dst['dst_height'] = $theme_height;
+		}
+
+		if ( $has_flex_width && ( ! $has_flex_height || $width > $max_width ) ) {
+			$dst['dst_width'] = absint( $width * ( $max_width / $width ) );
+		}
+		elseif ( $has_flex_width && $has_flex_height ) {
+			$dst['dst_width'] = $width;
+		}
+		else {
+			$dst['dst_width'] = $theme_width;
+		}
+
+		return $dst;
+	}
+
+	/**
+	 * Create an attachment 'object'.
+	 *
+	 * @param string $cropped Cropped image URL.
+	 * @param int $parent_attachment_id Attachment ID of parent image.
+	 *
+	 * @return array Attachment object.
+	 */
+	final public function create_attachment_object( $cropped, $parent_attachment_id ) {
+		$parent = get_post( $parent_attachment_id );
+		$parent_url = $parent->guid;
+		$url = str_replace( basename( $parent_url ), basename( $cropped ), $parent_url );
+
+		$size = @getimagesize( $cropped );
+		$image_type = ( $size ) ? $size['mime'] : 'image/jpeg';
+
+		$object = array(
+			'ID' => $parent_attachment_id,
+			'post_title' => basename($cropped),
+			'post_content' => $url,
+			'post_mime_type' => $image_type,
+			'guid' => $url,
+			'context' => 'custom-header'
+		);
+
+		return $object;
+	}
+
+	/**
+	 * Insert an attachment & its metadata.
+	 *
+	 * @param array $object Attachment object.
+	 * @param string $cropped Cropped image URL.
+	 *
+	 * @return int Attachment ID.
+	 */
+	final public function insert_attachment( $object, $cropped ) {
+		$attachment_id = wp_insert_attachment( $object, $cropped );
+		$metadata = wp_generate_attachment_metadata( $attachment_id, $cropped );
+		/**
+		 * Allows us to insert custom meta data for an attachment.
+		 *
+		 */
+		$metadata = apply_filters( 'wp_header_image_attachment_metadata', $metadata );
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+		return $attachment_id;
+	}
+
+	/**
+	 * Gets attachment uploaded by Media Manager, crops it, then saves it as a
+	 * new object. Returns JSON-encoded object details.
+	 */
+	function ajax_header_crop() {
+		check_ajax_referer( 'image_editor-' . $_POST['id'], 'nonce' );
+
+		if ( ! current_user_can( 'edit_theme_options' ) ) {
+			wp_send_json_error();
+		}
+
+		if ( ! current_theme_supports( 'custom-header', 'uploads' ) ) {
+			wp_send_json_error();
+		}
+
+		$crop_details = $_POST['cropDetails'];
+
+		$dimensions = $this->get_header_dimensions( array(
+			'height' => $crop_details['height'],
+			'width'  => $crop_details['width'],
+		) );
+
+		$attachment_id = absint( $_POST['id'] );
+
+		$cropped = wp_crop_image(
+			$attachment_id,
+			(int) $crop_details['x1'],
+			(int) $crop_details['y1'],
+			(int) $crop_details['width'],
+			(int) $crop_details['height'],
+			(int) $dimensions['dst_width'],
+			(int) $dimensions['dst_height']
+		);
+
+		if ( ! $cropped || is_wp_error( $cropped ) ) {
+			wp_send_json_error( array( 'message' => __( 'Image could not be processed. Please go back and try again.' ) ) );
+		}
+
+		$cropped = apply_filters( 'wp_create_file_in_uploads', $cropped, $attachment_id ); // For replication
+
+		$object = $this->create_attachment_object( $cropped, $attachment_id );
+
+		unset( $object['ID'] );
+
+		$new_attachment_id = $this->insert_attachment( $object, $cropped );
+
+		$object['attachment_id'] = $new_attachment_id;
+		$object['width']         = $dimensions['dst_width'];
+		$object['height']        = $dimensions['dst_height'];
+
+		wp_send_json_success( $object );
+	}
+
+	/**
+	 * Given an attachment ID for a header image, updates its "last used"
+	 * timestamp to now.
+	 *
+	 * Triggered when the user tries adds a new header image from the
+	 * Media Manager, even if s/he doesn't save that change.
+	 */
+	function ajax_header_add() {
+		check_ajax_referer( 'header-add', 'nonce' );
+
+		if ( ! current_user_can( 'edit_theme_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$attachment_id = absint( $_POST['attachment_id'] );
+		if ( $attachment_id < 1 ) {
+			wp_send_json_error();
+		}
+
+		$key = '_wp_attachment_custom_header_last_used_' . get_stylesheet();
+		update_post_meta( $attachment_id, $key, time() );
+		update_post_meta( $attachment_id, '_wp_attachment_is_custom_header', get_stylesheet() );
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Given an attachment ID for a header image, unsets it as a user-uploaded
+	 * header image for the current theme.
+	 *
+	 * Triggered when the user clicks the overlay "X" button next to each image
+	 * choice in the Customizer's Header tool.
+	 */
+	function ajax_header_remove() {
+		check_ajax_referer( 'header-remove', 'nonce' );
+
+		if ( ! current_user_can( 'edit_theme_options' ) ) {
+			wp_send_json_error();
+		}
+
+		$attachment_id = absint( $_POST['attachment_id'] );
+		if ( $attachment_id < 1 ) {
+			wp_send_json_error();
+		}
+
+		$key = '_wp_attachment_custom_header_last_used_' . get_stylesheet();
+		delete_post_meta( $attachment_id, $key );
+		delete_post_meta( $attachment_id, '_wp_attachment_is_custom_header', get_stylesheet() );
+
+		wp_send_json_success();
+	}
+
+	function customize_set_last_used( $wp_customize ) {
+		$data = $wp_customize->get_setting( 'header_image_data' )->post_value();
+
+		if ( ! isset( $data['attachment_id'] ) ) {
+			return;
+		}
+
+		$attachment_id = $data['attachment_id'];
+		$key = '_wp_attachment_custom_header_last_used_' . get_stylesheet();
+		update_post_meta( $attachment_id, $key, time() );
+	}
+
+	public function get_default_header_images() {
+		$this->process_default_headers();
+
+		// Get the default image if there is one.
+		$default = get_theme_support( 'custom-header', 'default-image' );
+
+		if ( ! $default ) { // If not,
+			return $this->default_headers; // easy peasy.
+		}
+
+		$default = sprintf( $default, get_template_directory_uri(), get_stylesheet_directory_uri() );
+		$already_has_default = false;
+
+		foreach ( $this->default_headers as $k => $h ) {
+			if ( $h['url'] === $default ) {
+				$already_has_default = true;
+				break;
+			}
+		}
+
+		if ( $already_has_default ) {
+			return $this->default_headers;
+		}
+
+		// If the one true image isn't included in the default set, prepend it.
+		$header_images = array();
+		$header_images['default'] = array(
+			'url'           => $default,
+			'thumbnail_url' => $default,
+			'description'   => 'Default'
+		);
+
+		// The rest of the set comes after.
+		$header_images = array_merge( $header_images, $this->default_headers );
+		return $header_images;
+	}
+
+	public function get_uploaded_header_images() {
+		$header_images = get_uploaded_header_images();
+		$timestamp_key = '_wp_attachment_custom_header_last_used_' . get_stylesheet();
+		$alt_text_key = '_wp_attachment_image_alt';
+
+		foreach ( $header_images as &$header_image ) {
+			$header_meta = get_post_meta( $header_image['attachment_id'] );
+			$header_image['timestamp'] = isset( $header_meta[ $timestamp_key ] ) ? $header_meta[ $timestamp_key ] : '';
+			$header_image['alt_text'] = isset( $header_meta[ $alt_text_key ] ) ? $header_meta[ $alt_text_key ] : '';
+		}
+
+		return $header_images;
 	}
 }

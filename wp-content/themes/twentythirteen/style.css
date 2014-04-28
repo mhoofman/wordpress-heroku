@@ -709,6 +709,7 @@ video {
 	margin-right: auto;
 }
 
+figure.wp-caption.alignleft,
 img.alignleft {
 	margin: 5px 20px 5px 0;
 }
@@ -717,6 +718,7 @@ img.alignleft {
 	margin: 5px 10px 5px 0;
 }
 
+figure.wp-caption.alignright,
 img.alignright {
 	margin: 5px 0 5px 20px;
 }
@@ -740,6 +742,15 @@ img.alignnone {
 	font-size: 18px;
 	font-style: italic;
 	font-weight: 300;
+	margin: 0 0 24px;
+}
+
+div.wp-caption.alignright img[class*="wp-image-"] {
+	float: right;
+}
+
+div.wp-caption.alignright .wp-caption-text {
+	padding-left: 10px;
 }
 
 img.wp-smiley,
@@ -753,7 +764,7 @@ img.wp-smiley,
 }
 
 .wp-caption.alignleft + ul,
-.wp-caption.alignleft + ol  {
+.wp-caption.alignleft + ol {
 	list-style-position: inside;
 }
 
@@ -867,7 +878,9 @@ div.nav-menu > ul {
 }
 
 .nav-menu li:hover > a,
-.nav-menu li a:hover {
+.nav-menu li a:hover,
+.nav-menu li:focus > a,
+.nav-menu li a:focus {
 	background-color: #220e10;
 	color: #fff;
 }
@@ -877,11 +890,14 @@ div.nav-menu > ul {
 	background-color: #220e10;
 	border: 2px solid #f7f5e7;
 	border-top: 0;
-	display: none;
 	padding: 0;
 	position: absolute;
 	left: -2px;
 	z-index: 99999;
+	height: 1px;
+	width: 1px;
+	overflow: hidden;
+	clip: rect(1px, 1px, 1px, 1px);
 }
 
 .nav-menu .sub-menu ul,
@@ -899,13 +915,20 @@ ul.nav-menu ul a,
 }
 
 ul.nav-menu ul a:hover,
-.nav-menu ul ul a:hover {
+.nav-menu ul ul a:hover,
+ul.nav-menu ul a:focus,
+.nav-menu ul ul a:focus {
 	background-color: #db572f;
 }
 
 ul.nav-menu li:hover > ul,
-.nav-menu ul li:hover > ul {
-	display: block;
+.nav-menu ul li:hover > ul,
+ul.nav-menu .focus > ul,
+.nav-menu .focus > ul {
+	clip: inherit;
+	overflow: inherit;
+	height: inherit;
+	width: inherit;
 }
 
 .nav-menu .current_page_item > a,
@@ -1299,6 +1322,13 @@ footer.entry-meta {
 .gallery-columns-8 .gallery-item:nth-of-type(8n),
 .gallery-columns-9 .gallery-item:nth-of-type(9n) {
 	margin-right: 0;
+}
+
+.gallery-columns-1.gallery-size-medium figure.gallery-item:nth-of-type(1n+1),
+.gallery-columns-1.gallery-size-thumbnail figure.gallery-item:nth-of-type(1n+1),
+.gallery-columns-2.gallery-size-thumbnail figure.gallery-item:nth-of-type(2n+1),
+.gallery-columns-3.gallery-size-thumbnail figure.gallery-item:nth-of-type(3n+1) {
+	clear: left;
 }
 
 .gallery-caption {
@@ -1825,6 +1855,18 @@ footer.entry-meta {
 	display: none;
 }
 
+.attachment .entry-content .mejs-audio {
+	max-width: 400px;
+	margin: 0 auto;
+}
+
+.attachment .entry-content .wp-video {
+	margin: 0 auto;
+}
+
+.attachment .entry-content .mejs-container {
+	margin-bottom: 24px;
+}
 
 /**
  * 5.7 Post/Paging Navigation

@@ -86,6 +86,15 @@ function wp_install( $blog_title, $user_name, $user_email, $public, $deprecated 
 
 	wp_cache_flush();
 
+	/**
+	 * Fires after a site is fully installed.
+	 *
+	 * @since 3.9.0
+	 *
+	 * @param WP_User $user The site owner.
+	 */
+	do_action( 'wp_install', $user );
+
 	return array('url' => $guessurl, 'user_id' => $user_id, 'password' => $user_password, 'password_message' => $message);
 }
 endif;
@@ -161,7 +170,7 @@ function wp_install_defaults( $user_id ) {
 
 	// Default comment
 	$first_comment_author = __('Mr WordPress');
-	$first_comment_url = 'http://wordpress.org/';
+	$first_comment_url = 'https://wordpress.org/';
 	$first_comment = __('Hi, this is a comment.
 To delete a comment, just log in and view the post&#039;s comments. There you will have the option to edit or delete them.');
 	if ( is_multisite() ) {
@@ -273,7 +282,7 @@ Password: %3\$s
 We hope you enjoy your new site. Thanks!
 
 --The WordPress Team
-http://wordpress.org/
+https://wordpress.org/
 "), $blog_url, $name, $password);
 
 	@wp_mail($email, __('New WordPress Site'), $message);
@@ -317,6 +326,16 @@ function wp_upgrade() {
 		else
 			$wpdb->query( "INSERT INTO {$wpdb->blog_versions} ( `blog_id` , `db_version` , `last_updated` ) VALUES ( '{$wpdb->blogid}', '{$wp_db_version}', NOW());" );
 	}
+
+	/**
+	 * Fires after a site is fully upgraded.
+	 *
+	 * @since 3.9.0
+	 *
+	 * @param int $wp_db_version         The new $wp_db_version.
+	 * @param int $wp_current_db_version The old (current) $wp_db_version.
+	 */
+	do_action( 'wp_upgrade', $wp_db_version, $wp_current_db_version );
 }
 endif;
 
@@ -410,9 +429,6 @@ function upgrade_all() {
 
 	if ( $wp_current_db_version < 26691 )
 		upgrade_380();
-
-	if ( $wp_current_db_version < 26692 )
-		upgrade_383();
 
 	maybe_disable_link_manager();
 
@@ -1254,36 +1270,6 @@ function upgrade_380() {
 		deactivate_plugins( array( 'mp6/mp6.php' ), true );
 	}
 }
-
-/**
- * Execute changes made in WordPress 3.8.3.
- *
- * @since 3.8.3
- */
-function upgrade_383() {
-	global $wp_current_db_version, $wpdb;
-	if ( $wp_current_db_version < 26692 ) {
-		// Find all lost Quick Draft auto-drafts and promote them to proper drafts.
-		$posts = $wpdb->get_results( "SELECT ID, post_title, post_content FROM $wpdb->posts WHERE post_type = 'post'
-			AND post_status = 'auto-draft' AND post_date >= '2014-04-08 00:00:00'" );
-
-		foreach ( $posts as $post ) {
-			// A regular auto-draft should never have content as that would mean it should have been promoted.
-			// If an auto-draft has content, it's from Quick Draft and it should be recovered.
-			if ( '' === $post->post_content ) {
-				// If it does not have content, we must evaluate whether the title should be recovered.
-				if ( 'Auto Draft' === $post->post_title || __( 'Auto Draft' ) === $post->post_title ) {
-					// This a plain old auto draft. Ignore it.
-					continue;
-				}
-			}
-
-			$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $post->ID ) );
-			clean_post_cache( $post->ID );
-		}
-	}
-}
-
 /**
  * Execute network level changes
  *
@@ -1570,6 +1556,14 @@ function dbDelta( $queries = '', $execute = true ) {
 		$queries = explode( ';', $queries );
 		$queries = array_filter( $queries );
 	}
+	
+	/** 
+	 * Filter the dbDelta SQL queries.
+	 *
+	 * @since 3.3.0
+	 *
+	 * @param array $queries An array of dbDelta SQL queries.
+	 */
 	$queries = apply_filters( 'dbdelta_queries', $queries );
 
 	$cqueries = array(); // Creation Queries
@@ -1591,7 +1585,27 @@ function dbDelta( $queries = '', $execute = true ) {
 			// Unrecognized query type
 		}
 	}
+	
+	/** 
+	 * Filter the dbDelta SQL queries for creating tables and/or databases.
+	 *
+	 * Queries filterable via this hook contain "CREATE TABLE" or "CREATE DATABASE".
+	 * 
+	 * @since 3.3.0
+	 *
+	 * @param array $cqueries An array of dbDelta create SQL queries.
+	 */
 	$cqueries = apply_filters( 'dbdelta_create_queries', $cqueries );
+
+	/** 
+	 * Filter the dbDelta SQL queries for inserting or updating.
+	 *
+	 * Queries filterable via this hook contain "INSERT INTO" or "UPDATE".
+	 * 
+	 * @since 3.3.0
+	 *
+	 * @param array $iqueries An array of dbDelta insert or update SQL queries.
+	 */
 	$iqueries = apply_filters( 'dbdelta_insert_queries', $iqueries );
 
 	$global_tables = $wpdb->tables( 'global' );

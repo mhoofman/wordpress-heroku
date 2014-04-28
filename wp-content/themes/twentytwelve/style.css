@@ -205,6 +205,7 @@ article.format-status footer.entry-meta {
 /* Form fields, general styles first */
 button,
 input,
+select,
 textarea {
 	border: 1px solid #ccc;
 	border-radius: 3px;
@@ -589,7 +590,8 @@ a:hover {
 .main-navigation a {
 	color: #5e5e5e;
 }
-.main-navigation a:hover {
+.main-navigation a:hover,
+.main-navigation a:focus {
 	color: #21759b;
 }
 .main-navigation ul.nav-menu,
@@ -1003,6 +1005,17 @@ footer.entry-meta {
 	line-height: 2;
 	margin-top: 22px;
 	margin-top: 1.571428571rem;
+}
+
+/* =Single audio/video attachment view
+-------------------------------------------------------------- */
+
+.attachment .entry-content .mejs-audio {
+	max-width: 400px;
+}
+
+.attachment .entry-content .mejs-container {
+	margin-bottom: 24px;
 }
 
 
@@ -1508,7 +1521,8 @@ img#wpstats {
 		text-transform: uppercase;
 		white-space: nowrap;
 	}
-	.main-navigation li a:hover {
+	.main-navigation li a:hover,
+	.main-navigation li a:focus {
 		color: #000;
 	}
 	.main-navigation li {
@@ -1517,20 +1531,28 @@ img#wpstats {
 		position: relative;
 	}
 	.main-navigation li ul {
-		display: none;
 		margin: 0;
 		padding: 0;
 		position: absolute;
 		top: 100%;
 		z-index: 1;
+		height: 1px;
+		width: 1px;
+		overflow: hidden;
+		clip: rect(1px, 1px, 1px, 1px);
 	}
 	.main-navigation li ul ul {
 		top: 0;
 		left: 100%;
 	}
-	.main-navigation ul li:hover > ul {
+	.main-navigation ul li:hover > ul,
+	.main-navigation ul li:focus > ul,
+	.main-navigation .focus > ul {
 		border-left: 0;
-		display: block;
+		clip: inherit;
+		overflow: inherit;
+		height: inherit;
+		width: inherit;
 	}
 	.main-navigation li ul li a {
 		background: #efefef;
@@ -1545,7 +1567,8 @@ img#wpstats {
 		width: 12.85714286rem;
 		white-space: normal;
 	}
-	.main-navigation li ul li a:hover {
+	.main-navigation li ul li a:hover,
+	.main-navigation li ul li a:focus {
 		background: #e3e3e3;
 		color: #444;
 	}
@@ -1708,20 +1731,9 @@ img#wpstats {
 		margin: 0;
 		width: auto;
 	}
-	.singular .entry-header .entry-meta {
-		position: static;
-	}
-	.singular .site-content,
-	.singular .entry-header,
-	.singular .entry-content,
-	.singular footer.entry-meta,
-	.singular .comments-title {
-		margin: 0;
-		width: 100%;
-	}
+
 	.entry-header .entry-title,
-	.entry-title,
-	.singular .entry-title {
+	.entry-title {
 		font-size: 21pt;
 	}
 	footer.entry-meta,

@@ -177,13 +177,13 @@ function validate_file_to_edit( $file, $allowed_files = '' ) {
 
 	switch ( $code ) {
 		case 1 :
-			wp_die( __('Sorry, can&#8217;t edit files with &#8220;..&#8221; in the name. If you are trying to edit a file in your WordPress home directory, you can just type the name of the file in.' ));
+			wp_die( __( 'Sorry, that file cannot be edited.' ) );
 
 		//case 2 :
 		//	wp_die( __('Sorry, can&#8217;t call files with their real path.' ));
 
 		case 3 :
-			wp_die( __('Sorry, that file cannot be edited.' ));
+			wp_die( __( 'Sorry, that file cannot be edited.' ) );
 	}
 }
 
@@ -191,10 +191,9 @@ function validate_file_to_edit( $file, $allowed_files = '' ) {
  * Handle PHP uploads in WordPress, sanitizing file names, checking extensions for mime type,
  * and moving the file to the appropriate directory within the uploads directory.
  *
- * @since 2.0
+ * @since 2.0.0
  *
  * @uses wp_handle_upload_error
- * @uses apply_filters
  * @uses is_multisite
  * @uses wp_check_filetype_and_ext
  * @uses current_user_can
@@ -214,6 +213,13 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 		}
 	}
 
+	/**
+	 * Filter data for the current file to upload.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param array $file An array of data for a single file.
+	 */
 	$file = apply_filters( 'wp_handle_upload_prefilter', $file );
 
 	// You may define your own function and pass the name in $overrides['upload_error_handler']
@@ -258,8 +264,9 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 		return call_user_func($upload_error_handler, $file, __( 'Invalid form submission.' ));
 
 	// A successful upload will pass this test. It makes no sense to override this one.
-	if ( $file['error'] > 0 )
-		return call_user_func($upload_error_handler, $file, $upload_error_strings[$file['error']] );
+	if ( isset( $file['error'] ) && $file['error'] > 0 ) {
+		return call_user_func( $upload_error_handler, $file, $upload_error_strings[ $file['error'] ] );
+	}
 
 	// A non-empty file will pass this test.
 	if ( $test_size && !($file['size'] > 0 ) ) {
@@ -324,6 +331,20 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 	if ( is_multisite() )
 		delete_transient( 'dirsize_cache' );
 
+	/**
+	 * Filter the data array for the uploaded file.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param array  $upload {
+	 *     Array of upload data.
+	 *
+	 *     @type string $file Filename of the newly-uploaded file.
+	 *     @type string $url  URL of the uploaded file.
+	 *     @type string $type File type.
+	 * }
+	 * @param string $context The type of upload action. Accepts 'upload' or 'sideload'.
+	 */
 	return apply_filters( 'wp_handle_upload', array( 'file' => $new_file, 'url' => $url, 'type' => $type ), 'upload' );
 }
 
@@ -335,7 +356,6 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
  * @since 2.6.0
  *
  * @uses wp_handle_upload_error
- * @uses apply_filters
  * @uses wp_check_filetype_and_ext
  * @uses current_user_can
  * @uses wp_upload_dir
@@ -449,6 +469,7 @@ function wp_handle_sideload( &$file, $overrides = false, $time = null ) {
 	// Compute the URL
 	$url = $uploads['url'] . "/$filename";
 
+	/** This filter is documented in wp-admin/includes/file.php */
 	$return = apply_filters( 'wp_handle_upload', array( 'file' => $new_file, 'url' => $url, 'type' => $type ), 'sideload' );
 
 	return $return;
@@ -498,7 +519,7 @@ function download_url( $url, $timeout = 300 ) {
 }
 
 /**
- * Calculates and compares the MD5 of a file to it's expected value.
+ * Calculates and compares the MD5 of a file to its expected value.
  *
  * @since 3.7.0
  *
@@ -542,6 +563,7 @@ function unzip_file($file, $to) {
 		return new WP_Error('fs_unavailable', __('Could not access filesystem.'));
 
 	// Unzip can use a lot of memory, but not this much hopefully
+	/** This filter is documented in wp-admin/admin.php */
 	@ini_set( 'memory_limit', apply_filters( 'admin_memory_limit', WP_MAX_MEMORY_LIMIT ) );
 
 	$needed_dirs = array();
@@ -565,7 +587,14 @@ function unzip_file($file, $to) {
 		}
 	}
 
-	if ( class_exists('ZipArchive') && apply_filters('unzip_file_use_ziparchive', true ) ) {
+	/**
+	 * Filter whether to use ZipArchive to unzip archives.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param bool $ziparchive Whether to use ZipArchive. Default true.
+	 */
+	if ( class_exists( 'ZipArchive' ) && apply_filters( 'unzip_file_use_ziparchive', true ) ) {
 		$result = _unzip_file_ziparchive($file, $to, $needed_dirs);
 		if ( true === $result ) {
 			return $result;
@@ -842,7 +871,19 @@ function WP_Filesystem( $args = false, $context = false ) {
 		return false;
 
 	if ( ! class_exists("WP_Filesystem_$method") ) {
-		$abstraction_file = apply_filters('filesystem_method_file', ABSPATH . 'wp-admin/includes/class-wp-filesystem-' . $method . '.php', $method);
+
+		/**
+		 * Filter the path for a specific filesystem method class file.
+		 *
+		 * @since 2.6.0
+		 *
+		 * @see get_filesystem_method()
+		 *
+		 * @param string $path   Path to the specific filesystem method class file.
+		 * @param string $method The filesystem method to use.
+		 */
+		$abstraction_file = apply_filters( 'filesystem_method_file', ABSPATH . 'wp-admin/includes/class-wp-filesystem-' . $method . '.php', $method );
+
 		if ( ! file_exists($abstraction_file) )
 			return;
 
@@ -880,7 +921,7 @@ function WP_Filesystem( $args = false, $context = false ) {
  * Note that the return value of this function can be overridden in 2 ways
  *  - By defining FS_METHOD in your <code>wp-config.php</code> file
  *  - By using the filesystem_method filter
- * Valid values for these are: 'direct', 'ssh', 'ftpext' or 'ftpsockets'
+ * Valid values for these are: 'direct', 'ssh2', 'ftpext' or 'ftpsockets'
  * Plugins may also define a custom transport handler, See the WP_Filesystem function for more information.
  *
  * @since 2.5.0
@@ -890,7 +931,7 @@ function WP_Filesystem( $args = false, $context = false ) {
  * @return string The transport to use, see description for valid return values.
  */
 function get_filesystem_method($args = array(), $context = false) {
-	$method = defined('FS_METHOD') ? FS_METHOD : false; //Please ensure that this is either 'direct', 'ssh', 'ftpext' or 'ftpsockets'
+	$method = defined('FS_METHOD') ? FS_METHOD : false; // Please ensure that this is either 'direct', 'ssh2', 'ftpext' or 'ftpsockets'
 
 	if ( ! $method && function_exists('getmyuid') && function_exists('fileowner') ){
 		if ( !$context )
@@ -914,7 +955,16 @@ function get_filesystem_method($args = array(), $context = false) {
 	if ( ! $method && isset($args['connection_type']) && 'ssh' == $args['connection_type'] && extension_loaded('ssh2') && function_exists('stream_get_contents') ) $method = 'ssh2';
 	if ( ! $method && extension_loaded('ftp') ) $method = 'ftpext';
 	if ( ! $method && ( extension_loaded('sockets') || function_exists('fsockopen') ) ) $method = 'ftpsockets'; //Sockets: Socket extension; PHP Mode: FSockopen / fwrite / fread
-	return apply_filters('filesystem_method', $method, $args);
+
+	/**
+	 * Filter the filesystem method to use.
+	 *
+	 * @since 2.6.0
+	 *
+	 * @param string $method Filesystem method to return.
+	 * @param array  $args   An array of connection details for the method.
+	 */
+	return apply_filters( 'filesystem_method', $method, $args );
 }
 
 /**
@@ -935,6 +985,24 @@ function get_filesystem_method($args = array(), $context = false) {
  * @return boolean False on failure. True on success.
  */
 function request_filesystem_credentials($form_post, $type = '', $error = false, $context = false, $extra_fields = null) {
+
+	/**
+	 * Filter the filesystem credentials form output.
+	 *
+	 * Returning anything other than an empty string will effectively short-circuit
+	 * output of the filesystem credentials form, returning that value instead.
+	 *
+	 * @since 2.5.0
+	 *
+	 * @param mixed  $output       Form output to return instead. Default empty.
+	 * @param string $form_post    URL to POST the form to.
+	 * @param string $type         Chosen type of filesystem.
+	 * @param bool   $error        Whether the current request has failed to connect.
+	 *                             Default false.
+	 * @param string $context      Full path to the directory that is tested for
+	 *                             being writable.
+	 * @param array  $extra_fields Extra POST fields.
+	 */
 	$req_cred = apply_filters( 'request_filesystem_credentials', '', $form_post, $type, $error, $context, $extra_fields );
 	if ( '' !== $req_cred )
 		return $req_cred;
@@ -970,7 +1038,7 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 		unset($credentials['port']);
 	}
 
-	if ( (defined('FTP_SSH') && FTP_SSH) || (defined('FS_METHOD') && 'ssh' == FS_METHOD) )
+	if ( ( defined('FTP_SSH') && FTP_SSH ) || ( defined('FS_METHOD') && 'ssh2' == FS_METHOD ) )
 		$credentials['connection_type'] = 'ssh';
 	else if ( (defined('FTP_SSL') && FTP_SSL) && 'ftpext' == $type ) //Only the FTP Extension understands SSL
 		$credentials['connection_type'] = 'ftps';
@@ -1013,7 +1081,19 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 	if ( extension_loaded('ssh2') && function_exists('stream_get_contents') )
 		$types[ 'ssh' ] = __('SSH2');
 
-	$types = apply_filters('fs_ftp_connection_types', $types, $credentials, $type, $error, $context);
+	/**
+	 * Filter the connection types to output to the filesystem credentials form.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param array  $types       Types of connections.
+	 * @param array  $credentials Credentials to connect with.
+	 * @param string $type        Chosen filesystem method.
+	 * @param object $error       Error object.
+	 * @param string $context     Full path to the directory that is tested
+	 *                            for being writable.
+	 */
+	$types = apply_filters( 'fs_ftp_connection_types', $types, $credentials, $type, $error, $context );
 
 ?>
 <script type="text/javascript">
@@ -1052,24 +1132,24 @@ jQuery(function($){
 	_e('If you do not remember your credentials, you should contact your web host.');
 ?></p>
 <table class="form-table">
-<tr valign="top">
+<tr>
 <th scope="row"><label for="hostname"><?php _e('Hostname') ?></label></th>
 <td><input name="hostname" type="text" id="hostname" value="<?php echo esc_attr($hostname); if ( !empty($port) ) echo ":$port"; ?>"<?php disabled( defined('FTP_HOST') ); ?> size="40" /></td>
 </tr>
 
-<tr valign="top">
+<tr>
 <th scope="row"><label for="username"><?php echo $label_user; ?></label></th>
 <td><input name="username" type="text" id="username" value="<?php echo esc_attr($username) ?>"<?php disabled( defined('FTP_USER') ); ?> size="40" /></td>
 </tr>
 
-<tr valign="top">
+<tr>
 <th scope="row"><label for="password"><?php echo $label_pass; ?></label></th>
 <td><div><input name="password" type="password" id="password" value="<?php if ( defined('FTP_PASS') ) echo '*****'; ?>"<?php disabled( defined('FTP_PASS') ); ?> size="40" /></div>
 <div><em><?php if ( ! defined('FTP_PASS') ) _e( 'This password will not be stored on the server.' ); ?></em></div></td>
 </tr>
 
 <?php if ( isset($types['ssh']) ) : ?>
-<tr id="ssh_keys" valign="top" style="<?php if ( 'ssh' != $connection_type ) echo 'display:none' ?>">
+<tr id="ssh_keys" style="<?php if ( 'ssh' != $connection_type ) echo 'display:none' ?>">
 <th scope="row"><?php _e('Authentication Keys') ?>
 <div class="key-labels textright">
 <label for="public_key"><?php _e('Public Key:') ?></label ><br />
@@ -1080,7 +1160,7 @@ jQuery(function($){
 </tr>
 <?php endif; ?>
 
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e('Connection Type') ?></th>
 <td>
 <fieldset><legend class="screen-reader-text"><span><?php _e('Connection Type') ?></span></legend>

@@ -30,7 +30,7 @@ get_current_screen()->add_help_tab( array(
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Network_Admin_Updates_Screen" target="_blank">Documentation on Upgrade Network</a>') . '</p>' .
-	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
@@ -67,7 +67,21 @@ switch ( $action ) {
 			$response = wp_remote_get( $upgrade_url, array( 'timeout' => 120, 'httpversion' => '1.1' ) );
 			if ( is_wp_error( $response ) )
 				wp_die( sprintf( __( 'Warning! Problem updating %1$s. Your server may not be able to connect to sites running on it. Error message: <em>%2$s</em>' ), $siteurl, $response->get_error_message() ) );
+			/**
+			 * Fires after the Multisite DB upgrade for each site is complete.
+			 *
+			 * @since MU
+			 *
+			 * @param array|WP_Error $response The upgrade response array or WP_Error on failure.
+			 */
 			do_action( 'after_mu_upgrade', $response );
+			/**
+			 * Fires after each site has been upgraded.
+			 *
+			 * @since MU
+			 *
+			 * @param int $blog_id The id of the blog.
+			 */
 			do_action( 'wpmu_upgrade_site', $details[ 'blog_id' ] );
 		}
 		echo "</ul>";
@@ -92,6 +106,11 @@ switch ( $action ) {
 		<p><?php _e( 'The database upgrade process may take a little while, so please be patient.' ); ?></p>
 		<p><a class="button" href="upgrade.php?action=upgrade"><?php _e( 'Upgrade Network' ); ?></a></p>
 		<?php
+		/**
+		 * Fires before the footer on the network upgrade screen.
+		 *
+		 * @since MU
+		 */
 		do_action( 'wpmu_upgrade_page' );
 	break;
 }

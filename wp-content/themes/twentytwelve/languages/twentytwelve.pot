@@ -52,7 +52,7 @@ msgstr ""
 msgid "Author Archives: %s"
 msgstr ""
 
-#: author.php:63 content.php:59
+#: author.php:63 content.php:62
 msgid "About %s"
 msgstr ""
 
@@ -83,7 +83,7 @@ msgid "Comments are closed."
 msgstr ""
 
 #: content-aside.php:15 content-image.php:13 content-link.php:14
-#: content-quote.php:13 content-status.php:31 content.php:41
+#: content-quote.php:13 content-status.php:31 content.php:44
 msgid "Continue reading <span class=\"meta-nav\">&rarr;</span>"
 msgstr ""
 
@@ -93,23 +93,23 @@ msgid "Permalink to %s"
 msgstr ""
 
 #: content-aside.php:23 content-image.php:23 content-link.php:21
-#: content-quote.php:20 content-status.php:37 content.php:30
+#: content-quote.php:20 content-status.php:37 content.php:33
 msgid "Leave a reply"
 msgstr ""
 
 #: content-aside.php:23 content-image.php:23 content-link.php:21
-#: content-quote.php:20 content-status.php:37 content.php:30
+#: content-quote.php:20 content-status.php:37 content.php:33
 msgid "1 Reply"
 msgstr ""
 
 #: content-aside.php:23 content-image.php:23 content-link.php:21
-#: content-quote.php:20 content-status.php:37 content.php:30
+#: content-quote.php:20 content-status.php:37 content.php:33
 msgid "% Replies"
 msgstr ""
 
 #: content-aside.php:26 content-image.php:26 content-link.php:24
 #: content-page.php:24 content-quote.php:23 content-status.php:40
-#: content.php:48 functions.php:349 image.php:37
+#: content.php:51 functions.php:349 image.php:37
 msgid "Edit"
 msgstr ""
 
@@ -127,7 +127,7 @@ msgid ""
 "related post."
 msgstr ""
 
-#: content-page.php:21 content.php:42 image.php:102
+#: content-page.php:21 content.php:45 image.php:102
 msgid "Pages:"
 msgstr ""
 
@@ -135,7 +135,7 @@ msgstr ""
 msgid "Featured post"
 msgstr ""
 
-#: content.php:63
+#: content.php:66
 msgid "View all posts by %s <span class=\"meta-nav\">&rarr;</span>"
 msgstr ""
 
