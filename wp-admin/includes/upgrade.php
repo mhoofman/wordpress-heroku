@@ -411,6 +411,9 @@ function upgrade_all() {
 	if ( $wp_current_db_version < 26691 )
 		upgrade_380();
 
+	if ( $wp_current_db_version < 26692 )
+		upgrade_383();
+
 	maybe_disable_link_manager();
 
 	maybe_disable_automattic_widgets();
@@ -1251,6 +1254,36 @@ function upgrade_380() {
 		deactivate_plugins( array( 'mp6/mp6.php' ), true );
 	}
 }
+
+/**
+ * Execute changes made in WordPress 3.8.3.
+ *
+ * @since 3.8.3
+ */
+function upgrade_383() {
+	global $wp_current_db_version, $wpdb;
+	if ( $wp_current_db_version < 26692 ) {
+		// Find all lost Quick Draft auto-drafts and promote them to proper drafts.
+		$posts = $wpdb->get_results( "SELECT ID, post_title, post_content FROM $wpdb->posts WHERE post_type = 'post'
+			AND post_status = 'auto-draft' AND post_date >= '2014-04-08 00:00:00'" );
+
+		foreach ( $posts as $post ) {
+			// A regular auto-draft should never have content as that would mean it should have been promoted.
+			// If an auto-draft has content, it's from Quick Draft and it should be recovered.
+			if ( '' === $post->post_content ) {
+				// If it does not have content, we must evaluate whether the title should be recovered.
+				if ( 'Auto Draft' === $post->post_title || __( 'Auto Draft' ) === $post->post_title ) {
+					// This a plain old auto draft. Ignore it.
+					continue;
+				}
+			}
+
+			$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $post->ID ) );
+			clean_post_cache( $post->ID );
+		}
+	}
+}
+
 /**
  * Execute network level changes
  *
@@ -1265,12 +1298,11 @@ function upgrade_network() {
 		// The multi-table delete syntax is used to delete the transient record from table a,
 		// and the corresponding transient_timeout record from table b.
 		$time = time();
-		$wpdb->query("WITH bx AS (DELETE FROM $wpdb->sitemeta a USING $wpdb->sitemeta b WHERE
+		$wpdb->query("DELETE a, b FROM $wpdb->sitemeta a, $wpdb->sitemeta b WHERE
 			a.meta_key LIKE '\_site\_transient\_%' AND
 			a.meta_key NOT LIKE '\_site\_transient\_timeout\_%' AND
 			b.meta_key = CONCAT( '_site_transient_timeout_', SUBSTRING( a.meta_key, 17 ) )
-			AND b.meta_value < text($time) RETURNING b.option_id)
-                        DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
+			AND b.meta_value < $time");
 	}
 
 	// 2.8
