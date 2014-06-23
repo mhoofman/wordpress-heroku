@@ -93,6 +93,19 @@ WordPress needs to update the database. After push, navigate to:
 WordPress will prompt for updating the database. After that you'll be good
 to go.
 
+## Deployment optimisation
+
+If you have files that you want tracked in your repo, but do not need deploying (for example, *.md, *.pdf, *.zip). Then add path or linux file match to the `.slugignore` file & these will not be deployed.
+
+Examples:
+```
+path/to/ignore/
+bin/
+*.md
+*.pdf
+*.zip
+```
+
 ## Wiki
 
 * [Custom Domains](https://github.com/mhoofman/wordpress-heroku/wiki/Custom-Domains)
