@@ -48,7 +48,7 @@ Store unique keys and salts in Heroku environment variables. Wordpress can provi
       AUTH_SALT='put your unique phrase here' \
       SECURE_AUTH_SALT='put your unique phrase here' \
       LOGGED_IN_SALT='put your unique phrase here' \
-      NONCE_SALT='put your unique phrase here' \
+      NONCE_SALT='put your unique phrase here'
 
 Deploy to Heroku
 
