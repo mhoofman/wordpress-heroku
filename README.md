@@ -48,7 +48,7 @@ Store unique keys and salts in Heroku environment variables. Wordpress can provi
       AUTH_SALT='put your unique phrase here' \
       SECURE_AUTH_SALT='put your unique phrase here' \
       LOGGED_IN_SALT='put your unique phrase here' \
-      NONCE_SALT='put your unique phrase here' \
+      NONCE_SALT='put your unique phrase here'
 
 Deploy to Heroku
 
@@ -92,6 +92,19 @@ WordPress needs to update the database. After push, navigate to:
 
 WordPress will prompt for updating the database. After that you'll be good
 to go.
+
+## Deployment optimisation
+
+If you have files that you want tracked in your repo, but do not need deploying (for example, *.md, *.pdf, *.zip). Then add path or linux file match to the `.slugignore` file & these will not be deployed.
+
+Examples:
+```
+path/to/ignore/
+bin/
+*.md
+*.pdf
+*.zip
+```
 
 ## Wiki
 
