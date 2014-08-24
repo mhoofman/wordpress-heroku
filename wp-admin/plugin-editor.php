@@ -24,8 +24,17 @@ wp_reset_vars( array( 'action', 'error', 'file', 'plugin' ) );
 
 $plugins = get_plugins();
 
-if ( empty($plugins) )
-	wp_die( __('There are no plugins installed on this site.') );
+if ( empty( $plugins ) ) {
+	include( ABSPATH . 'wp-admin/admin-header.php' );
+	?>
+	<div class="wrap">
+		<h2><?php echo esc_html( $title ); ?></h2>
+		<div id="message" class="error"><p><?php _e( 'You do not appear to have any plugins available at this time.' ); ?></p></div>
+	</div>
+	<?php
+	include( ABSPATH . 'wp-admin/admin-footer.php' );
+	exit;
+}
 
 if ( $file ) {
 	$plugin = $file;
@@ -132,7 +141,7 @@ default:
 		'<p><strong>' . __('For more information:') . '</strong></p>' .
 		'<p>' . __('<a href="http://codex.wordpress.org/Plugins_Editor_Screen" target="_blank">Documentation on Editing Plugins</a>') . '</p>' .
 		'<p>' . __('<a href="http://codex.wordpress.org/Writing_a_Plugin" target="_blank">Documentation on Writing Plugins</a>') . '</p>' .
-		'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+		'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 	);
 
 	require_once(ABSPATH . 'wp-admin/admin-header.php');

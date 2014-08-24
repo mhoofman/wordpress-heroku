@@ -259,7 +259,7 @@ All at ###SITENAME###
 	$content = str_replace( '###SITENAME###', get_site_option( 'site_name' ), $content );
 	$content = str_replace( '###SITEURL###', network_home_url(), $content );
 
-	wp_mail( $value, sprintf( __( '[%s] New Admin Email Address' ), get_option( 'blogname' ) ), $content );
+	wp_mail( $value, sprintf( __( '[%s] New Admin Email Address' ), wp_specialchars_decode( get_option( 'blogname' ) ) ), $content );
 }
 add_action( 'update_option_new_admin_email', 'update_option_new_admin_email', 10, 2 );
 add_action( 'add_option_new_admin_email', 'update_option_new_admin_email', 10, 2 );
@@ -328,7 +328,7 @@ All at ###SITENAME###
 		$content = str_replace( '###SITENAME###', get_site_option( 'site_name' ), $content );
 		$content = str_replace( '###SITEURL###', network_home_url(), $content );
 
-		wp_mail( $_POST['email'], sprintf( __( '[%s] New Email Address' ), get_option( 'blogname' ) ), $content );
+		wp_mail( $_POST['email'], sprintf( __( '[%s] New Email Address' ), wp_specialchars_decode( get_option( 'blogname' ) ) ), $content );
 		$_POST['email'] = $current_user->user_email;
 	}
 }
@@ -536,15 +536,13 @@ function _access_denied_splash() {
 	$output .= '<table>';
 
 	foreach ( $blogs as $blog ) {
-		$output .= "<tr>";
-		$output .= "<td valign='top'>";
-		$output .= "{$blog->blogname}";
-		$output .= "</td>";
-		$output .= "<td valign='top'>";
-		$output .= "<a href='" . esc_url( get_admin_url( $blog->userblog_id ) ) . "'>" . __( 'Visit Dashboard' ) . "</a> | <a href='" . esc_url( get_home_url( $blog->userblog_id ) ). "'>" . __( 'View Site' ) . "</a>" ;
-		$output .= "</td>";
-		$output .= "</tr>";
+		$output .= '<tr>';
+		$output .= "<td>{$blog->blogname}</td>";
+		$output .= '<td><a href="' . esc_url( get_admin_url( $blog->userblog_id ) ) . '">' . __( 'Visit Dashboard' ) . '</a> | ' .
+			'<a href="' . esc_url( get_home_url( $blog->userblog_id ) ). '">' . __( 'View Site' ) . '</a></td>';
+		$output .= '</tr>';
 	}
+
 	$output .= '</table>';
 
 	wp_die( $output );
@@ -688,13 +686,14 @@ function choose_primary_blog() {
  *
  * @since 3.0.0
  * @param int $user_id ID of the user to be granted Super Admin privileges.
+ * @return bool True on success, false on failure. This can fail when the user is
+ *              already a super admin or when the $super_admins global is defined.
  */
 function grant_super_admin( $user_id ) {
-	global $super_admins;
-
 	// If global super_admins override is defined, there is nothing to do here.
-	if ( isset( $super_admins ) )
+	if ( isset( $GLOBALS['super_admins'] ) ) {
 		return false;
+	}
 
 	/**
 	 * Fires before the user is granted Super Admin privileges.
@@ -731,13 +730,14 @@ function grant_super_admin( $user_id ) {
  *
  * @since 3.0.0
  * @param int $user_id ID of the user Super Admin privileges to be revoked from.
+ * @return bool True on success, false on failure. This can fail when the user's email
+ *              is the network admin email or when the $super_admins global is defined.
  */
 function revoke_super_admin( $user_id ) {
-	global $super_admins;
-
 	// If global super_admins override is defined, there is nothing to do here.
-	if ( isset( $super_admins ) )
+	if ( isset( $GLOBALS['super_admins'] ) ) {
 		return false;
+	}
 
 	/**
 	 * Fires before the user's Super Admin privileges are revoked.

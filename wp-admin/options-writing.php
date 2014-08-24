@@ -37,13 +37,7 @@ if ( apply_filters( 'enable_post_by_email_configuration', true ) ) {
 	) );
 }
 
-/**
- * Toggle site update services configuration functionality.
- *
- * @since 3.0.0
- *
- * @param bool True or false, based on whether update services configuration is enabled or not.
- */
+/** This filter is documented in wp-admin/options-writing.php */
 if ( apply_filters( 'enable_update_services_configuration', true ) ) {
 	get_current_screen()->add_help_tab( array(
 		'id'      => 'options-services',
@@ -55,7 +49,7 @@ if ( apply_filters( 'enable_update_services_configuration', true ) ) {
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Settings_Writing_Screen" target="_blank">Documentation on Writing Settings</a>') . '</p>' .
-	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
 include( ABSPATH . 'wp-admin/admin-header.php' );
@@ -68,7 +62,7 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 <?php settings_fields('writing'); ?>
 
 <table class="form-table">
-<tr valign="top">
+<tr>
 <th scope="row"><?php _e('Formatting') ?></th>
 <td><fieldset><legend class="screen-reader-text"><span><?php _e('Formatting') ?></span></legend>
 <label for="use_smilies">
@@ -77,7 +71,7 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 <label for="use_balanceTags"><input name="use_balanceTags" type="checkbox" id="use_balanceTags" value="1" <?php checked('1', get_option('use_balanceTags')); ?> /> <?php _e('WordPress should correct invalidly nested XHTML automatically') ?></label>
 </fieldset></td>
 </tr>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="default_category"><?php _e('Default Post Category') ?></label></th>
 <td>
 <?php
@@ -89,7 +83,7 @@ wp_dropdown_categories(array('hide_empty' => 0, 'name' => 'default_category', 'o
 $post_formats = get_post_format_strings();
 unset( $post_formats['standard'] );
 ?>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="default_post_format"><?php _e('Default Post Format') ?></label></th>
 <td>
 	<select name="default_post_format" id="default_post_format">
@@ -103,7 +97,7 @@ unset( $post_formats['standard'] );
 <?php
 if ( get_option( 'link_manager_enabled' ) ) :
 ?>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="default_link_category"><?php _e('Default Link Category') ?></label></th>
 <td>
 <?php
@@ -137,24 +131,24 @@ if ( apply_filters( 'enable_post_by_email_configuration', true ) ) {
 <p><?php printf(__('To post to WordPress by e-mail you must set up a secret e-mail account with POP3 access. Any mail received at this address will be posted, so it&#8217;s a good idea to keep this address very secret. Here are three random strings you could use: <kbd>%s</kbd>, <kbd>%s</kbd>, <kbd>%s</kbd>.'), wp_generate_password(8, false), wp_generate_password(8, false), wp_generate_password(8, false)) ?></p>
 
 <table class="form-table">
-<tr valign="top">
+<tr>
 <th scope="row"><label for="mailserver_url"><?php _e('Mail Server') ?></label></th>
 <td><input name="mailserver_url" type="text" id="mailserver_url" value="<?php form_option('mailserver_url'); ?>" class="regular-text code" />
 <label for="mailserver_port"><?php _e('Port') ?></label>
 <input name="mailserver_port" type="text" id="mailserver_port" value="<?php form_option('mailserver_port'); ?>" class="small-text" />
 </td>
 </tr>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="mailserver_login"><?php _e('Login Name') ?></label></th>
 <td><input name="mailserver_login" type="text" id="mailserver_login" value="<?php form_option('mailserver_login'); ?>" class="regular-text ltr" /></td>
 </tr>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="mailserver_pass"><?php _e('Password') ?></label></th>
 <td>
 <input name="mailserver_pass" type="text" id="mailserver_pass" value="<?php form_option('mailserver_pass'); ?>" class="regular-text ltr" />
 </td>
 </tr>
-<tr valign="top">
+<tr>
 <th scope="row"><label for="default_email_category"><?php _e('Default Mail Category') ?></label></th>
 <td>
 <?php
@@ -167,7 +161,13 @@ wp_dropdown_categories(array('hide_empty' => 0, 'name' => 'default_email_categor
 <?php } ?>
 
 <?php
-/** This filter is documented in wp-admin/options-writing.php */
+/**
+ * Filter whether to enable the Update Services section in the Writing settings screen.
+ *
+ * @since 3.0.0
+ *
+ * @param bool $enable Whether to enable the Update Services settings area. Default true.
+ */
 if ( apply_filters( 'enable_update_services_configuration', true ) ) {
 ?>
 <h3 class="title"><?php _e('Update Services') ?></h3>

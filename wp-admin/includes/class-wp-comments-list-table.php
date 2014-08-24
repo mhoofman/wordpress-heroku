@@ -233,7 +233,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		if ( 'top' == $which ) {
 ?>
 			<select name="comment_type">
-				<option value=""><?php _e( 'Show all comment types' ); ?></option>
+				<option value=""><?php _e( 'All comment types' ); ?></option>
 <?php
 				/**
 				 * Filter the comment types dropdown menu.
@@ -316,7 +316,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		$this->display_tablenav( 'top' );
 
 ?>
-<table class="<?php echo implode( ' ', $this->get_table_classes() ); ?>" cellspacing="0">
+<table class="<?php echo implode( ' ', $this->get_table_classes() ); ?>">
 	<thead>
 	<tr>
 		<?php $this->print_column_headers(); ?>
@@ -462,8 +462,8 @@ class WP_Comments_List_Table extends WP_List_Table {
 
 			if ( 'spam' != $the_comment_status && 'trash' != $the_comment_status ) {
 				$actions['edit'] = "<a href='comment.php?action=editcomment&amp;c={$comment->comment_ID}' title='" . esc_attr__( 'Edit comment' ) . "'>". __( 'Edit' ) . '</a>';
-				$actions['quickedit'] = '<a onclick="commentReply.open( \''.$comment->comment_ID.'\',\''.$post->ID.'\',\'edit\' );return false;" class="vim-q" title="'.esc_attr__( 'Quick Edit' ).'" href="#">' . __( 'Quick&nbsp;Edit' ) . '</a>';
-				$actions['reply'] = '<a onclick="commentReply.open( \''.$comment->comment_ID.'\',\''.$post->ID.'\' );return false;" class="vim-r" title="'.esc_attr__( 'Reply to this comment' ).'" href="#">' . __( 'Reply' ) . '</a>';
+				$actions['quickedit'] = '<a onclick="window.commentReply && commentReply.open( \''.$comment->comment_ID.'\',\''.$post->ID.'\',\'edit\' );return false;" class="vim-q" title="'.esc_attr__( 'Quick Edit' ).'" href="#">' . __( 'Quick&nbsp;Edit' ) . '</a>';
+				$actions['reply'] = '<a onclick="window.commentReply && commentReply.open( \''.$comment->comment_ID.'\',\''.$post->ID.'\' );return false;" class="vim-r" title="'.esc_attr__( 'Reply to this comment' ).'" href="#">' . __( 'Reply' ) . '</a>';
 			}
 
 			/** This filter is documented in wp-admin/includes/dashboard.php */
@@ -602,7 +602,7 @@ class WP_Post_Comments_List_Table extends WP_Comments_List_Table {
 
 		wp_nonce_field( "fetch-list-" . get_class( $this ), '_ajax_fetch_list_nonce' );
 ?>
-<table class="<?php echo implode( ' ', $this->get_table_classes() ); ?>" cellspacing="0" style="display:none;">
+<table class="<?php echo implode( ' ', $this->get_table_classes() ); ?>" style="display:none;">
 	<tbody id="the-comment-list"<?php if ( $singular ) echo " data-wp-lists='list:$singular'"; ?>>
 		<?php if ( ! $output_empty ) $this->display_rows_or_placeholder(); ?>
 	</tbody>

@@ -14,7 +14,9 @@ Description: Used to style the TinyMCE editor.
  * 5.0 - Alignment
  * 6.0 - Tables
  * 7.0 - Images
- * 8.0 - RTL
+ * 8.0 - Galleries
+ * 9.0 - Audio/Video
+ * 10.0 - RTL
  * ----------------------------------------------------------------------------
  */
 
@@ -387,12 +389,34 @@ img {
 	text-align: left;
 }
 
+.html5-captions .wp-caption {
+	padding: 0;
+}
+
 .wp-caption.alignleft {
 	margin: 7px 14px 7px 0;
 }
 
+.html5-captions .wp-caption.alignleft {
+	margin-right: 24px;
+}
+
 .wp-caption.alignright {
 	margin: 7px 0 7px 14px;
+}
+
+.wp-caption.alignright img,
+.wp-caption.alignright .wp-caption-dd {
+	padding-left: 10px;
+}
+
+.html5-captions .wp-caption.alignright {
+	margin-left: 24px;
+}
+
+.html5-captions .wp-caption.alignright img,
+.html5-captions .wp-caption.alignright .wp-caption-dd {
+	padding: 0;
 }
 
 .wp-caption.aligncenter {
@@ -421,9 +445,181 @@ img {
 	list-style-position: inside;
 }
 
+/**
+ * 8.0 Gallery
+ * -----------------------------------------------------------------------------
+ */
+
+.gallery .gallery-item {
+	float: left;
+	margin: 0 4px 4px 0;
+	overflow: hidden;
+	padding: 0;
+	position: relative;
+}
+
+.gallery-columns-1 .gallery-item {
+	max-width: 100%;
+	width: auto;
+}
+
+.gallery-columns-2 .gallery-item {
+	max-width: 48%;
+	max-width: -webkit-calc(50% - 14px);
+	max-width:         calc(50% - 14px);
+	width: auto;
+}
+
+.gallery-columns-3 .gallery-item {
+	max-width: 32%;
+	max-width: -webkit-calc(33.3% - 11px);
+	max-width:         calc(33.3% - 11px);
+	width: auto;
+}
+
+.gallery-columns-4 .gallery-item {
+	max-width: 23%;
+	max-width: -webkit-calc(25% - 9px);
+	max-width:         calc(25% - 9px);
+	width: auto;
+}
+
+.gallery-columns-5 .gallery-item {
+	max-width: 19%;
+	max-width: -webkit-calc(20% - 8px);
+	max-width:         calc(20% - 8px);
+	width: auto;
+}
+
+.gallery-columns-6 .gallery-item {
+	max-width: 15%;
+	max-width: -webkit-calc(16.7% - 7px);
+	max-width:         calc(16.7% - 7px);
+	width: auto;
+}
+
+.gallery-columns-7 .gallery-item {
+	max-width: 13%;
+	max-width: -webkit-calc(14.28% - 7px);
+	max-width:         calc(14.28% - 7px);
+	width: auto;
+}
+
+.gallery-columns-8 .gallery-item {
+	max-width: 11%;
+	max-width: -webkit-calc(12.5% - 6px);
+	max-width:         calc(12.5% - 6px);
+	width: auto;
+}
+
+.gallery-columns-9 .gallery-item {
+	max-width: 9%;
+	max-width: -webkit-calc(11.1% - 6px);
+	max-width:         calc(11.1% - 6px);
+	width: auto;
+}
+
+.gallery-columns-1 .gallery-item:nth-of-type(1n),
+.gallery-columns-2 .gallery-item:nth-of-type(2n),
+.gallery-columns-3 .gallery-item:nth-of-type(3n),
+.gallery-columns-4 .gallery-item:nth-of-type(4n),
+.gallery-columns-5 .gallery-item:nth-of-type(5n),
+.gallery-columns-6 .gallery-item:nth-of-type(6n),
+.gallery-columns-7 .gallery-item:nth-of-type(7n),
+.gallery-columns-8 .gallery-item:nth-of-type(8n),
+.gallery-columns-9 .gallery-item:nth-of-type(9n) {
+	margin-right: 0;
+}
+
+.gallery-columns-1 .gallery-item:nth-of-type(1n),
+.gallery-columns-2 .gallery-item:nth-of-type(2n - 1),
+.gallery-columns-3 .gallery-item:nth-of-type(3n - 2),
+.gallery-columns-4 .gallery-item:nth-of-type(4n - 3),
+.gallery-columns-5 .gallery-item:nth-of-type(5n - 4),
+.gallery-columns-6 .gallery-item:nth-of-type(6n - 5),
+.gallery-columns-7 .gallery-item:nth-of-type(7n - 6),
+.gallery-columns-8 .gallery-item:nth-of-type(8n - 7),
+.gallery-columns-9 .gallery-item:nth-of-type(9n - 8) {
+	margin-left: 12px; /* Compensate for the default negative margin on .gallery, which can't be changed. */
+}
+
+.gallery .gallery-caption {
+	background-color: rgba(0, 0, 0, 0.7);
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing:    border-box;
+	box-sizing:         border-box;
+	color: #fff;
+	font-size: 12px;
+	line-height: 1.5;
+	margin: 0;
+	max-height: 50%;
+	opacity: 0;
+	padding: 6px 8px;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	text-align: left;
+	width: 100%;
+}
+
+.gallery .gallery-caption:before {
+	content: "";
+	height: 100%;
+	min-height: 49px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+}
+
+.gallery-item:hover .gallery-caption {
+	opacity: 1;
+}
+
+.gallery-columns-7 .gallery-caption,
+.gallery-columns-8 .gallery-caption,
+.gallery-columns-9 .gallery-caption {
+	display: none;
+}
+
 
 /**
- * 8.0 RTL
+ * 9.0 Audio/Video
+ * ----------------------------------------------------------------------------
+ */
+
+.mejs-mediaelement,
+.mejs-container .mejs-controls {
+	background: #000;
+}
+
+.mejs-controls .mejs-time-rail .mejs-time-loaded,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-current {
+	background: #fff;
+}
+
+.mejs-controls .mejs-time-rail .mejs-time-current {
+	background: #24890d;
+}
+
+.mejs-controls .mejs-time-rail .mejs-time-total,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-total {
+	background: rgba(255, 255, 255, .33);
+}
+
+.mejs-controls .mejs-time-rail span,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-total,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-current {
+	border-radius: 0;
+}
+
+.mejs-overlay-loading {
+	background: transparent;
+}
+
+
+/**
+ * 10.0 RTL
  * ----------------------------------------------------------------------------
  */
 
