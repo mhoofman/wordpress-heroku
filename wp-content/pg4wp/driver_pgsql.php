@@ -55,8 +55,11 @@
 	function wpsql_escape_string($s) { return pg_escape_string($s); }
 	function wpsql_real_escape_string($s,$c=NULL) { return pg_escape_string($s); }
 	function wpsql_get_server_info() { return '5.0.30'; } // Just want to fool wordpress ...
+	
+/**** Modified version of wpsql_result() is at the bottom of this file
 	function wpsql_result($result, $i, $fieldname)
 		{ return pg_fetch_result($result, $i, $fieldname); }
+****/
 
 	// This is a fake connection except during installation
 	function wpsql_connect($dbserver, $dbuser, $dbpass)
@@ -77,7 +80,7 @@
 		
 		// While installing, we test the connection to 'template1' (as we don't know the effective dbname yet)
 		if( defined('WP_INSTALLING') && WP_INSTALLING)
-			return wpsql_select_db(DB_NAME); // Heroku Postgres 9.1 does not allow connection to 'template1'
+			return wpsql_select_db( 'template1');
 		
 		return 1;
 	}
@@ -479,4 +482,24 @@
 				error_log( '['.microtime(true)."] $sql\n---------------------\n", 3, PG4WP_LOG.'pg4wp_unmodified.log');
 		}
 		return $sql;
+	}
+
+/*
+	Quick fix for wpsql_result() error and missing wpsql_errno() function
+	Source : http://vitoriodelage.wordpress.com/2014/06/06/add-missing-wpsql_errno-in-pg4wp-plugin/
+*/
+	function wpsql_result($result, $i, $fieldname = null) {
+		if (is_resource($result)) {
+			if ($fieldname) {
+				return pg_fetch_result($result, $i, $fieldname);
+			} else {
+				return pg_fetch_result($result, $i);
+			}
+		}
+	}
+	
+	function wpsql_errno( $connection) {
+		$result = pg_get_result($connection);
+		$result_status = pg_result_status($result);
+		return pg_result_error_field($result_status, PGSQL_DIAG_SQLSTATE);
 	}
