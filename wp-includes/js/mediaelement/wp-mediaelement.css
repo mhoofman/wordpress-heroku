@@ -28,6 +28,10 @@
 	width: auto;
 }
 
+.media-embed-details .embed-media-settings .checkbox-setting span {
+	display: inline-block;
+}
+
 .media-embed-details .embed-media-settings {
 	padding-top: 0;
 	top: 28px;
@@ -50,8 +54,8 @@
 }
 
 .media-embed-details .embed-media-settings .checkbox-setting {
-	width: 100px;
-	clear: none;
+	float: none;
+	margin: 0 0 10px;
 }
 
 .video-details .wp-video-holder {
@@ -98,6 +102,7 @@
 }
 
 .wp-playlist-caption {
+	display: block;
 	max-width: 88%;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -109,6 +114,8 @@
 .wp-playlist-item .wp-playlist-caption {
 	text-decoration: none;
 	color: #000;
+	max-width: -webkit-calc(100% - 40px);
+	max-width: calc(100% - 40px);
 }
 
 .wp-playlist-item-meta {
@@ -140,6 +147,11 @@
 	top: 0;
 	font-size: 14px;
 	line-height: 1.5;
+}
+
+.rtl .wp-playlist-item-length {
+	left: 3px;
+	right: auto;
 }
 
 .wp-playlist-tracks {
@@ -195,9 +207,19 @@
 	border: 0;
 }
 
+.rtl .wp-playlist .wp-playlist-current-item img {
+	float: right;
+	margin-left: 10px;
+	margin-right: 0;
+}
+
 .wp-playlist-current-item .wp-playlist-item-title,
 .wp-playlist-current-item .wp-playlist-item-artist {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.wp-audio-playlist .me-cannotplay span {
+	padding: 5px 15px;
 }
