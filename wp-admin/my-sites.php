@@ -46,7 +46,7 @@ get_current_screen()->add_help_tab( array(
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
 	'<p>' . __('<a href="http://codex.wordpress.org/Dashboard_My_Sites_Screen" target="_blank">Documentation on My Sites</a>') . '</p>' .
-	'<p>' . __('<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
@@ -91,7 +91,7 @@ else :
 	 */
 	$settings_html = apply_filters( 'myblogs_options', '', 'global' );
 	if ( $settings_html != '' ) {
-		echo '<tr><td valign="top"><h3>' . __( 'Global Settings' ) . '</h3></td><td>';
+		echo '<tr><td><h3>' . __( 'Global Settings' ) . '</h3></td><td>';
 		echo $settings_html;
 		echo '</td></tr>';
 	}
@@ -116,7 +116,7 @@ else :
 		$i = 0;
 		foreach ( $row as $user_blog ) {
 			$s = $i == 3 ? '' : 'border-right: 1px solid #ccc;';
-			echo "<td valign='top' style='$s'>";
+			echo "<td style='$s'>";
 			echo "<h3>{$user_blog->blogname}</h3>";
 			/**
 			 * Filter the row links displayed for each site on the My Sites screen.

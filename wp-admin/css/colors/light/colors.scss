@@ -17,7 +17,6 @@ $menu-submenu-background: #fff;
 $menu-collapse-text: #777;
 $menu-collapse-focus-icon: #555;
 
-@import "../../colors.css";
 @import "../_admin.scss";
 
 /* temporary fix for admin-bar hover color */
@@ -30,4 +29,10 @@ $menu-collapse-focus-icon: #555;
 #wpadminbar-nojs .ab-top-menu > li.menupop:hover > .ab-item,
 #wpadminbar .ab-top-menu > li.menupop.hover > .ab-item {
 	color: $text-color;
+}
+
+/* Override the theme filter highlight color for this scheme */
+.theme-section.current,
+.theme-filter.current {
+	border-bottom-color: $highlight-color;
 }

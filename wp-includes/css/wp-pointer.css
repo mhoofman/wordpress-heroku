@@ -5,7 +5,7 @@
 	background: #fff;
 	border: 1px solid #dfdfdf;
 	-webkit-box-shadow: 0 3px 6px rgba(0,0,0,0.075);
-	box-shadow:         0 3px 6px rgba(0,0,0,0.075);
+	box-shadow: 0 3px 6px rgba(0,0,0,0.075);
 }
 
 .wp-pointer-content h3 {
@@ -22,6 +22,7 @@
 
 .wp-pointer-content h3:before {
 	background: #fff;
+	-webkit-border-radius: 50%;
 	border-radius: 50%;
 	color: #2ea2cc;
 	content: '\f227';
@@ -59,11 +60,13 @@
 }
 
 .wp-pointer-buttons a.close:before {
+	background: none;
+	color: #bbb;
 	content: '\f153';
 	display: block !important;
 	font: normal 13px/1 'dashicons';
 	speak: none;
-	margin: 2px 0;
+	margin: 1px 0;
 	text-align: center;
 	-webkit-font-smoothing: antialiased !important;
 	width: 10px;
@@ -71,6 +74,10 @@
 	position: absolute;
 	left: -12px;
 	top: 1px;
+}
+
+.wp-pointer-buttons a.close:hover:before {
+	color: #c00;
 }
 
 /* The arrow base class must take up no space, even with transparent borders. */
@@ -181,12 +188,18 @@
 }
 
 .wp-pointer-right .wp-pointer-arrow:before {
-	margin-left: -14px;
+	margin-left: -12px;
 	margin-top: -13px;
 	border: 13px solid transparent;
 	border-left-color: #fff;
 	display: block;
 	content: ' ';
+}
+
+.rtl .wp-pointer-arrow:before {
+	-webkit-transform: rotateY(180deg);
+	-ms-transform:     rotateY(180deg);
+	transform:         rotateY(180deg);
 }
 
 /* Disable pointers at responsive sizes */
