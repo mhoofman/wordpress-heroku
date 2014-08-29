@@ -29,6 +29,10 @@ Promote the database (replace COLOR with the color name from the above output)
     $ heroku pg:promote HEROKU_POSTGRESQL_COLOR
     Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
 
+Use Heroku legacy PHP buildpack:
+
+    heroku config:set BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-php#legacy
+
 Add the ability to send email (i.e. Password Resets etc)
 
     $ heroku addons:add sendgrid:starter
