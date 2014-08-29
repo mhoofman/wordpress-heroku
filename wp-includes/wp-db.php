@@ -1523,14 +1523,14 @@ class wpdb {
 		$this->_do_query( $query );
 
 		// MySQL server has gone away, try to reconnect
-		//$mysql_errno = 0;
-		//if ( ! empty( $this->dbh ) ) {
-			//if ( $this->use_mysqli ) {
-				//$mysql_errno = mysqli_errno( $this->dbh );
-			//} else {
-				//$mysql_errno = mysql_errno( $this->dbh );
-			//}
-		//}
+		$mysql_errno = 0;
+		if ( ! empty( $this->dbh ) ) {
+			if ( $this->use_mysqli ) {
+				$mysql_errno = mysqli_errno( $this->dbh );
+			} else {
+				$mysql_errno = mysql_errno( $this->dbh );
+			}
+		}
 
 		if ( empty( $this->dbh ) || 2006 == $mysql_errno ) {
 			if ( $this->check_connection() ) {

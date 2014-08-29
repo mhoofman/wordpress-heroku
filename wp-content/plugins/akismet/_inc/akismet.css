@@ -75,8 +75,8 @@ h2.ak-header {
     display: inline-block !important;
 }
 .checkforspam-spinner {
-    display: none;
-    margin-top: 10px;
+    display: inline-block;
+    margin-top: 7px;
 }
 
 .config-wrap {

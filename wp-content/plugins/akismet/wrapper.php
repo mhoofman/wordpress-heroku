@@ -15,7 +15,7 @@ function akismet_test_mode() {
 function akismet_http_post( $request, $host, $path, $port = 80, $ip = null ) {
 	_deprecated_function( __FUNCTION__, '3.0', 'Akismet::http_post()' );
 
-	$path = str_ireplace( '/1.1/', '', $path );
+	$path = str_replace( '/1.1/', '', $path );
 
 	return Akismet::http_post( $request, $path, $ip ); 
 }
@@ -120,19 +120,19 @@ function akismet_check_for_spam_button( $comment_status ) {
 	return Akismet_Admin::check_for_spam_button( $comment_status );
 }
 function akismet_submit_nonspam_comment( $comment_id ) {
-	_deprecated_function( __FUNCTION__, '3.0', 'Akismet_Admin::submit_nonspam_comment()' );
+	_deprecated_function( __FUNCTION__, '3.0', 'Akismet::submit_nonspam_comment()' );
 
-	return Akismet_Admin::submit_nonspam_comment( $comment_id );
+	return Akismet::submit_nonspam_comment( $comment_id );
 }
 function akismet_submit_spam_comment( $comment_id ) {
-	_deprecated_function( __FUNCTION__, '3.0', 'Akismet_Admin::submit_spam_comment()' );
+	_deprecated_function( __FUNCTION__, '3.0', 'Akismet::submit_spam_comment()' );
 
-	return Akismet_Admin::submit_spam_comment( $comment_id );
+	return Akismet::submit_spam_comment( $comment_id );
 }
 function akismet_transition_comment_status( $new_status, $old_status, $comment ) {
-	_deprecated_function( __FUNCTION__, '3.0', 'Akismet_Admin::transition_comment_status()' );
+	_deprecated_function( __FUNCTION__, '3.0', 'Akismet::transition_comment_status()' );
 
-	return Akismet_Admin::transition_comment_status( $new_status, $old_status, $comment );
+	return Akismet::transition_comment_status( $new_status, $old_status, $comment );
 }
 function akismet_spam_count( $type = false ) {
 	_deprecated_function( __FUNCTION__, '3.0', 'Akismet_Admin::get_spam_count()' );

@@ -33,12 +33,14 @@ class Akismet {
 		if ( $akismet_comment_nonce_option == 'true' || $akismet_comment_nonce_option == '' )
 			add_action( 'comment_form',  array( 'Akismet',  'add_comment_nonce' ), 1 );
 
-		add_action( 'admin_footer-edit-comments.php', array( 'Akismet', 'load_form_js' ) );
+		add_action( 'admin_head-edit-comments.php', array( 'Akismet', 'load_form_js' ) );
 		add_action( 'comment_form', array( 'Akismet', 'load_form_js' ) );
 		add_action( 'comment_form', array( 'Akismet', 'inject_ak_js' ) );
 
 		add_filter( 'comment_moderation_recipients', array( 'Akismet', 'disable_moderation_emails_if_unreachable' ), 1000, 2 );
 		add_filter( 'pre_comment_approved', array( 'Akismet', 'last_comment_status' ), 10, 2 );
+		
+		add_action( 'transition_comment_status', array( 'Akismet', 'transition_comment_status' ), 10, 3 );
 
 		if ( '3.0.5' == $GLOBALS['wp_version'] ) {
 			remove_filter( 'comment_text', 'wp_kses_data' );
@@ -48,11 +50,11 @@ class Akismet {
 	}
 
 	public static function get_api_key() {
-		return defined('WPCOM_API_KEY') ? constant('WPCOM_API_KEY') : get_option('wordpress_api_key');
+		return apply_filters( 'akismet_get_api_key', defined('WPCOM_API_KEY') ? constant('WPCOM_API_KEY') : get_option('wordpress_api_key') );
 	}
 
 	public static function check_key_status( $key, $ip = null ) {
-		return self::http_post( http_build_query( array( 'key' => $key, 'blog' => get_option('home') ) ), 'verify-key', $ip );
+		return self::http_post( build_query( array( 'key' => $key, 'blog' => get_option('home') ) ), 'verify-key', $ip );
 	}
 
 	public static function verify_key( $key, $ip = null ) {
@@ -115,19 +117,24 @@ class Akismet {
 		$post = get_post( $comment['comment_post_ID'] );
 		$comment[ 'comment_post_modified_gmt' ] = $post->post_modified_gmt;
 
-		$response = self::http_post( http_build_query( $comment ), 'comment-check' );
+		$response = self::http_post( build_query( $comment ), 'comment-check' );
 
 		do_action( 'akismet_comment_check_response', $response );
 
 		self::update_alert( $response );
 
-		$commentdata['comment_as_submitted'] = $comment;
+		$commentdata['comment_as_submitted'] = array_intersect_key( $comment, array( 'blog' => '', 'blog_charset' => '', 'blog_lang' => '', 'blog_ua' => '', 'comment_agent' => '', 'comment_author' => '', 'comment_author_IP' => '', 'comment_author_email' => '', 'comment_author_url' => '', 'comment_content' => '', 'comment_date_gmt' => '', 'comment_tags' => '', 'comment_type' => '', 'guid' => '', 'is_test' => '', 'permalink' => '', 'reporter' => '', 'site_domain' => '', 'submit_referer' => '', 'submit_uri' => '', 'user_ID' => '', 'user_agent' => '', 'user_id' => '', 'user_ip' => '' ) );
 		$commentdata['akismet_result']       = $response[1];
 
 		if ( isset( $response[0]['x-akismet-pro-tip'] ) )
 	        $commentdata['akismet_pro_tip'] = $response[0]['x-akismet-pro-tip'];
 
-		if ( 'true' == $response[1] ) {
+		if ( isset( $response[0]['x-akismet-error'] ) ) {
+			// An error occurred that we anticipated (like a suspended key) and want the user to act on.
+			// Send to moderation.
+			self::$last_comment_result = '0';
+		}
+		else if ( 'true' == $response[1] ) {
 			// akismet_spam_count will be incremented later by comment_is_spam()
 			self::$last_comment_result = 'spam';
 
@@ -363,9 +370,154 @@ class Akismet {
 		if ( self::is_test_mode() )
 			$c['is_test'] = 'true';
 
-		$response = self::http_post( http_build_query( $c ), 'comment-check' );
+		$response = self::http_post( build_query( $c ), 'comment-check' );
 
 		return ( is_array( $response ) && ! empty( $response[1] ) ) ? $response[1] : false;
+	}
+	
+	
+
+	public static function transition_comment_status( $new_status, $old_status, $comment ) {
+		
+		if ( $new_status == $old_status )
+			return;
+
+		# we don't need to record a history item for deleted comments
+		if ( $new_status == 'delete' )
+			return;
+		
+		if ( !current_user_can( 'edit_post', $comment->comment_post_ID ) && !current_user_can( 'moderate_comments' ) )
+			return;
+
+		if ( defined('WP_IMPORTING') && WP_IMPORTING == true )
+			return;
+			
+		// if this is present, it means the status has been changed by a re-check, not an explicit user action
+		if ( get_comment_meta( $comment->comment_ID, 'akismet_rechecking' ) )
+			return;
+		
+		global $current_user;
+		$reporter = '';
+		if ( is_object( $current_user ) )
+			$reporter = $current_user->user_login;
+
+		// Assumption alert:
+		// We want to submit comments to Akismet only when a moderator explicitly spams or approves it - not if the status
+		// is changed automatically by another plugin.  Unfortunately WordPress doesn't provide an unambiguous way to
+		// determine why the transition_comment_status action was triggered.  And there are several different ways by which
+		// to spam and unspam comments: bulk actions, ajax, links in moderation emails, the dashboard, and perhaps others.
+		// We'll assume that this is an explicit user action if certain POST/GET variables exist.
+		if ( ( isset( $_POST['status'] ) && in_array( $_POST['status'], array( 'spam', 'unspam' ) ) ) ||
+			 ( isset( $_POST['spam'] )   && (int) $_POST['spam'] == 1 ) ||
+			 ( isset( $_POST['unspam'] ) && (int) $_POST['unspam'] == 1 ) ||
+			 ( isset( $_POST['comment_status'] )  && in_array( $_POST['comment_status'], array( 'spam', 'unspam' ) ) ) ||
+			 ( isset( $_GET['action'] )  && in_array( $_GET['action'], array( 'spam', 'unspam' ) ) ) ||
+			 ( isset( $_POST['action'] ) && in_array( $_POST['action'], array( 'editedcomment' ) ) )
+		 ) {
+			if ( $new_status == 'spam' && ( $old_status == 'approved' || $old_status == 'unapproved' || !$old_status ) ) {
+				return self::submit_spam_comment( $comment->comment_ID );
+			} elseif ( $old_status == 'spam' && ( $new_status == 'approved' || $new_status == 'unapproved' ) ) {
+				return self::submit_nonspam_comment( $comment->comment_ID );
+			}
+		}
+
+		self::update_comment_history( $comment->comment_ID, sprintf( __('%1$s changed the comment status to %2$s', 'akismet'), $reporter, $new_status ), 'status-' . $new_status );
+	}
+	
+	public static function submit_spam_comment( $comment_id ) {
+		global $wpdb, $current_user, $current_site;
+
+		$comment_id = (int) $comment_id;
+
+		$comment = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->comments} WHERE comment_ID = %d", $comment_id ) );
+
+		if ( !$comment ) // it was deleted
+			return;
+
+		if ( 'spam' != $comment->comment_approved )
+			return;
+
+		// use the original version stored in comment_meta if available
+		$as_submitted = get_comment_meta( $comment_id, 'akismet_as_submitted', true);
+
+		if ( $as_submitted && is_array( $as_submitted ) && isset( $as_submitted['comment_content'] ) )
+			$comment = (object) array_merge( (array)$comment, $as_submitted );
+
+		$comment->blog         = get_bloginfo('url');
+		$comment->blog_lang    = get_locale();
+		$comment->blog_charset = get_option('blog_charset');
+		$comment->permalink    = get_permalink($comment->comment_post_ID);
+
+		if ( is_object($current_user) )
+			$comment->reporter = $current_user->user_login;
+
+		if ( is_object($current_site) )
+			$comment->site_domain = $current_site->domain;
+
+		$comment->user_role = '';
+		if ( isset( $comment->user_ID ) )
+			$comment->user_role = Akismet::get_user_roles( $comment->user_ID );
+
+		if ( self::is_test_mode() )
+			$comment->is_test = 'true';
+
+		$post = get_post( $comment->comment_post_ID );
+		$comment->comment_post_modified_gmt = $post->post_modified_gmt;
+
+		$response = Akismet::http_post( build_query( $comment ), 'submit-spam' );
+		if ( $comment->reporter ) {
+			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as spam', 'akismet'), $comment->reporter ), 'report-spam' );
+			update_comment_meta( $comment_id, 'akismet_user_result', 'true' );
+			update_comment_meta( $comment_id, 'akismet_user', $comment->reporter );
+		}
+
+		do_action('akismet_submit_spam_comment', $comment_id, $response[1]);
+	}
+
+	public static function submit_nonspam_comment( $comment_id ) {
+		global $wpdb, $current_user, $current_site;
+
+		$comment_id = (int) $comment_id;
+
+		$comment = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->comments} WHERE comment_ID = %d", $comment_id ) );
+		if ( !$comment ) // it was deleted
+			return;
+
+		// use the original version stored in comment_meta if available
+		$as_submitted = get_comment_meta( $comment_id, 'akismet_as_submitted', true);
+
+		if ( $as_submitted && is_array($as_submitted) && isset($as_submitted['comment_content']) )
+			$comment = (object) array_merge( (array)$comment, $as_submitted );
+
+		$comment->blog         = get_bloginfo('url');
+		$comment->blog_lang    = get_locale();
+		$comment->blog_charset = get_option('blog_charset');
+		$comment->permalink    = get_permalink( $comment->comment_post_ID );
+		$comment->user_role    = '';
+
+		if ( is_object($current_user) )
+			$comment->reporter = $current_user->user_login;
+
+		if ( is_object($current_site) )
+			$comment->site_domain = $current_site->domain;
+
+		if ( isset( $comment->user_ID ) )
+			$comment->user_role = Akismet::get_user_roles($comment->user_ID);
+
+		if ( Akismet::is_test_mode() )
+			$comment->is_test = 'true';
+
+		$post = get_post( $comment->comment_post_ID );
+		$comment->comment_post_modified_gmt = $post->post_modified_gmt;
+
+		$response = self::http_post( build_query( $comment ), 'submit-ham' );
+		if ( $comment->reporter ) {
+			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as not spam', 'akismet'), $comment->reporter ), 'report-ham' );
+			update_comment_meta( $comment_id, 'akismet_user_result', 'false' );
+			update_comment_meta( $comment_id, 'akismet_user', $comment->reporter );
+		}
+
+		do_action('akismet_submit_nonspam_comment', $comment_id, $response[1]);
 	}
 
 	public static function cron_recheck() {
@@ -670,7 +822,14 @@ class Akismet {
 	}
 
 	public static function load_form_js() {
-		wp_enqueue_script( 'akismet-form', AKISMET__PLUGIN_URL . '_inc/form.js', array( 'jquery' ), AKISMET_VERSION );
+		// WP < 3.3 can't enqueue a script this late in the game and still have it appear in the footer.
+		// Once we drop support for everything pre-3.3, this can change back to a single enqueue call.
+		wp_register_script( 'akismet-form', AKISMET__PLUGIN_URL . '_inc/form.js', array(), AKISMET_VERSION, true );
+		add_action( 'wp_footer', array( 'Akismet', 'print_form_js' ) );
+		add_action( 'admin_footer', array( 'Akismet', 'print_form_js' ) );
+	}
+	
+	public static function print_form_js() {
 		wp_print_scripts( 'akismet-form' );
 	}
 
