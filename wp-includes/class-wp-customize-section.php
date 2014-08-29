@@ -2,28 +2,96 @@
 /**
  * Customize Section Class.
  *
+ * A UI container for controls, managed by the WP_Customize_Manager.
+ *
  * @package WordPress
  * @subpackage Customize
  * @since 3.4.0
  */
 class WP_Customize_Section {
+
+	/**
+	 * WP_Customize_Manager instance.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var WP_Customize_Manager
+	 */
 	public $manager;
+
+	/**
+	 * Unique identifier.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var string
+	 */
 	public $id;
-	public $priority       = 10;
-	public $capability     = 'edit_theme_options';
+
+	/**
+	 * Priority of the section which informs load order of sections.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var integer
+	 */
+	public $priority = 10;
+
+	/**
+	 * Capability required for the section.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var string
+	 */
+	public $capability = 'edit_theme_options';
+
+	/**
+	 * Theme feature support for the section.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var string|array
+	 */
 	public $theme_supports = '';
-	public $title          = '';
-	public $description    = '';
+
+	/**
+	 * Title of the section to show in UI.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var string
+	 */
+	public $title = '';
+
+	/**
+	 * Description to show in the UI.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var string
+	 */
+	public $description = '';
+
+	/**
+	 * Customizer controls for this section.
+	 *
+	 * @since 3.4.0
+	 * @access public
+	 * @var array
+	 */
 	public $controls;
 
 	/**
 	 * Constructor.
 	 *
+	 * Any supplied $args override class property defaults.
+	 *
 	 * @since 3.4.0
 	 *
-	 * @param WP_Customize_Manager $manager
-	 * @param string $id An specific ID of the section.
-	 * @param array $args Section arguments.
+	 * @param WP_Customize_Manager $manager Customizer bootstrap instance.
+	 * @param string               $id      An specific ID of the section.
+	 * @param array                $args    Section arguments.
 	 */
 	function __construct( $manager, $id, $args = array() ) {
 		$keys = array_keys( get_class_vars( __CLASS__ ) );
@@ -41,7 +109,8 @@ class WP_Customize_Section {
 	}
 
 	/**
-	 * Check if the theme supports the section and check user capabilities.
+	 * Checks required user capabilities and whether the theme has the
+	 * feature support required by the section.
 	 *
 	 * @since 3.4.0
 	 *
@@ -66,14 +135,29 @@ class WP_Customize_Section {
 		if ( ! $this->check_capabilities() )
 			return;
 
+		/**
+		 * Fires before rendering a Customizer section.
+		 *
+		 * @since 3.4.0
+		 *
+		 * @param WP_Customize_Section $this WP_Customize_Section instance.
+		 */
 		do_action( 'customize_render_section', $this );
-		do_action( 'customize_render_section_' . $this->id );
+		/**
+		 * Fires before rendering a specific Customizer section.
+		 *
+		 * The dynamic portion of the hook name, $this->id, refers to the ID
+		 * of the specific Customizer section to be rendered.
+		 *
+		 * @since 3.4.0
+		 */
+		do_action( "customize_render_section_{$this->id}" );
 
 		$this->render();
 	}
 
 	/**
-	 * Render the section.
+	 * Render the section, and the controls that have been added to it.
 	 *
 	 * @since 3.4.0
 	 */

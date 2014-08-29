@@ -73,27 +73,58 @@ function wptexturize($text) {
 		$static_characters = array_merge( array( '---', ' -- ', '--', ' - ', 'xn&#8211;', '...', '``', '\'\'', ' (tm)' ), $cockney );
 		$static_replacements = array_merge( array( $em_dash, ' ' . $em_dash . ' ', $en_dash, ' ' . $en_dash . ' ', 'xn--', '&#8230;', $opening_quote, $closing_quote, ' &#8482;' ), $cockneyreplace );
 
-		$dynamic = array();
-		if ( "'" != $apos ) {
-			$dynamic[ '/\'(\d\d(?:&#8217;|\')?s)/' ] = $apos . '$1'; // '99's
-			$dynamic[ '/\'(\d)/'                   ] = $apos . '$1'; // '99
-		}
-		if ( "'" != $opening_single_quote )
-			$dynamic[ '/(\s|\A|[([{<]|")\'/'       ] = '$1' . $opening_single_quote; // opening single quote, even after (, {, <, [
-		if ( '"' != $double_prime )
-			$dynamic[ '/(\d)"/'                    ] = '$1' . $double_prime; // 9" (double prime)
-		if ( "'" != $prime )
-			$dynamic[ '/(\d)\'/'                   ] = '$1' . $prime; // 9' (prime)
-		if ( "'" != $apos )
-			$dynamic[ '/(\S)\'([^\'\s])/'          ] = '$1' . $apos . '$2'; // apostrophe in a word
-		if ( '"' != $opening_quote )
-			$dynamic[ '/(\s|\A|[([{<])"(?!\s)/'    ] = '$1' . $opening_quote . '$2'; // opening double quote, even after (, {, <, [
-		if ( '"' != $closing_quote )
-			$dynamic[ '/"(\s|\S|\Z)/'              ] = $closing_quote . '$1'; // closing double quote
-		if ( "'" != $closing_single_quote )
-			$dynamic[ '/\'([\s.]|\Z)/'             ] = $closing_single_quote . '$1'; // closing single quote
+		/*
+		 * Regex for common whitespace characters.
+		 *
+		 * By default, spaces include new lines, tabs, nbsp entities, and the UTF-8 nbsp.
+		 * This is designed to replace the PCRE \s sequence.  In #WP22692, that sequence
+		 * was found to be unreliable due to random inclusion of the A0 byte.
+		 */
+		$spaces = '[\r\n\t ]|\xC2\xA0|&nbsp;';
 
-		$dynamic[ '/\b(\d+)x(\d+)\b/'              ] = '$1&#215;$2'; // 9x9 (times)
+
+		// Pattern-based replacements of characters.
+		$dynamic = array();
+
+		// '99 '99s '99's (apostrophe)
+		if ( "'" !== $apos ) {
+			$dynamic[ '/\'(?=\d)/' ] = $apos;
+		}
+
+		// Single quote at start, or preceded by (, {, <, [, ", or spaces.
+		if ( "'" !== $opening_single_quote ) {
+			$dynamic[ '/(?<=\A|[([{<"]|' . $spaces . ')\'/' ] = $opening_single_quote;
+		}
+
+		// 9" (double prime)
+		if ( '"' !== $double_prime ) {
+			$dynamic[ '/(?<=\d)"/' ] = $double_prime;
+		}
+
+		// 9' (prime)
+		if ( "'" !== $prime ) {
+			$dynamic[ '/(?<=\d)\'/' ] = $prime;
+		}
+
+		// Apostrophe in a word.  No spaces or double primes.
+		if ( "'" !== $apos ) {
+			$dynamic[ '/(?<!' . $spaces . ')\'(?!\'|' . $spaces . ')/' ] = $apos;
+		}
+
+		// Double quote at start, or preceded by (, {, <, [, or spaces, and not followed by spaces.
+		if ( '"' !== $opening_quote ) {
+			$dynamic[ '/(?<=\A|[([{<]|' . $spaces . ')"(?!' . $spaces . ')/' ] = $opening_quote;
+		}
+
+		// Any remaining double quotes.
+		if ( '"' !== $closing_quote ) {
+			$dynamic[ '/"/' ] = $closing_quote;
+		}
+
+		// Single quotes followed by spaces or a period.
+		if ( "'" !== $closing_single_quote ) {
+			$dynamic[ '/\'(?=\Z|\.|' . $spaces . ')/' ] = $closing_single_quote;
+		}
 
 		$dynamic_characters = array_keys( $dynamic );
 		$dynamic_replacements = array_values( $dynamic );
@@ -124,8 +155,9 @@ function wptexturize($text) {
 	$textarr = preg_split('/(<.*>|\[.*\])/Us', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
 
 	foreach ( $textarr as &$curl ) {
-		if ( empty( $curl ) )
+		if ( empty( $curl ) ) {
 			continue;
+		}
 
 		// Only call _wptexturize_pushpop_element if first char is correct tag opening
 		$first = $curl[0];
@@ -134,11 +166,21 @@ function wptexturize($text) {
 		} elseif ( '[' === $first ) {
 			_wptexturize_pushpop_element($curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes, '[', ']');
 		} elseif ( empty($no_texturize_shortcodes_stack) && empty($no_texturize_tags_stack) ) {
+
 			// This is not a tag, nor is the texturization disabled static strings
 			$curl = str_replace($static_characters, $static_replacements, $curl);
+
 			// regular expressions
 			$curl = preg_replace($dynamic_characters, $dynamic_replacements, $curl);
+
+			// 9x9 (times)
+			if ( 1 === preg_match( '/(?<=\d)x\d/', $text ) ) {
+				// Searching for a digit is 10 times more expensive than for the x, so we avoid doing this one!
+				$curl = preg_replace( '/\b(\d+)x(\d+)\b/', '$1&#215;$2', $curl );
+			}
 		}
+
+		// Replace each & with &#038; unless it already looks like an entity.
 		$curl = preg_replace('/&([^#])(?![a-zA-Z1-4]{1,8};)/', '&#038;$1', $curl);
 	}
 	return implode( '', $textarr );
@@ -179,8 +221,9 @@ function _wptexturize_pushpop_element($text, &$stack, $disabled_elements, $openi
 			$last = array_pop($stack);
 
 			// Make sure it matches the opening tag
-			if ($last != $matches[1])
-				array_push($stack, $last);
+			if ( $last != $matches[1] ) {
+				array_push( $stack, $last );
+			}
 		}
 	}
 }
@@ -234,20 +277,34 @@ function wpautop($pee, $br = true) {
 
 	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
 	// Space things out a little
-	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|select|option|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
+	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
 	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
-	if ( strpos($pee, '<object') !== false ) {
-		$pee = preg_replace('|\s*<param([^>]*)>\s*|', "<param$1>", $pee); // no pee inside object/embed
-		$pee = preg_replace('|\s*</embed>\s*|', '</embed>', $pee);
+
+	if ( strpos( $pee, '</object>' ) !== false ) {
+		// no P/BR around param and embed
+		$pee = preg_replace( '|(<object[^>]*>)\s*|', '$1', $pee );
+		$pee = preg_replace( '|\s*</object>|', '</object>', $pee );
+		$pee = preg_replace( '%\s*(</?(?:param|embed)[^>]*>)\s*%', '$1', $pee );
 	}
+
+	if ( strpos( $pee, '<source' ) !== false || strpos( $pee, '<track' ) !== false ) {
+		// no P/BR around source and track
+		$pee = preg_replace( '%([<\[](?:audio|video)[^>\]]*[>\]])\s*%', '$1', $pee );
+		$pee = preg_replace( '%\s*([<\[]/(?:audio|video)[>\]])%', '$1', $pee );
+		$pee = preg_replace( '%\s*(<(?:source|track)[^>]*>)\s*%', '$1', $pee );
+	}
+
 	$pee = preg_replace("/\n\n+/", "\n\n", $pee); // take care of duplicates
 	// make paragraphs, including one at the end
 	$pees = preg_split('/\n\s*\n/', $pee, -1, PREG_SPLIT_NO_EMPTY);
 	$pee = '';
-	foreach ( $pees as $tinkle )
+
+	foreach ( $pees as $tinkle ) {
 		$pee .= '<p>' . trim($tinkle, "\n") . "</p>\n";
+	}
+
 	$pee = preg_replace('|<p>\s*</p>|', '', $pee); // under certain strange conditions it could create a P of entirely whitespace
 	$pee = preg_replace('!<p>([^<]+)</(div|address|form)>!', "<p>$1</p></$2>", $pee);
 	$pee = preg_replace('!<p>\s*(</?' . $allblocks . '[^>]*>)\s*</p>!', "$1", $pee); // don't pee all over a tag
@@ -256,11 +313,13 @@ function wpautop($pee, $br = true) {
 	$pee = str_replace('</blockquote></p>', '</p></blockquote>', $pee);
 	$pee = preg_replace('!<p>\s*(</?' . $allblocks . '[^>]*>)!', "$1", $pee);
 	$pee = preg_replace('!(</?' . $allblocks . '[^>]*>)\s*</p>!', "$1", $pee);
+
 	if ( $br ) {
 		$pee = preg_replace_callback('/<(script|style).*?<\/\\1>/s', '_autop_newline_preservation_helper', $pee);
 		$pee = preg_replace('|(?<!<br />)\s*\n|', "<br />\n", $pee); // optionally make line breaks
 		$pee = str_replace('<WPPreserveNewline />', "\n", $pee);
 	}
+
 	$pee = preg_replace('!(</?' . $allblocks . '[^>]*>)\s*<br />!', "$1", $pee);
 	$pee = preg_replace('!<br />(\s*</?(?:p|li|div|dl|dd|dt|th|pre|td|ul|ol)[^>]*>)!', '$1', $pee);
 	$pee = preg_replace( "|\n</p>$|", '</p>', $pee );
@@ -872,6 +931,7 @@ function sanitize_file_name( $filename ) {
 	 * @param string $filename_raw  Filename as it was passed into sanitize_file_name().
 	 */
 	$special_chars = apply_filters( 'sanitize_file_name_chars', $special_chars, $filename_raw );
+	$filename = preg_replace( "#\x{00a0}#siu", ' ', $filename );
 	$filename = str_replace($special_chars, '', $filename);
 	$filename = preg_replace('/[\s-]+/', '-', $filename);
 	$filename = trim($filename, '.-_');
@@ -1409,26 +1469,6 @@ function format_to_edit( $content, $richedit = false ) {
 }
 
 /**
- * Holder for the 'format_to_post' filter.
- *
- * @since 0.71
- *
- * @param string $content The text to pass through the filter.
- * @return string Text returned from the 'format_to_post' filter.
- */
-function format_to_post($content) {
-	/**
-	 * Filter the string returned by format_to_post().
-	 *
-	 * @since 1.2.0
-	 *
-	 * @param string $content The string to format.
-	 */
-	$content = apply_filters( 'format_to_post', $content );
-	return $content;
-}
-
-/**
  * Add leading zeros when necessary.
  *
  * If you set the threshold to '4' and the number is '10', then you will get
@@ -1466,35 +1506,34 @@ function backslashit($string) {
 /**
  * Appends a trailing slash.
  *
- * Will remove trailing slash if it exists already before adding a trailing
- * slash. This prevents double slashing a string or path.
+ * Will remove trailing forward and backslashes if it exists already before adding
+ * a trailing forward slash. This prevents double slashing a string or path.
  *
  * The primary use of this is for paths and thus should be used for paths. It is
  * not restricted to paths and offers no specific path support.
  *
  * @since 1.2.0
- * @uses untrailingslashit() Unslashes string if it was slashed already.
  *
  * @param string $string What to add the trailing slash to.
  * @return string String with trailing slash added.
  */
-function trailingslashit($string) {
-	return untrailingslashit($string) . '/';
+function trailingslashit( $string ) {
+	return untrailingslashit( $string ) . '/';
 }
 
 /**
- * Removes trailing slash if it exists.
+ * Removes trailing forward slashes and backslashes if they exist.
  *
  * The primary use of this is for paths and thus should be used for paths. It is
  * not restricted to paths and offers no specific path support.
  *
  * @since 2.2.0
  *
- * @param string $string What to remove the trailing slash from.
- * @return string String without the trailing slash.
+ * @param string $string What to remove the trailing slashes from.
+ * @return string String without the trailing slashes.
  */
-function untrailingslashit($string) {
-	return rtrim($string, '/');
+function untrailingslashit( $string ) {
+	return rtrim( $string, '/\\' );
 }
 
 /**
@@ -1742,7 +1781,7 @@ function make_clickable( $text ) {
 	}
 
 	// Cleanup of accidental links within links
-	$r = preg_replace( '#(<a( [^>]+?>|>))<a [^>]+?>([^>]+?)</a></a>#i', "$1$3</a>", $r );
+	$r = preg_replace( '#(<a([ \r\n\t]+[^>]+?>|>))<a [^>]+?>([^>]+?)</a></a>#i', "$1$3</a>", $r );
 	return $r;
 }
 
@@ -3415,6 +3454,8 @@ function wp_sprintf_l($pattern, $args) {
 
 	/**
 	 * Filter the translated delimiters used by wp_sprintf_l().
+	 * Placeholders (%s) are included to assist translators and then
+	 * removed before the array of strings reaches the filter.
 	 *
 	 * Please note: Ampersands and entities should be avoided here.
 	 *
@@ -3423,12 +3464,12 @@ function wp_sprintf_l($pattern, $args) {
 	 * @param array $delimiters An array of translated delimiters.
 	 */
 	$l = apply_filters( 'wp_sprintf_l', array(
-		/* translators: used between list items, there is a space after the comma */
-		'between'          => __(', '),
-		/* translators: used between list items, there is a space after the and */
-		'between_last_two' => __(', and '),
-		/* translators: used between only two list items, there is a space after the and */
-		'between_only_two' => __(' and '),
+		/* translators: used to join items in a list with more than 2 items */
+		'between'          => sprintf( __('%s, %s'), '', '' ),
+		/* translators: used to join last two items in a list with more than 2 times */
+		'between_last_two' => sprintf( __('%s, and %s'), '', '' ),
+		/* translators: used to join items in a list with only 2 items */
+		'between_only_two' => sprintf( __('%s and %s'), '', '' ),
 	) );
 
 	$args = (array) $args;
@@ -3568,6 +3609,10 @@ function normalize_whitespace( $str ) {
 
 /**
  * Properly strip all HTML tags including script and style
+ *
+ * This differs from strip_tags() because it removes the contents of
+ * the <script> and <style> tags. E.g. strip_tags( '<script>something</script>' )
+ * will return 'something'. wp_strip_all_tags will return ''
  *
  * @since 2.9.0
  *
@@ -3770,11 +3815,13 @@ function wp_unslash( $value ) {
  * @return string The found URL.
  */
 function get_url_in_content( $content ) {
-	if ( empty( $content ) )
-		return '';
+	if ( empty( $content ) ) {
+		return false;
+	}
 
-	if ( preg_match( '/<a\s[^>]*?href=([\'"])(.+?)\1/is', $content, $matches ) )
+	if ( preg_match( '/<a\s[^>]*?href=([\'"])(.+?)\1/is', $content, $matches ) ) {
 		return esc_url_raw( $matches[2] );
+	}
 
 	return false;
 }

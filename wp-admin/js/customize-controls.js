@@ -1,3 +1,4 @@
+/* globals _wpCustomizeHeader, _wpMediaViewsL10n */
 (function( exports, $ ){
 	var api = wp.customize;
 
@@ -304,6 +305,216 @@
 			else
 				this.thumbnail.hide();
 		}
+	});
+
+	api.HeaderControl = api.Control.extend({
+		ready: function() {
+			this.btnRemove        = $('#customize-control-header_image .actions .remove');
+			this.btnNew           = $('#customize-control-header_image .actions .new');
+
+			_.bindAll(this, 'openMedia', 'removeImage');
+
+			this.btnNew.on( 'click', this.openMedia );
+			this.btnRemove.on( 'click', this.removeImage );
+
+			api.HeaderTool.currentHeader = new api.HeaderTool.ImageModel();
+
+			new api.HeaderTool.CurrentView({
+				model: api.HeaderTool.currentHeader,
+				el: '.current .container'
+			});
+
+			new api.HeaderTool.ChoiceListView({
+				collection: api.HeaderTool.UploadsList = new api.HeaderTool.ChoiceList(),
+				el: '.choices .uploaded .list'
+			});
+
+			new api.HeaderTool.ChoiceListView({
+				collection: api.HeaderTool.DefaultsList = new api.HeaderTool.DefaultsList(),
+				el: '.choices .default .list'
+			});
+
+			api.HeaderTool.combinedList = api.HeaderTool.CombinedList = new api.HeaderTool.CombinedList([
+				api.HeaderTool.UploadsList,
+				api.HeaderTool.DefaultsList
+			]);
+		},
+
+		/**
+		 * Returns a set of options, computed from the attached image data and
+		 * theme-specific data, to be fed to the imgAreaSelect plugin in
+		 * wp.media.view.Cropper.
+		 *
+		 * @param {wp.media.model.Attachment} attachment
+		 * @param {wp.media.controller.Cropper} controller
+		 * @returns {Object} Options
+		 */
+		calculateImageSelectOptions: function(attachment, controller) {
+			var xInit = parseInt(_wpCustomizeHeader.data.width, 10),
+				yInit = parseInt(_wpCustomizeHeader.data.height, 10),
+				flexWidth = !! parseInt(_wpCustomizeHeader.data['flex-width'], 10),
+				flexHeight = !! parseInt(_wpCustomizeHeader.data['flex-height'], 10),
+				ratio, xImg, yImg, realHeight, realWidth,
+				imgSelectOptions;
+
+			realWidth = attachment.get('width');
+			realHeight = attachment.get('height');
+
+			this.headerImage = new api.HeaderTool.ImageModel();
+			this.headerImage.set({
+				themeWidth: xInit,
+				themeHeight: yInit,
+				themeFlexWidth: flexWidth,
+				themeFlexHeight: flexHeight,
+				imageWidth: realWidth,
+				imageHeight: realHeight
+			});
+
+			controller.set( 'canSkipCrop', ! this.headerImage.shouldBeCropped() );
+
+			ratio = xInit / yInit;
+			xImg = realWidth;
+			yImg = realHeight;
+
+			if ( xImg / yImg > ratio ) {
+				yInit = yImg;
+				xInit = yInit * ratio;
+			} else {
+				xInit = xImg;
+				yInit = xInit / ratio;
+			}
+
+			imgSelectOptions = {
+				handles: true,
+				keys: true,
+				instance: true,
+				persistent: true,
+				imageWidth: realWidth,
+				imageHeight: realHeight,
+				x1: 0,
+				y1: 0,
+				x2: xInit,
+				y2: yInit
+			};
+
+			if (flexHeight === false && flexWidth === false) {
+				imgSelectOptions.aspectRatio = xInit + ':' + yInit;
+			}
+			if (flexHeight === false ) {
+				imgSelectOptions.maxHeight = yInit;
+			}
+			if (flexWidth === false ) {
+				imgSelectOptions.maxWidth = xInit;
+			}
+
+			return imgSelectOptions;
+		},
+
+		/**
+		 * Sets up and opens the Media Manager in order to select an image.
+		 * Depending on both the size of the image and the properties of the
+		 * current theme, a cropping step after selection may be required or
+		 * skippable.
+		 *
+		 * @param {event} event
+		 */
+		openMedia: function(event) {
+			var l10n = _wpMediaViewsL10n;
+
+			event.preventDefault();
+
+			this.frame = wp.media({
+				button: {
+					text: l10n.selectAndCrop,
+					close: false
+				},
+				states: [
+					new wp.media.controller.Library({
+						title:     l10n.chooseImage,
+						library:   wp.media.query({ type: 'image' }),
+						multiple:  false,
+						priority:  20,
+						suggestedWidth: _wpCustomizeHeader.data.width,
+						suggestedHeight: _wpCustomizeHeader.data.height
+					}),
+					new wp.media.controller.Cropper({
+						imgSelectOptions: this.calculateImageSelectOptions
+					})
+				]
+			});
+
+			this.frame.on('select', this.onSelect, this);
+			this.frame.on('cropped', this.onCropped, this);
+			this.frame.on('skippedcrop', this.onSkippedCrop, this);
+
+			this.frame.open();
+		},
+
+		onSelect: function() {
+			this.frame.setState('cropper');
+		},
+		onCropped: function(croppedImage) {
+			var url = croppedImage.post_content,
+				attachmentId = croppedImage.attachment_id,
+				w = croppedImage.width,
+				h = croppedImage.height;
+			this.setImageFromURL(url, attachmentId, w, h);
+		},
+		onSkippedCrop: function(selection) {
+			var url = selection.get('url'),
+				w = selection.get('width'),
+				h = selection.get('height');
+			this.setImageFromURL(url, selection.id, w, h);
+		},
+
+		/**
+		 * Creates a new wp.customize.HeaderTool.ImageModel from provided
+		 * header image data and inserts it into the user-uploaded headers
+		 * collection.
+		 *
+		 * @param {String} url
+		 * @param {Number} attachmentId
+		 * @param {Number} width
+		 * @param {Number} height
+		 */
+		setImageFromURL: function(url, attachmentId, width, height) {
+			var choice, data = {};
+
+			data.url = url;
+			data.thumbnail_url = url;
+			data.timestamp = _.now();
+
+			if (attachmentId) {
+				data.attachment_id = attachmentId;
+			}
+
+			if (width) {
+				data.width = width;
+			}
+
+			if (height) {
+				data.height = height;
+			}
+
+			choice = new api.HeaderTool.ImageModel({
+				header: data,
+				choice: url.split('/').pop()
+			});
+			api.HeaderTool.UploadsList.add(choice);
+			api.HeaderTool.currentHeader.set(choice.toJSON());
+			choice.save();
+			choice.importImage();
+		},
+
+		/**
+		 * Triggers the necessary events to deselect an image which was set as
+		 * the currently selected one.
+		 */
+		removeImage: function() {
+			api.HeaderTool.currentHeader.trigger('hide');
+			api.HeaderTool.CombinedList.trigger('control:removeImage');
+		}
+
 	});
 
 	// Change objects contained within the main customize object to Settings.
@@ -686,7 +897,8 @@
 	api.controlConstructor = {
 		color:  api.ColorControl,
 		upload: api.UploadControl,
-		image:  api.ImageControl
+		image:  api.ImageControl,
+		header: api.HeaderControl
 	};
 
 	$( function() {
@@ -705,13 +917,14 @@
 			body = $( document.body ),
 			overlay = body.children('.wp-full-overlay');
 
-		// Prevent the form from saving when enter is pressed.
+		// Prevent the form from saving when enter is pressed on an input or select element.
 		$('#customize-controls').on( 'keydown', function( e ) {
-			if ( $( e.target ).is('textarea') )
-				return;
+			var isEnter = ( 13 === e.which ),
+				$el = $( e.target );
 
-			if ( 13 === e.which ) // Enter
+			if ( isEnter && ( $el.is( 'input:not([type=button])' ) || $el.is( 'select' ) ) ) {
 				e.preventDefault();
+			}
 		});
 
 		// Initialize Previewer
@@ -739,36 +952,55 @@
 					query = $.extend( this.query(), {
 						action: 'customize_save',
 						nonce:  this.nonce.save
-					}),
-					request = $.post( api.settings.url.ajax, query );
+					} ),
+					processing = api.state( 'processing' ),
+					submitWhenDoneProcessing,
+					submit;
 
-				api.trigger( 'save', request );
+				body.addClass( 'saving' );
 
-				body.addClass('saving');
+				submit = function () {
+					var request = $.post( api.settings.url.ajax, query );
 
-				request.always( function() {
-					body.removeClass('saving');
-				});
+					api.trigger( 'save', request );
 
-				request.done( function( response ) {
-					// Check if the user is logged out.
-					if ( '0' === response ) {
-						self.preview.iframe.hide();
-						self.login().done( function() {
-							self.save();
-							self.preview.iframe.show();
-						});
-						return;
-					}
+					request.always( function () {
+						body.removeClass( 'saving' );
+					} );
 
-					// Check for cheaters.
-					if ( '-1' === response ) {
-						self.cheatin();
-						return;
-					}
+					request.done( function( response ) {
+						// Check if the user is logged out.
+						if ( '0' === response ) {
+							self.preview.iframe.hide();
+							self.login().done( function() {
+								self.save();
+								self.preview.iframe.show();
+							} );
+							return;
+						}
 
-					api.trigger( 'saved' );
-				});
+						// Check for cheaters.
+						if ( '-1' === response ) {
+							self.cheatin();
+							return;
+						}
+
+						api.trigger( 'saved' );
+					} );
+				};
+
+				if ( 0 === processing() ) {
+					submit();
+				} else {
+					submitWhenDoneProcessing = function () {
+						if ( 0 === processing() ) {
+							api.state.unbind( 'change', submitWhenDoneProcessing );
+							submit();
+						}
+					};
+					api.state.bind( 'change', submitWhenDoneProcessing );
+				}
+
 			}
 		});
 
@@ -803,8 +1035,9 @@
 		// Save and activated states
 		(function() {
 			var state = new api.Values(),
-				saved = state.create('saved'),
-				activated = state.create('activated');
+				saved = state.create( 'saved' ),
+				activated = state.create( 'activated' ),
+				processing = state.create( 'processing' );
 
 			state.bind( 'change', function() {
 				var save = $('#save'),
@@ -827,6 +1060,7 @@
 			// Set default states.
 			saved( true );
 			activated( api.settings.theme.active );
+			processing( 0 );
 
 			api.bind( 'change', function() {
 				state('saved').set( false );
@@ -959,35 +1193,6 @@
 			control.setting.bind( function( to ) {
 				control.element.set( 'blank' !== to );
 			});
-		});
-
-		// Handle header image data
-		api.control( 'header_image', function( control ) {
-			control.setting.bind( function( to ) {
-				if ( to === control.params.removed )
-					control.settings.data.set( false );
-			});
-
-			control.library.on( 'click', 'a', function() {
-				control.settings.data.set( $(this).data('customizeHeaderImageData') );
-			});
-
-			control.uploader.success = function( attachment ) {
-				var data;
-
-				api.ImageControl.prototype.success.call( control, attachment );
-
-				data = {
-					attachment_id: attachment.get('id'),
-					url:           attachment.get('url'),
-					thumbnail_url: attachment.get('url'),
-					height:        attachment.get('height'),
-					width:         attachment.get('width')
-				};
-
-				attachment.element.data( 'customizeHeaderImageData', data );
-				control.settings.data.set( data );
-			};
 		});
 
 		api.trigger( 'ready' );

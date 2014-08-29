@@ -72,9 +72,11 @@ default :
 		break;
 	}
 
-	$post_title = '<a href="' . get_edit_post_link() . '">' . _draft_or_post_title() . '</a>';
-	$h2 = sprintf( __( 'Compare Revisions of &#8220;%1$s&#8221;' ), $post_title );
-	$title = __( 'Revisions' );
+	$post_edit_link = get_edit_post_link();
+	$post_title     = '<a href="' . $post_edit_link . '">' . _draft_or_post_title() . '</a>';
+	$h2             = sprintf( __( 'Compare Revisions of &#8220;%1$s&#8221;' ), $post_title );
+	$return_to_post = '<a href="' . $post_edit_link . '">' . __( '&larr; Return to post editor' ) . '</a>';
+	$title          = __( 'Revisions' );
 
 	$redirect = false;
 	break;
@@ -115,7 +117,7 @@ get_current_screen()->add_help_tab( array(
 
 $revisions_sidebar  = '<p><strong>' . __( 'For more information:' ) . '</strong></p>';
 $revisions_sidebar .= '<p>' . __( '<a href="http://codex.wordpress.org/Revision_Management" target="_blank">Revisions Management</a>' ) . '</p>';
-$revisions_sidebar .= '<p>' . __( '<a href="http://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>';
+$revisions_sidebar .= '<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>';
 
 get_current_screen()->set_help_sidebar( $revisions_sidebar );
 
@@ -125,6 +127,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 <div class="wrap">
 	<h2 class="long-header"><?php echo $h2; ?></h2>
+	<?php echo $return_to_post; ?>
 </div>
 
 <script id="tmpl-revisions-frame" type="text/html">

@@ -1,6 +1,6 @@
 <?php
 /**
- * Customize Controls
+ * Theme Customize Screen.
  *
  * @package WordPress
  * @subpackage Customize
@@ -9,7 +9,9 @@
 
 define( 'IFRAME_REQUEST', true );
 
+/** Load WordPress Administration Bootstrap */
 require_once( dirname( __FILE__ ) . '/admin.php' );
+
 if ( ! current_user_can( 'edit_theme_options' ) )
 	wp_die( __( 'Cheatin&#8217; uh?' ) );
 
@@ -82,14 +84,14 @@ var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>';
 
 <?php
 /**
- * Print Customizer control styles.
+ * Fires when Customizer control styles are printed.
  *
  * @since 3.4.0
  */
 do_action( 'customize_controls_print_styles' );
 
 /**
- * Print Customizer control scripts.
+ * Fires when Customizer control scripts are printed.
  *
  * @since 3.4.0
  */
@@ -116,6 +118,7 @@ do_action( 'customize_controls_print_scripts' );
 			$cannot_expand = ! ( $screenshot || $wp_customize->theme()->get('Description') );
 		?>
 
+		<div id="widgets-right"><!-- For Widget Customizer, many widgets try to look for instances under div#widgets-right, so we have to add that ID to a container div in the customizer for compat -->
 		<div class="wp-full-overlay-sidebar-content accordion-container" tabindex="-1">
 			<div id="customize-info" class="accordion-section <?php if ( $cannot_expand ) echo ' cannot-expand'; ?>">
 				<div class="accordion-section-title" aria-label="<?php esc_attr_e( 'Theme Customizer Options' ); ?>" tabindex="0">
@@ -143,6 +146,7 @@ do_action( 'customize_controls_print_scripts' );
 					$section->maybe_render();
 				?>
 			</ul></div>
+		</div>
 		</div>
 
 		<div id="customize-footer-actions" class="wp-full-overlay-footer">
@@ -199,21 +203,22 @@ do_action( 'customize_controls_print_scripts' );
 		'customize-login' => 1
 	), wp_login_url() );
 
+	// Prepare customizer settings to pass to Javascript.
 	$settings = array(
 		'theme'    => array(
 			'stylesheet' => $wp_customize->get_stylesheet(),
 			'active'     => $wp_customize->is_theme_active(),
 		),
 		'url'      => array(
-			'preview'       => esc_url( $url ? $url : home_url( '/' ) ),
-			'parent'        => esc_url( admin_url() ),
-			'activated'     => admin_url( 'themes.php?activated=true&previewed' ),
-			'ajax'          => esc_url( admin_url( 'admin-ajax.php', 'relative' ) ),
-			'allowed'       => array_map( 'esc_url', $allowed_urls ),
+			'preview'       => esc_url_raw( $url ? $url : home_url( '/' ) ),
+			'parent'        => esc_url_raw( admin_url() ),
+			'activated'     => esc_url_raw( admin_url( 'themes.php?activated=true&previewed' ) ),
+			'ajax'          => esc_url_raw( admin_url( 'admin-ajax.php', 'relative' ) ),
+			'allowed'       => array_map( 'esc_url_raw', $allowed_urls ),
 			'isCrossDomain' => $cross_domain,
-			'fallback'      => $fallback_url,
-			'home'          => esc_url( home_url( '/' ) ),
-			'login'         => $login_url,
+			'fallback'      => esc_url_raw( $fallback_url ),
+			'home'          => esc_url_raw( home_url( '/' ) ),
+			'login'         => esc_url_raw( $login_url ),
 		),
 		'browser'  => array(
 			'mobile' => wp_is_mobile(),
@@ -222,11 +227,12 @@ do_action( 'customize_controls_print_scripts' );
 		'settings' => array(),
 		'controls' => array(),
 		'nonce'    => array(
- 			'save'    => wp_create_nonce( 'save-customize_' . $wp_customize->get_stylesheet() ),
- 			'preview' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() )
- 		),
+			'save'    => wp_create_nonce( 'save-customize_' . $wp_customize->get_stylesheet() ),
+			'preview' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() )
+		),
 	);
 
+	// Prepare Customize Setting objects to pass to Javascript.
 	foreach ( $wp_customize->settings() as $id => $setting ) {
 		$settings['settings'][ $id ] = array(
 			'value'     => $setting->js_value(),
@@ -234,6 +240,7 @@ do_action( 'customize_controls_print_scripts' );
 		);
 	}
 
+	// Prepare Customize Control objects to pass to Javascript.
 	foreach ( $wp_customize->controls() as $id => $control ) {
 		$control->to_json();
 		$settings['controls'][ $id ] = $control->json;

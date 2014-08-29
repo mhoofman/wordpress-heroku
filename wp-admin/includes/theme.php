@@ -78,10 +78,11 @@ function delete_theme($stylesheet, $redirect = '') {
  *
  * @since 1.5.0
  *
+ * @param WP_Post|null $post Optional. The post being edited, provided for context.
  * @return array Key is the template name, value is the filename of the template
  */
-function get_page_templates() {
-	return array_flip( wp_get_theme()->get_page_templates() );
+function get_page_templates( $post = null ) {
+	return array_flip( wp_get_theme()->get_page_templates( $post ) );
 }
 
 /**
@@ -147,11 +148,14 @@ function get_theme_update_available( $theme ) {
 
 		if ( !is_multisite() ) {
 			if ( ! current_user_can('update_themes') ) {
-				$html = sprintf( '<p><strong>' . __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%1$s">View version %3$s details</a>.') . '</strong></p>', $theme_name, $details_url, $update['new_version']);
+				$html = sprintf( '<p><strong>' . __( 'There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>.' ) . '</strong></p>',
+					$theme_name, esc_url( $details_url ), esc_attr( $theme['Name'] ), $update['new_version'] );
 			} else if ( empty( $update['package'] ) ) {
-				$html = sprintf( '<p><strong>' . __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%1$s">View version %3$s details</a>. <em>Automatic update is unavailable for this theme.</em>') . '</strong></p>', $theme_name, $details_url, $update['new_version']);
+				$html = sprintf( '<p><strong>' . __( 'There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a>. <em>Automatic update is unavailable for this theme.</em>' ) . '</strong></p>',
+					$theme_name, esc_url( $details_url ), esc_attr( $theme['Name'] ), $update['new_version'] );
 			} else {
-				$html = sprintf( '<p><strong>' . __('There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%1$s">View version %3$s details</a> or <a href="%4$s" %5$s>update now</a>.') . '</strong></p>', $theme_name, $details_url, $update['new_version'], $update_url, $update_onclick );
+				$html = sprintf( '<p><strong>' . __( 'There is a new version of %1$s available. <a href="%2$s" class="thickbox" title="%3$s">View version %4$s details</a> or <a href="%5$s">update now</a>.' ) . '</strong></p>',
+					$theme_name, esc_url( $details_url ), esc_attr( $theme['Name'] ), $update['new_version'], $update_url, $update_onclick );
 			}
 		}
 	}
@@ -188,19 +192,16 @@ function get_theme_feature_list( $api = true ) {
 				'light'   => __( 'Light' ),
 			),
 
-		__( 'Columns' ) => array(
+		__( 'Layout' ) => array(
+			'fixed-layout'      => __( 'Fixed Layout' ),
+			'fluid-layout'      => __( 'Fluid Layout' ),
+			'responsive-layout' => __( 'Responsive Layout' ),
 			'one-column'    => __( 'One Column' ),
 			'two-columns'   => __( 'Two Columns' ),
 			'three-columns' => __( 'Three Columns' ),
 			'four-columns'  => __( 'Four Columns' ),
 			'left-sidebar'  => __( 'Left Sidebar' ),
 			'right-sidebar' => __( 'Right Sidebar' ),
-		),
-
-		__( 'Layout' ) => array(
-			'fixed-layout'      => __( 'Fixed Layout' ),
-			'fluid-layout'      => __( 'Fluid Layout' ),
-			'responsive-layout' => __( 'Responsive Layout' ),
 		),
 
 		__( 'Features' ) => array(
@@ -252,7 +253,6 @@ function get_theme_feature_list( $api = true ) {
 
 	$category_translations = array(
 		'Colors'   => __( 'Colors' ),
-		'Columns'  => __( 'Columns' ),
 		'Layout'   => __( 'Layout' ),
 		'Features' => __( 'Features' ),
 		'Subject'  => __( 'Subject' )
@@ -297,7 +297,7 @@ function get_theme_feature_list( $api = true ) {
  * @param array|object $args   Optional. Arguments to serialize for the Theme Info API.
  * @return mixed
  */
-function themes_api( $action, $args = null ) {
+	function themes_api( $action, $args = null ) {
 
 	if ( is_array($args) )
 		$args = (object)$args;
@@ -346,16 +346,18 @@ function themes_api( $action, $args = null ) {
 		$request = wp_remote_post( $url, $args );
 
 		if ( $ssl && is_wp_error( $request ) ) {
-			trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="http://wordpress.org/support/">support forums</a>.' ) . ' ' . '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)', headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+			if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) {
+				trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ), headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+			}
 			$request = wp_remote_post( $http_url, $args );
 		}
 
 		if ( is_wp_error($request) ) {
-			$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="http://wordpress.org/support/">support forums</a>.' ), $request->get_error_message() );
+			$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ), $request->get_error_message() );
 		} else {
 			$res = maybe_unserialize( wp_remote_retrieve_body( $request ) );
 			if ( ! is_object( $res ) && ! is_array( $res ) )
-				$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="http://wordpress.org/support/">support forums</a>.' ), wp_remote_retrieve_body( $request ) );
+				$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ), wp_remote_retrieve_body( $request ) );
 		}
 	}
 
