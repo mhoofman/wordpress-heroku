@@ -74,20 +74,6 @@
 	min-height: 100px;
 }
 
-h3.dashboard-widget-title,
-h3.dashboard-widget-title span,
-h3.dashboard-widget-title small {
-	color: #333;
-}
-
-h3.dashboard-widget-title small a {
-	color: #d7d7d7;
-}
-
-h3.dashboard-widget-title small a:hover {
-	color: #fff;
-}
-
 /* @todo: this was originally in this section, but likely belongs elsewhere */
 #the-comment-list td.comment p.comment-author {
 	margin-top: 0;
@@ -168,7 +154,7 @@ h3.dashboard-widget-title small a:hover {
 	line-height: 1;
 }
 
-#welcome-panel.welcome-panel .welcome-panel-close::before {
+#welcome-panel.welcome-panel .welcome-panel-close:before {
 	position: absolute;
 	left: -18px;
 	margin-top: -2px;
@@ -299,15 +285,6 @@ body #dashboard-widgets .postbox form .submit {
 
 .dashboard-widget-control-form p {
 	margin-top: 0;
-}
-
-/* @todo: are these actually used anywhere? no non-CSS results in plugin search */
-div.dashboard-widget-error {
-	background-color: #c43;
-}
-
-div.dashboard-widget-notice {
-	background-color: #cfe1ef;
 }
 
 .rssSummary {
@@ -710,6 +687,7 @@ form.initial-form.quickpress-open input#title {
 #activity-widget #the-comment-list div.undo {
 	background: none;
 	padding: 6px 0;
+	margin-left: 12px;
 }
 
 #activity-widget #the-comment-list .alternate,
@@ -725,7 +703,6 @@ form.initial-form.quickpress-open input#title {
 
 #activity-widget #the-comment-list img {
 	position: absolute;
-	left: 13px;
 	top: 13px;
 }
 
@@ -767,7 +744,6 @@ form.initial-form.quickpress-open input#title {
 
 #activity-widget #the-comment-list .spam-undo-inside .avatar,
 #activity-widget #the-comment-list .trash-undo-inside .avatar {
-	margin-right: 20px;
 	position: relative;
 	top: 0;
 }
@@ -842,7 +818,8 @@ h3:hover .edit-box {
 	position: relative;
 }
 
-#activity-widget #the-comment-list .comment {
+#activity-widget #the-comment-list .comment,
+#activity-widget #the-comment-list .pingback {
 	-webkit-box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.06);
 	box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.06);
 }
@@ -889,14 +866,14 @@ h3:hover .edit-box {
 
 /* QuickDraft */
 
-#title-wrap label {
+#title-wrap label,
+#description-wrap label {
 	cursor: text;
 }
 
 #title-wrap #title {
 	padding: 2px 6px;
 	font-size: 1.3em;
-	line-height: 100%;
 	outline: none;
 }
 
@@ -1128,7 +1105,7 @@ a.rsswidget {
 	}
 
 	/* Make the close icon larger for tappability. */
-	#welcome-panel.welcome-panel .welcome-panel-close::before {
+	#welcome-panel.welcome-panel .welcome-panel-close:before {
 		font-size: 20px;
 		margin: 0;
 	}

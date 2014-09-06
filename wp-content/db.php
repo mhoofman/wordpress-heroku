@@ -22,7 +22,7 @@ function test_localhosts( ) {
 Plugin Name: PostgreSQL for WordPress (PG4WP)
 Plugin URI: http://www.hawkix.net
 Description: PG4WP is a special 'plugin' enabling WordPress to use a PostgreSQL database.
-Version: 1.3.0
+Version: 1.3.1
 Author: Hawk__
 Author URI: http://www.hawkix.net
 License: GPLv2 or newer.

@@ -1,17 +1,47 @@
+.mejs-container {
+	clear: both;
+}
+
 .mejs-container * {
 	font-family: Helvetica, Arial;
 }
 
-.mejs-container, .mejs-embed, .mejs-embed body {
-	background: #000;
+.mejs-container,
+.mejs-embed,
+.mejs-embed body,
+.mejs-container .mejs-controls {
+	background: #222;
 }
 
-.mejs-controls .mejs-time-rail .mejs-time-loaded {
-	background: #21759b;
+.mejs-controls .mejs-time-rail .mejs-time-loaded,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-current {
+	background: #fff;
 }
 
 .mejs-controls .mejs-time-rail .mejs-time-current {
-	background: #d54e21;
+	background: #0074a2;
+}
+
+.mejs-controls .mejs-time-rail .mejs-time-total,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-total {
+	background: rgba(255, 255, 255, .33);
+}
+
+.mejs-controls .mejs-time-rail span,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-total,
+.mejs-controls .mejs-horizontal-volume-slider .mejs-horizontal-volume-current {
+	border-radius: 0;
+}
+
+.mejs-overlay-loading {
+	background: transparent;
+}
+
+/* Override theme styles that may conflict with controls. */
+.mejs-controls button:hover {
+	border: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
 }
 
 .me-cannotplay {
@@ -21,6 +51,10 @@
 .media-embed-details .wp-audio-shortcode {
 	display: inline-block;
 	max-width: 400px;
+}
+
+.audio-details .embed-media-settings {
+	overflow: visible;
 }
 
 .media-embed-details .embed-media-settings .setting span {
@@ -58,6 +92,17 @@
 	margin: 0 0 10px;
 }
 
+.wp-video {
+	max-width: 100%;
+	height: auto;
+}
+
+video.wp-video-shortcode,
+.wp-video-shortcode video {
+	max-width: 100%;
+	display: inline-block;
+}
+
 .video-details .wp-video-holder {
 	width: 100%;
 	max-width: 640px;
@@ -69,6 +114,10 @@
 	margin: 12px 0 18px;
 	font-size: 14px;
 	line-height: 1.5;
+}
+
+.wp-admin .wp-playlist {
+	margin: 0 0 18px;
 }
 
 .wp-playlist video {

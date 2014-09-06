@@ -510,8 +510,9 @@
 				}
 			});
 
-			$document.on( 'keydown.wp-fullscreen', function( event ) {
-				if ( 27 === event.which && s.visible ) { // Esc
+			$( window ).on( 'keydown.wp-fullscreen', function( event ) {
+				// Turn fullscreen off when Esc is pressed.
+				if ( 27 === event.keyCode && s.visible ) {
 					api.off();
 					event.stopImmediatePropagation();
 				}

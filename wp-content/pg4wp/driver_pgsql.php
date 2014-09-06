@@ -80,7 +80,7 @@
 		
 		// While installing, we test the connection to 'template1' (as we don't know the effective dbname yet)
 		if( defined('WP_INSTALLING') && WP_INSTALLING)
-                       return wpsql_select_db(DB_NAME);
+			return wpsql_select_db(DB_NAME); // Heroku Postgres 9.1 does not allow connection to 'template1'
 		
 		return 1;
 	}

@@ -32,8 +32,10 @@ function _get_cron_lock() {
 
 	$value = 0;
 	if ( wp_using_ext_object_cache() ) {
-		// Skip local cache and force refetch of doing_cron transient in case
-		// another processs updated the cache
+		/*
+		 * Skip local cache and force re-fetch of doing_cron transient
+		 * in case another process updated the cache.
+		 */
 		$value = wp_cache_get( 'doing_cron', 'transient', true );
 	} else {
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", '_transient_doing_cron' ) );
@@ -92,10 +94,11 @@ foreach ( $crons as $timestamp => $cronhooks ) {
 			/**
 			 * Fires scheduled events.
 			 *
+			 * @internal
 			 * @since 2.1.0
 			 *
 			 * @param string $hook Name of the hook that was scheduled to be fired.
-			 * @param array $v['args'] The arguments to be passed to the hook.
+			 * @param array  $args The arguments to be passed to the hook.
 			 */
  			do_action_ref_array( $hook, $v['args'] );
 

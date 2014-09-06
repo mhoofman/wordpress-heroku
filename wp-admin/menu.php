@@ -121,7 +121,10 @@ foreach ( (array) get_post_types( array('show_ui' => true, '_builtin' => false, 
 		$ptype_class = 'post';
 	}
 
-	// if $ptype_menu_position is already populated or will be populated by a hard-coded value below, increment the position.
+	/*
+	 * If $ptype_menu_position is already populated or will be populated
+	 * by a hard-coded value below, increment the position.
+	 */
 	$core_menu_positions = array(59, 60, 65, 70, 75, 80, 85, 99);
 	while ( isset($menu[$ptype_menu_position]) || in_array($ptype_menu_position, $core_menu_positions) )
 		$ptype_menu_position++;
@@ -146,9 +149,13 @@ $appearance_cap = current_user_can( 'switch_themes') ? 'switch_themes' : 'edit_t
 
 $menu[60] = array( __('Appearance'), $appearance_cap, 'themes.php', '', 'menu-top menu-icon-appearance', 'menu-appearance', 'dashicons-admin-appearance' );
 	$submenu['themes.php'][5] = array( __( 'Themes' ), $appearance_cap, 'themes.php' );
-	$submenu['themes.php'][6] = array( __( 'Customize' ), 'edit_theme_options', 'customize.php', 'hide-if-no-customize' );
-	if ( current_theme_supports( 'menus' ) || current_theme_supports( 'widgets' ) )
+
+	$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+	$submenu['themes.php'][6] = array( __( 'Customize' ), 'customize', $customize_url, '', 'hide-if-no-customize' );
+	unset( $customize_url );
+	if ( current_theme_supports( 'menus' ) || current_theme_supports( 'widgets' ) ) {
 		$submenu['themes.php'][10] = array(__( 'Menus' ), 'edit_theme_options', 'nav-menus.php');
+	}
 
 unset( $appearance_cap );
 

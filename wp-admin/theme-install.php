@@ -79,7 +79,7 @@ if ( $tab ) {
 
 $help_overview =
 	'<p>' . sprintf(__('You can find additional themes for your site by using the Theme Browser/Installer on this screen, which will display themes from the <a href="%s" target="_blank">WordPress.org Theme Directory</a>. These themes are designed and developed by third parties, are available free of charge, and are compatible with the license WordPress uses.'), 'https://wordpress.org/themes/') . '</p>' .
-	'<p>' . __('You can Search for themes by keyword, author, or tag, or can get more specific and search by criteria listed in the feature filter. Alternately, you can browse the themes that are Featured, Newest, or Recently Updated. When you find a theme you like, you can preview it or install it.') . '</p>' .
+	'<p>' . __('You can Search for themes by keyword, author, or tag, or can get more specific and search by criteria listed in the feature filter. Alternately, you can browse the themes that are Featured, Popular, or Latest. When you find a theme you like, you can preview it or install it.') . '</p>' .
 	'<p>' . __('You can Upload a theme manually if you have already downloaded its ZIP archive onto your computer (make sure it is from a trusted and original source). You can also do it the old-fashioned way and copy a downloaded theme&#8217;s folder via FTP into your <code>/wp-content/themes</code> directory.') . '</p>';
 
 get_current_screen()->add_help_tab( array(
@@ -108,58 +108,77 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 
 ?>
 <div class="wrap">
-	<h2>
-		<?php echo esc_html( $title ); ?>
-		<a href="#" class="upload add-new-h2"><?php _e( 'Upload Theme' ); ?></a>
-		<a href="#" class="browse-themes add-new-h2"><?php _ex( 'Browse', 'themes' ); ?></a>
-	</h2>
+	<h2><?php
+	echo esc_html( $title );
+
+	/**
+	 * Filter the tabs shown on the Add Themes screen.
+	 *
+	 * This filter is for backwards compatibility only,
+	 * for the suppression of the upload tab.
+	 *
+	 * @since 2.8.0
+	 * @param array $tabs The tabs shown on the Add Themes screen. Default is 'upload'.
+	 */
+	$tabs = apply_filters( 'install_themes_tabs', array( 'upload' => __( 'Upload Theme' ) ) );
+	if ( ! empty( $tabs['upload'] ) && current_user_can( 'upload_themes' ) ) {
+		echo ' <a href="#" class="upload add-new-h2">' . __( 'Upload Theme' ) . '</a>';
+		echo ' <a href="#" class="browse-themes add-new-h2">' . _x( 'Browse', 'themes' ) . '</a>';
+	}
+	?></h2>
 
 	<div class="upload-theme">
 	<?php install_themes_upload(); ?>
 	</div>
 
-	<div class="theme-navigation">
-		<span class="theme-count"></span>
-		<a class="theme-section" href="#" data-sort="featured"><?php _ex( 'Featured', 'themes' ); ?></a>
-		<a class="theme-section" href="#" data-sort="popular"><?php _ex( 'Popular', 'themes' ); ?></a>
-		<a class="theme-section" href="#" data-sort="new"><?php _ex( 'Latest', 'themes' ); ?></a>
-		<div class="theme-top-filters">
-			<!-- <span class="theme-filter" data-filter="photoblogging">Photography</span>
-			<span class="theme-filter" data-filter="responsive-layout">Responsive</span> -->
-			<a class="more-filters" href="#"><?php _e( 'Feature Filter' ); ?></a>
+	<div class="wp-filter">
+		<div class="filter-count">
+			<span class="count theme-count"></span>
 		</div>
-		<div class="more-filters-container">
-			<a class="apply-filters button button-secondary" href="#"><?php _e( 'Apply Filters' ); ?><span></span></a>
-			<a class="clear-filters button button-secondary" href="#"><?php _e( 'Clear' ); ?></a>
-			<br class="clear" />
+
+		<ul class="filter-links">
+			<li><a href="#" data-sort="featured"><?php _ex( 'Featured', 'themes' ); ?></a></li>
+			<li><a href="#" data-sort="popular"><?php _ex( 'Popular', 'themes' ); ?></a></li>
+			<li><a href="#" data-sort="new"><?php _ex( 'Latest', 'themes' ); ?></a></li>
+		</ul>
+
+		<a class="drawer-toggle" href="#"><?php _e( 'Feature Filter' ); ?></a>
+
+		<div class="search-form"></div>
+
+		<div class="filter-drawer">
+			<div class="buttons">
+				<a class="apply-filters button button-secondary" href="#"><?php _e( 'Apply Filters' ); ?><span></span></a>
+				<a class="clear-filters button button-secondary" href="#"><?php _e( 'Clear' ); ?></a>
+			</div>
 		<?php
 		$feature_list = get_theme_feature_list();
 		foreach ( $feature_list as $feature_name => $features ) {
 			if ( $feature_name === 'Features' || $feature_name === __( 'Features' ) ) { // hack hack hack
-				echo '<div class="filters-group wide-filters-group">';
+				echo '<div class="filter-group wide">';
 			} else {
-				echo '<div class="filters-group">';
+				echo '<div class="filter-group">';
 			}
 			$feature_name = esc_html( $feature_name );
-			echo '<h4 class="feature-name">' . $feature_name . '</h4>';
+			echo '<h4>' . $feature_name . '</h4>';
 			echo '<ol class="feature-group">';
 			foreach ( $features as $feature => $feature_name ) {
 				$feature = esc_attr( $feature );
-				echo '<li><input type="checkbox" id="feature-id-' . $feature . '" value="' . $feature . '" /> ';
-				echo '<label for="feature-id-' . $feature . '">' . $feature_name . '</label></li>';
+				echo '<li><input type="checkbox" id="filter-id-' . $feature . '" value="' . $feature . '" /> ';
+				echo '<label for="filter-id-' . $feature . '">' . $feature_name . '</label></li>';
 			}
 			echo '</ol>';
 			echo '</div>';
 		}
 		?>
-			<div class="filtering-by">
+			<div class="filtered-by">
 				<span><?php _e( 'Filtering by:' ); ?></span>
 				<div class="tags"></div>
 				<a href="#"><?php _e( 'Edit' ); ?></a>
 			</div>
 		</div>
 	</div>
-	<div class="theme-browser"></div>
+	<div class="theme-browser content-filterable"></div>
 	<div class="theme-install-overlay wp-full-overlay expanded"></div>
 
 	<p class="no-themes"><?php _e( 'No themes found. Try a different search.' ); ?></p>
@@ -202,16 +221,18 @@ if ( $tab ) {
 	</div>
 
 	<# if ( data.installed ) { #>
-		<div class="theme-installed"><?php _e( 'Already Installed' ); ?></div>
+		<div class="theme-installed"><?php _ex( 'Already Installed', 'theme' ); ?></div>
 	<# } #>
 </script>
 
 <script id="tmpl-theme-preview" type="text/template">
 	<div class="wp-full-overlay-sidebar">
 		<div class="wp-full-overlay-header">
-			<a href="#" class="close-full-overlay button-secondary"><?php _e( 'Close' ); ?></a>
+			<a href="#" class="close-full-overlay"><span class="screen-reader-text"><?php _e( 'Close' ); ?></span></a>
+			<a href="#" class="previous-theme"><span class="screen-reader-text"><?php _ex( 'Previous', 'Button label for a theme' ); ?></span></a>
+			<a href="#" class="next-theme"><span class="screen-reader-text"><?php _ex( 'Next', 'Button label for a theme' ); ?></span></a>
 		<# if ( data.installed ) { #>
-			<a href="#" class="button button-primary theme-install disabled"><?php _e( 'Installed' ); ?></a>
+			<a href="#" class="button button-primary theme-install disabled"><?php _ex( 'Installed', 'theme' ); ?></a>
 		<# } else { #>
 			<a href="{{ data.install_url }}" class="button button-primary theme-install"><?php _e( 'Install' ); ?></a>
 		<# } #>
@@ -246,10 +267,6 @@ if ( $tab ) {
 				<span class="collapse-sidebar-label"><?php _e( 'Collapse' ); ?></span>
 				<span class="collapse-sidebar-arrow"></span>
 			</a>
-			<div class="theme-navigation">
-				<a class="previous-theme button" href="#"><?php _e( 'Previous' ); ?></a>
-				<a class="next-theme button" href="#"><?php _e( 'Next' ); ?></a>
-			</div>
 		</div>
 	</div>
 	<div class="wp-full-overlay-main">

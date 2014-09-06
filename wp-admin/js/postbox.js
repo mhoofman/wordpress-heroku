@@ -3,13 +3,15 @@
 var postboxes;
 
 (function($) {
+	var $document = $( document );
+
 	postboxes = {
 		add_postbox_toggles : function(page, args) {
 			var self = this;
 
 			self.init(page, args);
 
-			$('.postbox h3, .postbox .handlediv').bind('click.postboxes', function() {
+			$('.postbox .hndle, .postbox .handlediv').bind('click.postboxes', function() {
 				var p = $(this).parent('.postbox'), id = p.attr('id');
 
 				if ( 'dashboard_browser_nag' == id )
@@ -26,9 +28,11 @@ var postboxes;
 					else if ( p.hasClass('closed') && $.isFunction(postboxes.pbhide) )
 						self.pbhide(id);
 				}
+
+				$document.trigger( 'postbox-toggled', p );
 			});
 
-			$('.postbox h3 a').click( function(e) {
+			$('.postbox .hndle a').click( function(e) {
 				e.stopPropagation();
 			});
 
@@ -39,19 +43,21 @@ var postboxes;
 			});
 
 			$('.hide-postbox-tog').bind('click.postboxes', function() {
-				var box = $(this).val();
+				var boxId = $(this).val(),
+					$postbox = $( '#' + boxId );
 
 				if ( $(this).prop('checked') ) {
-					$('#' + box).show();
+					$postbox.show();
 					if ( $.isFunction( postboxes.pbshow ) )
-						self.pbshow( box );
+						self.pbshow( boxId );
 				} else {
-					$('#' + box).hide();
+					$postbox.hide();
 					if ( $.isFunction( postboxes.pbhide ) )
-						self.pbhide( box );
+						self.pbhide( boxId );
 				}
 				self.save_state(page);
 				self._mark_area();
+				$document.trigger( 'postbox-toggled', $postbox );
 			});
 
 			$('.columns-prefs input[type="radio"]').bind('click.postboxes', function(){
@@ -159,6 +165,8 @@ var postboxes;
 			if ( el ) {
 				el.className = el.className.replace(/columns-\d+/, 'columns-' + n);
 			}
+
+			$( document ).trigger( 'postboxes-columnchange' );
 		},
 
 		_pb_change : function() {

@@ -134,7 +134,7 @@ function wp_authenticate_username_password($user, $username, $password) {
 	$user = get_user_by('login', $username);
 
 	if ( !$user )
-		return new WP_Error( 'invalid_username', sprintf( __( '<strong>ERROR</strong>: Invalid username. <a href="%s" title="Password Lost and Found">Lost your password</a>?' ), wp_lostpassword_url() ) );
+		return new WP_Error( 'invalid_username', sprintf( __( '<strong>ERROR</strong>: Invalid username. <a href="%s">Lost your password</a>?' ), wp_lostpassword_url() ) );
 
 	/**
 	 * Filter whether the given user can be authenticated with the provided $password.
@@ -150,7 +150,7 @@ function wp_authenticate_username_password($user, $username, $password) {
 		return $user;
 
 	if ( !wp_check_password($password, $user->user_pass, $user->ID) )
-		return new WP_Error( 'incorrect_password', sprintf( __( '<strong>ERROR</strong>: The password you entered for the username <strong>%1$s</strong> is incorrect. <a href="%2$s" title="Password Lost and Found">Lost your password</a>?' ),
+		return new WP_Error( 'incorrect_password', sprintf( __( '<strong>ERROR</strong>: The password you entered for the username <strong>%1$s</strong> is incorrect. <a href="%2$s">Lost your password</a>?' ),
 		$username, wp_lostpassword_url() ) );
 
 	return $user;
@@ -449,7 +449,7 @@ class WP_User_Query {
 	 * @access public
 	 * @var array
 	 */
-	var $query_vars = array();
+	public $query_vars = array();
 
 	/**
 	 * List of found user ids
@@ -458,7 +458,7 @@ class WP_User_Query {
 	 * @access private
 	 * @var array
 	 */
-	var $results;
+	private $results;
 
 	/**
 	 * Total number of found users for the current query
@@ -467,14 +467,14 @@ class WP_User_Query {
 	 * @access private
 	 * @var int
 	 */
-	var $total_users = 0;
+	private $total_users = 0;
 
 	// SQL clauses
-	var $query_fields;
-	var $query_from;
-	var $query_where;
-	var $query_orderby;
-	var $query_limit;
+	public $query_fields;
+	public $query_from;
+	public $query_where;
+	public $query_orderby;
+	public $query_limit;
 
 	/**
 	 * PHP5 constructor.
@@ -484,7 +484,7 @@ class WP_User_Query {
 	 * @param string|array $args Optional. The query variables.
 	 * @return WP_User_Query
 	 */
-	function __construct( $query = null ) {
+	public function __construct( $query = null ) {
 		if ( ! empty( $query ) ) {
 			$this->prepare_query( $query );
 			$this->query();
@@ -498,7 +498,7 @@ class WP_User_Query {
 	 *
 	 * @param string|array $args Optional. The query variables.
 	 */
-	function prepare_query( $query = array() ) {
+	public function prepare_query( $query = array() ) {
 		global $wpdb;
 
 		if ( empty( $this->query_vars ) || ! empty( $query ) ) {
@@ -522,6 +522,19 @@ class WP_User_Query {
 				'who' => ''
 			) );
 		}
+
+		/**
+		 * Fires before the WP_User_Query has been parsed.
+		 *
+		 * The passed WP_User_Query object contains the query variables, not
+		 * yet passed into SQL.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param WP_User_Query $this The current WP_User_Query instance,
+		 *                            passed by reference.
+		 */
+		do_action( 'pre_get_users', $this );
 
 		$qv =& $this->query_vars;
 
@@ -712,7 +725,7 @@ class WP_User_Query {
 	 *
 	 * @global wpdb $wpdb WordPress database object for queries.
 	 */
-	function query() {
+	public function query() {
 		global $wpdb;
 
 		$qv =& $this->query_vars;
@@ -764,7 +777,7 @@ class WP_User_Query {
 	 * @param string $query_var Query variable key.
 	 * @return mixed
 	 */
-	function get( $query_var ) {
+	public function get( $query_var ) {
 		if ( isset( $this->query_vars[$query_var] ) )
 			return $this->query_vars[$query_var];
 
@@ -780,7 +793,7 @@ class WP_User_Query {
 	 * @param string $query_var Query variable key.
 	 * @param mixed $value Query variable value.
 	 */
-	function set( $query_var, $value ) {
+	public function set( $query_var, $value ) {
 		$this->query_vars[$query_var] = $value;
 	}
 
@@ -796,17 +809,20 @@ class WP_User_Query {
 	 *  single site. Single site allows leading and trailing wildcards, Network Admin only trailing.
 	 * @return string
 	 */
-	function get_search_sql( $string, $cols, $wild = false ) {
-		$string = esc_sql( $string );
+	protected function get_search_sql( $string, $cols, $wild = false ) {
+		global $wpdb;
 
 		$searches = array();
 		$leading_wild = ( 'leading' == $wild || 'both' == $wild ) ? '%' : '';
 		$trailing_wild = ( 'trailing' == $wild || 'both' == $wild ) ? '%' : '';
+		$like = $leading_wild . $wpdb->esc_like( $string ) . $trailing_wild;
+
 		foreach ( $cols as $col ) {
-			if ( 'ID' == $col )
-				$searches[] = "$col = '$string'";
-			else
-				$searches[] = "$col LIKE '$leading_wild" . like_escape($string) . "$trailing_wild'";
+			if ( 'ID' == $col ) {
+				$searches[] = $wpdb->prepare( "$col = %s", $string );
+			} else {
+				$searches[] = $wpdb->prepare( "$col LIKE %s", $like );
+			}
 		}
 
 		return ' AND (' . implode(' OR ', $searches) . ')';
@@ -820,7 +836,7 @@ class WP_User_Query {
 	 *
 	 * @return array Array of results.
 	 */
-	function get_results() {
+	public function get_results() {
 		return $this->results;
 	}
 
@@ -832,8 +848,74 @@ class WP_User_Query {
 	 *
 	 * @return array Array of total users.
 	 */
-	function get_total() {
+	public function get_total() {
 		return $this->total_users;
+	}
+
+	/**
+	 * Make private properties readable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to get.
+	 * @return mixed Property.
+	 */
+	public function __get( $name ) {
+		return $this->$name;
+	}
+
+	/**
+	 * Make private properties settable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name  Property to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
+	 */
+	public function __set( $name, $value ) {
+		return $this->$name = $value;
+	}
+
+	/**
+	 * Make private properties checkable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
+	 */
+	public function __isset( $name ) {
+		return isset( $this->$name );
+	}
+
+	/**
+	 * Make private properties un-settable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
+	 */
+	public function __unset( $name ) {
+		unset( $this->$name );
+	}
+
+	/**
+	 * Make private/protected methods readable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
+	 */
+	public function __call( $name, $arguments ) {
+		return call_user_func_array( array( $this, $name ), $arguments );
 	}
 }
 
@@ -1092,7 +1174,7 @@ function count_users($strategy = 'time') {
 		// Build a CPU-intensive query that will return concise information.
 		$select_count = array();
 		foreach ( $avail_roles as $this_role => $name ) {
-			$select_count[] = "COUNT(NULLIF(`meta_value` LIKE '%\"" . like_escape( $this_role ) . "\"%', false))";
+			$select_count[] = $wpdb->prepare( "COUNT(NULLIF(`meta_value` LIKE %s, false))", '%' . $wpdb->esc_like( '"' . $this_role . '"' ) . '%');
 		}
 		$select_count = implode(', ', $select_count);
 
@@ -1192,33 +1274,49 @@ function setup_userdata($for_user_id = '') {
  * used, either 'include' or 'exclude', but not both.
  *
  * The available arguments are as follows:
- * <ol>
- * <li>show_option_all - Text to show all and whether HTML option exists.</li>
- * <li>show_option_none - Text for show none and whether HTML option exists.</li>
- * <li>hide_if_only_one_author - Don't create the dropdown if there is only one user.</li>
- * <li>orderby - SQL order by clause for what order the users appear. Default is 'display_name'.</li>
- * <li>order - Default is 'ASC'. Can also be 'DESC'.</li>
- * <li>include - User IDs to include.</li>
- * <li>exclude - User IDs to exclude.</li>
- * <li>multi - Default is 'false'. Whether to skip the ID attribute on the 'select' element. A 'true' value is overridden when id argument is set.</li>
- * <li>show - Default is 'display_name'. User table column to display. If the selected item is empty then the user_login will be displayed in parentheses</li>
- * <li>echo - Default is '1'. Whether to display or retrieve content.</li>
- * <li>selected - Which User ID is selected.</li>
- * <li>include_selected - Always include the selected user ID in the dropdown. Default is false.</li>
- * <li>name - Default is 'user'. Name attribute of select element.</li>
- * <li>id - Default is the value of the 'name' parameter. ID attribute of select element.</li>
- * <li>class - Class attribute of select element.</li>
- * <li>blog_id - ID of blog (Multisite only). Defaults to ID of current blog.</li>
- * <li>who - Which users to query. Currently only 'authors' is supported. Default is all users.</li>
- * </ol>
  *
  * @since 2.3.0
  *
  * @global wpdb $wpdb WordPress database object for queries.
  *
- * @todo Hash-notate arguments array.
+ * @param array|string $args {
+ *     Optional. Array or string of arguments to generate a drop-down of users.
+ *     {@see WP_User_Query::prepare_query() for additional available arguments.
  *
- * @param string|array $args Optional. Array of user arguments.
+ *     @type string       $show_option_all         Text to show as the drop-down default (all).
+ *                                                 Default empty.
+ *     @type string       $show_option_none        Text to show as the drop-down default when no
+ *                                                 users were found. Default empty.
+ *     @type int|string   $option_none_value       Value to use for $show_option_non when no users
+ *                                                 were found. Default -1.
+ *     @type string       $hide_if_only_one_author Whether to skip generating the drop-down
+ *                                                 if only one user was found. Default empty.
+ *     @type string       $orderby                 Field to order found users by. Accepts user fields.
+ *                                                 Default 'display_name'.
+ *     @type string       $order                   Whether to order users in ascending or descending
+ *                                                 order. Accepts 'ASC' (ascending) or 'DESC' (descending).
+ *                                                 Default 'ASC'.
+ *     @type array|string $include                 Array or comma-separated list of user IDs to include.
+ *                                                 Default empty.
+ *     @type array|string $exclude                 Array or comma-separated list of user IDs to exclude.
+ *                                                 Default empty.
+ *     @type bool|int     $multi                   Whether to skip the ID attribute on the 'select' element.
+ *                                                 Accepts 1|true or 0|false. Default 0|false.
+ *     @type string       $show                    User table column to display. If the selected item is empty
+ *                                                 then the 'user_login' will be displayed in parentheses.
+ *                                                 Accepts user fields. Default 'display_name'.
+ *     @type int|bool     $echo                    Whether to echo or return the drop-down. Accepts 1|true (echo)
+ *                                                 or 0|false (return). Default 1|true.
+ *     @type int          $selected                Which user ID should be selected. Default 0.
+ *     @type bool         $include_selected        Whether to always include the selected user ID in the drop-
+ *                                                 down. Default false.
+ *     @type string       $name                    Name attribute of select element. Default 'user'.
+ *     @type string       $id                      ID attribute of the select element. Default is the value of $name.
+ *     @type string       $class                   Class attribute of the select element. Default empty.
+ *     @type int          $blog_id                 ID of blog (Multisite only). Default is ID of the current blog.
+ *     @type string       $who                     Which type of users to query. Accepts only an empty string or
+ *                                                 'authors'. Default empty.
+ * }
  * @return string|null Null on display. String of HTML content on retrieve.
  */
 function wp_dropdown_users( $args = '' ) {
@@ -1228,51 +1326,57 @@ function wp_dropdown_users( $args = '' ) {
 		'include' => '', 'exclude' => '', 'multi' => 0,
 		'show' => 'display_name', 'echo' => 1,
 		'selected' => 0, 'name' => 'user', 'class' => '', 'id' => '',
-		'blog_id' => $GLOBALS['blog_id'], 'who' => '', 'include_selected' => false
+		'blog_id' => $GLOBALS['blog_id'], 'who' => '', 'include_selected' => false,
+		'option_none_value' => -1
 	);
 
 	$defaults['selected'] = is_author() ? get_query_var( 'author' ) : 0;
 
 	$r = wp_parse_args( $args, $defaults );
-	extract( $r, EXTR_SKIP );
+	$show = $r['show'];
+	$show_option_all = $r['show_option_all'];
+	$show_option_none = $r['show_option_none'];
+	$option_none_value = $r['option_none_value'];
 
 	$query_args = wp_array_slice_assoc( $r, array( 'blog_id', 'include', 'exclude', 'orderby', 'order', 'who' ) );
 	$query_args['fields'] = array( 'ID', 'user_login', $show );
 	$users = get_users( $query_args );
 
 	$output = '';
-	if ( !empty($users) && ( empty($hide_if_only_one_author) || count($users) > 1 ) ) {
-		$name = esc_attr( $name );
-		if ( $multi && ! $id )
+	if ( ! empty( $users ) && ( empty( $r['hide_if_only_one_author'] ) || count( $users ) > 1 ) ) {
+		$name = esc_attr( $r['name'] );
+		if ( $r['multi'] && ! $r['id'] ) {
 			$id = '';
-		else
-			$id = $id ? " id='" . esc_attr( $id ) . "'" : " id='$name'";
+		} else {
+			$id = $r['id'] ? " id='" . esc_attr( $r['id'] ) . "'" : " id='$name'";
+		}
+		$output = "<select name='{$name}'{$id} class='" . $r['class'] . "'>\n";
 
-		$output = "<select name='{$name}'{$id} class='$class'>\n";
-
-		if ( $show_option_all )
+		if ( $show_option_all ) {
 			$output .= "\t<option value='0'>$show_option_all</option>\n";
+		}
 
 		if ( $show_option_none ) {
-			$_selected = selected( -1, $selected, false );
-			$output .= "\t<option value='-1'$_selected>$show_option_none</option>\n";
+			$_selected = selected( $option_none_value, $r['selected'], false );
+			$output .= "\t<option value='" . esc_attr( $option_none_value ) . "'$_selected>$show_option_none</option>\n";
 		}
 
 		$found_selected = false;
 		foreach ( (array) $users as $user ) {
 			$user->ID = (int) $user->ID;
-			$_selected = selected( $user->ID, $selected, false );
-			if ( $_selected )
+			$_selected = selected( $user->ID, $r['selected'], false );
+			if ( $_selected ) {
 				$found_selected = true;
-			$display = !empty($user->$show) ? $user->$show : '('. $user->user_login . ')';
-			$output .= "\t<option value='$user->ID'$_selected>" . esc_html($display) . "</option>\n";
+			}
+			$display = ! empty( $user->$show ) ? $user->$show : '('. $user->user_login . ')';
+			$output .= "\t<option value='$user->ID'$_selected>" . esc_html( $display ) . "</option>\n";
 		}
 
-		if ( $include_selected && ! $found_selected && ( $selected > 0 ) ) {
-			$user = get_userdata( $selected );
-			$_selected = selected( $user->ID, $selected, false );
-			$display = !empty($user->$show) ? $user->$show : '('. $user->user_login . ')';
-			$output .= "\t<option value='$user->ID'$_selected>" . esc_html($display) . "</option>\n";
+		if ( $r['include_selected'] && ! $found_selected && ( $r['selected'] > 0 ) ) {
+			$user = get_userdata( $r['selected'] );
+			$_selected = selected( $user->ID, $r['selected'], false );
+			$display = ! empty( $user->$show ) ? $user->$show : '('. $user->user_login . ')';
+			$output .= "\t<option value='$user->ID'$_selected>" . esc_html( $display ) . "</option>\n";
 		}
 
 		$output .= "</select>";
@@ -1285,12 +1389,12 @@ function wp_dropdown_users( $args = '' ) {
 	 *
 	 * @param string $output HTML output generated by wp_dropdown_users().
 	 */
-	$output = apply_filters( 'wp_dropdown_users', $output );
+	$html = apply_filters( 'wp_dropdown_users', $output );
 
-	if ( $echo )
-		echo $output;
-
-	return $output;
+	if ( $r['echo'] ) {
+		echo $html;
+	}
+	return $html;
 }
 
 /**
@@ -1497,59 +1601,60 @@ function validate_username( $username ) {
  * by the field name. An example using 'description' would have the filter
  * called, 'pre_user_description' that can be hooked into.
  *
- * The $userdata array can contain the following fields:
- * 'ID' - An integer that will be used for updating an existing user.
- * 'user_pass' - A string that contains the plain text password for the user.
- * 'user_login' - A string that contains the user's username for logging in.
- * 'user_nicename' - A string that contains a URL-friendly name for the user.
- *		The default is the user's username.
- * 'user_url' - A string containing the user's URL for the user's web site.
- * 'user_email' - A string containing the user's email address.
- * 'display_name' - A string that will be shown on the site. Defaults to user's
- *		username. It is likely that you will want to change this, for appearance.
- * 'nickname' - The user's nickname, defaults to the user's username.
- * 'first_name' - The user's first name.
- * 'last_name' - The user's last name.
- * 'description' - A string containing content about the user.
- * 'rich_editing' - A string for whether to enable the rich editor. False
- *		if not empty.
- * 'user_registered' - The date the user registered. Format is 'Y-m-d H:i:s'.
- * 'role' - A string used to set the user's role.
- * 'jabber' - User's Jabber account.
- * 'aim' - User's AOL IM account.
- * 'yim' - User's Yahoo IM account.
- *
  * @since 2.0.0
  *
  * @global wpdb $wpdb WordPress database object for queries.
  *
- * @todo Hash-notate arguments array.
+ * @param array $userdata {
+ *     An array, object, or WP_User object of user data arguments.
  *
- * @param mixed $userdata An array of user data or a user object of type stdClass or WP_User.
- * @return int|WP_Error The newly created user's ID or a WP_Error object if the user could not be created.
+ *     @type int         $ID              User ID. If supplied, the user will be updated.
+ *     @type string      $user_pass       The plain-text user password.
+ *     @type string      $user_login      The user's login username.
+ *     @type string      $user_nicename   The URL-friendly user name.
+ *     @type string      $user_url        The user URL.
+ *     @type string      $user_email      The user email address.
+ *     @type string      $display_name    The user's display name.
+ *                                        Default is the the user's username.
+ *     @type string      $nickname        The user's nickname. Default
+ *                                        Default is the the user's username.
+ *     @type string      $first_name      The user's first name. For new users, will be used
+ *                                        to build $display_name if unspecified.
+ *     @type stirng      $last_name       The user's last name. For new users, will be used
+ *                                        to build $display_name if unspecified.
+ *     @type string|bool $rich_editing    Whether to enable the rich-editor for the user. False
+ *                                        if not empty.
+ *     @type string      $date_registered Date the user registered. Format is 'Y-m-d H:i:s'.
+ *     @type string      $role            User's role.
+ *     @type string      $jabber          User's Jabber account username.
+ *     @type string      $aim             User's AIM account username.
+ *     @type string      $yim             User's Yahoo! messenger username.
+ * }
+ * @return int|WP_Error The newly created user's ID or a WP_Error object if the user could not
+ *                      be created.
  */
 function wp_insert_user( $userdata ) {
 	global $wpdb;
 
-	if ( is_a( $userdata, 'stdClass' ) )
+	if ( is_a( $userdata, 'stdClass' ) ) {
 		$userdata = get_object_vars( $userdata );
-	elseif ( is_a( $userdata, 'WP_User' ) )
+	} elseif ( is_a( $userdata, 'WP_User' ) ) {
 		$userdata = $userdata->to_array();
-
-	extract( $userdata, EXTR_SKIP );
-
+	}
 	// Are we updating or creating?
-	if ( !empty($ID) ) {
-		$ID = (int) $ID;
+	if ( ! empty( $userdata['ID'] ) ) {
+		$ID = (int) $userdata['ID'];
 		$update = true;
 		$old_user_data = WP_User::get_data_by( 'id', $ID );
+		// hashed in wp_update_user(), plaintext if called directly
+		$user_pass = $userdata['user_pass'];
 	} else {
 		$update = false;
 		// Hash the password
-		$user_pass = wp_hash_password($user_pass);
+		$user_pass = wp_hash_password( $userdata['user_pass'] );
 	}
 
-	$user_login = sanitize_user($user_login, true);
+	$sanitized_user_login = sanitize_user( $userdata['user_login'], true );
 
 	/**
 	 * Filter a username after it has been sanitized.
@@ -1558,21 +1663,27 @@ function wp_insert_user( $userdata ) {
 	 *
 	 * @since 2.0.3
 	 *
-	 * @param string $user_login Username after it has been sanitized.
+	 * @param string $sanitized_user_login Username after it has been sanitized.
 	 */
-	$user_login = apply_filters( 'pre_user_login', $user_login );
+	$pre_user_login = apply_filters( 'pre_user_login', $sanitized_user_login );
 
 	//Remove any non-printable chars from the login string to see if we have ended up with an empty username
-	$user_login = trim($user_login);
+	$user_login = trim( $pre_user_login );
 
-	if ( empty($user_login) )
+	if ( empty( $user_login ) ) {
 		return new WP_Error('empty_user_login', __('Cannot create a user with an empty login name.') );
-
-	if ( !$update && username_exists( $user_login ) )
+	}
+	if ( ! $update && username_exists( $user_login ) ) {
 		return new WP_Error( 'existing_user_login', __( 'Sorry, that username already exists!' ) );
-
-	if ( empty($user_nicename) )
+	}
+	if ( empty( $userdata['user_nicename'] ) ) {
 		$user_nicename = sanitize_title( $user_login );
+	} else {
+		$user_nicename = $userdata['user_nicename'];
+	}
+
+	// Store values to save in user meta.
+	$meta = array();
 
 	/**
 	 * Filter a user's nicename before the user is created or updated.
@@ -1583,35 +1694,32 @@ function wp_insert_user( $userdata ) {
 	 */
 	$user_nicename = apply_filters( 'pre_user_nicename', $user_nicename );
 
-	if ( empty($user_url) )
-		$user_url = '';
+	$raw_user_url = empty( $userdata['user_url'] ) ? '' : $userdata['user_url'];
 
 	/**
 	 * Filter a user's URL before the user is created or updated.
 	 *
 	 * @since 2.0.3
 	 *
-	 * @param string $user_url The user's URL.
+	 * @param string $raw_user_url The user's URL.
 	 */
-	$user_url = apply_filters( 'pre_user_url', $user_url );
+	$user_url = apply_filters( 'pre_user_url', $raw_user_url );
 
-	if ( empty($user_email) )
-		$user_email = '';
+	$raw_user_email = empty( $userdata['user_email'] ) ? '' : $userdata['user_email'];
 
 	/**
 	 * Filter a user's email before the user is created or updated.
 	 *
 	 * @since 2.0.3
 	 *
-	 * @param string $user_email The user's email.
+	 * @param string $raw_user_email The user's email.
 	 */
-	$user_email = apply_filters( 'pre_user_email', $user_email );
+	$user_email = apply_filters( 'pre_user_email', $raw_user_email );
 
-	if ( !$update && ! defined( 'WP_IMPORTING' ) && email_exists($user_email) )
+	if ( ! $update && ! defined( 'WP_IMPORTING' ) && email_exists( $user_email ) ) {
 		return new WP_Error( 'existing_user_email', __( 'Sorry, that email address is already used!' ) );
-
-	if ( empty($nickname) )
-		$nickname = $user_login;
+	}
+	$nickname = empty( $userdata['nickname'] ) ? $user_login : $userdata['nickname'];
 
 	/**
 	 * Filter a user's nickname before the user is created or updated.
@@ -1620,10 +1728,9 @@ function wp_insert_user( $userdata ) {
 	 *
 	 * @param string $nickname The user's nickname.
 	 */
-	$nickname = apply_filters( 'pre_user_nickname', $nickname );
+	$meta['nickname'] = apply_filters( 'pre_user_nickname', $nickname );
 
-	if ( empty($first_name) )
-		$first_name = '';
+	$first_name = empty( $userdata['first_name'] ) ? '' : $userdata['first_name'];
 
 	/**
 	 * Filter a user's first name before the user is created or updated.
@@ -1632,10 +1739,9 @@ function wp_insert_user( $userdata ) {
 	 *
 	 * @param string $first_name The user's first name.
 	 */
-	$first_name = apply_filters( 'pre_user_first_name', $first_name );
+	$meta['first_name'] = apply_filters( 'pre_user_first_name', $first_name );
 
-	if ( empty($last_name) )
-		$last_name = '';
+	$last_name = empty( $userdata['last_name'] ) ? '' : $userdata['last_name'];
 
 	/**
 	 * Filter a user's last name before the user is created or updated.
@@ -1644,20 +1750,23 @@ function wp_insert_user( $userdata ) {
 	 *
 	 * @param string $last_name The user's last name.
 	 */
-	$last_name = apply_filters( 'pre_user_last_name', $last_name );
+	$meta['last_name'] = apply_filters( 'pre_user_last_name', $last_name );
 
-	if ( empty( $display_name ) ) {
-		if ( $update )
+	if ( empty( $userdata['display_name'] ) ) {
+		if ( $update ) {
 			$display_name = $user_login;
-		elseif ( $first_name && $last_name )
+		} elseif ( $meta['first_name'] && $meta['last_name'] ) {
 			/* translators: 1: first name, 2: last name */
-			$display_name = sprintf( _x( '%1$s %2$s', 'Display name based on first name and last name' ), $first_name, $last_name );
-		elseif ( $first_name )
-			$display_name = $first_name;
-		elseif ( $last_name )
-			$display_name = $last_name;
-		else
+			$display_name = sprintf( _x( '%1$s %2$s', 'Display name based on first name and last name' ), $meta['first_name'], $meta['last_name'] );
+		} elseif ( $meta['first_name'] ) {
+			$display_name = $meta['first_name'];
+		} elseif ( $meta['last_name'] ) {
+			$display_name = $meta['last_name'];
+		} else {
 			$display_name = $user_login;
+		}
+	} else {
+		$display_name = $userdata['display_name'];
 	}
 
 	/**
@@ -1669,8 +1778,7 @@ function wp_insert_user( $userdata ) {
 	 */
 	$display_name = apply_filters( 'pre_user_display_name', $display_name );
 
-	if ( empty($description) )
-		$description = '';
+	$description = empty( $userdata['description'] ) ? '' : $userdata['description'];
 
 	/**
 	 * Filter a user's description before the user is created or updated.
@@ -1679,26 +1787,20 @@ function wp_insert_user( $userdata ) {
 	 *
 	 * @param string $description The user's description.
 	 */
-	$description = apply_filters( 'pre_user_description', $description );
+	$meta['description'] = apply_filters( 'pre_user_description', $description );
 
-	if ( empty($rich_editing) )
-		$rich_editing = 'true';
+	$meta['rich_editing'] = empty( $userdata['rich_editing'] ) ? 'true' : $userdata['rich_editing'];
 
-	if ( empty($comment_shortcuts) )
-		$comment_shortcuts = 'false';
+	$meta['comment_shortcuts'] = empty( $userdata['comment_shortcuts'] ) ? 'false' : $userdata['comment_shortcuts'];
 
-	if ( empty($admin_color) )
-		$admin_color = 'fresh';
-	$admin_color = preg_replace('|[^a-z0-9 _.\-@]|i', '', $admin_color);
+	$admin_color = empty( $userdata['admin_color'] ) ? 'fresh' : $userdata['admin_color'];
+	$meta['admin_color'] = preg_replace( '|[^a-z0-9 _.\-@]|i', '', $admin_color );
 
-	if ( empty($use_ssl) )
-		$use_ssl = 0;
+	$meta['use_ssl'] = empty( $userdata['use_ssl'] ) ? 0 : $userdata['use_ssl'];
 
-	if ( empty($user_registered) )
-		$user_registered = gmdate('Y-m-d H:i:s');
+	$user_registered = empty( $userdata['user_registered'] ) ? gmdate( 'Y-m-d H:i:s' ) : $userdata['user_registered'];
 
-	if ( empty($show_admin_bar_front) )
-		$show_admin_bar_front = 'true';
+	$meta['show_admin_bar_front'] = empty( $userdata['show_admin_bar_front'] ) ? 'true' : $userdata['show_admin_bar_front'];
 
 	$user_nicename_check = $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->users WHERE user_nicename = %s AND user_login != %s LIMIT 1" , $user_nicename, $user_login));
 
@@ -1712,8 +1814,8 @@ function wp_insert_user( $userdata ) {
 		$user_nicename = $alt_user_nicename;
 	}
 
-	$data = compact( 'user_pass', 'user_email', 'user_url', 'user_nicename', 'display_name', 'user_registered' );
-	$data = wp_unslash( $data );
+	$compacted = compact( 'user_pass', 'user_email', 'user_url', 'user_nicename', 'display_name', 'user_registered' );
+	$data = wp_unslash( $compacted );
 
 	if ( $update ) {
 		$wpdb->update( $wpdb->users, $data, compact( 'ID' ) );
@@ -1725,18 +1827,24 @@ function wp_insert_user( $userdata ) {
 
 	$user = new WP_User( $user_id );
 
-	foreach ( _get_additional_user_keys( $user ) as $key ) {
-		if ( isset( $$key ) )
-			update_user_meta( $user_id, $key, $$key );
+	// Update user meta.
+	foreach ( $meta as $key => $value ) {
+		update_user_meta( $user_id, $key, $value );
 	}
 
-	if ( isset($role) )
-		$user->set_role($role);
-	elseif ( !$update )
-		$user->set_role(get_option('default_role'));
+	foreach ( wp_get_user_contact_methods( $user ) as $key => $value ) {
+		if ( isset( $userdata[ $key ] ) ) {
+			update_user_meta( $user_id, $key, $userdata[ $key ] );
+		}
+	}
 
-	wp_cache_delete($user_id, 'users');
-	wp_cache_delete($user_login, 'userlogins');
+	if ( isset( $userdata['role'] ) ) {
+		$user->set_role( $userdata['role'] );
+	} elseif ( ! $update ) {
+		$user->set_role(get_option('default_role'));
+	}
+	wp_cache_delete( $user_id, 'users' );
+	wp_cache_delete( $user_login, 'userlogins' );
 
 	if ( $update ) {
 		/**
@@ -1818,7 +1926,15 @@ function wp_update_user($userdata) {
 	if ( $current_user->ID == $ID ) {
 		if ( isset($plaintext_pass) ) {
 			wp_clear_auth_cookie();
-			wp_set_auth_cookie($ID);
+
+			// Here we calculate the expiration length of the current auth cookie and compare it to the default expiration.
+			// If it's greater than this, then we know the user checked 'Remember Me' when they logged in.
+			$logged_in_cookie    = wp_parse_auth_cookie( '', 'logged_in' );
+			/** This filter is documented in wp-includes/pluggable.php */
+			$default_cookie_life = apply_filters( 'auth_cookie_expiration', ( 2 * DAY_IN_SECONDS ), $ID, false );
+			$remember            = ( ( $logged_in_cookie['expiration'] - time() ) > $default_cookie_life );
+
+			wp_set_auth_cookie( $ID, $remember );
 		}
 	}
 
@@ -1933,7 +2049,7 @@ function check_password_reset_key($key, $login) {
 		return new WP_Error('invalid_key', __('Invalid key'));
 
 	if ( empty( $wp_hasher ) ) {
-		require_once ABSPATH . 'wp-includes/class-phpass.php';
+		require_once ABSPATH . WPINC . '/class-phpass.php';
 		$wp_hasher = new PasswordHash( 8, true );
 	}
 
@@ -2069,4 +2185,63 @@ function register_new_user( $user_login, $user_email ) {
 	wp_new_user_notification( $user_id, $user_pass );
 
 	return $user_id;
+}
+
+/**
+ * Retrieve the current session token from the logged_in cookie.
+ *
+ * @since 4.0.0
+ *
+ * @return string Token.
+ */
+function wp_get_session_token() {
+	$cookie = wp_parse_auth_cookie( '', 'logged_in' );
+	return ! empty( $cookie['token'] ) ? $cookie['token'] : '';
+}
+
+/**
+ * Retrieve a list of sessions for the current user.
+ *
+ * @since 4.0.0
+ * @return array Array of sessions.
+ */
+function wp_get_all_sessions() {
+	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+	return $manager->get_all();
+}
+
+/**
+ * Remove the current session token from the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_current_session() {
+	$token = wp_get_session_token();
+	if ( $token ) {
+		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+		$manager->destroy( $token );
+	}
+}
+
+/**
+ * Remove all but the current session token for the current user for the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_other_sessions() {
+	$token = wp_get_session_token();
+	if ( $token ) {
+		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+		$manager->destroy_others( $token );
+	}
+}
+
+/**
+ * Remove all session tokens for the current user from the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_all_sessions() {
+	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+	$manager->destroy_all();
 }

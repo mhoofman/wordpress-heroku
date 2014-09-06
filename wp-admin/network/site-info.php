@@ -42,6 +42,7 @@ $details = get_blog_details( $id );
 if ( !can_edit_network( $details->site_id ) )
 	wp_die( __( 'You do not have permission to access this page.' ) );
 
+$parsed = parse_url( $details->siteurl );
 $is_main_site = is_main_site( $id );
 
 if ( isset($_REQUEST['action']) && 'update-site' == $_REQUEST['action'] ) {
@@ -58,10 +59,10 @@ if ( isset($_REQUEST['action']) && 'update-site' == $_REQUEST['action'] ) {
 			update_option( 'home', $blog_address );
 	}
 
-	// rewrite rules can't be flushed during switch to blog
+	// Rewrite rules can't be flushed during switch to blog.
 	delete_option( 'rewrite_rules' );
 
-	// update blogs table
+	// Update blogs table.
 	$blog_data = wp_unslash( $_POST['blog'] );
 	$existing_details = get_blog_details( $id, false );
 	$blog_data_checkboxes = array( 'public', 'archived', 'spam', 'mature', 'deleted' );
@@ -122,12 +123,10 @@ if ( ! empty( $messages ) ) {
 	<table class="form-table">
 		<tr class="form-field form-required">
 			<th scope="row"><?php _e( 'Domain' ) ?></th>
-			<?php
-			$protocol = is_ssl() ? 'https://' : 'http://';
-			if ( $is_main_site ) { ?>
-			<td><code><?php echo $protocol; echo esc_attr( $details->domain ) ?></code></td>
+			<?php if ( $is_main_site ) { ?>
+				<td><code><?php echo $parsed['scheme'] . '://' . esc_attr( $details->domain ) ?></code></td>
 			<?php } else { ?>
-			<td><?php echo $protocol; ?><input name="blog[domain]" type="text" id="domain" value="<?php echo esc_attr( $details->domain ) ?>" size="33" /></td>
+				<td><?php echo $parsed['scheme'] . '://'; ?><input name="blog[domain]" type="text" id="domain" value="<?php echo esc_attr( $details->domain ) ?>" size="33" /></td>
 			<?php } ?>
 		</tr>
 		<tr class="form-field form-required">
@@ -138,7 +137,7 @@ if ( ! empty( $messages ) ) {
 			} else {
 				switch_to_blog( $id );
 			?>
-			<td><input name="blog[path]" type="text" id="path" value="<?php echo esc_attr( $details->path ) ?>" size="40" style='margin-bottom:5px;' />
+			<td><input name="blog[path]" type="text" id="path" value="<?php echo esc_attr( $details->path ) ?>" size="40" style="margin-bottom:5px;" />
 			<br /><input type="checkbox" style="width:20px;" name="update_home_url" value="update" <?php if ( get_option( 'siteurl' ) == untrailingslashit( get_blogaddress_by_id ($id ) ) || get_option( 'home' ) == untrailingslashit( get_blogaddress_by_id( $id ) ) ) echo 'checked="checked"'; ?> /> <?php _e( 'Update <code>siteurl</code> and <code>home</code> as well.' ); ?></td>
 			<?php
 				restore_current_blog();

@@ -62,7 +62,20 @@ final class _WP_Editors {
 	 * @return array Parsed arguments array.
 	 */
 	public static function parse_settings( $editor_id, $settings ) {
-		$set = wp_parse_args( $settings,  array(
+
+		/**
+		 * Filter the wp_editor() settings.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @see _WP_Editors()::parse_settings()
+		 *
+		 * @param array  $settings  Array of editor arguments.
+		 * @param string $editor_id ID for the current editor instance.
+		 */
+		$settings = apply_filters( 'wp_editor_settings', $settings, $editor_id );
+
+		$set = wp_parse_args( $settings, array(
 			'wpautop'           => true,
 			'media_buttons'     => true,
 			'default_editor'    => '',
@@ -99,7 +112,7 @@ final class _WP_Editors {
 		if ( empty( $set['editor_height'] ) )
 			return $set;
 
-		if ( 'content' === $editor_id ) {
+		if ( 'content' === $editor_id && empty( $set['tinymce']['wp_autoresize_on'] ) ) {
 			// A cookie (set when a user resizes the editor) overrides the height.
 			$cookie = (int) get_user_setting( 'ed_size' );
 
@@ -303,7 +316,7 @@ final class _WP_Editors {
 					 * @param array  $plugins   An array of teenyMCE plugins.
 					 * @param string $editor_id Unique editor identifier, e.g. 'content'.
 					 */
-					self::$plugins = $plugins = apply_filters( 'teeny_mce_plugins', array( 'fullscreen', 'image', 'wordpress', 'wpeditimage', 'wplink' ), $editor_id );
+					self::$plugins = $plugins = apply_filters( 'teeny_mce_plugins', array( 'colorpicker', 'lists', 'fullscreen', 'image', 'wordpress', 'wpeditimage', 'wplink' ), $editor_id );
 				} else {
 
 					/**
@@ -327,13 +340,16 @@ final class _WP_Editors {
 
 					$plugins = array(
 						'charmap',
+						'colorpicker',
 						'hr',
+						'lists',
 						'media',
 						'paste',
 						'tabfocus',
 						'textcolor',
 						'fullscreen',
 						'wordpress',
+						'wpautoresize',
 						'wpeditimage',
 						'wpgallery',
 						'wplink',
@@ -473,7 +489,6 @@ final class _WP_Editors {
 					'entities' => '38,amp,60,lt,62,gt',
 					'entity_encoding' => 'raw',
 					'keep_styles' => false,
-					'paste_webkit_styles' => 'font-weight font-style color',
 
 					// Limit the preview styles in the menu/toolbar
 					'preview_styles' => 'font-family font-size font-weight font-style text-decoration text-transform',
@@ -490,47 +505,17 @@ final class _WP_Editors {
 				$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 				$version = 'ver=' . $GLOBALS['wp_version'];
 				$dashicons = includes_url( "css/dashicons$suffix.css?$version" );
-				$mediaelement = includes_url( "js/mediaelement/mediaelementplayer.min.css?$version" );
-				$wpmediaelement = includes_url( "js/mediaelement/wp-mediaelement.css?$version" );
 
 				// WordPress default stylesheet and dashicons
 				$mce_css = array(
 					$dashicons,
-					$mediaelement,
-					$wpmediaelement,
 					self::$baseurl . '/skins/wordpress/wp-content.css?' . $version
 				);
 
-				// load editor_style.css if the current theme supports it
-				if ( ! empty( $GLOBALS['editor_styles'] ) && is_array( $GLOBALS['editor_styles'] ) ) {
-					$editor_styles = $GLOBALS['editor_styles'];
-
-					$editor_styles = array_unique( array_filter( $editor_styles ) );
-					$style_uri = get_stylesheet_directory_uri();
-					$style_dir = get_stylesheet_directory();
-
-					// Support externally referenced styles (like, say, fonts).
-					foreach ( $editor_styles as $key => $file ) {
-						if ( preg_match( '~^(https?:)?//~', $file ) ) {
-							$mce_css[] = esc_url_raw( $file );
-							unset( $editor_styles[ $key ] );
-						}
-					}
-
-					// Look in a parent theme first, that way child theme CSS overrides.
-					if ( is_child_theme() ) {
-						$template_uri = get_template_directory_uri();
-						$template_dir = get_template_directory();
-
-						foreach ( $editor_styles as $key => $file ) {
-							if ( $file && file_exists( "$template_dir/$file" ) )
-								$mce_css[] = "$template_uri/$file";
-						}
-					}
-
-					foreach ( $editor_styles as $file ) {
-						if ( $file && file_exists( "$style_dir/$file" ) )
-							$mce_css[] = "$style_uri/$file";
+				$editor_styles = get_editor_stylesheets();
+				if ( ! empty( $editor_styles ) ) {
+					foreach ( $editor_styles as $style ) {
+						$mce_css[] = $style;
 					}
 				}
 
@@ -944,7 +929,7 @@ final class _WP_Editors {
 			'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.' => __( 'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.' ) . "\n\n" . __( 'If you&#8217;re looking to paste rich content from Microsoft Word, try turning this option off. The editor will clean up text pasted from Word automatically.' ),
 			'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help' => __( 'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help' ),
 			'You have unsaved changes are you sure you want to navigate away?' => __( 'The changes you made will be lost if you navigate away from this page.' ),
-			'Your browser doesn\'t support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.' => __( 'Your browser does not support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.' ),
+			'Your browser doesn\'t support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.' => __( 'Your browser does not support direct access to the clipboard. Please use keyboard shortcuts or your browser&#8217;s edit menu instead.' ),
 
 			// TinyMCE menus
 			'Insert' => _x( 'Insert', 'TinyMCE menu' ),
@@ -959,6 +944,7 @@ final class _WP_Editors {
 			'Keyboard Shortcuts' => __( 'Keyboard Shortcuts' ),
 			'Toolbar Toggle' => __( 'Toolbar Toggle' ),
 			'Insert Read More tag' => __( 'Insert Read More tag' ),
+			'Read more...' => __( 'Read more...' ), // Title on the placeholder inside the editor
 			'Distraction Free Writing' => __( 'Distraction Free Writing' ),
 		);
 
@@ -1390,7 +1376,7 @@ final class _WP_Editors {
 		<?php wp_nonce_field( 'internal-linking', '_ajax_linking_nonce', false ); ?>
 		<div id="link-modal-title">
 			<?php _e( 'Insert/edit link' ) ?>
-			<div id="wp-link-close" tabindex="0"></div>
+			<button type="button" id="wp-link-close"><span class="screen-reader-text"><?php _e( 'Close' ); ?></span></button>
 	 	</div>
 		<div id="link-selector">
 			<div id="link-options">
@@ -1405,7 +1391,7 @@ final class _WP_Editors {
 					<label><span>&nbsp;</span><input type="checkbox" id="link-target-checkbox" /> <?php _e( 'Open link in a new window/tab' ); ?></label>
 				</div>
 			</div>
-			<p class="howto" id="wp-link-search-toggle"><?php _e( 'Or link to existing content' ); ?></p>
+			<p class="howto"><a href="#" id="wp-link-search-toggle"><?php _e( 'Or link to existing content' ); ?></a></p>
 			<div id="search-panel">
 				<div class="link-search-wrapper">
 					<label>
@@ -1414,14 +1400,17 @@ final class _WP_Editors {
 						<span class="spinner"></span>
 					</label>
 				</div>
-				<div id="search-results" class="query-results">
+				<div id="search-results" class="query-results" tabindex="0">
 					<ul></ul>
 					<div class="river-waiting">
 						<span class="spinner"></span>
 					</div>
 				</div>
-				<div id="most-recent-results" class="query-results">
-					<div class="query-notice"><em><?php _e( 'No search term specified. Showing recent items.' ); ?></em></div>
+				<div id="most-recent-results" class="query-results" tabindex="0">
+					<div class="query-notice" id="query-notice-message">
+						<em class="query-notice-default"><?php _e( 'No search term specified. Showing recent items.' ); ?></em>
+						<em class="query-notice-hint screen-reader-text"><?php _e( 'Search or use up and down arrow keys to select an item.' ); ?></em>
+					</div>
 					<ul></ul>
 					<div class="river-waiting">
 						<span class="spinner"></span>
@@ -1430,11 +1419,11 @@ final class _WP_Editors {
 			</div>
 		</div>
 		<div class="submitbox">
-			<div id="wp-link-update">
-				<input type="submit" value="<?php esc_attr_e( 'Add Link' ); ?>" class="button button-primary" id="wp-link-submit" name="wp-link-submit">
-			</div>
 			<div id="wp-link-cancel">
 				<a class="submitdelete deletion" href="#"><?php _e( 'Cancel' ); ?></a>
+			</div>
+			<div id="wp-link-update">
+				<input type="submit" value="<?php esc_attr_e( 'Add Link' ); ?>" class="button button-primary" id="wp-link-submit" name="wp-link-submit">
 			</div>
 		</div>
 		</form>

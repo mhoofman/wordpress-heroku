@@ -92,7 +92,7 @@ function ms_site_check() {
 		if ( file_exists( WP_CONTENT_DIR . '/blog-deleted.php' ) )
 			return WP_CONTENT_DIR . '/blog-deleted.php';
 		else
-			wp_die( __( 'This user has elected to delete their account and the content is no longer available.' ), '', array( 'response' => 410 ) );
+			wp_die( __( 'This site is no longer available.' ), '', array( 'response' => 410 ) );
 	}
 
 	if ( '2' == $blog->deleted ) {
@@ -125,7 +125,7 @@ function ms_site_check() {
 function get_network_by_path( $domain, $path, $segments = null ) {
 	global $wpdb;
 
-	$domains = $exact_domains = array( $domain );
+	$domains = array( $domain );
 	$pieces = explode( '.', $domain );
 
 	/*
@@ -397,14 +397,17 @@ function ms_not_installed() {
 
 	$title = __( 'Error establishing a database connection' );
 	$msg  = '<h1>' . $title . '</h1>';
-	if ( ! is_admin() )
+	if ( ! is_admin() ) {
 		die( $msg );
+	}
 	$msg .= '<p>' . __( 'If your site does not display, please contact the owner of this network.' ) . '';
 	$msg .= ' ' . __( 'If you are the owner of this network please check that MySQL is running properly and all tables are error free.' ) . '</p>';
-	if ( ! $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->site'" ) )
+	$query = $wpdb->prepare( "SHOW TABLES LIKE %s", $wpdb->esc_like( $wpdb->site ) );
+	if ( ! $wpdb->get_var( $query ) ) {
 		$msg .= '<p>' . sprintf( __( '<strong>Database tables are missing.</strong> This means that MySQL is not running, WordPress was not installed properly, or someone deleted <code>%s</code>. You really should look at your database now.' ), $wpdb->site ) . '</p>';
-	else
+	} else {
 		$msg .= '<p>' . sprintf( __( '<strong>Could not find site <code>%1$s</code>.</strong> Searched for table <code>%2$s</code> in database <code>%3$s</code>. Is that right?' ), rtrim( $domain . $path, '/' ), $wpdb->blogs, DB_NAME ) . '</p>';
+	}
 	$msg .= '<p><strong>' . __( 'What do I do now?' ) . '</strong> ';
 	$msg .= __( 'Read the <a target="_blank" href="http://codex.wordpress.org/Debugging_a_WordPress_Network">bug report</a> page. Some of the guidelines there may help you figure out what went wrong.' );
 	$msg .= ' ' . __( 'If you&#8217;re still stuck with this message, then check that your database contains the following tables:' ) . '</p><ul>';
@@ -426,13 +429,13 @@ function ms_not_installed() {
  *
  * @access private
  * @since 3.0.0
- * @deprecated 3.9.0
+ * @deprecated 3.9.0 Use get_current_site() instead.
  *
  * @param object $current_site
  * @return object
  */
 function get_current_site_name( $current_site ) {
-	_deprecated_function( __FUNCTION__, '3.9' );
+	_deprecated_function( __FUNCTION__, '3.9', 'get_current_site()' );
 	return $current_site;
 }
 

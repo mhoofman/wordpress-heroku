@@ -22,7 +22,7 @@ class Custom_Image_Header {
 	 * @since 2.1.0
 	 * @access private
 	 */
-	var $admin_header_callback;
+	private $admin_header_callback;
 
 	/**
 	 * Callback for header div.
@@ -31,7 +31,7 @@ class Custom_Image_Header {
 	 * @since 3.0.0
 	 * @access private
 	 */
-	var $admin_image_div_callback;
+	private $admin_image_div_callback;
 
 	/**
 	 * Holds default headers.
@@ -40,7 +40,7 @@ class Custom_Image_Header {
 	 * @since 3.0.0
 	 * @access private
 	 */
-	var $default_headers = array();
+	private $default_headers = array();
 
 	/**
 	 * Holds custom headers uploaded by the user.
@@ -49,7 +49,7 @@ class Custom_Image_Header {
 	 * @since 3.2.0
 	 * @access private
 	 */
-	var $uploaded_headers = array();
+	private $uploaded_headers = array();
 
 	/**
 	 * Holds the page menu hook.
@@ -58,7 +58,7 @@ class Custom_Image_Header {
 	 * @since 3.0.0
 	 * @access private
 	 */
-	var $page = '';
+	private $page = '';
 
 	/**
 	 * Constructor - Register administration header callback.
@@ -68,7 +68,7 @@ class Custom_Image_Header {
 	 * @param callback $admin_image_div_callback Optional custom image div output callback.
 	 * @return Custom_Image_Header
 	 */
-	function __construct($admin_header_callback, $admin_image_div_callback = '') {
+	public function __construct($admin_header_callback, $admin_image_div_callback = '') {
 		$this->admin_header_callback = $admin_header_callback;
 		$this->admin_image_div_callback = $admin_image_div_callback;
 
@@ -81,11 +81,63 @@ class Custom_Image_Header {
 	}
 
 	/**
+	 * Make private properties readable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to get.
+	 * @return mixed Property.
+	 */
+	public function __get( $name ) {
+		return $this->$name;
+	}
+
+	/**
+	 * Make private properties settable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name  Property to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
+	 */
+	public function __set( $name, $value ) {
+		return $this->$name = $value;
+	}
+
+	/**
+	 * Make private properties checkable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
+	 */
+	public function __isset( $name ) {
+		return isset( $this->$name );
+	}
+
+	/**
+	 * Make private properties un-settable for backwards compatibility.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
+	 */
+	public function __unset( $name ) {
+		unset( $this->$name );
+	}
+
+	/**
 	 * Set up the hooks for the Custom Header admin page.
 	 *
 	 * @since 2.1.0
 	 */
-	function init() {
+	public function init() {
 		if ( ! current_user_can('edit_theme_options') )
 			return;
 
@@ -106,7 +158,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 3.0.0
 	 */
-	function help() {
+	public function help() {
 		get_current_screen()->add_help_tab( array(
 			'id'      => 'overview',
 			'title'   => __('Overview'),
@@ -148,7 +200,7 @@ class Custom_Image_Header {
 	 *
 	 * @return int Current step
 	 */
-	function step() {
+	public function step() {
 		if ( ! isset( $_GET['step'] ) )
 			return 1;
 
@@ -167,7 +219,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.1.0
 	 */
-	function js_includes() {
+	public function js_includes() {
 		$step = $this->step();
 
 		if ( ( 1 == $step || 3 == $step ) ) {
@@ -185,7 +237,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.7.0
 	 */
-	function css_includes() {
+	public function css_includes() {
 		$step = $this->step();
 
 		if ( ( 1 == $step || 3 == $step ) && current_theme_supports( 'custom-header', 'header-text' ) )
@@ -199,7 +251,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.6.0
 	 */
-	function take_action() {
+	public function take_action() {
 		if ( ! current_user_can('edit_theme_options') )
 			return;
 
@@ -245,7 +297,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 3.0.0
 	 */
-	function process_default_headers() {
+	public function process_default_headers() {
 		global $_wp_default_headers;
 
 		if ( !empty($this->headers) )
@@ -275,7 +327,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 3.0.0
 	 */
-	function show_header_selector( $type = 'default' ) {
+	public function show_header_selector( $type = 'default' ) {
 		if ( 'default' == $type ) {
 			$headers = $this->default_headers;
 		} else {
@@ -312,7 +364,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.1.0
 	 */
-	function js() {
+	public function js() {
 		$step = $this->step();
 		if ( ( 1 == $step || 3 == $step ) && current_theme_supports( 'custom-header', 'header-text' ) )
 			$this->js_1();
@@ -325,11 +377,20 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.6.0
 	 */
-	function js_1() { ?>
+	public function js_1() {
+		$default_color = '';
+		if ( current_theme_supports( 'custom-header', 'default-text-color' ) ) {
+			$default_color = get_theme_support( 'custom-header', 'default-text-color' );
+			if ( $default_color && false === strpos( $default_color, '#' ) ) {
+				$default_color = '#' . $default_color;
+			}
+		}
+		?>
+
 <script type="text/javascript">
 /* <![CDATA[ */
 (function($){
-	var default_color = '#<?php echo get_theme_support( 'custom-header', 'default-text-color' ); ?>',
+	var default_color = '<?php echo $default_color; ?>',
 		header_text_fields;
 
 	function pickColor(color) {
@@ -380,7 +441,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.6.0
 	 */
-	function js_2() { ?>
+	public function js_2() { ?>
 <script type="text/javascript">
 /* <![CDATA[ */
 	function onEndCrop( coords ) {
@@ -454,7 +515,7 @@ class Custom_Image_Header {
 	 *
 	 * @since 2.1.0
 	 */
-	function step_1() {
+	public function step_1() {
 		$this->process_default_headers();
 ?>
 
@@ -624,17 +685,27 @@ class Custom_Image_Header {
 <th scope="row"><?php _e( 'Text Color' ); ?></th>
 <td>
 	<p>
-<?php
-$header_textcolor = display_header_text() ? get_header_textcolor() : get_theme_support( 'custom-header', 'default-text-color' );
-$default_color = '';
-if ( current_theme_supports( 'custom-header', 'default-text-color' ) ) {
-	$default_color = '#' . get_theme_support( 'custom-header', 'default-text-color' );
-	$default_color_attr = ' data-default-color="' . esc_attr( $default_color ) . '"';
-	echo '<input type="text" name="text-color" id="text-color" value="#' . esc_attr( $header_textcolor ) . '"' . $default_color_attr . ' />';
-	if ( $default_color )
-		echo ' <span class="description hide-if-js">' . sprintf( _x( 'Default: %s', 'color' ), $default_color ) . '</span>';
-}
-?>
+	<?php
+	$default_color = '';
+	if ( current_theme_supports( 'custom-header', 'default-text-color' ) ) {
+		$default_color = get_theme_support( 'custom-header', 'default-text-color' );
+		if ( $default_color && false === strpos( $default_color, '#' ) ) {
+			$default_color = '#' . $default_color;
+		}
+	}
+
+	$default_color_attr = $default_color ? ' data-default-color="' . esc_attr( $default_color ) . '"' : '';
+
+	$header_textcolor = display_header_text() ? get_header_textcolor() : get_theme_support( 'custom-header', 'default-text-color' );
+	if ( $header_textcolor && false === strpos( $header_textcolor, '#' ) ) {
+		$header_textcolor = '#' . $header_textcolor;
+	}
+
+	echo '<input type="text" name="text-color" id="text-color" value="' . esc_attr( $header_textcolor ) . '"' . $default_color_attr . ' />';
+	if ( $default_color ) {
+		echo ' <span class="description hide-if-js">' . sprintf( _x( 'Default: %s', 'color' ), esc_html( $default_color ) ) . '</span>';
+	}
+	?>
 	</p>
 </td>
 </tr>
@@ -662,7 +733,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 2.1.0
 	 */
-	function step_2() {
+	public function step_2() {
 		check_admin_referer('custom-header-upload', '_wpnonce-custom-header-upload');
 		if ( ! current_theme_supports( 'custom-header', 'uploads' ) )
 			wp_die( __( 'Cheatin&#8217; uh?' ) );
@@ -670,10 +741,14 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		if ( empty( $_POST ) && isset( $_GET['file'] ) ) {
 			$attachment_id = absint( $_GET['file'] );
 			$file = get_attached_file( $attachment_id, true );
-			$url = wp_get_attachment_image_src( $attachment_id, 'full');
+			$url = wp_get_attachment_image_src( $attachment_id, 'full' );
 			$url = $url[0];
 		} elseif ( isset( $_POST ) ) {
-			extract($this->step_2_manage_upload());
+			$data = $this->step_2_manage_upload();
+			$attachment_id = $data['attachment_id'];
+			$file = $data['file'];
+			$url = $data['url'];
+			$type = $data['type'];
 		}
 
 		if ( file_exists( $file ) ) {
@@ -772,7 +847,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 3.4.0
 	 */
-	function step_2_manage_upload() {
+	public function step_2_manage_upload() {
 		$overrides = array('test_form' => false);
 
 		$uploaded_file = $_FILES['import'];
@@ -809,7 +884,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 2.1.0
 	 */
-	function step_3() {
+	public function step_3() {
 		check_admin_referer( 'custom-header-crop-image' );
 
 		if ( ! current_theme_supports( 'custom-header', 'uploads' ) )
@@ -859,7 +934,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		$url = $object['guid'];
 		$this->set_header_image( compact( 'url', 'attachment_id', 'width', 'height' ) );
 
-		// cleanup
+		// Cleanup.
 		$medium = str_replace( basename( $original ), 'midsize-' . basename( $original ), $original );
 		if ( file_exists( $medium ) ) {
 			/**
@@ -885,7 +960,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 2.1.0
 	 */
-	function finished() {
+	public function finished() {
 		$this->updated = true;
 		$this->step_1();
 	}
@@ -895,7 +970,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 2.1.0
 	 */
-	function admin_page() {
+	public function admin_page() {
 		if ( ! current_user_can('edit_theme_options') )
 			wp_die(__('You do not have permission to customize headers.'));
 		$step = $this->step();
@@ -912,7 +987,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 3.4.0
 	 */
-	function attachment_fields_to_edit( $form_fields ) {
+	public function attachment_fields_to_edit( $form_fields ) {
 		return $form_fields;
 	}
 
@@ -921,7 +996,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 *
 	 * @since 3.4.0
 	 */
-	function filter_upload_tabs( $tabs ) {
+	public function filter_upload_tabs( $tabs ) {
 		return $tabs;
 	}
 
@@ -1096,7 +1171,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	}
 
 	/**
-	 * Insert an attachment & its metadata.
+	 * Insert an attachment and its metadata.
 	 *
 	 * @param array $object Attachment object.
 	 * @param string $cropped Cropped image URL.
@@ -1107,8 +1182,13 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		$attachment_id = wp_insert_attachment( $object, $cropped );
 		$metadata = wp_generate_attachment_metadata( $attachment_id, $cropped );
 		/**
-		 * Allows us to insert custom meta data for an attachment.
+		 * Filter the header image attachment metadata.
 		 *
+		 * @since 3.9.0
+		 *
+		 * @see wp_generate_attachment_metadata()
+		 *
+		 * @param array $metadata Attachment metadata.
 		 */
 		$metadata = apply_filters( 'wp_header_image_attachment_metadata', $metadata );
 		wp_update_attachment_metadata( $attachment_id, $metadata );
@@ -1119,7 +1199,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 * Gets attachment uploaded by Media Manager, crops it, then saves it as a
 	 * new object. Returns JSON-encoded object details.
 	 */
-	function ajax_header_crop() {
+	public function ajax_header_crop() {
 		check_ajax_referer( 'image_editor-' . $_POST['id'], 'nonce' );
 
 		if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -1153,6 +1233,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 			wp_send_json_error( array( 'message' => __( 'Image could not be processed. Please go back and try again.' ) ) );
 		}
 
+		/** This filter is documented in wp-admin/custom-header.php */
 		$cropped = apply_filters( 'wp_create_file_in_uploads', $cropped, $attachment_id ); // For replication
 
 		$object = $this->create_attachment_object( $cropped, $attachment_id );
@@ -1175,7 +1256,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 * Triggered when the user tries adds a new header image from the
 	 * Media Manager, even if s/he doesn't save that change.
 	 */
-	function ajax_header_add() {
+	public function ajax_header_add() {
 		check_ajax_referer( 'header-add', 'nonce' );
 
 		if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -1201,7 +1282,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 * Triggered when the user clicks the overlay "X" button next to each image
 	 * choice in the Customizer's Header tool.
 	 */
-	function ajax_header_remove() {
+	public function ajax_header_remove() {
 		check_ajax_referer( 'header-remove', 'nonce' );
 
 		if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -1220,7 +1301,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		wp_send_json_success();
 	}
 
-	function customize_set_last_used( $wp_customize ) {
+	public function customize_set_last_used( $wp_customize ) {
 		$data = $wp_customize->get_setting( 'header_image_data' )->post_value();
 
 		if ( ! isset( $data['attachment_id'] ) ) {

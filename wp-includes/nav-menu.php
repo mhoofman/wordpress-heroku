@@ -15,7 +15,7 @@
  * @uses get_term
  * @uses get_term_by
  *
- * @param string $menu Menu id, slug or name
+ * @param string $menu Menu ID, slug, or name.
  * @return mixed false if $menu param isn't supplied or term does not exist, menu object if successful.
  */
 function wp_get_nav_menu_object( $menu ) {
@@ -43,7 +43,7 @@ function wp_get_nav_menu_object( $menu ) {
  *
  * @since 3.0.0
  *
- * @param int|string $menu The menu to check (id, slug, or name)
+ * @param int|string $menu The menu to check (ID, slug, or name).
  * @return bool Whether the menu exists.
  */
 function is_nav_menu( $menu ) {
@@ -142,6 +142,12 @@ function get_nav_menu_locations() {
  * @return bool Whether location has a menu.
  */
 function has_nav_menu( $location ) {
+	global $_wp_registered_nav_menus;
+
+	if ( ! isset( $_wp_registered_nav_menus[ $location ] ) ) {
+		return false;
+	}
+
 	$locations = get_nav_menu_locations();
 	return ( ! empty( $locations[ $location ] ) );
 }
@@ -163,8 +169,8 @@ function is_nav_menu_item( $menu_item_id = 0 ) {
  *
  * @since 3.0.0
  *
- * @param string $menu_name Menu Name
- * @return mixed Menu object on success|WP_Error on failure
+ * @param string $menu_name Menu name.
+ * @return int|WP_Error Menu ID on success, WP_Error object on failure.
  */
 function wp_create_nav_menu( $menu_name ) {
 	return wp_update_nav_menu_object( 0, array( 'menu-name' => $menu_name ) );
@@ -175,8 +181,8 @@ function wp_create_nav_menu( $menu_name ) {
  *
  * @since 3.0.0
  *
- * @param string $menu name|id|slug
- * @return mixed Menu object on success|WP_Error on failure
+ * @param string $menu Menu ID, slug, or name.
+ * @return bool|WP_Error True on success, false or WP_Error object on failure.
  */
 function wp_delete_nav_menu( $menu ) {
 	$menu = wp_get_nav_menu_object( $menu );
@@ -221,7 +227,7 @@ function wp_delete_nav_menu( $menu ) {
  *
  * @param int $menu_id The ID of the menu or "0" to create a new menu.
  * @param array $menu_data The array of menu data.
- * @return int|WP_Error object The menu's ID or WP_Error object.
+ * @return int|WP_Error Menu ID on success, WP_Error object on failure.
  */
 function wp_update_nav_menu_object( $menu_id = 0, $menu_data = array() ) {
 	$menu_id = (int) $menu_id;
@@ -547,10 +553,7 @@ function wp_get_nav_menu_items( $menu, $args = array() ) {
 	$defaults = array( 'order' => 'ASC', 'orderby' => 'menu_order', 'post_type' => 'nav_menu_item',
 		'post_status' => 'publish', 'output' => ARRAY_A, 'output_key' => 'menu_order', 'nopaging' => true );
 	$args = wp_parse_args( $args, $defaults );
-	if ( count( $items ) > 1 )
-		$args['include'] = implode( ',', $items );
-	else
-		$args['include'] = $items[0];
+	$args['include'] = $items;
 
 	$items = get_posts( $args );
 

@@ -160,10 +160,10 @@ function _get_plugin_data_markup_translate( $plugin_file, $plugin_data, $markup 
 	// Apply markup
 	if ( $markup ) {
 		if ( $plugin_data['PluginURI'] && $plugin_data['Name'] )
-			$plugin_data['Title'] = '<a href="' . $plugin_data['PluginURI'] . '" title="' . esc_attr__( 'Visit plugin homepage' ) . '">' . $plugin_data['Name'] . '</a>';
+			$plugin_data['Title'] = '<a href="' . $plugin_data['PluginURI'] . '">' . $plugin_data['Name'] . '</a>';
 
 		if ( $plugin_data['AuthorURI'] && $plugin_data['Author'] )
-			$plugin_data['Author'] = '<a href="' . $plugin_data['AuthorURI'] . '" title="' . esc_attr__( 'Visit author homepage' ) . '">' . $plugin_data['Author'] . '</a>';
+			$plugin_data['Author'] = '<a href="' . $plugin_data['AuthorURI'] . '">' . $plugin_data['Author'] . '</a>';
 
 		$plugin_data['Description'] = wptexturize( $plugin_data['Description'] );
 
@@ -538,7 +538,9 @@ function activate_plugin( $plugin, $redirect = '', $network_wide = false, $silen
 			wp_redirect(add_query_arg('_error_nonce', wp_create_nonce('plugin-activation-error_' . $plugin), $redirect)); // we'll override this later if the plugin can be included without fatal error
 		ob_start();
 		wp_register_plugin_realpath( WP_PLUGIN_DIR . '/' . $plugin );
+		$_wp_plugin_file = $plugin;
 		include_once( WP_PLUGIN_DIR . '/' . $plugin );
+		$plugin = $_wp_plugin_file; // Avoid stomping of the $plugin variable in a plugin.
 
 		if ( ! $silent ) {
 			/**
@@ -717,7 +719,7 @@ function deactivate_plugins( $plugins, $silent = false, $network_wide = null ) {
  *
  * @since 2.6.0
  *
- * @param string|array $plugins
+ * @param string|array $plugins Single plugin or list of plugins to activate.
  * @param string $redirect Redirect to page after successful activation.
  * @param bool $network_wide Whether to enable the plugin for all sites in the network.
  * @param bool $silent Prevent calling activation hooks. Default is false.
@@ -743,18 +745,16 @@ function activate_plugins( $plugins, $redirect = '', $network_wide = false, $sil
 }
 
 /**
- * Remove directory and files of a plugin for a single or list of plugin(s).
- *
- * If the plugins parameter list is empty, false will be returned. True when
- * completed.
+ * Remove directory and files of a plugin for a list of plugins.
  *
  * @since 2.6.0
  *
- * @param array $plugins List of plugin
- * @param string $redirect Redirect to page when complete.
- * @return mixed
+ * @param array  $plugins    List of plugins to delete.
+ * @param string $deprecated Deprecated.
+ * @return bool|null|WP_Error True on success, false is $plugins is empty, WP_Error on failure.
+ *                            Null if filesystem credentials are required to proceed.
  */
-function delete_plugins($plugins, $redirect = '' ) {
+function delete_plugins( $plugins, $deprecated = '' ) {
 	global $wp_filesystem;
 
 	if ( empty($plugins) )
@@ -851,7 +851,7 @@ function delete_plugins($plugins, $redirect = '' ) {
  */
 function validate_active_plugins() {
 	$plugins = get_option( 'active_plugins', array() );
-	// validate vartype: array
+	// Validate vartype: array.
 	if ( ! is_array( $plugins ) ) {
 		update_option( 'active_plugins', array() );
 		$plugins = array();
@@ -867,7 +867,7 @@ function validate_active_plugins() {
 
 	$invalid = array();
 
-	// invalid plugins get deactivated
+	// Invalid plugins get deactivated.
 	foreach ( $plugins as $plugin ) {
 		$result = validate_plugin( $plugin );
 		if ( is_wp_error( $result ) ) {
@@ -940,7 +940,7 @@ function uninstall_plugin($plugin) {
 
 		define('WP_UNINSTALL_PLUGIN', $file);
 		wp_register_plugin_realpath( WP_PLUGIN_DIR . '/' . dirname( $file ) );
-		include WP_PLUGIN_DIR . '/' . dirname($file) . '/uninstall.php';
+		include( WP_PLUGIN_DIR . '/' . dirname($file) . '/uninstall.php' );
 
 		return true;
 	}
@@ -952,7 +952,7 @@ function uninstall_plugin($plugin) {
 		unset($uninstallable_plugins);
 
 		wp_register_plugin_realpath( WP_PLUGIN_DIR . '/' . $file );
-		include WP_PLUGIN_DIR . '/' . $file;
+		include( WP_PLUGIN_DIR . '/' . $file );
 
 		add_action( 'uninstall_' . $file, $callable );
 
@@ -1119,14 +1119,16 @@ function add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, 
 		return false;
 	}
 
-	// If the parent doesn't already have a submenu, add a link to the parent
-	// as the first item in the submenu. If the submenu file is the same as the
-	// parent file someone is trying to link back to the parent manually. In
-	// this case, don't automatically add a link back to avoid duplication.
+	/*
+	 * If the parent doesn't already have a submenu, add a link to the parent
+	 * as the first item in the submenu. If the submenu file is the same as the
+	 * parent file someone is trying to link back to the parent manually. In
+	 * this case, don't automatically add a link back to avoid duplication.
+	 */
 	if (!isset( $submenu[$parent_slug] ) && $menu_slug != $parent_slug ) {
 		foreach ( (array)$menu as $parent_menu ) {
 			if ( $parent_menu[2] == $parent_slug && current_user_can( $parent_menu[1] ) )
-				$submenu[$parent_slug][] = $parent_menu;
+				$submenu[$parent_slug][] = array_slice( $parent_menu, 0, 4 );
 		}
 	}
 
@@ -1137,11 +1139,15 @@ function add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, 
 		add_action( $hookname, $function );
 
 	$_registered_pages[$hookname] = true;
-	// backwards-compatibility for plugins using add_management page. See wp-admin/admin.php for redirect from edit.php to tools.php
+
+	/*
+	 * Backward-compatibility for plugins using add_management page.
+	 * See wp-admin/admin.php for redirect from edit.php to tools.php
+	 */
 	if ( 'tools.php' == $parent_slug )
 		$_registered_pages[get_plugin_page_hookname( $menu_slug, 'edit.php')] = true;
 
-	// No parent as top level
+	// No parent as top level.
 	$_parent_pages[$menu_slug] = $parent_slug;
 
 	return $hookname;

@@ -54,7 +54,7 @@ class Akismet {
 	}
 
 	public static function check_key_status( $key, $ip = null ) {
-		return self::http_post( build_query( array( 'key' => $key, 'blog' => get_option('home') ) ), 'verify-key', $ip );
+		return self::http_post( Akismet::build_query( array( 'key' => $key, 'blog' => get_option('home') ) ), 'verify-key', $ip );
 	}
 
 	public static function verify_key( $key, $ip = null ) {
@@ -117,7 +117,7 @@ class Akismet {
 		$post = get_post( $comment['comment_post_ID'] );
 		$comment[ 'comment_post_modified_gmt' ] = $post->post_modified_gmt;
 
-		$response = self::http_post( build_query( $comment ), 'comment-check' );
+		$response = self::http_post( Akismet::build_query( $comment ), 'comment-check' );
 
 		do_action( 'akismet_comment_check_response', $response );
 
@@ -370,7 +370,7 @@ class Akismet {
 		if ( self::is_test_mode() )
 			$c['is_test'] = 'true';
 
-		$response = self::http_post( build_query( $c ), 'comment-check' );
+		$response = self::http_post( Akismet::build_query( $c ), 'comment-check' );
 
 		return ( is_array( $response ) && ! empty( $response[1] ) ) ? $response[1] : false;
 	}
@@ -464,7 +464,7 @@ class Akismet {
 		$post = get_post( $comment->comment_post_ID );
 		$comment->comment_post_modified_gmt = $post->post_modified_gmt;
 
-		$response = Akismet::http_post( build_query( $comment ), 'submit-spam' );
+		$response = Akismet::http_post( Akismet::build_query( $comment ), 'submit-spam' );
 		if ( $comment->reporter ) {
 			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as spam', 'akismet'), $comment->reporter ), 'report-spam' );
 			update_comment_meta( $comment_id, 'akismet_user_result', 'true' );
@@ -510,7 +510,7 @@ class Akismet {
 		$post = get_post( $comment->comment_post_ID );
 		$comment->comment_post_modified_gmt = $post->post_modified_gmt;
 
-		$response = self::http_post( build_query( $comment ), 'submit-ham' );
+		$response = self::http_post( Akismet::build_query( $comment ), 'submit-ham' );
 		if ( $comment->reporter ) {
 			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as not spam', 'akismet'), $comment->reporter ), 'report-ham' );
 			update_comment_meta( $comment_id, 'akismet_user_result', 'false' );
@@ -914,6 +914,16 @@ p {
 	 */
 	public static function plugin_deactivation( ) {
 		//tidy up
+	}
+	
+	/**
+	 * Essentially a copy of WP's build_query but one that doesn't expect pre-urlencoded values.
+	 *
+	 * @param array $args An array of key => value pairs
+	 * @return string A string ready for use as a URL query string.
+	 */
+	public static function build_query( $args ) {
+		return _http_build_query( $args, '', '&' );
 	}
 
 	public static function log( $akismet_debug ) {

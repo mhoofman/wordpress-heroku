@@ -93,13 +93,20 @@ function get_default_feed() {
  *
  * @since 2.2.0
  *
- * @param string $sep Optional.How to separate the title. See wp_title() for more info.
+ * @param string $sep Optional. How to separate the title. See wp_title() for more info.
  * @return string Error message on failure or blog title on success.
  */
-function get_wp_title_rss($sep = '&#187;') {
-	$title = wp_title($sep, false);
-	if ( is_wp_error( $title ) )
+function get_wp_title_rss( $sep = '&#187;' ) {
+	$title = wp_title( $sep, false );
+
+	if ( is_wp_error( $title ) ) {
 		return $title->get_error_message();
+	}
+
+	if ( $title && $sep && ' ' !== substr( $title, 0, 1 ) ) {
+		$title = " $sep " . $title;
+	}
+
 	/**
 	 * Filter the blog title for use as the feed title.
 	 *
@@ -177,7 +184,7 @@ function get_the_content_feed($feed_type = null) {
 	if ( !$feed_type )
 		$feed_type = get_default_feed();
 
-	/** This filter is documented in wp-admin/post-template.php */
+	/** This filter is documented in wp-includes/post-template.php */
 	$content = apply_filters( 'the_content', get_the_content() );
 	$content = str_replace(']]>', ']]&gt;', $content);
 	/**
@@ -389,8 +396,7 @@ function get_the_category_rss($type = null) {
 		if ( 'rdf' == $type )
 			$the_list .= "\t\t<dc:subject><![CDATA[$cat_name]]></dc:subject>\n";
 		elseif ( 'atom' == $type )
-			/** This filter is documented in wp-includes/feed.php */
-			$the_list .= sprintf( '<category scheme="%1$s" term="%2$s" />', esc_attr( apply_filters( 'get_bloginfo_rss', get_bloginfo( 'url' ) ) ), esc_attr( $cat_name ) );
+			$the_list .= sprintf( '<category scheme="%1$s" term="%2$s" />', esc_attr( get_bloginfo_rss( 'url' ) ), esc_attr( $cat_name ) );
 		else
 			$the_list .= "\t\t<category><![CDATA[" . @html_entity_decode( $cat_name, ENT_COMPAT, get_option('blog_charset') ) . "]]></category>\n";
 	}

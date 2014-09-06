@@ -22,7 +22,7 @@ header( 'Content-Type: text/html; charset=utf-8' );
 	?>
 </head>
 <body class="wp-core-ui">
-<h1 id="logo"><a href="<?php echo esc_url( __( 'https://wordpress.org/' ) ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
+<h1 id="logo"><a href="<?php echo esc_url( __( 'https://wordpress.org/' ) ); ?>" tabindex="-1"><?php _e( 'WordPress' ); ?></a></h1>
 
 <?php
 
@@ -36,8 +36,10 @@ if ( ! defined( 'WP_ALLOW_REPAIR' ) ) {
 	$tables = $wpdb->tables();
 
 	// Sitecategories may not exist if global terms are disabled.
-	if ( is_multisite() && ! $wpdb->get_var( "SHOW TABLES LIKE '$wpdb->sitecategories'" ) )
+	$query = $wpdb->prepare( "SHOW TABLES LIKE %s", $wpdb->esc_like( $wpdb->sitecategories ) );
+	if ( is_multisite() && ! $wpdb->get_var( $query ) ) {
 		unset( $tables['sitecategories'] );
+	}
 
 	/**
 	 * Filter additional database tables to repair.

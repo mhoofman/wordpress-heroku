@@ -137,8 +137,6 @@ case 'promote':
 	wp_redirect(add_query_arg('update', $update, $redirect));
 	exit();
 
-break;
-
 case 'dodelete':
 	if ( is_multisite() )
 		wp_die( __('User deletion is not allowed from this screen.') );
@@ -187,8 +185,6 @@ case 'dodelete':
 	$redirect = add_query_arg( array('delete_count' => $delete_count, 'update' => $update), $redirect);
 	wp_redirect($redirect);
 	exit();
-
-break;
 
 case 'delete':
 	if ( is_multisite() )
@@ -248,6 +244,16 @@ case 'delete':
 		<?php echo '<label for="delete_option1">' . __( 'Attribute all content to:' ) . '</label> ';
 		wp_dropdown_users( array( 'name' => 'reassign_user', 'exclude' => array_diff( $userids, array($current_user->ID) ) ) ); ?></li>
 	</ul></fieldset>
+	<?php
+	/**
+	 * Fires at the end of the delete users form prior to the confirm button.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param WP_User $current_user WP_User object for the user being deleted.
+	 */
+	do_action( 'delete_user_form', $current_user );
+	?>
 	<input type="hidden" name="action" value="dodelete" />
 	<?php submit_button( __('Confirm Deletion'), 'secondary' ); ?>
 <?php else : ?>
@@ -292,8 +298,6 @@ case 'doremove':
 	$redirect = add_query_arg( array('update' => $update), $redirect);
 	wp_redirect($redirect);
 	exit;
-
-break;
 
 case 'remove':
 
@@ -340,6 +344,7 @@ case 'remove':
 		}
  	}
  	?>
+</ul>
 <?php if ( $go_remove ) : ?>
 		<input type="hidden" name="action" value="doremove" />
 		<?php submit_button( __('Confirm Removal'), 'secondary' ); ?>

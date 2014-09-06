@@ -108,7 +108,7 @@ function wp_get_revision_ui_diff( $post, $compare_from, $compare_to ) {
  */
 function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null ) {
 	$post = get_post( $post );
-	$revisions = $authors = array();
+	$authors = array();
 	$now_gmt = time();
 
 	$revisions = wp_get_post_revisions( $post->ID, array( 'order' => 'ASC', 'check_enabled' => false ) );
@@ -126,6 +126,7 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 	cache_users( wp_list_pluck( $revisions, 'post_author' ) );
 
 	$can_restore = current_user_can( 'edit_post', $post->ID );
+	$current_id = false;
 
 	foreach ( $revisions as $revision ) {
 		$modified = strtotime( $revision->post_modified );
@@ -176,8 +177,11 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 		);
 	}
 
-	// If a post has been saved since the last revision (no revisioned fields were changed)
-	// we may not have a "current" revision. Mark the latest revision as "current".
+	/*
+	 * If a post has been saved since the last revision (no revisioned fields
+	 * were changed), we may not have a "current" revision. Mark the latest
+	 * revision as "current".
+	 */
 	if ( empty( $current_id ) ) {
 		if ( $revisions[ $revision->ID ]['autosave'] ) {
 			$revision = end( $revisions );
@@ -191,7 +195,7 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 		$revisions[ $current_id ]['current'] = true;
 	}
 
-	// Now, grab the initial diff
+	// Now, grab the initial diff.
 	$compare_two_mode = is_numeric( $from );
 	if ( ! $compare_two_mode ) {
 		$found = array_search( $selected_revision_id, array_keys( $revisions ) );

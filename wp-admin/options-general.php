@@ -86,7 +86,7 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 <div class="wrap">
 <h2><?php echo esc_html( $title ); ?></h2>
 
-<form method="post" action="options.php">
+<form method="post" action="options.php" novalidate="novalidate">
 <?php settings_fields('general'); ?>
 
 <table class="form-table">
@@ -102,16 +102,16 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 <?php if ( !is_multisite() ) { ?>
 <tr>
 <th scope="row"><label for="siteurl"><?php _e('WordPress Address (URL)') ?></label></th>
-<td><input name="siteurl" type="text" id="siteurl" value="<?php form_option('siteurl'); ?>"<?php disabled( defined( 'WP_SITEURL' ) ); ?> class="regular-text code<?php if ( defined( 'WP_SITEURL' ) ) echo ' disabled' ?>" /></td>
+<td><input name="siteurl" type="url" id="siteurl" value="<?php form_option( 'siteurl' ); ?>"<?php disabled( defined( 'WP_SITEURL' ) ); ?> class="regular-text code<?php if ( defined( 'WP_SITEURL' ) ) echo ' disabled' ?>" /></td>
 </tr>
 <tr>
 <th scope="row"><label for="home"><?php _e('Site Address (URL)') ?></label></th>
-<td><input name="home" type="text" id="home" value="<?php form_option('home'); ?>"<?php disabled( defined( 'WP_HOME' ) ); ?> class="regular-text code<?php if ( defined( 'WP_HOME' ) ) echo ' disabled' ?>" />
+<td><input name="home" type="url" id="home" value="<?php form_option( 'home' ); ?>"<?php disabled( defined( 'WP_HOME' ) ); ?> class="regular-text code<?php if ( defined( 'WP_HOME' ) ) echo ' disabled' ?>" />
 <p class="description"><?php _e('Enter the address here if you want your site homepage <a href="http://codex.wordpress.org/Giving_WordPress_Its_Own_Directory">to be different from the directory</a> you installed WordPress.'); ?></p></td>
 </tr>
 <tr>
 <th scope="row"><label for="admin_email"><?php _e('E-mail Address') ?> </label></th>
-<td><input name="admin_email" type="text" id="admin_email" value="<?php form_option('admin_email'); ?>" class="regular-text ltr" />
+<td><input name="admin_email" type="email" id="admin_email" value="<?php form_option( 'admin_email' ); ?>" class="regular-text ltr" />
 <p class="description"><?php _e('This address is used for admin purposes, like new user notification.') ?></p></td>
 </tr>
 <tr>
@@ -130,7 +130,7 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 <?php } else { ?>
 <tr>
 <th scope="row"><label for="new_admin_email"><?php _e('E-mail Address') ?> </label></th>
-<td><input name="new_admin_email" type="text" id="new_admin_email" value="<?php form_option('admin_email'); ?>" class="regular-text ltr" />
+<td><input name="new_admin_email" type="email" id="new_admin_email" value="<?php form_option( 'admin_email' ); ?>" class="regular-text ltr" />
 <p class="description"><?php _e('This address is used for admin purposes. If you change this we will send you an e-mail at your new address to confirm it. <strong>The new address will not become active until confirmed.</strong>') ?></p>
 <?php
 $new_admin_email = get_option( 'new_admin_email' );
@@ -232,10 +232,11 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	* Filter the default date formats.
 	*
 	* @since 2.7.0
+	* @since 4.0.0 Added ISO date standard YYYY-MM-DD format.
 	*
 	* @param array $default_date_formats Array of default date formats.
 	*/
-	$date_formats = array_unique( apply_filters( 'date_formats', array( __( 'F j, Y' ), 'Y/m/d', 'm/d/Y', 'd/m/Y' ) ) );
+	$date_formats = array_unique( apply_filters( 'date_formats', array( __( 'F j, Y' ), 'Y-m-d', 'm/d/Y', 'd/m/Y' ) ) );
 
 	$custom = true;
 
@@ -251,8 +252,6 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	echo '	<label><input type="radio" name="date_format" id="date_format_custom_radio" value="\c\u\s\t\o\m"';
 	checked( $custom );
 	echo '/> ' . __('Custom:') . ' </label><input type="text" name="date_format_custom" value="' . esc_attr( get_option('date_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('date_format') ) . "</span> <span class='spinner'></span>\n";
-
-	echo "\t<p>" . __('<a href="http://codex.wordpress.org/Formatting_Date_and_Time">Documentation on date and time formatting</a>.') . "</p>\n";
 ?>
 	</fieldset>
 </td>
@@ -285,7 +284,8 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	echo '	<label><input type="radio" name="time_format" id="time_format_custom_radio" value="\c\u\s\t\o\m"';
 	checked( $custom );
 	echo '/> ' . __('Custom:') . ' </label><input type="text" name="time_format_custom" value="' . esc_attr( get_option('time_format') ) . '" class="small-text" /> <span class="example"> ' . date_i18n( get_option('time_format') ) . "</span> <span class='spinner'></span>\n";
-	;
+
+	echo "\t<p>" . __('<a href="http://codex.wordpress.org/Formatting_Date_and_Time">Documentation on date and time formatting</a>.') . "</p>\n";
 ?>
 	</fieldset>
 </td>
@@ -302,20 +302,46 @@ endfor;
 </select></td>
 </tr>
 <?php do_settings_fields('general', 'default'); ?>
+
 <?php
-	$languages = get_available_languages();
-	if ( is_multisite() && !empty( $languages ) ):
-?>
+$languages = get_available_languages();
+if ( ! is_multisite() && defined( 'WPLANG' ) && '' !== WPLANG && 'en_US' !== WPLANG && ! in_array( WPLANG, $languages ) ) {
+	$languages[] = WPLANG;
+}
+if ( $languages ) {
+	?>
 	<tr>
-		<th width="33%" scope="row"><?php _e('Site Language') ?></th>
+		<th width="33%" scope="row"><label for="WPLANG"><?php _e( 'Site Language' ); ?></label></th>
 		<td>
-			<select name="WPLANG" id="WPLANG">
-				<?php mu_dropdown_languages( $languages, get_option('WPLANG') ); ?>
-			</select>
+			<?php
+			$locale = get_locale();
+			if ( ! in_array( $locale, $languages ) ) {
+				$locale = '';
+			}
+
+			wp_dropdown_languages( array(
+				'name'      => 'WPLANG',
+				'id'        => 'WPLANG',
+				'selected'  => $locale,
+				'languages' => $languages,
+			) );
+
+			// Add note about deprecated WPLANG constant.
+			if ( defined( 'WPLANG' ) && ( '' !== WPLANG ) && $locale !== WPLANG ) {
+				if ( is_super_admin() ) {
+					?>
+					<p class="description">
+						<strong><?php _e( 'Note:' ); ?></strong> <?php printf( __( 'The %s constant in your %s file is no longer needed.' ), '<code>WPLANG</code>', '<code>wp-config.php</code>' ); ?>
+					</p>
+					<?php
+				}
+				_deprecated_argument( 'define()', '4.0', sprintf( __( 'The %s constant in your %s file is no longer needed.' ), 'WPLANG', 'wp-config.php' ) );
+			}
+			?>
 		</td>
 	</tr>
-<?php
-	endif;
+	<?php
+}
 ?>
 </table>
 

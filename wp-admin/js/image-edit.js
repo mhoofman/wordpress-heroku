@@ -274,7 +274,7 @@ var imageEdit = window.imageEdit = {
 			var ret = JSON.parse(r);
 
 			if ( ret.error ) {
-				$('#imgedit-response-' + postid).html('<div class="error"><p>' + ret.error + '</p><div>');
+				$('#imgedit-response-' + postid).html('<div class="error"><p>' + ret.error + '</p></div>');
 				imageEdit.close(postid);
 				return;
 			}
@@ -302,7 +302,7 @@ var imageEdit = window.imageEdit = {
 	open : function( postid, nonce, view ) {
 		this._view = view;
 
-		var data, elem = $('#image-editor-' + postid), head = $('#media-head-' + postid),
+		var dfd, data, elem = $('#image-editor-' + postid), head = $('#media-head-' + postid),
 			btn = $('#imgedit-open-btn-' + postid), spin = btn.siblings('.spinner');
 
 		btn.prop('disabled', true);
@@ -315,13 +315,20 @@ var imageEdit = window.imageEdit = {
 			'do': 'open'
 		};
 
-		elem.load(ajaxurl, data, function() {
-			elem.fadeIn('fast');
+		dfd = $.ajax({
+			url:  ajaxurl,
+			type: 'post',
+			data: data
+		}).done(function( html ) {
+			elem.html( html );
 			head.fadeOut('fast', function(){
+				elem.fadeIn('fast');
 				btn.removeAttr('disabled');
 				spin.hide();
 			});
 		});
+
+		return dfd;
 	},
 
 	imgLoaded : function(postid) {
@@ -385,22 +392,15 @@ var imageEdit = window.imageEdit = {
 	},
 
 	setCropSelection : function(postid, c) {
-		var sel, min = $('#imgedit-minthumb-' + postid).val() || '128:128',
-			sizer = this.hold.sizer;
-			min = min.split(':');
-			c = c || 0;
+		var sel;
+
+		c = c || 0;
 
 		if ( !c || ( c.width < 3 && c.height < 3 ) ) {
 			this.setDisabled($('.imgedit-crop', '#imgedit-panel-' + postid), 0);
 			this.setDisabled($('#imgedit-crop-sel-' + postid), 0);
 			$('#imgedit-sel-width-' + postid).val('');
 			$('#imgedit-sel-height-' + postid).val('');
-			$('#imgedit-selection-' + postid).val('');
-			return false;
-		}
-
-		if ( c.width < (min[0] * sizer) && c.height < (min[1] * sizer) ) {
-			this.setDisabled($('.imgedit-crop', '#imgedit-panel-' + postid), 0);
 			$('#imgedit-selection-' + postid).val('');
 			return false;
 		}
