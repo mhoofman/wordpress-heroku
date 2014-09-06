@@ -2,8 +2,8 @@
 Contributors: matt, ryan, andy, mdawaffe, tellyworth, josephscott, lessbloat, eoigal, cfinke, automattic
 Tags: akismet, comments, spam
 Requires at least: 3.1
-Tested up to: 3.9.1
-Stable tag: 3.0.1
+Tested up to: 4.0
+Stable tag: 3.0.2
 License: GPLv2 or later
 
 Akismet checks your comments against the Akismet Web service to see if they look like spam or not.
@@ -29,6 +29,10 @@ Upload the Akismet plugin to your blog, Activate it, then enter your [Akismet.co
 1, 2, 3: You're done!
 
 == Changelog ==
+
+= 3.0.2 =
+* Performance improvements.
+* Fixed a bug that could truncate the comment data being sent to Akismet for checking.
 
 = 3.0.1 =
 * Removed dependency on PHP's fsockopen function

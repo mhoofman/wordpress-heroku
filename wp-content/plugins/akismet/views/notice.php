@@ -16,7 +16,13 @@
 	</form>
 </div>
 <?php elseif ( $type == 'spam-check' ) :?>
-<div id="akismet-warning" class="updated fade"><p><strong><?php esc_html_e('Akismet has detected a problem.', 'akismet');?></strong> <?php printf( __('Some comments have not yet been checked for spam by Akismet. They have been temporarily held for moderation. Please check your <a href="%s">Akismet configuration</a> and contact your web host if problems persist.', 'akismet'), esc_url( Akismet_Admin::get_page_url() ) );?></p></div>
+<div id="akismet-warning" class="updated fade">
+	<p><strong><?php esc_html_e( 'Akismet has detected a problem.', 'akismet' );?></strong></p>
+	<p><?php printf( __( 'Some comments have not yet been checked for spam by Akismet. They have been temporarily held for moderation and will automatically be rechecked later.', 'akismet' ) ); ?></p>
+	<?php if ( $link_text ) { ?>
+		<p><?php echo $link_text; ?></p>
+	<?php } ?>
+</div>
 <?php elseif ( $type == 'version' ) :?>
 <div id="akismet-warning" class="updated fade"><p><strong><?php printf( esc_html__('Akismet %s requires WordPress 3.0 or higher.', 'akismet'), AKISMET_VERSION);?></strong> <?php printf(__('Please <a href="%1$s">upgrade WordPress</a> to a current version, or <a href="%2$s">downgrade to version 2.4 of the Akismet plugin</a>.', 'akismet'), 'https://codex.wordpress.org/Upgrading_WordPress', 'https://wordpress.org/extend/plugins/akismet/download/');?></p></div>
 <?php elseif ( $type == 'alert' ) :?>
