@@ -9,16 +9,17 @@
 
 #wpcontent {
 	height: 100%;
+	padding-right: 20px;
 }
 
 #wpcontent,
 #wpfooter {
-	margin-right: 180px;
+	margin-right: 160px;
 }
 
 .folded #wpcontent,
 .folded #wpfooter {
-	margin-right: 56px;
+	margin-right: 36px;
 }
 
 #wpbody-content {
@@ -218,6 +219,10 @@ body.iframe {
 	padding-top: 1px;
 }
 
+body.modal-open {
+	overflow: hidden;
+}
+
 iframe,
 img {
 	border: 0;
@@ -252,16 +257,22 @@ a:active {
 
 a:focus {
 	color: #124964;
+    -webkit-box-shadow:
+    	0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+    box-shadow:
+    	0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
-a:focus,
-a:active {
-	outline: thin dotted;
+.ie8 a:focus {
+	outline: #5b9dd9 solid 1px;
 }
 
 #adminmenu a:focus,
-#adminmenu a:active,
 .screen-reader-text:focus {
+	-webkit-box-shadow: none;
+	box-shadow: none;
 	outline: none;
 }
 
@@ -699,12 +710,9 @@ td.help {
 ------------------------------------------------------------------------------*/
 
 .widget .widget-top,
-.postbox h3,
-.stuffbox h3,
+.postbox .hndle,
+.stuffbox .hndle,
 .control-section .accordion-section-title,
-h3.dashboard-widget-title,
-h3.dashboard-widget-title span,
-h3.dashboard-widget-title small,
 .sidebar-name,
 #nav-menu-header,
 #nav-menu-footer,
@@ -723,9 +731,8 @@ h3.dashboard-widget-title small,
 	color: #222;
 }
 
-.postbox h3,
-#namediv h3,
-#submitdiv h3 {
+.postbox .hndle,
+.stuffbox .hndle {
 	border-bottom: 1px solid #eee;
 }
 
@@ -741,7 +748,7 @@ h3.dashboard-widget-title small,
 }
 
 /* @todo can we combine these into a class or use an existing dashicon one? */
-#welcome-panel.welcome-panel .welcome-panel-close::before,
+#welcome-panel.welcome-panel .welcome-panel-close:before,
 .tagchecklist span a:before,
 #bulk-titles div a:before {
 	background: none;
@@ -751,10 +758,18 @@ h3.dashboard-widget-title small,
 	font: normal 16px/1 'dashicons';
 	speak: none;
 	height: 20px;
-	margin: 2px 0;
 	text-align: center;
 	width: 20px;
 	-webkit-font-smoothing: antialiased !important;
+}
+
+#welcome-panel.welcome-panel .welcome-panel-close:before {
+	margin: 0;
+}
+
+.tagchecklist span a:before,
+#bulk-titles div a:before {
+	margin: 2px 0;
 }
 
 #welcome-panel.welcome-panel .welcome-panel-close:hover:before,
@@ -918,6 +933,320 @@ th.action-links {
 	text-align: left;
 }
 
+/* Filter bar */
+.wp-filter {
+	display: inline-block;
+	position: relative;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	margin: 12px 0 25px;
+	padding: 0 20px;
+	width: 100%;
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	border: 1px solid #e5e5e5;
+	background: #fff;
+	color: #555;
+	font-size: 13px;
+}
+
+.wp-filter a {
+	text-decoration: none;
+}
+
+.filter-count {
+	display: inline-block;
+	vertical-align: middle;
+	min-width: 4em;
+}
+
+.title-count,
+.filter-count .count {
+	display: inline-block;
+	position: relative;
+	top: -1px;
+	padding: 4px 10px;
+	-webkit-border-radius: 30px;
+	border-radius: 30px;
+	background: #777;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* not a part of filter bar, but derived from it, so here for now */
+.title-count {
+	display: inline;
+	top: -3px;
+	margin-right: 5px;
+	margin-left: 20px;
+}
+
+.filter-links {
+	display: inline-block;
+	margin: 0;
+}
+
+.filter-links li {
+	display: inline-block;
+	margin: 0;
+}
+
+.filter-links li > a {
+	display: inline-block;
+	margin: 0 10px;
+	padding: 15px 0;
+	border-bottom: 4px solid #fff;
+	color: #666;
+	cursor: pointer;
+}
+
+.filter-links .current {
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border-bottom: 4px solid #666;
+	color: #222;
+}
+
+.filter-links li > a:hover,
+.filter-links li > a:focus,
+.show-filters .filter-links a.current:hover,
+.show-filters .filter-links a.current:focus {
+	color: #2ea2cc;
+}
+
+.wp-filter .search-form {
+	float: left;
+	margin-top: 9px;
+}
+
+.wp-filter .search-form input[type="search"] {
+	margin: 0;
+	padding: 3px 5px;
+	width: 280px;
+	font-size: 16px;
+	font-weight: 300;
+	line-height: 1.5;
+}
+
+.wp-filter .search-form select {
+	height: 33px;
+	vertical-align: top;
+}
+
+.wp-filter .drawer-toggle {
+	display: inline-block;
+	margin: 0 10px;
+	padding: 4px 6px;
+	color: #666;
+	cursor: pointer;
+}
+
+.wp-filter .drawer-toggle:before {
+	display: inline-block;
+	vertical-align: top;
+	content: "\f111";
+	margin: 0 0 0 5px;
+	width: 16px;
+	height: 16px;
+	color: #777;
+	-webkit-transition: color .1s ease-in 0;
+	transition: color .1s ease-in 0;
+	font-family: "dashicons";
+	font-size: 16px;
+	line-height: 1;
+	text-align: center;
+	text-decoration: inherit;
+	font-weight: normal;
+	font-style: normal;
+	-webkit-font-smoothing: antialiased;
+}
+
+.wp-filter .drawer-toggle:hover,
+.wp-filter .drawer-toggle:hover:before {
+	color: #2ea2cc;
+}
+
+.wp-filter .drawer-toggle.current:before {
+	color: #fff;
+}
+
+.filter-drawer {
+	display: none;
+	margin: 0 -20px;
+	padding: 20px;
+	border-top: 1px solid #eee;
+	background: #fafafa;
+}
+
+.show-filters .filter-drawer {
+	display: block;
+	overflow: hidden;
+}
+
+.show-filters .wp-filter .drawer-toggle:hover,
+.show-filters .wp-filter .drawer-toggle:focus {
+	background: rgb(46, 162, 204);
+}
+
+.show-filters .filter-links a.current {
+	border-bottom: none;
+}
+
+.show-filters .wp-filter .drawer-toggle {
+	-webkit-border-radius: 2px;
+	border-radius: 2px;
+	border: none;
+	background: #777;
+	color: #fff;
+}
+
+.show-filters .wp-filter .drawer-toggle:before {
+	color: #fff;
+}
+
+.filter-group {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	float: right;
+	margin: 0 0 0 1%;
+	padding: 10px;
+	width: 19%;
+	background: #fff;
+	border: 1px solid #e5e5e5;
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.filter-group.wide {
+	width: 38%;
+}
+
+.filter-group h4 {
+	position: relative;
+	margin: 0;
+}
+
+.filter-drawer ol {
+	margin: 20px 0 0;
+	list-style-type: none;
+	font-size: 12px;
+}
+
+.filter-drawer li {
+	display: inline-block;
+	vertical-align: top;
+	margin: 5px 0;
+	padding-left: 25px;
+	width: 160px;
+	list-style-type: none;
+}
+
+.filter-drawer .buttons {
+	margin-bottom: 20px;
+}
+
+.filter-drawer .buttons .button span {
+	display: inline-block;
+	opacity: 0.8;
+	font-size: 12px;
+	text-indent: 10px;
+}
+
+.wp-filter .button.clear-filters {
+	display: none;
+	margin: 0 10px 20px 0;
+}
+
+.filtered-by {
+	display: none;
+	margin: 0;
+}
+
+.filtered-by > span {
+	font-weight: 600;
+}
+
+.filtered-by a {
+	margin-right: 10px;
+}
+
+.filtered-by .tags {
+	display: inline;
+}
+
+.filtered-by .tag {
+	margin: 0 5px;
+	padding: 4px 8px;
+	border: 1px solid #e5e5e5;
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	background: #fff;
+	font-size: 11px;
+}
+
+.filters-applied .filter-group,
+.filters-applied .filter-drawer .buttons,
+.filters-applied .filter-drawer br {
+	display: none !important;
+}
+
+.filters-applied .filtered-by {
+	display: block;
+}
+
+.filters-applied .filter-drawer {
+	padding: 20px;
+}
+
+.show-filters .content-filterable,
+.show-filters.filters-applied.loading-content .content-filterable,
+.loading-content .content-filterable,
+.error .content-filterable {
+	display: none;
+}
+
+.show-filters.filters-applied .content-filterable {
+	display: block;
+}
+
+.loading-content .spinner {
+	display: block;
+	margin: 40px auto 0;
+	float: none;
+}
+
+@media only screen and (max-width: 1120px) {
+	.wp-filter .search-form {
+		float: none;
+		margin: 20px 0;
+	}
+
+	.filter-drawer {
+		border-bottom: 1px solid #eee;
+	}
+
+	.filter-group {
+		margin-bottom: 0;
+		margin-top: 5px;
+		width: 100%;
+	}
+
+	.filter-group li {
+		margin: 10px 0;
+	}
+}
+
+@media only screen and (max-width: 782px) {
+	.filter-group,
+	.filter-group li {
+		width: 100%;
+	}
+
+}
+
 
 /*------------------------------------------------------------------------------
   4.0 - Notifications
@@ -1052,12 +1381,6 @@ form.upgrade .hint {
 #screen-meta-links a:active,
 #screen-meta-links a:focus {
 	color: #333;
-}
-
-#screen-meta-links a:focus {
-	border-color: #aaa;
-	-webkit-box-shadow: 0 2px 3px rgba(0,0,0,0.15);
-	box-shadow: 0 2px 3px rgba(0,0,0,0.15);
 }
 
 #screen-meta-links a.show-settings {
@@ -1343,6 +1666,7 @@ html.wp-toolbar {
 	}
 }
 
+.js .widget .widget-top,
 .js .postbox .hndle {
 	cursor: move;
 }
@@ -1374,18 +1698,13 @@ html.wp-toolbar {
 	line-height: 1;
 }
 
-.postbox h3,
-.stuffbox h3 {
-	margin-top: 1px;
+/* user-select is not a part of the CSS standard - may change behavior in the future */
+.postbox .hndle,
+.stuffbox .hndle {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
-}
-
-.js .widget .widget-top,
-.js .postbox h3 {
-	cursor: move;
 }
 
 .postbox .inside,
@@ -1454,8 +1773,7 @@ html.wp-toolbar {
 	bottom: 0;
 	right: 0;
 	left: 0;
-	padding: 10px 0;
-	margin-left: 20px;
+	padding: 10px 20px;
 	color: #777;
 }
 
@@ -1651,6 +1969,10 @@ td.media-icon img {
 	max-height: 60px;
 }
 
+td.image-icon img {
+	border: 1px solid rgba(0, 0, 0, 0.07);
+}
+
 #howto {
 	font-size: 11px;
 	margin: 0 5px;
@@ -1795,21 +2117,28 @@ div.action-links {
 
 /* Plugin install thickbox */
 #plugin-information {
-	background: #fcfcfc;
+	background: #fff;
 	position: fixed;
 	top: 0;
 	left: 0;
 	bottom: 0;
 	right: 0;
-	height: auto;
+	height: 100%;
 	padding: 0;
 }
 
+#plugin-information-scrollable {
+	overflow: auto;
+	height: 100%;
+}
+
 #plugin-information-title {
-	padding: 0 20px 0 76px;
+	padding: 0 20px;
+	background: #f5f5f5;
 	font-size: 22px;
 	font-weight: 600;
 	line-height: 56px;
+	position: relative;
 	top: 0;
 	left: 0;
 	right: 0;
@@ -1819,20 +2148,72 @@ div.action-links {
 	white-space: nowrap;
 }
 
+#plugin-information-title.with-banner {
+	margin-left: 0;
+	height: 250px;
+	bottom: 250px;
+	-webkit-background-size: 100% auto;
+	background-size: 100% auto;
+}
+
+#plugin-information-title h2 {
+	font-size: 1em;
+	font-weight: bold;
+	padding: 0;
+	margin: 0;
+	max-width: 680px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#plugin-information-title.with-banner h2 {
+	font-family: "Helvetica Neue", sans-serif;
+	display: inline-block;
+	font-size: 30px;
+	line-height: 50px;
+	padding: 0 15px;
+	margin: 174px 10px 0 0;
+	color: #fff;
+	background: rgba( 30, 30, 30, 0.9 );
+	text-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
+	-webkit-box-shadow: 0 0 30px rgba( 255, 255, 255, 0.1 );
+	box-shadow: 0 0 30px rgba( 255, 255, 255, 0.1 );
+	-webkit-border-radius: 8px;
+	border-radius: 8px;
+}
+
+#plugin-information-title div.vignette {
+	display: none;
+}
+
+#plugin-information-title.with-banner div.vignette {
+	display: block;
+	float: left;
+	top: 0;
+	height: 250px;
+	width: 830px;
+	margin: 0 -20px;
+	background: transparent;
+	-webkit-box-shadow: inset 0 0 50px 4px rgba( 0, 0, 0, 0.2 ), inset 0 -1px 0 rgba( 0, 0, 0, 0.1 );
+	box-shadow: inset 0 0 50px 4px rgba( 0, 0, 0, 0.2 ), inset 0 -1px 0 rgba( 0, 0, 0, 0.1 );
+}
+
 #plugin-information-tabs {
 	padding: 0 16px;
-	position: absolute;
-	top: 56px;
+	position: relative;
 	left: 0;
 	right: 0;
 	height: 36px;
 	z-index: 1;
+	border-bottom: 1px solid #ddd;
+	background: #f3f3f3;
 }
 
 #plugin-information-tabs a {
 	position: relative;
 	float: right;
-	padding: 8px 10px 9px;
+	padding: 9px 10px;
 	margin: 0;
 	height: 18px;
 	line-height: 18px;
@@ -1843,11 +2224,17 @@ div.action-links {
 }
 
 #plugin-information-tabs a.current {
-	margin: -1px -1px 0;
+	margin: 0 -1px 0;
 	background: #fff;
 	border: 1px solid #ddd;
-	border-bottom: none;
+	border-bottom-color: #fff;
+	padding-top: 8px;
 	color: #333;
+}
+
+#plugin-information-tabs.with-banner a.current {
+	border-top: none;
+	padding-top: 9px;
 }
 
 #plugin-information-tabs a:active,
@@ -1856,25 +2243,34 @@ div.action-links {
 }
 
 #plugin-information-content {
+	overflow: hidden; /* equal height column trick */
 	background: #fff;
-	border-top: 1px solid #ddd;
-	border-bottom: 1px solid #ddd;
-	position: absolute;
-	top: 90px;
+	position: relative;
+	top: 0;
 	left: 0;
-	bottom: 58px;
 	right: 0;
+	min-height: 100%;
+	/* Height of title + tabs + install now */
+	min-height: -webkit-calc( 100% - 152px );
+	min-height: calc( 100% - 152px );
+}
+
+#plugin-information-content.with-banner {
+	/* Height of banner + tabs + install now */
+	min-height: -webkit-calc( 100% - 346px );
+	min-height: calc( 100% - 346px );
 }
 
 #section-holder {
-	margin: 0;
-	padding: 10px 26px;
-	position: absolute;
+	position: relative;
 	top: 0;
 	left: 250px;
 	bottom: 0;
 	right: 0;
-	overflow: auto;
+	margin-left: 250px; /* FYI box */
+	padding: 10px 26px;
+	margin-bottom: -99930px; /* a bit less than the padding below to accommodate footer */
+	padding-bottom: 99999px; /* equal height column trick */
 }
 
 #section-holder .updated {
@@ -1882,16 +2278,18 @@ div.action-links {
 }
 
 #plugin-information .fyi {
-	background: #f3f3f3;
-	border-right: 1px solid #ddd;
-	color: #666;
-	padding: 16px;
-	position: absolute;
+	display: block;
+	float: left;
+	position: relative;
 	top: 0;
 	left: 0;
-	bottom: 0;
+	padding: 16px;
+	margin-bottom: -99930px; /* slightly less than the padding below to accommodate footer */
+	padding-bottom: 99999px; /* equal height column trick */
 	width: 217px;
-	overflow: auto;
+	border-right: 1px solid #ddd;
+	background: #f3f3f3;
+	color: #666;
 }
 
 #plugin-information .fyi strong {
@@ -1922,6 +2320,54 @@ div.action-links {
 	margin: 0 0 10px;
 }
 
+#plugin-information .counter-container {
+	margin: 3px 0;
+}
+
+#plugin-information .counter-label {
+	float: right;
+	margin-left: 5px;
+	min-width: 55px;
+}
+
+#plugin-information .counter-back {
+	height: 17px;
+	width: 92px;
+	background-color: #ececec;
+	float: right;
+}
+
+#plugin-information .counter-bar {
+	height: 17px;
+	background-color: #fddb5a;
+	float: right;
+}
+
+#plugin-information .counter-count {
+	margin-right: 5px;
+}
+
+#plugin-information .fyi ul.contributors {
+	margin-top: 10px;
+}
+
+#plugin-information .fyi ul.contributors li {
+	display: inline-block;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+#plugin-information .fyi ul.contributors li {
+	display: inline-block;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+#plugin-information .fyi ul.contributors li img {
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
 #plugin-information-footer {
 	padding: 15px 16px;
 	position: absolute;
@@ -1929,12 +2375,20 @@ div.action-links {
 	bottom: 0;
 	right: 0;
 	height: 28px;
+	border-top: 1px solid #ddd;
+	background: #f3f3f3;
 }
 
+/* @noflip */
+#plugin-information .section {
+	direction: ltr;
+}
+
+/* @noflip */
 #plugin-information .section ul,
 #plugin-information .section ol {
 	list-style-type: disc;
-	margin-right: 24px;
+	margin-left: 24px;
 }
 
 #plugin-information .section,
@@ -1958,9 +2412,10 @@ div.action-links {
 	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.3 );
 }
 
+/* @noflip */
 #plugin-information #section-screenshots li p {
 	font-style: italic;
-	padding-right: 20px;
+	padding-left: 20px;
 }
 
 #plugin-information pre {
@@ -1969,25 +2424,101 @@ div.action-links {
 	border: 1px solid #ccc;
 }
 
+/* @noflip */
+#plugin-information .review {
+	overflow: hidden; /* clearfix */
+	width: 100%;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e6e6e6;
+}
+
+#plugin-information .review-title-section {
+	overflow: hidden; /* clearfix */
+}
+
+/* @noflip */
+#plugin-information .review-title-section h4 {
+	display: inline-block;
+	float: left;
+	margin: 0 6px 0 0;
+}
+
+#plugin-information .reviewer-info p {
+	clear: both;
+	margin: 0;
+	padding-top: 2px;
+}
+
+/* @noflip */
+#plugin-information .reviewer-info .avatar {
+	float: left;
+	margin: 4px 6px 0 0;
+}
+
+/* @noflip */
+#plugin-information .reviewer-info .star-rating {
+	float: left;
+}
+
+/* @noflip */
+#plugin-information .review-meta {
+	float: left;
+	margin-left: 0.75em;
+}
+
+/* @noflip */
+#plugin-information .review-body {
+	float: left;
+	width: 100%;
+}
+
 .plugin-version-author-uri {
 	font-size: 13px;
 }
 
-@media screen and ( max-width: 782px ) {
-	#plugin-information-content {
-		overflow: auto;
-		bottom: 58px;
+@media screen and ( max-width: 771px ) {
+	#plugin-information-title.with-banner {
+		height: 100px;
+		bottom: 100px;
+	}
+
+	#plugin-information-title.with-banner h2 {
+		margin-top: 30px;
+		font-size: 20px;
+		line-height: 40px;
+		max-width: 85%;
+	}
+
+	#plugin-information-title.with-banner div.vignette {
+		height: 100px;
+		bottom: 100px;
+		width: 800%;
+	}
+
+	#plugin-information-tabs {
+		overflow: hidden; /* clearfix */
+		padding: 0;
+		height: auto; /* let tabs wrap */
+	}
+
+	#plugin-information-tabs a.current {
+		margin-bottom: 0;
+		border-bottom: none;
 	}
 
 	#plugin-information .fyi {
+		float: none;
 		border: 1px solid #ddd;
 		position: static;
 		width: auto;
-		margin: 26px 26px 16px;
+		margin: 26px 26px 0;
+		padding-bottom: 0; /* reset from the two column height fix */
 	}
 
 	#section-holder {
 		position: static;
+		margin: 0;
+		padding-bottom: 70px; /* reset from the two column height fix, plus accomodate footer */
 	}
 
 	#plugin-information .fyi h3,
@@ -2048,9 +2579,37 @@ body.import-php .tb-close-icon,
 body.plugins-php .tb-close-icon,
 body.update-core-php .tb-close-icon,
 body.index-php .tb-close-icon {
-	line-height: 48px;
-	width: 48px;
-	height: 48px;
+	right: auto;
+	left: -30px;
+	color: #eee;
+	-webkit-transition: color .1s ease-in-out, background .1s ease-in-out;
+	transition: color .1s ease-in-out, background .1s ease-in-out;
+}
+
+body.plugin-install-php #TB_closeWindowButton:focus,
+body.plugin-install-php #TB_closeWindowButton:focus .tb-close-icon,
+body.plugin-install-php .tb-close-icon:focus,
+body.plugin-install-php .tb-close-icon:hover,
+body.import-php #TB_closeWindowButton:focus,
+body.import-php #TB_closeWindowButton:focus .tb-close-icon,
+body.import-php .tb-close-icon:focus,
+body.import-php .tb-close-icon:hover,
+body.plugins-php #TB_closeWindowButton:focus,
+body.plugins-php #TB_closeWindowButton:focus .tb-close-icon,
+body.plugins-php .tb-close-icon:focus,
+body.plugins-php .tb-close-icon:hover,
+body.update-core-php #TB_closeWindowButton:focus,
+body.update-core-php #TB_closeWindowButton:focus .tb-close-icon,
+body.update-core-php .tb-close-icon:focus,
+body.update-core-php .tb-close-icon:hover,
+body.index-php #TB_closeWindowButton:focus,
+body.index-php #TB_closeWindowButton:focus .tb-close-icon,
+body.index-php .tb-close-icon:focus,
+body.index-php .tb-close-icon:hover {
+	color: #2ea2cc;
+	outline: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
 }
 
 body.plugin-install-php .tb-close-icon:before,
@@ -2058,7 +2617,20 @@ body.import-php .tb-close-icon:before,
 body.plugins-php .tb-close-icon:before,
 body.update-core-php .tb-close-icon:before,
 body.index-php .tb-close-icon:before {
-	line-height: 48px;
+	content: "\f335";
+	font-size: 32px;
+}
+
+/* move plugin install close icon to top on narrow screens */
+@media screen and ( max-width: 830px ) {
+	body.plugin-install-php .tb-close-icon,
+	body.import-php .tb-close-icon,
+	body.plugins-php .tb-close-icon,
+	body.update-core-php .tb-close-icon,
+	body.index-php .tb-close-icon {
+		left: 0;
+		top: -30px;
+	}
 }
 
 /* @todo: move this. */
@@ -2270,7 +2842,8 @@ img {
 
 .control-section.open .accordion-section-title:after,
 #customize-info.open .accordion-section-title:after,
-.nav-menus-php .menu-item-edit-active .item-edit:before {
+.nav-menus-php .menu-item-edit-active .item-edit:before,
+.widget.open .widget-top a.widget-action:after {
 	content: '\f142';
 }
 
@@ -2487,10 +3060,6 @@ img {
 		-webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
 	}
 
-	#wpwrap {
-		background: #f0f0f0;
-	}
-
 	#wpcontent {
 		position: relative;
 		margin-right: 0;
@@ -2548,6 +3117,10 @@ img {
 
 	.wp-responsive-open #wpbody {
 		left: -190px;
+	}
+
+	code {
+		word-wrap: break-word;
 	}
 
 	/* General Metabox */

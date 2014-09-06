@@ -75,8 +75,8 @@ class WP_Customize_Setting {
 	 * @param array                $args    Setting arguments.
 	 * @return WP_Customize_Setting $setting
 	 */
-	function __construct( $manager, $id, $args = array() ) {
-		$keys = array_keys( get_class_vars( __CLASS__ ) );
+	public function __construct( $manager, $id, $args = array() ) {
+		$keys = array_keys( get_object_vars( $this ) );
 		foreach ( $keys as $key ) {
 			if ( isset( $args[ $key ] ) )
 				$this->$key = $args[ $key ];
@@ -130,8 +130,10 @@ class WP_Customize_Setting {
 				 * The dynamic portion of the hook name, $this->id, refers to the setting ID.
 				 *
 				 * @since 3.4.0
+				 *
+				 * @param WP_Customize_Setting $this WP_Customize_Setting instance.
 				 */
-				do_action( 'customize_preview_' . $this->id );
+				do_action( 'customize_preview_' . $this->id, $this );
 		}
 	}
 
@@ -163,15 +165,16 @@ class WP_Customize_Setting {
 			return false;
 
 		/**
-		 * Fires when the WP_Customize_Setting::save() method is called for settings
-		 * not handled as theme_mods or options.
+		 * Fires when the WP_Customize_Setting::save() method is called.
 		 *
 		 * The dynamic portion of the hook name, $this->id_data['base'] refers to
 		 * the base slug of the setting name.
 		 *
 		 * @since 3.4.0
+		 *
+		 * @param WP_Customize_Setting $this WP_Customize_Setting instance.
 		 */
-		do_action( 'customize_save_' . $this->id_data[ 'base' ] );
+		do_action( 'customize_save_' . $this->id_data[ 'base' ], $this );
 
 		$this->update( $value );
 	}
@@ -232,10 +235,10 @@ class WP_Customize_Setting {
 		switch( $this->type ) {
 			case 'theme_mod' :
 				return $this->_update_theme_mod( $value );
-				break;
+
 			case 'option' :
 				return $this->_update_option( $value );
-				break;
+
 			default :
 
 				/**
@@ -246,9 +249,10 @@ class WP_Customize_Setting {
 				 *
 				 * @since 3.4.0
 				 *
-				 * @param mixed $value Value of the setting.
+				 * @param mixed                $value Value of the setting.
+				 * @param WP_Customize_Setting $this  WP_Customize_Setting instance.
 				 */
-				return do_action( 'customize_update_' . $this->type, $value );
+				return do_action( 'customize_update_' . $this->type, $value, $this );
 		}
 	}
 

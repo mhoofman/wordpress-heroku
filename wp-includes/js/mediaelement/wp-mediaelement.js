@@ -7,18 +7,22 @@
 	$(function () {
 		var settings = {};
 
-		if ( $( document.body ).hasClass( 'mce-content-body' ) ) {
-			return;
-		}
-
 		if ( typeof _wpmejsSettings !== 'undefined' ) {
-			settings.pluginPath = _wpmejsSettings.pluginPath;
+			settings = _wpmejsSettings;
 		}
 
 		settings.success = function (mejs) {
-			var autoplay = mejs.attributes.autoplay && 'false' !== mejs.attributes.autoplay;
-			if ( 'flash' === mejs.pluginType && autoplay ) {
-				mejs.addEventListener( 'canplay', function () {
+			var autoplay, loop;
+
+			if ( 'flash' === mejs.pluginType ) {
+				autoplay = mejs.attributes.autoplay && 'false' !== mejs.attributes.autoplay;
+				loop = mejs.attributes.loop && 'false' !== mejs.attributes.loop;
+
+				autoplay && mejs.addEventListener( 'canplay', function () {
+					mejs.play();
+				}, false );
+
+				loop && mejs.addEventListener( 'ended', function () {
 					mejs.play();
 				}, false );
 			}

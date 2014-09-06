@@ -18,11 +18,6 @@ function wp_dashboard_setup() {
 	$wp_dashboard_control_callbacks = array();
 	$screen = get_current_screen();
 
-	$update = false;
-	$widget_options = get_option( 'dashboard_widget_options' );
-	if ( !$widget_options || !is_array($widget_options) )
-		$widget_options = array();
-
 	/* Register Widgets and Controls */
 
 	$response = wp_check_browser_version();
@@ -123,9 +118,6 @@ function wp_dashboard_setup() {
 		exit;
 	}
 
-	if ( $update )
-		update_option( 'dashboard_widget_options', $widget_options );
-
 	/** This action is documented in wp-admin/edit-form-advanced.php */
 	do_action( 'do_meta_boxes', $screen->id, 'normal', '' );
 
@@ -186,16 +178,16 @@ function wp_dashboard() {
 
 ?>
 <div id="dashboard-widgets" class="metabox-holder<?php echo $columns_css; ?>">
-	<div id='postbox-container-1' class='postbox-container'>
+	<div id="postbox-container-1" class="postbox-container">
 	<?php do_meta_boxes( $screen->id, 'normal', '' ); ?>
 	</div>
-	<div id='postbox-container-2' class='postbox-container'>
+	<div id="postbox-container-2" class="postbox-container">
 	<?php do_meta_boxes( $screen->id, 'side', '' ); ?>
 	</div>
-	<div id='postbox-container-3' class='postbox-container'>
+	<div id="postbox-container-3" class="postbox-container">
 	<?php do_meta_boxes( $screen->id, 'column3', '' ); ?>
 	</div>
-	<div id='postbox-container-4' class='postbox-container'>
+	<div id="postbox-container-4" class="postbox-container">
 	<?php do_meta_boxes( $screen->id, 'column4', '' ); ?>
 	</div>
 </div>
@@ -218,11 +210,6 @@ function wp_dashboard() {
  * @since 2.7.0
  */
 function wp_dashboard_right_now() {
-	$theme = wp_get_theme();
-	if ( current_user_can( 'switch_themes' ) )
-		$theme_name = sprintf( '<a href="themes.php">%1$s</a>', $theme->display('Name') );
-	else
-		$theme_name = $theme->display('Name');
 ?>
 	<div class="main">
 	<ul>
@@ -469,7 +456,7 @@ function wp_dashboard_quick_press( $error_msg = false ) {
 
 		<div class="textarea-wrap" id="description-wrap">
 			<label class="screen-reader-text prompt" for="content" id="content-prompt-text"><?php _e( 'What&#8217;s on your mind?' ); ?></label>
-			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15"></textarea>
+			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15" autocomplete="off"></textarea>
 		</div>
 
 		<p class="submit">
@@ -544,7 +531,7 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 
 	$actions_string = '';
 	if ( current_user_can( 'edit_comment', $comment->comment_ID ) ) {
-		// preorder it: Approve | Reply | Edit | Spam | Trash
+		// Pre-order it: Approve | Reply | Edit | Spam | Trash.
 		$actions = array(
 			'approve' => '', 'unapprove' => '',
 			'reply' => '',
@@ -614,16 +601,16 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 
 			<?php
 			else :
-				switch ( $comment->comment_type ) :
-				case 'pingback' :
-					$type = __( 'Pingback' );
-					break;
-				case 'trackback' :
-					$type = __( 'Trackback' );
-					break;
-				default :
-					$type = ucwords( $comment->comment_type );
-				endswitch;
+				switch ( $comment->comment_type ) {
+					case 'pingback' :
+						$type = __( 'Pingback' );
+						break;
+					case 'trackback' :
+						$type = __( 'Trackback' );
+						break;
+					default :
+						$type = ucwords( $comment->comment_type );
+				}
 				$type = esc_html( $type );
 			?>
 			<div class="dashboard-comment-wrap">
@@ -712,7 +699,6 @@ function wp_dashboard_recent_posts( $args ) {
 
 		echo '<ul>';
 
-		$i = 0;
 		$today    = date( 'Y-m-d', current_time( 'timestamp' ) );
 		$tomorrow = date( 'Y-m-d', strtotime( '+1 day', current_time( 'timestamp' ) ) );
 
@@ -761,11 +747,8 @@ function wp_dashboard_recent_posts( $args ) {
  * @return bool False if no comments were found. True otherwise.
  */
 function wp_dashboard_recent_comments( $total_items = 5 ) {
-	global $wpdb;
-
 	// Select all comment types and filter out spam later for better query performance.
 	$comments = array();
-	$start = 0;
 
 	$comments_query = array(
 		'number' => $total_items * 5,
@@ -785,8 +768,6 @@ function wp_dashboard_recent_comments( $total_items = 5 ) {
 		$comments_query['offset'] += $comments_query['number'];
 		$comments_query['number'] = $total_items * 10;
 	}
-
-
 
 	if ( $comments ) {
 		echo '<div id="latest-comments" class="activity-block">';
@@ -864,8 +845,8 @@ function wp_dashboard_cached_rss_widget( $widget_id, $callback, $check_urls = ar
 	}
 
 	if ( $callback && is_callable( $callback ) ) {
-		$args = array_slice( func_get_args(), 2 );
-		array_unshift( $args, $widget_id );
+		$args = array_slice( func_get_args(), 3 );
+		array_unshift( $args, $widget_id, $check_urls );
 		ob_start();
 		call_user_func_array( $callback, $args );
 		set_transient( $cache_key, ob_get_flush(), 12 * HOUR_IN_SECONDS ); // Default lifetime in cache of 12 hours (same as the feeds)
@@ -917,7 +898,8 @@ function wp_dashboard_rss_control( $widget_id, $form_inputs = array() ) {
 		$_POST['widget-rss'][$number] = wp_unslash( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id] = wp_widget_rss_process( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id]['number'] = $number;
-		// title is optional. If black, fill it if possible
+
+		// Title is optional. If black, fill it if possible.
 		if ( !$widget_options[$widget_id]['title'] && isset($_POST['widget-rss'][$number]['title']) ) {
 			$rss = fetch_feed($widget_options[$widget_id]['url']);
 			if ( is_wp_error($rss) ) {
@@ -1065,13 +1047,11 @@ function wp_dashboard_plugins_output( $rss, $args = array() ) {
 
 	echo '<ul>';
 
-	foreach ( array(
-		'popular' => __( 'Popular Plugin' )
-	) as $feed => $label ) {
-		if ( is_wp_error($$feed) || !$$feed->get_item_quantity() )
+	foreach ( array( $popular ) as $feed ) {
+		if ( is_wp_error( $feed ) || ! $feed->get_item_quantity() )
 			continue;
 
-		$items = $$feed->get_items(0, 5);
+		$items = $feed->get_items(0, 5);
 
 		// Pick a random, non-installed plugin
 		while ( true ) {
@@ -1114,14 +1094,11 @@ function wp_dashboard_plugins_output( $rss, $args = array() ) {
 
 		$title = esc_html( $item->get_title() );
 
-		$description = esc_html( strip_tags( @html_entity_decode( $item->get_description(), ENT_QUOTES, get_option( 'blog_charset' ) ) ) );
-
 		$ilink = wp_nonce_url('plugin-install.php?tab=plugin-information&plugin=' . $slug, 'install-plugin_' . $slug) . '&amp;TB_iframe=true&amp;width=600&amp;height=800';
+		echo "<li class='dashboard-news-plugin'><span>" . __( 'Popular Plugin' ) . ":</span> <a href='$link' class='dashboard-news-plugin-link'>$title</a>&nbsp;<span>(<a href='$ilink' class='thickbox' title='$title'>" . __( 'Install' ) . "</a>)</span></li>";
 
-		echo "<li class='dashboard-news-plugin'><span>$label:</span> <a href='$link' class='dashboard-news-plugin-link'>$title</a>&nbsp;<span>(<a href='$ilink' class='thickbox' title='$title'>" . __( 'Install' ) . "</a>)</span></li>";
-
-		$$feed->__destruct();
-		unset( $$feed );
+		$feed->__destruct();
+		unset( $feed );
 	}
 
 	echo '</ul>';
@@ -1303,8 +1280,10 @@ function wp_welcome_panel() {
 	<p class="about-description"><?php _e( 'We&#8217;ve assembled some links to get you started:' ); ?></p>
 	<div class="welcome-panel-column-container">
 	<div class="welcome-panel-column">
-		<h4><?php _e( 'Get Started' ); ?></h4>
-		<a class="button button-primary button-hero load-customize hide-if-no-customize" href="<?php echo wp_customize_url(); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<?php if ( current_user_can( 'customize' ) ): ?>
+			<h4><?php _e( 'Get Started' ); ?></h4>
+			<a class="button button-primary button-hero load-customize hide-if-no-customize" href="<?php echo wp_customize_url(); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<?php endif; ?>
 		<a class="button button-primary button-hero hide-if-customize" href="<?php echo admin_url( 'themes.php' ); ?>"><?php _e( 'Customize Your Site' ); ?></a>
 		<?php if ( current_user_can( 'install_themes' ) || ( current_user_can( 'switch_themes' ) && count( wp_get_themes( array( 'allowed' => true ) ) ) > 1 ) ) : ?>
 			<p class="hide-if-no-customize"><?php printf( __( 'or, <a href="%s">change your theme completely</a>' ), admin_url( 'themes.php' ) ); ?></p>

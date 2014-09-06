@@ -11,8 +11,9 @@
  *
  * @since 2.3.2
  */
-if ( ! defined('WP_ADMIN') )
-	define('WP_ADMIN', true);
+if ( ! defined( 'WP_ADMIN' ) ) {
+	define( 'WP_ADMIN', true );
+}
 
 if ( ! defined('WP_NETWORK_ADMIN') )
 	define('WP_NETWORK_ADMIN', false);
@@ -50,8 +51,8 @@ if ( get_option('db_upgraded') ) {
 	 * Filter whether to attempt to perform the multisite DB upgrade routine.
 	 *
 	 * In single site, the user would be redirected to wp-admin/upgrade.php.
-	 * In multisite, it is automatically fired, but only when this filter
-	 * returns true.
+	 * In multisite, the DB upgrade routine is automatically fired, but only
+	 * when this filter returns true.
 	 *
 	 * If the network is 50 sites or less, it will run every time. Otherwise,
 	 * it will throttle itself to reduce load.
@@ -150,7 +151,8 @@ if ( isset($plugin_page) ) {
 		$the_parent = $pagenow;
 	if ( ! $page_hook = get_plugin_page_hook($plugin_page, $the_parent) ) {
 		$page_hook = get_plugin_page_hook($plugin_page, $plugin_page);
-		// backwards compatibility for plugins using add_management_page
+
+		// Backwards compatibility for plugins using add_management_page().
 		if ( empty( $page_hook ) && 'edit.php' == $pagenow && '' != get_plugin_page_hook($plugin_page, 'tools.php') ) {
 			// There could be plugin specific params on the URL, so we need the whole query string
 			if ( !empty($_SERVER[ 'QUERY_STRING' ]) )
@@ -204,8 +206,7 @@ if ( isset($plugin_page) ) {
 		/**
 		 * Used to call the registered callback for a plugin screen.
 		 *
-		 * @access private
-		 *
+		 * @internal
 		 * @since 1.5.0
 		 */
 		do_action( $page_hook );
@@ -289,8 +290,9 @@ if ( isset($plugin_page) ) {
 	 *
 	 * @param bool false Whether to force data to be filtered through kses. Default false.
 	 */
-	if ( apply_filters( 'force_filtered_html_on_import', false ) )
+	if ( apply_filters( 'force_filtered_html_on_import', false ) ) {
 		kses_init_filters();  // Always filter imported data with kses on multisite.
+	}
 
 	call_user_func($wp_importers[$importer][2]);
 
@@ -308,13 +310,17 @@ if ( isset($plugin_page) ) {
 	 *
 	 * The dynamic portion of the hook name, $pagenow, is a global variable
 	 * referring to the filename of the current page, such as 'admin.php',
-	 * 'post-new.php' etc. A complete hook for the latter would be 'load-post-new.php'.
+	 * 'post-new.php' etc. A complete hook for the latter would be
+	 * 'load-post-new.php'.
 	 *
 	 * @since 2.1.0
 	 */
 	do_action( 'load-' . $pagenow );
-	// Backwards compatibility with old load-page-new.php, load-page.php,
-	// and load-categories.php actions.
+
+	/*
+	 * The following hooks are fired to ensure backward compatibility.
+	 * In all other cases, 'load-' . $pagenow should be used instead.
+	 */
 	if ( $typenow == 'page' ) {
 		if ( $pagenow == 'post-new.php' )
 			do_action( 'load-page-new.php' );

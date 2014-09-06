@@ -9,18 +9,28 @@
  */
 class WP_Links_List_Table extends WP_List_Table {
 
-	function __construct( $args = array() ) {
+	/**
+	 * Constructor.
+	 *
+	 * @since 3.1.0
+	 * @access public
+	 *
+	 * @see WP_List_Table::__construct() for more information on default arguments.
+	 *
+	 * @param array $args An associative array of arguments.
+	 */
+	public function __construct( $args = array() ) {
 		parent::__construct( array(
 			'plural' => 'bookmarks',
 			'screen' => isset( $args['screen'] ) ? $args['screen'] : null,
 		) );
 	}
 
-	function ajax_user_can() {
+	public function ajax_user_can() {
 		return current_user_can( 'manage_links' );
 	}
 
-	function prepare_items() {
+	public function prepare_items() {
 		global $cat_id, $s, $orderby, $order;
 
 		wp_reset_vars( array( 'action', 'cat_id', 'link_id', 'orderby', 'order', 's' ) );
@@ -39,18 +49,18 @@ class WP_Links_List_Table extends WP_List_Table {
 		$this->items = get_bookmarks( $args );
 	}
 
-	function no_items() {
+	public function no_items() {
 		_e( 'No links found.' );
 	}
 
-	function get_bulk_actions() {
+	protected function get_bulk_actions() {
 		$actions = array();
 		$actions['delete'] = __( 'Delete' );
 
 		return $actions;
 	}
 
-	function extra_tablenav( $which ) {
+	protected function extra_tablenav( $which ) {
 		global $cat_id;
 
 		if ( 'top' != $which )
@@ -69,13 +79,13 @@ class WP_Links_List_Table extends WP_List_Table {
 				'orderby' => 'name',
 			);
 			wp_dropdown_categories( $dropdown_options );
-			submit_button( __( 'Filter' ), 'button', false, false, array( 'id' => 'post-query-submit' ) );
+			submit_button( __( 'Filter' ), 'button', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 ?>
 		</div>
 <?php
 	}
 
-	function get_columns() {
+	public function get_columns() {
 		return array(
 			'cb'         => '<input type="checkbox" />',
 			'name'       => _x( 'Name', 'link name' ),
@@ -87,7 +97,7 @@ class WP_Links_List_Table extends WP_List_Table {
 		);
 	}
 
-	function get_sortable_columns() {
+	protected function get_sortable_columns() {
 		return array(
 			'name'    => 'name',
 			'url'     => 'url',
@@ -96,7 +106,7 @@ class WP_Links_List_Table extends WP_List_Table {
 		);
 	}
 
-	function display_rows() {
+	public function display_rows() {
 		global $cat_id;
 
 		$alt = 0;

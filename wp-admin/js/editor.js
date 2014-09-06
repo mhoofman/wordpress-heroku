@@ -60,7 +60,8 @@ window.switchEditors = {
 			if ( ed ) {
 				ed.show();
 
-				if ( editorHeight ) {
+				// No point resizing the iframe in iOS
+				if ( ! tinymce.Env.iOS && editorHeight ) {
 					toolbarHeight = getToolbarHeight();
 					editorHeight = editorHeight - toolbarHeight + 14;
 
@@ -84,16 +85,18 @@ window.switchEditors = {
 			}
 
 			if ( ed ) {
-				iframe = DOM.get( id + '_ifr' );
-				editorHeight = iframe ? parseInt( iframe.style.height, 10 ) : 0;
+				if ( ! tinymce.Env.iOS ) {
+					iframe = DOM.get( id + '_ifr' );
+					editorHeight = iframe ? parseInt( iframe.style.height, 10 ) : 0;
 
-				if ( editorHeight ) {
-					toolbarHeight = getToolbarHeight();
-					editorHeight = editorHeight + toolbarHeight - 14;
+					if ( editorHeight ) {
+						toolbarHeight = getToolbarHeight();
+						editorHeight = editorHeight + toolbarHeight - 14;
 
-					// height cannot be under 50 or over 5000
-					if ( editorHeight > 50 && editorHeight < 5000 ) {
-						txtarea_el.style.height = editorHeight + 'px';
+						// height cannot be under 50 or over 5000
+						if ( editorHeight > 50 && editorHeight < 5000 ) {
+							txtarea_el.style.height = editorHeight + 'px';
+						}
 					}
 				}
 
@@ -165,6 +168,11 @@ window.switchEditors = {
 		content = content.replace( new RegExp('\\s*</(' + blocklist2 + ')>\\s*', 'g' ), '</$1>\n' );
 		content = content.replace( /<li([^>]*)>/g, '\t<li$1>' );
 
+		if ( content.indexOf( '<option' ) !== -1 ) {
+			content = content.replace( /\s*<option/g, '\n<option' );
+			content = content.replace( /\s*<\/select>/g, '\n</select>' );
+		}
+
 		if ( content.indexOf( '<hr' ) !== -1 ) {
 			content = content.replace( /\s*<hr( [^>]*)?>\s*/g, '\n\n<hr$1>\n\n' );
 		}
@@ -200,7 +208,7 @@ window.switchEditors = {
 		var preserve_linebreaks = false,
 			preserve_br = false,
 			blocklist = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre' +
-				'|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|legend|section' +
+				'|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section' +
 				'|article|aside|hgroup|header|footer|nav|figure|details|menu|summary';
 
 		if ( pee.indexOf( '<object' ) !== -1 ) {
@@ -241,6 +249,8 @@ window.switchEditors = {
 		pee = pee.replace( new RegExp( '(<(?:' + blocklist + ')(?: [^>]*)?>)', 'gi' ), '\n$1' );
 		pee = pee.replace( new RegExp( '(</(?:' + blocklist + ')>)', 'gi' ), '$1\n\n' );
 		pee = pee.replace( /<hr( [^>]*)?>/gi, '<hr$1>\n\n' ); // hr is self closing block element
+		pee = pee.replace( /\s*<option/gi, '<option' ); // No <p> or <br> around <option>
+		pee = pee.replace( /<\/option>\s*/gi, '</option>' );
 		pee = pee.replace( /\r\n|\r/g, '\n' );
 		pee = pee.replace( /\n\s*\n+/g, '\n\n' );
 		pee = pee.replace( /([\s\S]+?)\n\n/g, '<p>$1</p>\n' );

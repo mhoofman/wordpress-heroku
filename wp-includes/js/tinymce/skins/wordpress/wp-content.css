@@ -1,24 +1,53 @@
 /* Additional default styles for the editor */
+
+html.ios {
+	height: 100%;
+}
+
+.ios body#tinymce {
+	height: 200%;
+	max-width: none;
+}
+
 body {
 	font-family: Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
 	font-size: 13px;
 	line-height: 19px;
 	color: #333;
-	margin: 10px;
+	margin: 9px 10px;
+}
+
+body.wp-autoresize {
+	max-width: 100%;
+	overflow: visible !important;
+	/* The padding ensures margins of the children are contained in the body. */
+	padding-top: 1px !important;
+	padding-bottom: 1px !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+
+/* When font-weight is different than the default browser style,
+Chrome and Safari replace <strong> and <b> with spans with inline styles on pasting?! */
+body.webkit strong,
+body.webkit b {
+	font-weight: bold !important;
 }
 
 /* DFW mode */
 html.wp-fullscreen,
-html.wp-fullscreen body {
-	background: transparent;
+html.wp-fullscreen body#tinymce {
 	width: auto;
 	max-width: none;
 	min-height: 0;
 	overflow: hidden;
+	color: #333;
+	background: transparent;
 }
 
 .aligncenter,
-dl.aligncenter {
+dl.aligncenter,
+.html5-captions .wp-caption.aligncenter {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
@@ -94,8 +123,7 @@ img::selection {
 	padding: 0;
 }
 
-.mce-content-body img.mce-wp-nextpage,
-.mce-content-body img.mce-wp-more {
+.mce-content-body img[data-wp-more] {
 	border: 0;
 	-webkit-box-shadow: none;
 	box-shadow: none;
@@ -107,16 +135,15 @@ img::selection {
 	cursor: default;
 }
 
-.mce-content-body img.mce-wp-nextpage[data-mce-selected],
-.mce-content-body img.mce-wp-more[data-mce-selected] {
+.mce-content-body img[data-wp-more][data-mce-selected] {
 	outline: 1px dotted #888;
 }
 
-.mce-content-body img.mce-wp-more {
+.mce-content-body img[data-wp-more="more"] {
 	background: transparent url( images/more.png ) repeat-y scroll center center;
 }
 
-.mce-content-body img.mce-wp-nextpage {
+.mce-content-body img[data-wp-more="nextpage"] {
     background: transparent url( images/pagebreak.png ) repeat-y scroll center center;
 }
 
@@ -166,7 +193,6 @@ video,
 embed {
 	display: -moz-inline-stack;
 	display: inline-block;
-	max-width: 100%;
 }
 
 audio {
@@ -185,7 +211,9 @@ audio {
 
 /* delegate the handling of the selection to the wpview tinymce plugin */
 .wpview-wrap,
-.wpview-wrap * {
+.wpview-wrap *,
+#wp-image-toolbar,
+#wp-image-toolbar * {
 	-moz-user-select: none;
 	-webkit-user-select: none;
 	-ms-user-select: none;
@@ -193,7 +221,8 @@ audio {
 }
 
 /* hide the shortcode content, but allow the content to still be selected */
-.wpview-wrap .wpview-clipboard {
+.wpview-wrap .wpview-clipboard,
+.wpview-wrap > p {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -208,6 +237,45 @@ audio {
 	height: 1px;
 }
 
+/* An ugly box will appear when this is focussed in IE, so we'll move it outside the window. */
+.wpview-wrap.wpview-selection-before > p,
+.wpview-wrap.wpview-selection-after > p {
+	left: -10000px;
+}
+
+.wpview-wrap .wpview-clipboard,
+.wpview-wrap .wpview-clipboard *,
+.wpview-wrap > p {
+	-moz-user-select: text;
+	-webkit-user-select: text;
+	-ms-user-select: text;
+	user-select: text;
+}
+
+.has-focus .wpview-wrap.wpview-selection-before:before,
+.has-focus .wpview-wrap.wpview-selection-after:before {
+	content: '';
+	margin: 0;
+	padding: 0;
+	position: absolute;
+	top: -2px;
+	left: -3px;
+	bottom: -2px;
+	width: 1px;
+	background-color: black;
+	background-color: currentcolor;
+	opacity: 1;
+}
+
+.has-focus .wpview-wrap.wpview-selection-after:before {
+	left: auto;
+	right: -3px;
+}
+
+.has-focus .wpview-wrap.wpview-cursor-hide:before {
+	opacity: 0;
+}
+
 /**
  * Media previews
  */
@@ -217,13 +285,13 @@ audio {
 	border: 1px solid transparent;
 }
 
-.wpview-wrap.selected {
+.wpview-wrap[data-mce-selected] {
 	background-color: rgba(0,0,0,0.1);
 	border-color: rgba(0,0,0,0.3);
 }
 
-.ie8 .wpview-wrap.selected,
-.ie7 .wpview-wrap.selected {
+.ie8 .wpview-wrap[data-mce-selected],
+.ie7 .wpview-wrap[data-mce-selected] {
 	background-color: #e5e5e5;
 	border-color: #777;
 }
@@ -236,7 +304,7 @@ audio {
 	left: 0;
 }
 
-.wpview-wrap.selected .wpview-overlay {
+.wpview-wrap[data-mce-selected] .wpview-overlay {
 	display: none;
 }
 
@@ -248,16 +316,68 @@ audio {
 	z-index: 100;
 }
 
-.wpview-wrap.selected .toolbar {
+.wpview-wrap[data-mce-selected] .toolbar {
 	display: block;
+}
+
+.wpview-wrap .loading-placeholder {
+	border: 1px dashed #ccc;
+	padding: 10px;
+}
+
+.wpview-wrap[data-mce-selected] .loading-placeholder {
+	border-color: transparent;
+}
+
+/* A little "loading" animation, not showing in IE < 10 */
+.wpview-wrap .wpview-loading {
+	width: 60px;
+	height: 5px;
+	overflow: hidden;
+	background-color: transparent;
+	margin: 10px auto 0;
+}
+
+.wpview-wrap .wpview-loading ins {
+	background-color: #333;
+	margin: 0 0 0 -60px;
+	width: 60px;
+	height: 5px;
+	display: block;
+	-webkit-animation: wpview-loading 1.3s infinite 1s linear;
+	animation: wpview-loading 1.3s infinite 1s linear;
+}
+
+@-webkit-keyframes wpview-loading {
+	0% {
+		margin-left: -60px;
+	}
+	100% {
+		margin-left: 60px;
+	}
+}
+
+@keyframes wpview-loading {
+	0% {
+		margin-left: -60px;
+	}
+	100% {
+		margin-left: 60px;
+	}
+}
+
+.wpview-wrap .wpview-content > iframe {
+	max-width: 100%;
+	background: transparent;
 }
 
 #wp-image-toolbar {
 	position: absolute;
+	margin: 0;
 }
 
 .wpview-wrap .toolbar div,
-#wp-image-toolbar div {
+#wp-image-toolbar i {
 	margin-top: 7px;
 	margin-left: 7px;
 	padding: 2px;
@@ -273,8 +393,8 @@ audio {
 
 .ie8 .wpview-wrap .toolbar div,
 .ie7 .wpview-wrap .toolbar div,
-.ie8 #wp-image-toolbar div,
-.ie7 #wp-image-toolbar div {
+.ie8 #wp-image-toolbar i,
+.ie7 #wp-image-toolbar i {
 	display: inline;
 	padding: 0;
 }
@@ -291,15 +411,17 @@ audio {
 
 .wpview-error {
 	border: 1px solid #dedede;
-	padding: 20px 0;
+	padding: 1em 0;
 	margin: 0;
+	word-wrap: break-word;
 }
 
-.selected .wpview-error {
+.wpview-wrap[data-mce-selected] .wpview-error {
 	border-color: transparent;
 }
 
-.wpview-error .dashicons {
+.wpview-error .dashicons,
+.loading-placeholder .dashicons {
 	display: block;
 	margin: 0 auto;
 	width: 32px;
@@ -313,25 +435,24 @@ audio {
 	font-family: 'Open Sans', sans-serif;
 }
 
-
 .wpview-wrap .toolbar div:hover,
-#wp-image-toolbar div:hover {
+#wp-image-toolbar i:hover {
 	box-shadow: 0 1px 3px rgba(0,0,0,0.8);
 	background-color: #000;
 	color: #2ea2cc;
 }
 
 /* Audio player is short; therefore let's put the toolbar above */
-.wpview-type-audio .toolbar {
+.wpview-wrap[data-wpview-type="audio"] .toolbar {
 	top: auto;
 	bottom: -34px;
 }
 
-.wpview-type-audio .toolbar div {
+.wpview-wrap[data-wpview-type="audio"] .toolbar div {
 	margin-top: 0;
 }
 
-.wpview-type-audio .toolbar div:first-child {
+.wpview-wrap[data-wpview-type="audio"] .toolbar div:first-child {
 	margin-left: 0;
 }
 
@@ -467,7 +588,7 @@ img.wp-oembed {
 }
 
 .rtl .wpview-wrap .toolbar div,
-.rtl #wp-image-toolbar div {
+.rtl #wp-image-toolbar i {
 	margin-left: auto;
 	margin-right: 7px;
 }

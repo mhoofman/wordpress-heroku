@@ -75,21 +75,23 @@ class MO extends Gettext_Translations {
 		$current_addr++;
 		$originals_table = chr(0);
 
+		$reader = new POMO_Reader();
+
 		foreach($entries as $entry) {
 			$originals_table .= $this->export_original($entry) . chr(0);
-			$length = strlen($this->export_original($entry));
+			$length = $reader->strlen($this->export_original($entry));
 			fwrite($fh, pack('VV', $length, $current_addr));
 			$current_addr += $length + 1; // account for the NULL byte after
 		}
 
 		$exported_headers = $this->export_headers();
-		fwrite($fh, pack('VV', strlen($exported_headers), $current_addr));
+		fwrite($fh, pack('VV', $reader->strlen($exported_headers), $current_addr));
 		$current_addr += strlen($exported_headers) + 1;
 		$translations_table = $exported_headers . chr(0);
 
 		foreach($entries as $entry) {
 			$translations_table .= $this->export_translations($entry) . chr(0);
-			$length = strlen($this->export_translations($entry));
+			$length = $reader->strlen($this->export_translations($entry));
 			fwrite($fh, pack('VV', $length, $current_addr));
 			$current_addr += $length + 1;
 		}
@@ -155,46 +157,49 @@ class MO extends Gettext_Translations {
 		if (!is_array($header))
 			return false;
 
-		extract( $header );
-
 		// support revision 0 of MO format specs, only
-		if ($revision != 0)
+		if ( $header['revision'] != 0 ) {
 			return false;
+		}
 
 		// seek to data blocks
-		$reader->seekto($originals_lenghts_addr);
+		$reader->seekto( $header['originals_lenghts_addr'] );
 
 		// read originals' indices
-		$originals_lengths_length = $translations_lenghts_addr - $originals_lenghts_addr;
-		if ( $originals_lengths_length != $total * 8 )
+		$originals_lengths_length = $header['translations_lenghts_addr'] - $header['originals_lenghts_addr'];
+		if ( $originals_lengths_length != $header['total'] * 8 ) {
 			return false;
+		}
 
 		$originals = $reader->read($originals_lengths_length);
-		if ( $reader->strlen( $originals ) != $originals_lengths_length )
+		if ( $reader->strlen( $originals ) != $originals_lengths_length ) {
 			return false;
+		}
 
 		// read translations' indices
-		$translations_lenghts_length = $hash_addr - $translations_lenghts_addr;
-		if ( $translations_lenghts_length != $total * 8 )
+		$translations_lenghts_length = $header['hash_addr'] - $header['translations_lenghts_addr'];
+		if ( $translations_lenghts_length != $header['total'] * 8 ) {
 			return false;
+		}
 
 		$translations = $reader->read($translations_lenghts_length);
-		if ( $reader->strlen( $translations ) != $translations_lenghts_length )
+		if ( $reader->strlen( $translations ) != $translations_lenghts_length ) {
 			return false;
+		}
 
 		// transform raw data into set of indices
 		$originals    = $reader->str_split( $originals, 8 );
 		$translations = $reader->str_split( $translations, 8 );
 
 		// skip hash table
-		$strings_addr = $hash_addr + $hash_length * 4;
+		$strings_addr = $header['hash_addr'] + $header['hash_length'] * 4;
 
 		$reader->seekto($strings_addr);
 
 		$strings = $reader->read_all();
 		$reader->close();
 
-		for ( $i = 0; $i < $total; $i++ ) {
+		for ( $i = 0; $i < $header['total']; $i++ ) {
 			$o = unpack( "{$endian}length/{$endian}pos", $originals[$i] );
 			$t = unpack( "{$endian}length/{$endian}pos", $translations[$i] );
 			if ( !$o || !$t ) return false;

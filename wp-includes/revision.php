@@ -190,7 +190,6 @@ function wp_get_post_autosave( $post_id, $user_id = 0 ) {
 				continue;
 
 			return $revision;
-			break;
 		}
 	}
 
@@ -254,7 +253,6 @@ function _wp_put_post_revision( $post = null, $autosave = false ) {
 	if ( isset($post['post_type']) && 'revision' == $post['post_type'] )
 		return new WP_Error( 'post_type', __( 'Cannot create a revision of a revision' ) );
 
-	$post_id = $post['ID'];
 	$post = _wp_post_revision_fields( $post, $autosave );
 	$post = wp_slash($post); //since data is from db
 
@@ -411,7 +409,7 @@ function wp_delete_post_revision( $revision_id ) {
  *
  * @uses get_children()
  *
- * @param int|object $post_id Post ID or post object
+ * @param int|WP_Post $post_id Optional. Post ID or WP_Post object. Default is global $post.
  * @return array An array of revisions, or an empty array if none.
  */
 function wp_get_post_revisions( $post_id = 0, $args = null ) {
@@ -419,7 +417,7 @@ function wp_get_post_revisions( $post_id = 0, $args = null ) {
 	if ( ! $post || empty( $post->ID ) )
 		return array();
 
-	$defaults = array( 'order' => 'DESC', 'orderby' => 'date', 'check_enabled' => true );
+	$defaults = array( 'order' => 'DESC', 'orderby' => 'date ID', 'check_enabled' => true );
 	$args = wp_parse_args( $args, $defaults );
 
 	if ( $args['check_enabled'] && ! wp_revisions_enabled( $post ) )

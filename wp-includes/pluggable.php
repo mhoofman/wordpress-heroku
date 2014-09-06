@@ -233,11 +233,31 @@ function wp_mail( $to, $subject, $message, $headers = '', $attachments = array()
 	 * @param array $args A compacted array of wp_mail() arguments, including the "to" email,
 	 *                    subject, message, headers, and attachments values.
 	 */
-	extract( apply_filters( 'wp_mail', compact( 'to', 'subject', 'message', 'headers', 'attachments' ) ) );
+	$atts = apply_filters( 'wp_mail', compact( 'to', 'subject', 'message', 'headers', 'attachments' ) );
 
-	if ( !is_array($attachments) )
+	if ( isset( $atts['to'] ) ) {
+		$to = $atts['to'];
+	}
+
+	if ( isset( $atts['subject'] ) ) {
+		$subject = $atts['subject'];
+	}
+
+	if ( isset( $atts['message'] ) ) {
+		$message = $atts['message'];
+	}
+
+	if ( isset( $atts['headers'] ) ) {
+		$headers = $atts['headers'];
+	}
+
+	if ( isset( $atts['attachments'] ) ) {
+		$attachments = $atts['attachments'];
+	}
+
+	if ( ! is_array( $attachments ) ) {
 		$attachments = explode( "\n", str_replace( "\r\n", "\n", $attachments ) );
-
+	}
 	global $phpmailer;
 
 	// (Re)create it, if it's gone missing
@@ -566,6 +586,7 @@ if ( !function_exists('wp_logout') ) :
  * @since 2.5.0
  */
 function wp_logout() {
+	wp_destroy_current_session();
 	wp_clear_auth_cookie();
 
 	/**
@@ -608,13 +629,16 @@ function wp_validate_auth_cookie($cookie = '', $scheme = '') {
 		return false;
 	}
 
-	extract($cookie_elements, EXTR_OVERWRITE);
-
-	$expired = $expiration;
+	$scheme = $cookie_elements['scheme'];
+	$username = $cookie_elements['username'];
+	$hmac = $cookie_elements['hmac'];
+	$token = $cookie_elements['token'];
+	$expired = $expiration = $cookie_elements['expiration'];
 
 	// Allow a grace period for POST and AJAX requests
-	if ( defined('DOING_AJAX') || 'POST' == $_SERVER['REQUEST_METHOD'] )
+	if ( defined('DOING_AJAX') || 'POST' == $_SERVER['REQUEST_METHOD'] ) {
 		$expired += HOUR_IN_SECONDS;
+	}
 
 	// Quick check to see if an honest cookie has expired
 	if ( $expired < time() ) {
@@ -644,8 +668,8 @@ function wp_validate_auth_cookie($cookie = '', $scheme = '') {
 
 	$pass_frag = substr($user->user_pass, 8, 4);
 
-	$key = wp_hash($username . $pass_frag . '|' . $expiration, $scheme);
-	$hash = hash_hmac('md5', $username . '|' . $expiration, $key);
+	$key = wp_hash( $username . '|' . $pass_frag . '|' . $expiration . '|' . $token, $scheme );
+	$hash = hash_hmac( 'sha256', $username . '|' . $expiration . '|' . $token, $key );
 
 	if ( ! hash_equals( $hash, $hmac ) ) {
 		/**
@@ -659,8 +683,16 @@ function wp_validate_auth_cookie($cookie = '', $scheme = '') {
 		return false;
 	}
 
-	if ( $expiration < time() ) // AJAX/POST grace period set above
+	$manager = WP_Session_Tokens::get_instance( $user->ID );
+	if ( ! $manager->verify( $token ) ) {
+		do_action( 'auth_cookie_bad_session_token', $cookie_elements );
+		return false;
+	}
+
+	// AJAX/POST grace period set above
+	if ( $expiration < time() ) {
 		$GLOBALS['login_grace_period'] = 1;
+	}
 
 	/**
 	 * Fires once an authentication cookie has been validated.
@@ -685,17 +717,26 @@ if ( !function_exists('wp_generate_auth_cookie') ) :
  * @param int $user_id User ID
  * @param int $expiration Cookie expiration in seconds
  * @param string $scheme Optional. The cookie scheme to use: auth, secure_auth, or logged_in
- * @return string Authentication cookie contents
+ * @param string $token User's session token to use for this cookie
+ * @return string Authentication cookie contents. Empty string if user does not exist.
  */
-function wp_generate_auth_cookie($user_id, $expiration, $scheme = 'auth') {
+function wp_generate_auth_cookie( $user_id, $expiration, $scheme = 'auth', $token = '' ) {
 	$user = get_userdata($user_id);
+	if ( ! $user ) {
+		return '';
+	}
+
+	if ( ! $token ) {
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$token = $manager->create( $expiration );
+	}
 
 	$pass_frag = substr($user->user_pass, 8, 4);
 
-	$key = wp_hash($user->user_login . $pass_frag . '|' . $expiration, $scheme);
-	$hash = hash_hmac('md5', $user->user_login . '|' . $expiration, $key);
+	$key = wp_hash( $user->user_login . '|' . $pass_frag . '|' . $expiration . '|' . $token, $scheme );
+	$hash = hash_hmac( 'sha256', $user->user_login . '|' . $expiration . '|' . $token, $key );
 
-	$cookie = $user->user_login . '|' . $expiration . '|' . $hash;
+	$cookie = $user->user_login . '|' . $expiration . '|' . $token . '|' . $hash;
 
 	/**
 	 * Filter the authentication cookie.
@@ -706,8 +747,9 @@ function wp_generate_auth_cookie($user_id, $expiration, $scheme = 'auth') {
 	 * @param int    $user_id    User ID.
 	 * @param int    $expiration Authentication cookie expiration in seconds.
 	 * @param string $scheme     Cookie scheme used. Accepts 'auth', 'secure_auth', or 'logged_in'.
+	 * @param string $token      User's session token used.
 	 */
-	return apply_filters( 'auth_cookie', $cookie, $user_id, $expiration, $scheme );
+	return apply_filters( 'auth_cookie', $cookie, $user_id, $expiration, $scheme, $token );
 }
 endif;
 
@@ -749,12 +791,13 @@ function wp_parse_auth_cookie($cookie = '', $scheme = '') {
 	}
 
 	$cookie_elements = explode('|', $cookie);
-	if ( count($cookie_elements) != 3 )
+	if ( count( $cookie_elements ) !== 4 ) {
 		return false;
+	}
 
-	list($username, $expiration, $hmac) = $cookie_elements;
+	list( $username, $expiration, $token, $hmac ) = $cookie_elements;
 
-	return compact('username', 'expiration', 'hmac', 'scheme');
+	return compact( 'username', 'expiration', 'token', 'hmac', 'scheme' );
 }
 endif;
 
@@ -770,6 +813,8 @@ if ( !function_exists('wp_set_auth_cookie') ) :
  *
  * @param int $user_id User ID
  * @param bool $remember Whether to remember the user
+ * @param mixed $secure  Whether the admin cookies should only be sent over HTTPS.
+ *                       Default is_ssl().
  */
 function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 	if ( $remember ) {
@@ -795,8 +840,12 @@ function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 		$expire = 0;
 	}
 
-	if ( '' === $secure )
+	if ( '' === $secure ) {
 		$secure = is_ssl();
+	}
+
+	// Frontend cookie is secure when the auth cookie is secure and the site's home URL is forced HTTPS.
+	$secure_logged_in_cookie = $secure && 'https' === parse_url( get_option( 'home' ), PHP_URL_SCHEME );
 
 	/**
 	 * Filter whether the connection is secure.
@@ -813,11 +862,11 @@ function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param bool $cookie  Whether to use a secure cookie when logged-in.
-	 * @param int  $user_id User ID.
-	 * @param bool $secure  Whether the connection is secure.
+	 * @param bool $secure_logged_in_cookie Whether to use a secure cookie when logged-in.
+	 * @param int  $user_id                 User ID.
+	 * @param bool $secure                  Whether the connection is secure.
 	 */
-	$secure_logged_in_cookie = apply_filters( 'secure_logged_in_cookie', false, $user_id, $secure );
+	$secure_logged_in_cookie = apply_filters( 'secure_logged_in_cookie', $secure_logged_in_cookie, $user_id, $secure );
 
 	if ( $secure ) {
 		$auth_cookie_name = SECURE_AUTH_COOKIE;
@@ -827,8 +876,11 @@ function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 		$scheme = 'auth';
 	}
 
-	$auth_cookie = wp_generate_auth_cookie($user_id, $expiration, $scheme);
-	$logged_in_cookie = wp_generate_auth_cookie($user_id, $expiration, 'logged_in');
+	$manager = WP_Session_Tokens::get_instance( $user_id );
+	$token = $manager->create( $expiration );
+
+	$auth_cookie = wp_generate_auth_cookie( $user_id, $expiration, $scheme, $token );
+	$logged_in_cookie = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token );
 
 	/**
 	 * Fires immediately before the authentication cookie is set.
@@ -1133,7 +1185,7 @@ if ( !function_exists('wp_sanitize_redirect') ) :
  * @return string redirect-sanitized URL
  **/
 function wp_sanitize_redirect($location) {
-	$location = preg_replace('|[^a-z0-9-~+_.?#=&;,/:%!]|i', '', $location);
+	$location = preg_replace('|[^a-z0-9-~+_.?#=&;,/:%!*]|i', '', $location);
 	$location = wp_kses_no_null($location);
 
 	// remove %0d and %0a from location
@@ -1655,16 +1707,21 @@ function wp_verify_nonce($nonce, $action = -1) {
 		$uid = apply_filters( 'nonce_user_logged_out', $uid, $action );
 	}
 
+	if ( empty( $nonce ) ) {
+		return false;
+	}
+
+	$token = wp_get_session_token();
 	$i = wp_nonce_tick();
 
 	// Nonce generated 0-12 hours ago
-	$expected = substr( wp_hash( $i . '|' . $action . '|' . $uid, 'nonce'), -12, 10 );
+	$expected = substr( wp_hash( $i . '|' . $action . '|' . $uid . '|' . $token, 'nonce'), -12, 10 );
 	if ( hash_equals( $expected, $nonce ) ) {
 		return 1;
 	}
 
 	// Nonce generated 12-24 hours ago
-	$expected = substr( wp_hash( ( $i - 1 ) . '|' . $action . '|' . $uid, 'nonce' ), -12, 10 );
+	$expected = substr( wp_hash( ( $i - 1 ) . '|' . $action . '|' . $uid . '|' . $token, 'nonce' ), -12, 10 );
 	if ( hash_equals( $expected, $nonce ) ) {
 		return 2;
 	}
@@ -1676,12 +1733,12 @@ endif;
 
 if ( !function_exists('wp_create_nonce') ) :
 /**
- * Creates a random, one time use token.
+ * Creates a cryptographic token tied to a specific action, user, and window of time.
  *
  * @since 2.0.3
  *
- * @param string|int $action Scalar value to add context to the nonce.
- * @return string The one use form token
+ * @param string $action Scalar value to add context to the nonce.
+ * @return string The token.
  */
 function wp_create_nonce($action = -1) {
 	$user = wp_get_current_user();
@@ -1691,9 +1748,10 @@ function wp_create_nonce($action = -1) {
 		$uid = apply_filters( 'nonce_user_logged_out', $uid, $action );
 	}
 
+	$token = wp_get_session_token();
 	$i = wp_nonce_tick();
 
-	return substr(wp_hash($i . '|' . $action . '|' . $uid, 'nonce'), -12, 10);
+	return substr( wp_hash( $i . '|' . $action . '|' . $uid . '|' . $token, 'nonce' ), -12, 10 );
 }
 endif;
 
@@ -1752,45 +1810,51 @@ function wp_salt( $scheme = 'auth' ) {
 		$duplicated_keys = array( 'put your unique phrase here' => true );
 		foreach ( array( 'AUTH', 'SECURE_AUTH', 'LOGGED_IN', 'NONCE', 'SECRET' ) as $first ) {
 			foreach ( array( 'KEY', 'SALT' ) as $second ) {
-				if ( ! defined( "{$first}_{$second}" ) )
+				if ( ! defined( "{$first}_{$second}" ) ) {
 					continue;
+				}
 				$value = constant( "{$first}_{$second}" );
 				$duplicated_keys[ $value ] = isset( $duplicated_keys[ $value ] );
 			}
 		}
 	}
 
-	$key = $salt = '';
-	if ( defined( 'SECRET_KEY' ) && SECRET_KEY && empty( $duplicated_keys[ SECRET_KEY ] ) )
-		$key = SECRET_KEY;
-	if ( 'auth' == $scheme && defined( 'SECRET_SALT' ) && SECRET_SALT && empty( $duplicated_keys[ SECRET_SALT ] ) )
-		$salt = SECRET_SALT;
+	$values = array(
+		'key' => '',
+		'salt' => ''
+	);
+	if ( defined( 'SECRET_KEY' ) && SECRET_KEY && empty( $duplicated_keys[ SECRET_KEY ] ) ) {
+		$values['key'] = SECRET_KEY;
+	}
+	if ( 'auth' == $scheme && defined( 'SECRET_SALT' ) && SECRET_SALT && empty( $duplicated_keys[ SECRET_SALT ] ) ) {
+		$values['salt'] = SECRET_SALT;
+	}
 
 	if ( in_array( $scheme, array( 'auth', 'secure_auth', 'logged_in', 'nonce' ) ) ) {
 		foreach ( array( 'key', 'salt' ) as $type ) {
 			$const = strtoupper( "{$scheme}_{$type}" );
 			if ( defined( $const ) && constant( $const ) && empty( $duplicated_keys[ constant( $const ) ] ) ) {
-				$$type = constant( $const );
-			} elseif ( ! $$type ) {
-				$$type = get_site_option( "{$scheme}_{$type}" );
-				if ( ! $$type ) {
-					$$type = wp_generate_password( 64, true, true );
-					update_site_option( "{$scheme}_{$type}", $$type );
+				$values[ $type ] = constant( $const );
+			} elseif ( ! $values[ $type ] ) {
+				$values[ $type ] = get_site_option( "{$scheme}_{$type}" );
+				if ( ! $values[ $type ] ) {
+					$values[ $type ] = wp_generate_password( 64, true, true );
+					update_site_option( "{$scheme}_{$type}", $values[ $type ] );
 				}
 			}
 		}
 	} else {
-		if ( ! $key ) {
-			$key = get_site_option( 'secret_key' );
-			if ( ! $key ) {
-				$key = wp_generate_password( 64, true, true );
-				update_site_option( 'secret_key', $key );
+		if ( ! $values['key'] ) {
+			$values['key'] = get_site_option( 'secret_key' );
+			if ( ! $values['key'] ) {
+				$values['key'] = wp_generate_password( 64, true, true );
+				update_site_option( 'secret_key', $values['key'] );
 			}
 		}
-		$salt = hash_hmac( 'md5', $scheme, $key );
+		$values['salt'] = hash_hmac( 'md5', $scheme, $values['key'] );
 	}
 
-	$cached_salts[ $scheme ] = $key . $salt;
+	$cached_salts[ $scheme ] = $values['key'] . $values['salt'];
 
 	/** This filter is documented in wp-includes/pluggable.php */
 	return apply_filters( 'salt', $cached_salts[ $scheme ], $scheme );
@@ -1833,7 +1897,7 @@ function wp_hash_password($password) {
 	global $wp_hasher;
 
 	if ( empty($wp_hasher) ) {
-		require_once( ABSPATH . 'wp-includes/class-phpass.php');
+		require_once( ABSPATH . WPINC . '/class-phpass.php');
 		// By default, use the portable hash from phpass
 		$wp_hasher = new PasswordHash(8, true);
 	}
@@ -1891,7 +1955,7 @@ function wp_check_password($password, $hash, $user_id = '') {
 	// If the stored hash is longer than an MD5, presume the
 	// new style phpass portable hash.
 	if ( empty($wp_hasher) ) {
-		require_once( ABSPATH . 'wp-includes/class-phpass.php');
+		require_once( ABSPATH . WPINC . '/class-phpass.php');
 		// By default, use the portable hash from phpass
 		$wp_hasher = new PasswordHash(8, true);
 	}
@@ -1991,6 +2055,10 @@ if ( !function_exists('wp_set_password') ) :
  *
  * For integration with other applications, this function can be overwritten to
  * instead use the other package password checking algorithm.
+ *
+ * Please note: This function should be used sparingly and is really only meant for single-time
+ * application. Leveraging this improperly in a plugin or theme could result in an endless loop
+ * of password resets if precautions are not taken to ensure it does not execute on every page load.
  *
  * @since 2.5.0
  *
@@ -2207,35 +2275,3 @@ function wp_text_diff( $left_string, $right_string, $args = null ) {
 }
 endif;
 
-if ( ! function_exists( 'hash_equals' ) ) :
-/**
- * Compare two strings in constant time.
- *
- * This function is NOT pluggable. It is in this file (in addition to
- * compat.php) to prevent errors if, during an update, pluggable.php
- * copies over but compat.php does not.
- *
- * This function was added in PHP 5.6.
- * It can leak the length of a string.
- *
- * @since 3.9.2
- *
- * @param string $a Expected string.
- * @param string $b Actual string.
- * @return bool Whether strings are equal.
- */
-function hash_equals( $a, $b ) {
-	$a_length = strlen( $a );
-	if ( $a_length !== strlen( $b ) ) {
-		return false;
-	}
-	$result = 0;
-
-	// Do not attempt to "optimize" this.
-	for ( $i = 0; $i < $a_length; $i++ ) {
-		$result |= ord( $a[ $i ] ) ^ ord( $b[ $i ] );
-	}
-
-	return $result === 0;
-}
-endif;

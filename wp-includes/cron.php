@@ -100,28 +100,32 @@ function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array()) {
  * @param array $args Optional. Arguments to pass to the hook's callback function.
  * @return bool|null False on failure. Null when event is rescheduled.
  */
-function wp_reschedule_event( $timestamp, $recurrence, $hook, $args = array()) {
+function wp_reschedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
 	$crons = _get_cron_array();
 	$schedules = wp_get_schedules();
-	$key = md5(serialize($args));
+	$key = md5( serialize( $args ) );
 	$interval = 0;
 
 	// First we try to get it from the schedule
-	if ( 0 == $interval )
-		$interval = $schedules[$recurrence]['interval'];
+	if ( isset( $schedules[ $recurrence ] ) ) {
+		$interval = $schedules[ $recurrence ]['interval'];
+	}
 	// Now we try to get it from the saved interval in case the schedule disappears
-	if ( 0 == $interval )
-		$interval = $crons[$timestamp][$hook][$key]['interval'];
+	if ( 0 == $interval ) {
+		$interval = $crons[ $timestamp ][ $hook ][ $key ]['interval'];
+	}
 	// Now we assume something is wrong and fail to schedule
-	if ( 0 == $interval )
+	if ( 0 == $interval ) {
 		return false;
+	}
 
 	$now = time();
 
-	if ( $timestamp >= $now )
+	if ( $timestamp >= $now ) {
 		$timestamp = $now + $interval;
-	else
-		$timestamp = $now + ($interval - (($now - $timestamp) % $interval));
+	} else {
+		$timestamp = $now + ( $interval - ( ( $now - $timestamp ) % $interval ) );
+	}
 
 	wp_schedule_event( $timestamp, $recurrence, $hook, $args );
 }
@@ -278,7 +282,7 @@ function spawn_cron( $gmt_time = 0 ) {
 	 *
 	 *         @type int  $timeout   The request timeout in seconds. Default .01 seconds.
 	 *         @type bool $blocking  Whether to set blocking for the request. Default false.
-	 *         @type bool $sslverify Whether to sslverify. Default true.
+	 *         @type bool $sslverify Whether SSL should be verified for the request. Default false.
 	 *     }
 	 * }
 	 */
@@ -289,7 +293,7 @@ function spawn_cron( $gmt_time = 0 ) {
 			'timeout'   => 0.01,
 			'blocking'  => false,
 			/** This filter is documented in wp-includes/class-http.php */
-			'sslverify' => apply_filters( 'https_local_ssl_verify', true )
+			'sslverify' => apply_filters( 'https_local_ssl_verify', false )
 		)
 	) );
 

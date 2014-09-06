@@ -34,13 +34,13 @@ function _wp_http_get_object() {
  * This function is ideal when the HTTP request is being made to an arbitrary
  * URL. The URL is validated to avoid redirection and request forgery attacks.
  *
- * @see wp_remote_request() For more information on the response array format
- * 	and default arguments.
- *
  * @since 3.6.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_safe_remote_request( $url, $args = array() ) {
@@ -55,13 +55,13 @@ function wp_safe_remote_request( $url, $args = array() ) {
  * This function is ideal when the HTTP request is being made to an arbitrary
  * URL. The URL is validated to avoid redirection and request forgery attacks.
  *
- * @see wp_remote_request() For more information on the response array format
- * 	and default arguments.
- *
  * @since 3.6.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_safe_remote_get( $url, $args = array() ) {
@@ -76,13 +76,13 @@ function wp_safe_remote_get( $url, $args = array() ) {
  * This function is ideal when the HTTP request is being made to an arbitrary
  * URL. The URL is validated to avoid redirection and request forgery attacks.
  *
- * @see wp_remote_request() For more information on the response array format
- * 	and default arguments.
- *
  * @since 3.6.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_safe_remote_post( $url, $args = array() ) {
@@ -97,13 +97,13 @@ function wp_safe_remote_post( $url, $args = array() ) {
  * This function is ideal when the HTTP request is being made to an arbitrary
  * URL. The URL is validated to avoid redirection and request forgery attacks.
  *
- * @see wp_remote_request() For more information on the response array format
- * 	and default arguments.
- *
  * @since 3.6.0
  *
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
  * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @param array $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_safe_remote_head( $url, $args = array() ) {
@@ -115,47 +115,37 @@ function wp_safe_remote_head( $url, $args = array() ) {
 /**
  * Retrieve the raw response from the HTTP request.
  *
- * The array structure is a little complex.
+ * The array structure is a little complex:
  *
- * <code>
- * $res = array( 'headers' => array(), 'response' => array('code' => int, 'message' => string) );
- * </code>
+ *     $res = array(
+ *         'headers'  => array(),
+ *         'response' => array(
+ *             'code'    => int,
+ *             'message' => string
+ *         )
+ *     );
  *
  * All of the headers in $res['headers'] are with the name as the key and the
  * value as the value. So to get the User-Agent, you would do the following.
  *
- * <code>
- * $user_agent = $res['headers']['user-agent'];
- * </code>
+ *     $user_agent = $res['headers']['user-agent'];
  *
  * The body is the raw response content and can be retrieved from $res['body'].
  *
  * This function is called first to make the request and there are other API
  * functions to abstract out the above convoluted setup.
  *
- * List of default arguments:
- * 'method'      => 'GET'
+ * Request method defaults for helper functions:
  *  - Default 'GET'  for wp_remote_get()
  *  - Default 'POST' for wp_remote_post()
  *  - Default 'HEAD' for wp_remote_head()
- * 'timeout'     => 5
- * 'redirection' => 5
- * 'httpversion' => '1.0'
- * 'user-agent'  => 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
- * 'blocking'    => true
- * 'headers'     => array()
- * 'cookies'     => array()
- * 'body'        => null
- * 'compress'    => false,
- * 'decompress'  => true,
- * 'sslverify'   => true,
- * 'stream'      => false,
- * 'filename'    => null
  *
  * @since 2.7.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see WP_Http::request() For additional information on default arguments.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_remote_request($url, $args = array()) {
@@ -166,12 +156,13 @@ function wp_remote_request($url, $args = array()) {
 /**
  * Retrieve the raw response from the HTTP request using the GET method.
  *
- * @see wp_remote_request() For more information on the response array format and default arguments.
- *
  * @since 2.7.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_remote_get($url, $args = array()) {
@@ -182,12 +173,13 @@ function wp_remote_get($url, $args = array()) {
 /**
  * Retrieve the raw response from the HTTP request using the POST method.
  *
- * @see wp_remote_request() For more information on the response array format and default arguments.
- *
  * @since 2.7.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_remote_post($url, $args = array()) {
@@ -198,12 +190,13 @@ function wp_remote_post($url, $args = array()) {
 /**
  * Retrieve the raw response from the HTTP request using the HEAD method.
  *
- * @see wp_remote_request() For more information on the response array format and default arguments.
- *
  * @since 2.7.0
  *
- * @param string $url Site URL to retrieve.
- * @param array $args Optional. Override the defaults.
+ * @see wp_remote_request() For more information on the response array format.
+ * @see WP_Http::request() For default arguments information.
+ *
+ * @param string $url  Site URL to retrieve.
+ * @param array  $args Optional. Request arguments. Default empty array.
  * @return WP_Error|array The response or WP_Error on failure.
  */
 function wp_remote_head($url, $args = array()) {
@@ -219,7 +212,7 @@ function wp_remote_head($url, $args = array()) {
  * @param array $response HTTP response.
  * @return array The headers of the response. Empty array if incorrect parameter given.
  */
-function wp_remote_retrieve_headers(&$response) {
+function wp_remote_retrieve_headers( $response ) {
 	if ( is_wp_error($response) || ! isset($response['headers']) || ! is_array($response['headers']))
 		return array();
 
@@ -235,7 +228,7 @@ function wp_remote_retrieve_headers(&$response) {
  * @param string $header Header name to retrieve value from.
  * @return string The header value. Empty string on if incorrect parameter given, or if the header doesn't exist.
  */
-function wp_remote_retrieve_header(&$response, $header) {
+function wp_remote_retrieve_header( $response, $header ) {
 	if ( is_wp_error($response) || ! isset($response['headers']) || ! is_array($response['headers']))
 		return '';
 
@@ -255,7 +248,7 @@ function wp_remote_retrieve_header(&$response, $header) {
  * @param array $response HTTP response.
  * @return string the response code. Empty string on incorrect parameter given.
  */
-function wp_remote_retrieve_response_code(&$response) {
+function wp_remote_retrieve_response_code( $response ) {
 	if ( is_wp_error($response) || ! isset($response['response']) || ! is_array($response['response']))
 		return '';
 
@@ -272,7 +265,7 @@ function wp_remote_retrieve_response_code(&$response) {
  * @param array $response HTTP response.
  * @return string The response message. Empty string on incorrect parameter given.
  */
-function wp_remote_retrieve_response_message(&$response) {
+function wp_remote_retrieve_response_message( $response ) {
 	if ( is_wp_error($response) || ! isset($response['response']) || ! is_array($response['response']))
 		return '';
 
@@ -287,7 +280,7 @@ function wp_remote_retrieve_response_message(&$response) {
  * @param array $response HTTP response.
  * @return string The body of the response. Empty string if no body or incorrect parameter given.
  */
-function wp_remote_retrieve_body(&$response) {
+function wp_remote_retrieve_body( $response ) {
 	if ( is_wp_error($response) || ! isset($response['body']) )
 		return '';
 

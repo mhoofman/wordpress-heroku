@@ -65,12 +65,12 @@ $shortcode_tags = array();
  * <code>
  * // [bartag foo="bar"]
  * function bartag_func($atts) {
- * 	extract(shortcode_atts(array(
+ * 	$args = shortcode_atts(array(
  * 		'foo' => 'no foo',
  * 		'baz' => 'default baz',
- * 	), $atts));
+ * 	), $atts);
  *
- * 	return "foo = {$foo}";
+ * 	return "foo = {$args['foo']}";
  * }
  * add_shortcode('bartag', 'bartag_func');
  * </code>
@@ -165,8 +165,11 @@ function has_shortcode( $content, $tag ) {
 			return false;
 
 		foreach ( $matches as $shortcode ) {
-			if ( $tag === $shortcode[2] )
+			if ( $tag === $shortcode[2] ) {
 				return true;
+			} elseif ( ! empty( $shortcode[5] ) && has_shortcode( $shortcode[5], $tag ) ) {
+				return true;
+			}
 		}
 	}
 	return false;

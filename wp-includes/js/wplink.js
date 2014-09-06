@@ -2,7 +2,10 @@
 var wpLink;
 
 ( function( $ ) {
-	var inputs = {}, rivers = {}, editor, searchTimer, River, Query;
+	var editor, searchTimer, River, Query,
+		inputs = {},
+		rivers = {},
+		isTouch = ( 'ontouchend' in document );
 
 	wpLink = {
 		timeToTriggerRiver: 150,
@@ -31,6 +34,11 @@ var wpLink;
 			rivers.recent = new River( $( '#most-recent-results' ) );
 			rivers.elements = inputs.dialog.find( '.query-results' );
 
+			// Get search notice text
+			inputs.queryNotice = $( '#query-notice-message' );
+			inputs.queryNoticeTextDefault = inputs.queryNotice.find( '.query-notice-default' );
+			inputs.queryNoticeTextHint = inputs.queryNotice.find( '.query-notice-hint' );
+
 			// Bind event handlers
 			inputs.dialog.keydown( wpLink.keydown );
 			inputs.dialog.keyup( wpLink.keyup );
@@ -43,9 +51,18 @@ var wpLink;
 				wpLink.close();
 			});
 
-			$( '#wp-link-search-toggle' ).click( wpLink.toggleInternalLinking );
+			$( '#wp-link-search-toggle' ).on( 'click', wpLink.toggleInternalLinking );
 
 			rivers.elements.on( 'river-select', wpLink.updateFields );
+
+			// Display 'hint' message when search field or 'query-results' box are focused
+			inputs.search.on( 'focus.wplink', function() {
+				inputs.queryNoticeTextDefault.hide();
+				inputs.queryNoticeTextHint.removeClass( 'screen-reader-text' ).show();
+			} ).on( 'blur.wplink', function() {
+				inputs.queryNoticeTextDefault.show();
+				inputs.queryNoticeTextHint.addClass( 'screen-reader-text' ).hide();
+			} );
 
 			inputs.search.keyup( function() {
 				var self = this;
@@ -59,7 +76,7 @@ var wpLink;
 
 		open: function( editorId ) {
 			var ed;
-			
+
 			wpLink.range = null;
 
 			if ( editorId ) {
@@ -95,6 +112,7 @@ var wpLink;
 			inputs.backdrop.show();
 
 			wpLink.refresh();
+			$( document ).trigger( 'wplink-open', inputs.wrap );
 		},
 
 		isMCE: function() {
@@ -106,18 +124,26 @@ var wpLink;
 			rivers.search.refresh();
 			rivers.recent.refresh();
 
-			if ( wpLink.isMCE() )
+			if ( wpLink.isMCE() ) {
 				wpLink.mceRefresh();
-			else
+			} else {
 				wpLink.setDefaultValues();
+			}
 
-			// Focus the URL field and highlight its contents.
-			//     If this is moved above the selection changes,
-			//     IE will show a flashing cursor over the dialog.
-			inputs.url.focus()[0].select();
+			if ( isTouch ) {
+				// Close the onscreen keyboard
+				inputs.url.focus().blur();
+			} else {
+				// Focus the URL field and highlight its contents.
+				// If this is moved above the selection changes,
+				// IE will show a flashing cursor over the dialog.
+				inputs.url.focus()[0].select();
+			}
+
 			// Load the most recent results if this is the first time opening the panel.
-			if ( ! rivers.recent.ul.children().length )
+			if ( ! rivers.recent.ul.children().length ) {
 				rivers.recent.ajax();
+			}
 		},
 
 		mceRefresh: function() {
@@ -153,6 +179,7 @@ var wpLink;
 
 			inputs.backdrop.hide();
 			inputs.wrap.hide();
+			$( document ).trigger( 'wplink-close', inputs.wrap );
 		},
 
 		getAttrs: function() {
@@ -260,17 +287,28 @@ var wpLink;
 			editor.selection.collapse();
 		},
 
-		updateFields: function( e, li, originalEvent ) {
+		updateFields: function( e, li ) {
 			inputs.url.val( li.children( '.item-permalink' ).val() );
 			inputs.title.val( li.hasClass( 'no-title' ) ? '' : li.children( '.item-title' ).text() );
-			if ( originalEvent && originalEvent.type == 'click' )
-				inputs.url.focus();
 		},
 
 		setDefaultValues: function() {
-			// Set URL and description to defaults.
-			// Leave the new tab setting as-is.
-			inputs.url.val( 'http://' );
+			var selection = editor && editor.selection.getContent(),
+				emailRegexp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+				urlRegexp = /^(https?|ftp):\/\/[A-Z0-9.-]+\.[A-Z]{2,4}[^ "]*$/i;
+
+			if ( selection && emailRegexp.test( selection ) ) {
+				// Selection is email address
+				inputs.url.val( 'mailto:' + selection );
+			} else if ( selection && urlRegexp.test( selection ) ) {
+				// Selection is URL
+				inputs.url.val( selection.replace( /&amp;|&#0?38;/gi, '&' ) );
+			} else {
+				// Set URL to default.
+				inputs.url.val( 'http://' );
+			}
+
+			// Set description to default.
 			inputs.title.val( '' );
 
 			// Update save prompt.
@@ -322,6 +360,8 @@ var wpLink;
 			} else if ( key.TAB === event.keyCode ) {
 				id = event.target.id;
 
+				// wp-link-submit must always be the last focusable element in the dialog.
+				// following focusable elements will be skipped on keyboard navigation.
 				if ( id === 'wp-link-submit' && ! event.shiftKey ) {
 					inputs.close.focus();
 					event.preventDefault();
@@ -332,6 +372,11 @@ var wpLink;
 			}
 
 			if ( event.keyCode !== key.UP && event.keyCode !== key.DOWN ) {
+				return;
+			}
+
+			if ( document.activeElement &&
+				( document.activeElement.id === 'link-title-field' || document.activeElement.id === 'url-field' ) ) {
 				return;
 			}
 
@@ -374,12 +419,13 @@ var wpLink;
 			};
 		},
 
-		toggleInternalLinking: function() {
+		toggleInternalLinking: function( event ) {
 			var visible = inputs.wrap.hasClass( 'search-panel-visible' );
 
 			inputs.wrap.toggleClass( 'search-panel-visible', ! visible );
 			setUserSetting( 'wplink', visible ? '0' : '1' );
 			inputs[ ! visible ? 'search' : 'url' ].focus();
+			event.preventDefault();
 		}
 	};
 
@@ -489,7 +535,7 @@ var wpLink;
 
 			if ( ! results ) {
 				if ( firstPage ) {
-					list += '<li class="unselectable"><span class="item-title"><em>' +
+					list += '<li class="unselectable no-matches-found"><span class="item-title"><em>' +
 						wpLinkL10n.noMatchesFound + '</em></span></li>';
 				}
 			} else {

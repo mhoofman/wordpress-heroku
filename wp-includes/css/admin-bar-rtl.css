@@ -65,6 +65,8 @@ html:lang(he-il) .rtl #wpadminbar *  {
 #wpadminbar select,
 #wpadminbar textarea,
 #wpadminbar div {
+	-webkit-box-shadow: none;
+	box-shadow: none;
 	outline: none;
 }
 
@@ -97,13 +99,6 @@ html:lang(he-il) .rtl #wpadminbar *  {
 
 #wpadminbar ul#wp-admin-bar-root-default>li {
 	margin-left: 0;
-}
-
-/* Prevent a Chrome bug that inadvertantly activates
-   :hover states on an element that touches the extreme
-   top left corner of the viewport. See #18868 */
-#wpadminbar .quicklinks {
-	border-right: 1px solid transparent;
 }
 
 #wpadminbar .quicklinks ul {
@@ -509,6 +504,10 @@ html:lang(he-il) .rtl #wpadminbar *  {
 }
 
 #wpadminbar #wp-admin-bar-site-name > .ab-item:before {
+	content: "\f226";
+}
+
+.wp-admin #wpadminbar #wp-admin-bar-site-name > .ab-item:before {
 	content: "\f102";
 }
 

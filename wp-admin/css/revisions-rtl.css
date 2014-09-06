@@ -73,12 +73,15 @@
 }
 
 .revisions .loading-indicator {
-	position: fixed;
+	position: absolute;
 	vertical-align: middle;
 	opacity: 0;
 	width: 100%;
+	width: -webkit-calc( 100% - 30px );
+	width: calc( 100% - 30px );
 	top: 50%;
-	margin-right: -90px;
+	top: -webkit-calc( 50% - 10px );
+	top: calc( 50% - 10px );
 	-webkit-transition: opacity 0.5s;
 	transition: opacity 0.5s;
 	filter: alpha(opacity=0); /* ie8 and earlier */
@@ -405,7 +408,7 @@ table.diff .diff-addedline ins {
 	z-index: 10000;
 }
 
-.arrow::after {
+.arrow:after {
 	z-index: 9999;
 	background-color: #fff;
 	-webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.1);

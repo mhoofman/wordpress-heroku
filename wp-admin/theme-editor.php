@@ -81,7 +81,7 @@ case 'update':
 	$newcontent = wp_unslash( $_POST['newcontent'] );
 	$location = 'theme-editor.php?file=' . urlencode( $relative_file ) . '&theme=' . urlencode( $stylesheet ) . '&scrollto=' . $scrollto;
 	if ( is_writeable( $file ) ) {
-		//is_writable() not always reliable, check return value. see comments @ http://uk.php.net/is_writable
+		// is_writable() not always reliable, check return value. see comments @ http://uk.php.net/is_writable
 		$f = fopen( $file, 'w+' );
 		if ( $f !== false ) {
 			fwrite( $f, $newcontent );
@@ -92,7 +92,6 @@ case 'update':
 	}
 	wp_redirect( $location );
 	exit;
-break;
 
 default:
 
@@ -122,8 +121,7 @@ default:
 		$content = esc_textarea( $content );
 	}
 
-	?>
-<?php if ( isset( $_GET['updated'] ) ) : ?>
+	if ( isset( $_GET['updated'] ) ) : ?>
  <div id="message" class="updated"><p><?php _e( 'File edited successfully.' ) ?></p></div>
 <?php endif;
 

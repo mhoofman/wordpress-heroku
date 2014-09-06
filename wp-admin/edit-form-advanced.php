@@ -11,6 +11,22 @@ if ( !defined('ABSPATH') )
 	die('-1');
 
 wp_enqueue_script('post');
+$_wp_editor_expand = false;
+
+/**
+ * Filter whether to enable the 'expand' functionality in the post editor.
+ *
+ * @since 4.0.0
+ *
+ * @param bool $expand Whether to enable the 'expand' functionality. Default true.
+ */
+if ( post_type_supports( $post_type, 'editor' ) && ! wp_is_mobile() &&
+	 ! ( $is_IE && preg_match( '/MSIE [5678]/', $_SERVER['HTTP_USER_AGENT'] ) ) &&
+	 apply_filters( 'wp_editor_expand', true ) ) {
+
+	wp_enqueue_script('editor-expand');
+	$_wp_editor_expand = ( get_user_setting( 'editor_expand', 'on' ) === 'on' );
+}
 
 if ( wp_is_mobile() )
 	wp_enqueue_script( 'jquery-touch-punch' );
@@ -176,7 +192,7 @@ foreach ( get_object_taxonomies( $post ) as $tax_name ) {
 if ( post_type_supports($post_type, 'page-attributes') )
 	add_meta_box('pageparentdiv', 'page' == $post_type ? __('Page Attributes') : __('Attributes'), 'page_attributes_meta_box', null, 'side', 'core');
 
-if ( $thumbnail_support )
+if ( $thumbnail_support && current_user_can( 'upload_files' ) )
 	add_meta_box('postimagediv', __('Featured Image'), 'post_thumbnail_meta_box', null, 'side', 'low');
 
 if ( post_type_supports($post_type, 'excerpt') )
@@ -483,15 +499,16 @@ do_action( 'edit_form_after_title', $post );
 
 if ( post_type_supports($post_type, 'editor') ) {
 ?>
-<div id="postdivrich" class="postarea edit-form-section">
+<div id="postdivrich" class="postarea<?php if ( $_wp_editor_expand ) { echo ' wp-editor-expand'; } ?>">
 
 <?php wp_editor( $post->post_content, 'content', array(
 	'dfw' => true,
 	'drag_drop_upload' => true,
 	'tabfocus_elements' => 'insert-media-button,save-post',
-	'editor_height' => 360,
+	'editor_height' => 300,
 	'tinymce' => array(
 		'resize' => false,
+		'wp_autoresize_on' => $_wp_editor_expand,
 		'add_unload_trigger' => false,
 	),
 ) ); ?>

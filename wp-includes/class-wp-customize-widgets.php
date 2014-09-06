@@ -433,6 +433,12 @@ final class WP_Customize_Widgets {
 			$this->manager->add_setting( $setting_id, $setting_args );
 		}
 
+		$this->manager->add_panel( 'widgets', array(
+			'title'       => __( 'Widgets' ),
+			'description' => __( 'Widgets are independent sections of content that can be placed into widgetized areas provided by your theme (commonly called sidebars).' ),
+			'priority'    => 110,
+		) );
+
 		foreach ( $sidebars_widgets as $sidebar_id => $sidebar_widget_ids ) {
 			if ( empty( $sidebar_widget_ids ) ) {
 				$sidebar_widget_ids = array();
@@ -458,10 +464,10 @@ final class WP_Customize_Widgets {
 				if ( $is_active_sidebar ) {
 
 					$section_args = array(
-						/* translators: %s: sidebar name */
-						'title' => sprintf( __( 'Widgets: %s' ), $GLOBALS['wp_registered_sidebars'][$sidebar_id]['name'] ),
-						'description' => $GLOBALS['wp_registered_sidebars'][$sidebar_id]['description'],
-						'priority' => 1000 + array_search( $sidebar_id, array_keys( $wp_registered_sidebars ) ),
+						'title' => $GLOBALS['wp_registered_sidebars'][ $sidebar_id ]['name'],
+						'description' => $GLOBALS['wp_registered_sidebars'][ $sidebar_id ]['description'],
+						'priority' => array_search( $sidebar_id, array_keys( $wp_registered_sidebars ) ),
+						'panel' => 'widgets',
 					);
 
 					/**
@@ -1063,7 +1069,33 @@ final class WP_Customize_Widgets {
 	 * @param array $widget Rendered widget to tally.
 	 */
 	public function tally_rendered_widgets( $widget ) {
-		$this->rendered_widgets[$widget['id']] = true;
+		$this->rendered_widgets[ $widget['id'] ] = true;
+	}
+
+	/**
+	 * Determine if a widget is rendered on the page.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $widget_id Widget ID to check.
+	 * @return bool Whether the widget is rendered.
+	 */
+	public function is_widget_rendered( $widget_id ) {
+		return in_array( $widget_id, $this->rendered_widgets );
+	}
+
+	/**
+	 * Determine if a sidebar is rendered on the page.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
+	 * @param string $sidebar_id Sidebar ID to check.
+	 * @return bool Whether the sidebar is rendered.
+	 */
+	public function is_sidebar_rendered( $sidebar_id ) {
+		return in_array( $sidebar_id, $this->rendered_sidebars );
 	}
 
 	/**
@@ -1077,8 +1109,8 @@ final class WP_Customize_Widgets {
 	 * @since 3.9.0
 	 * @access public
 	 *
-	 * @param bool    $is_active  Whether the sidebar is active.
-	 * @pasram string $sidebar_id Sidebar ID.
+	 * @param bool   $is_active  Whether the sidebar is active.
+	 * @param string $sidebar_id Sidebar ID.
 	 */
 	public function tally_sidebars_via_is_active_sidebar_calls( $is_active, $sidebar_id ) {
 		if ( isset( $GLOBALS['wp_registered_sidebars'][$sidebar_id] ) ) {

@@ -1,4 +1,4 @@
-/* global getUserSetting, tinymce, QTags, wpActiveEditor */
+/* global getUserSetting, tinymce, QTags */
 
 // WordPress, TinyMCE, and Media
 // -----------------------------
@@ -298,10 +298,64 @@
 		}
 	};
 
+	wp.media.embed = {
+		coerce : wp.media.coerce,
+
+		defaults : {
+			url : '',
+			width: '',
+			height: ''
+		},
+
+		edit : function( data, isURL ) {
+			var frame, props = {}, shortcode;
+
+			if ( isURL ) {
+				props.url = data.replace(/<[^>]+>/g, '');
+			} else {
+				shortcode = wp.shortcode.next( 'embed', data ).shortcode;
+
+				props = _.defaults( shortcode.attrs.named, this.defaults );
+				if ( shortcode.content ) {
+					props.url = shortcode.content;
+				}
+			}
+
+			frame = wp.media({
+				frame: 'post',
+				state: 'embed',
+				metadata: props
+			});
+
+			return frame;
+		},
+
+		shortcode : function( model ) {
+			var self = this, content;
+
+			_.each( this.defaults, function( value, key ) {
+				model[ key ] = self.coerce( model, key );
+
+				if ( value === model[ key ] ) {
+					delete model[ key ];
+				}
+			});
+
+			content = model.url;
+			delete model.url;
+
+			return new wp.shortcode({
+				tag: 'embed',
+				attrs: model,
+				content: content
+			});
+		}
+	};
+
 	wp.media.collection = function(attributes) {
 		var collections = {};
 
-		return _.extend( attributes, {
+		return _.extend( {
 			coerce : wp.media.coerce,
 			/**
 			 * Retrieve attachments based on the properties of the passed shortcode
@@ -386,7 +440,7 @@
 			shortcode: function( attachments ) {
 				var props = attachments.props.toJSON(),
 					attrs = _.pick( props, 'orderby', 'order' ),
-					shortcode, clone, self = this;
+					shortcode, clone;
 
 				if ( attachments.type ) {
 					attrs.type = attachments.type;
@@ -424,13 +478,7 @@
 					delete attrs.orderby;
 				}
 
-				// Remove default attributes from the shortcode.
-				_.each( this.defaults, function( value, key ) {
-					attrs[ key ] = self.coerce( attrs, key );
-					if ( value === attrs[ key ] ) {
-						delete attrs[ key ];
-					}
-				});
+				attrs = this.setDefaults( attrs );
 
 				shortcode = new wp.shortcode({
 					tag:    this.tag,
@@ -519,24 +567,56 @@
 				}).open();
 
 				return this.frame;
+			},
+
+			setDefaults: function( attrs ) {
+				var self = this;
+				// Remove default attributes from the shortcode.
+				_.each( this.defaults, function( value, key ) {
+					attrs[ key ] = self.coerce( attrs, key );
+					if ( value === attrs[ key ] ) {
+						delete attrs[ key ];
+					}
+				});
+
+				return attrs;
 			}
-		});
+		}, attributes );
 	};
+
+	wp.media._galleryDefaults = {
+		itemtag: 'dl',
+		icontag: 'dt',
+		captiontag: 'dd',
+		columns: '3',
+		link: 'post',
+		size: 'thumbnail',
+		order: 'ASC',
+		id: wp.media.view.settings.post && wp.media.view.settings.post.id,
+		orderby : 'menu_order ID'
+	};
+
+	if ( wp.media.view.settings.galleryDefaults ) {
+		wp.media.galleryDefaults = _.extend( {}, wp.media._galleryDefaults, wp.media.view.settings.galleryDefaults );
+	} else {
+		wp.media.galleryDefaults = wp.media._galleryDefaults;
+	}
 
 	wp.media.gallery = new wp.media.collection({
 		tag: 'gallery',
 		type : 'image',
 		editTitle : wp.media.view.l10n.editGalleryTitle,
-		defaults : {
-			itemtag: 'dl',
-			icontag: 'dt',
-			captiontag: 'dd',
-			columns: '3',
-			link: 'post',
-			size: 'thumbnail',
-			order: 'ASC',
-			id: wp.media.view.settings.post && wp.media.view.settings.post.id,
-			orderby : 'menu_order ID'
+		defaults : wp.media.galleryDefaults,
+
+		setDefaults: function( attrs ) {
+			var self = this, changed = ! _.isEqual( wp.media.galleryDefaults, wp.media._galleryDefaults );
+			_.each( this.defaults, function( value, key ) {
+				attrs[ key ] = self.coerce( attrs, key );
+				if ( value === attrs[ key ] && ( ! changed || value === wp.media._galleryDefaults[ key ] ) ) {
+					delete attrs[ key ];
+				}
+			} );
+			return attrs;
 		}
 	});
 
@@ -677,10 +757,15 @@
 		 * @param {string} html Content to send to the editor
 		 */
 		insert: function( html ) {
-			var editor,
+			var editor, wpActiveEditor,
 				hasTinymce = ! _.isUndefined( window.tinymce ),
-				hasQuicktags = ! _.isUndefined( window.QTags ),
+				hasQuicktags = ! _.isUndefined( window.QTags );
+
+			if ( this.activeEditor ) {
+				wpActiveEditor = window.wpActiveEditor = this.activeEditor;
+			} else {
 				wpActiveEditor = window.wpActiveEditor;
+			}
 
 			// Delegate to the global `send_to_editor` if it exists.
 			// This attempts to play nice with any themes/plugins that have
@@ -841,7 +926,7 @@
 			}
 
 			// If an empty `id` is provided, default to `wpActiveEditor`.
-			id = wpActiveEditor;
+			id = window.wpActiveEditor;
 
 			// If that doesn't work, fall back to `tinymce.activeEditor.id`.
 			if ( ! id && ! _.isUndefined( window.tinymce ) && tinymce.activeEditor ) {
@@ -973,17 +1058,8 @@
 			options = options || {};
 
 			id = this.id( id );
-/*
-			// Save a bookmark of the caret position in IE.
-			if ( ! _.isUndefined( window.tinymce ) ) {
-				editor = tinymce.get( id );
+			this.activeEditor = id;
 
-				if ( tinymce.isIE && editor && ! editor.isHidden() ) {
-					editor.focus();
-					editor.windowManager.insertimagebookmark = editor.selection.getBookmark();
-				}
-			}
-*/
 			workflow = this.get( id );
 
 			// Redo workflow if state has changed

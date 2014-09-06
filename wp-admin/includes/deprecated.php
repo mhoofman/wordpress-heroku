@@ -852,42 +852,42 @@ function favorite_actions() {
 }
 
 function media_upload_image() {
-	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
 	return wp_media_upload_handler();
 }
 
 function media_upload_audio() {
-	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
 	return wp_media_upload_handler();
 }
 
 function media_upload_video() {
-	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
 	return wp_media_upload_handler();
 }
 
 function media_upload_file() {
-	__deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
+	_deprecated_function( __FUNCTION__, '3.3', 'wp_media_upload_handler()' );
 	return wp_media_upload_handler();
 }
 
 function type_url_form_image() {
-	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('image')" );
+	_deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('image')" );
 	return wp_media_insert_url_form( 'image' );
 }
 
 function type_url_form_audio() {
-	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('audio')" );
+	_deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('audio')" );
 	return wp_media_insert_url_form( 'audio' );
 }
 
 function type_url_form_video() {
-	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('video')" );
+	_deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('video')" );
 	return wp_media_insert_url_form( 'video' );
 }
 
 function type_url_form_file() {
-	__deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('file')" );
+	_deprecated_function( __FUNCTION__, '3.3', "wp_media_insert_url_form('file')" );
 	return wp_media_insert_url_form( 'file' );
 }
 
@@ -1070,7 +1070,7 @@ function wp_update_core($current, $feedback = '') {
 	if ( !empty($feedback) )
 		add_filter('update_feedback', $feedback);
 
-	include ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+	include( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 	$upgrader = new Core_Upgrader();
 	return $upgrader->upgrade($current);
 
@@ -1093,7 +1093,7 @@ function wp_update_plugin($plugin, $feedback = '') {
 	if ( !empty($feedback) )
 		add_filter('update_feedback', $feedback);
 
-	include ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+	include( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 	$upgrader = new Plugin_Upgrader();
 	return $upgrader->upgrade($plugin);
 }
@@ -1115,7 +1115,7 @@ function wp_update_theme($theme, $feedback = '') {
 	if ( !empty($feedback) )
 		add_filter('update_feedback', $feedback);
 
-	include ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+	include( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 	$upgrader = new Theme_Upgrader();
 	return $upgrader->upgrade($theme);
 }

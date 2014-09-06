@@ -128,11 +128,10 @@ function install_dashboard() {
 	?>
 	<p><?php printf( __( 'Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="%1$s">WordPress Plugin Directory</a> or upload a plugin in .zip format via <a href="%2$s">this page</a>.' ), 'https://wordpress.org/plugins/', self_admin_url( 'plugin-install.php?tab=upload' ) ); ?></p>
 
-	<h4><?php _e('Search') ?></h4>
-	<?php install_search_form( false ); ?>
+	<?php display_plugins_table(); ?>
 
-	<h4><?php _e('Popular tags') ?></h4>
-	<p class="install-help"><?php _e('You may also browse based on the most popular tags in the Plugin Directory:') ?></p>
+	<h3><?php _e( 'Popular tags' ) ?></h3>
+	<p><?php _e( 'You may also browse based on the most popular tags in the Plugin Directory:' ) ?></p>
 	<?php
 
 	$api_tags = install_popular_tags();
@@ -153,7 +152,7 @@ function install_dashboard() {
 	}
 	echo '</p><br class="clear" />';
 }
-add_action('install_plugins_dashboard', 'install_dashboard');
+add_action( 'install_plugins_featured', 'install_dashboard' );
 
 /**
  * Display search form for searching plugins.
@@ -163,8 +162,15 @@ add_action('install_plugins_dashboard', 'install_dashboard');
 function install_search_form( $type_selector = true ) {
 	$type = isset($_REQUEST['type']) ? wp_unslash( $_REQUEST['type'] ) : 'term';
 	$term = isset($_REQUEST['s']) ? wp_unslash( $_REQUEST['s'] ) : '';
+	$input_attrs = '';
+	$button_type = 'button screen-reader-text';
 
-	?><form id="search-plugins" method="get" action="">
+	// assume no $type_selector means it's a simplified search form
+	if ( ! $type_selector ) {
+		$input_attrs = 'class="wp-filter-search" placeholder="' . esc_attr__( 'Search Plugins' ) . '" ';
+	}
+
+	?><form class="search-form search-plugins" method="get" action="">
 		<input type="hidden" name="tab" value="search" />
 		<?php if ( $type_selector ) : ?>
 		<select name="type" id="typeselector">
@@ -173,9 +179,10 @@ function install_search_form( $type_selector = true ) {
 			<option value="tag"<?php selected('tag', $type) ?>><?php _ex('Tag', 'Plugin Installer'); ?></option>
 		</select>
 		<?php endif; ?>
-		<input type="search" name="s" value="<?php echo esc_attr($term) ?>" autofocus="autofocus" />
-		<label class="screen-reader-text" for="plugin-search-input"><?php _e('Search Plugins'); ?></label>
-		<?php submit_button( __( 'Search Plugins' ), 'button', 'plugin-search-input', false ); ?>
+		<label><span class="screen-reader-text"><?php _e('Search Plugins'); ?></span>
+			<input type="search" name="s" value="<?php echo esc_attr($term) ?>" <?php echo $input_attrs; ?>/>
+		</label>
+		<?php submit_button( __( 'Search Plugins' ), $button_type, false, false, array( 'id' => 'search-submit' ) ); ?>
 	</form><?php
 }
 
@@ -187,7 +194,7 @@ function install_search_form( $type_selector = true ) {
  */
 function install_plugins_upload( $page = 1 ) {
 ?>
-	<h4><?php _e('Install a plugin in .zip format'); ?></h4>
+<div class="upload-plugin">
 	<p class="install-help"><?php _e('If you have a plugin in a .zip format, you may install it by uploading it here.'); ?></p>
 	<form method="post" enctype="multipart/form-data" class="wp-upload-form" action="<?php echo self_admin_url('update.php?action=upload-plugin'); ?>">
 		<?php wp_nonce_field( 'plugin-upload'); ?>
@@ -195,6 +202,7 @@ function install_plugins_upload( $page = 1 ) {
 		<input type="file" id="pluginzip" name="pluginzip" />
 		<?php submit_button( __( 'Install Now' ), 'button', 'install-plugin-submit', false ); ?>
 	</form>
+</div>
 <?php
 }
 add_action('install_plugins_upload', 'install_plugins_upload', 10, 1);
@@ -233,9 +241,9 @@ function display_plugins_table() {
 	$wp_list_table->display();
 }
 add_action( 'install_plugins_search',    'display_plugins_table' );
-add_action( 'install_plugins_featured',  'display_plugins_table' );
 add_action( 'install_plugins_popular',   'display_plugins_table' );
 add_action( 'install_plugins_new',       'display_plugins_table' );
+add_action( 'install_plugins_beta',      'display_plugins_table' );
 add_action( 'install_plugins_favorites', 'display_plugins_table' );
 
 /**
@@ -244,15 +252,18 @@ add_action( 'install_plugins_favorites', 'display_plugins_table' );
  * @since 3.0.0
  */
 function install_plugin_install_status($api, $loop = false) {
-	// this function is called recursively, $loop prevents further loops.
+	// This function is called recursively, $loop prevents further loops.
 	if ( is_array($api) )
 		$api = (object) $api;
 
-	//Default to a "new" plugin
+	// Default to a "new" plugin
 	$status = 'install';
 	$url = false;
 
-	//Check to see if this plugin is known to be installed, and has an update awaiting it.
+	/*
+	 * Check to see if this plugin is known to be installed,
+	 * and has an update awaiting it.
+	 */
 	$update_plugins = get_site_transient('update_plugins');
 	if ( isset( $update_plugins->response ) ) {
 		foreach ( (array)$update_plugins->response as $file => $plugin ) {
@@ -310,60 +321,93 @@ function install_plugin_install_status($api, $loop = false) {
 function install_plugin_information() {
 	global $tab;
 
-	$api = plugins_api( 'plugin_information', array( 'slug' => wp_unslash( $_REQUEST['plugin'] ), 'is_ssl' => is_ssl() ) );
+	$api = plugins_api( 'plugin_information', array(
+		'slug' => wp_unslash( $_REQUEST['plugin'] ),
+		'is_ssl' => is_ssl(),
+		'fields' => array( 'banners' => true, 'reviews' => true )
+	) );
 
-	if ( is_wp_error( $api ) )
+	if ( is_wp_error( $api ) ) {
 		wp_die( $api );
+	}
 
 	$plugins_allowedtags = array(
 		'a' => array( 'href' => array(), 'title' => array(), 'target' => array() ),
 		'abbr' => array( 'title' => array() ), 'acronym' => array( 'title' => array() ),
 		'code' => array(), 'pre' => array(), 'em' => array(), 'strong' => array(),
-		'div' => array(), 'p' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(),
+		'div' => array( 'class' => array() ), 'span' => array( 'class' => array() ),
+		'p' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(),
 		'h1' => array(), 'h2' => array(), 'h3' => array(), 'h4' => array(), 'h5' => array(), 'h6' => array(),
 		'img' => array( 'src' => array(), 'class' => array(), 'alt' => array() )
 	);
 
 	$plugins_section_titles = array(
-		'description'  => _x('Description',  'Plugin installer section title'),
-		'installation' => _x('Installation', 'Plugin installer section title'),
-		'faq'          => _x('FAQ',          'Plugin installer section title'),
-		'screenshots'  => _x('Screenshots',  'Plugin installer section title'),
-		'changelog'    => _x('Changelog',    'Plugin installer section title'),
-		'other_notes'  => _x('Other Notes',  'Plugin installer section title')
+		'description'  => _x( 'Description',  'Plugin installer section title' ),
+		'installation' => _x( 'Installation', 'Plugin installer section title' ),
+		'faq'          => _x( 'FAQ',          'Plugin installer section title' ),
+		'screenshots'  => _x( 'Screenshots',  'Plugin installer section title' ),
+		'changelog'    => _x( 'Changelog',    'Plugin installer section title' ),
+		'reviews'      => _x( 'Reviews',      'Plugin installer section title' ),
+		'other_notes'  => _x( 'Other Notes',  'Plugin installer section title' )
 	);
 
-	//Sanitize HTML
-	foreach ( (array)$api->sections as $section_name => $content ) {
-		$api->sections[$section_name] = wp_kses($content, $plugins_allowedtags);
+	// Sanitize HTML
+	foreach ( (array) $api->sections as $section_name => $content ) {
+		$api->sections[$section_name] = wp_kses( $content, $plugins_allowedtags );
 	}
 
 	foreach ( array( 'version', 'author', 'requires', 'tested', 'homepage', 'downloaded', 'slug' ) as $key ) {
-		if ( isset( $api->$key ) )
+		if ( isset( $api->$key ) ) {
 			$api->$key = wp_kses( $api->$key, $plugins_allowedtags );
+		}
 	}
 
 	$_tab = esc_attr( $tab );
 
-	$section = isset( $_REQUEST['section'] ) ? wp_unslash( $_REQUEST['section'] ) : 'description'; //Default to the Description tab, Do not translate, API returns English.
+	$section = isset( $_REQUEST['section'] ) ? wp_unslash( $_REQUEST['section'] ) : 'description'; // Default to the Description tab, Do not translate, API returns English.
 	if ( empty( $section ) || ! isset( $api->sections[ $section ] ) ) {
 		$section_titles = array_keys( (array) $api->sections );
 		$section = array_shift( $section_titles );
 	}
 
-	iframe_header( __('Plugin Install') );
+	iframe_header( __( 'Plugin Install' ) );
 
-	echo "<div id='{$_tab}-title'>{$api->name}</div>";
-	echo "<div id='{$_tab}-tabs'>\n";
+	$_with_banner = '';
 
-	foreach ( (array)$api->sections as $section_name => $content ) {
+	if ( ! empty( $api->banners ) && ( ! empty( $api->banners['low'] ) || ! empty( $api->banners['high'] ) ) ) {
+		$_with_banner = 'with-banner';
+		$low  = empty( $api->banners['low'] ) ? $api->banners['high'] : $api->banners['low'];
+		$high = empty( $api->banners['high'] ) ? $api->banners['low'] : $api->banners['high'];
+		?>
+		<style type="text/css">
+			#plugin-information-title.with-banner {
+				background-image: url( <?php echo esc_url( $low ); ?> );
+			}
+			@media only screen and ( -webkit-min-device-pixel-ratio: 1.5 ) {
+				#plugin-information-title.with-banner {
+					background-image: url( <?php echo esc_url( $high ); ?> );
+				}
+			}
+		</style>
+		<?php
+	}
 
-		if ( isset( $plugins_section_titles[ $section_name ] ) )
+	echo '<div id="plugin-information-scrollable">';
+	echo "<div id='{$_tab}-title' class='{$_with_banner}'><div class='vignette'></div><h2>{$api->name}</h2></div>";
+	echo "<div id='{$_tab}-tabs' class='{$_with_banner}'>\n";
+
+	foreach ( (array) $api->sections as $section_name => $content ) {
+		if ( 'reviews' === $section_name && ( empty( $api->ratings ) || 0 === array_sum( (array) $api->ratings ) ) ) {
+			continue;
+		}
+
+		if ( isset( $plugins_section_titles[ $section_name ] ) ) {
 			$title = $plugins_section_titles[ $section_name ];
-		else
+		} else {
 			$title = ucwords( str_replace( '_', ' ', $section_name ) );
+		}
 
-		$class = ( $section_name == $section ) ? ' class="current"' : '';
+		$class = ( $section_name === $section ) ? ' class="current"' : '';
 		$href = add_query_arg( array('tab' => $tab, 'section' => $section_name) );
 		$href = esc_url( $href );
 		$san_section = esc_attr( $section_name );
@@ -373,55 +417,95 @@ function install_plugin_information() {
 	echo "</div>\n";
 
 	?>
-	<div id="<?php echo $_tab; ?>-content">
+	<div id="<?php echo $_tab; ?>-content" class='<?php echo $_with_banner; ?>'>
 	<div class="fyi">
 		<ul>
-<?php if ( ! empty( $api->version ) ) : ?>
-			<li><strong><?php _e('Version:') ?></strong> <?php echo $api->version ?></li>
-<?php endif; if ( ! empty( $api->author ) ) : ?>
-			<li><strong><?php _e('Author:') ?></strong> <?php echo links_add_target($api->author, '_blank') ?></li>
-<?php endif; if ( ! empty( $api->last_updated ) ) : ?>
-			<li><strong><?php _e('Last Updated:') ?></strong> <span title="<?php echo $api->last_updated ?>"><?php
-							printf( __('%s ago'), human_time_diff(strtotime($api->last_updated)) ) ?></span></li>
-<?php endif; if ( ! empty( $api->requires ) ) : ?>
-			<li><strong><?php _e('Requires WordPress Version:') ?></strong> <?php printf(__('%s or higher'), $api->requires) ?></li>
-<?php endif; if ( ! empty( $api->tested ) ) : ?>
-			<li><strong><?php _e('Compatible up to:') ?></strong> <?php echo $api->tested ?></li>
-<?php endif; if ( ! empty( $api->downloaded ) ) : ?>
-			<li><strong><?php _e('Downloaded:') ?></strong> <?php printf(_n('%s time', '%s times', $api->downloaded), number_format_i18n($api->downloaded)) ?></li>
-<?php endif; if ( ! empty( $api->slug ) && empty( $api->external ) ) : ?>
-			<li><a target="_blank" href="https://wordpress.org/plugins/<?php echo $api->slug ?>/"><?php _e('WordPress.org Plugin Page &#187;') ?></a></li>
-<?php endif; if ( ! empty( $api->homepage ) ) : ?>
-			<li><a target="_blank" href="<?php echo $api->homepage ?>"><?php _e('Plugin Homepage &#187;') ?></a></li>
-<?php endif; ?>
+		<?php if ( ! empty( $api->version ) ) { ?>
+			<li><strong><?php _e( 'Version:' ); ?></strong> <?php echo $api->version; ?></li>
+		<?php } if ( ! empty( $api->author ) ) { ?>
+			<li><strong><?php _e( 'Author:' ); ?></strong> <?php echo links_add_target( $api->author, '_blank' ); ?></li>
+		<?php } if ( ! empty( $api->last_updated ) ) { ?>
+			<li><strong><?php _e( 'Last Updated:' ); ?></strong> <span title="<?php echo $api->last_updated; ?>">
+				<?php printf( __( '%s ago' ), human_time_diff( strtotime( $api->last_updated ) ) ); ?>
+			</span></li>
+		<?php } if ( ! empty( $api->requires ) ) { ?>
+			<li><strong><?php _e( 'Requires WordPress Version:' ); ?></strong> <?php printf( __( '%s or higher' ), $api->requires ); ?></li>
+		<?php } if ( ! empty( $api->tested ) ) { ?>
+			<li><strong><?php _e( 'Compatible up to:' ); ?></strong> <?php echo $api->tested; ?></li>
+		<?php } if ( ! empty( $api->downloaded ) ) { ?>
+			<li><strong><?php _e( 'Downloaded:' ); ?></strong> <?php printf( _n( '%s time', '%s times', $api->downloaded ), number_format_i18n( $api->downloaded ) ); ?></li>
+		<?php } if ( ! empty( $api->slug ) && empty( $api->external ) ) { ?>
+			<li><a target="_blank" href="https://wordpress.org/plugins/<?php echo $api->slug; ?>/"><?php _e( 'WordPress.org Plugin Page &#187;' ); ?></a></li>
+		<?php } if ( ! empty( $api->homepage ) ) { ?>
+			<li><a target="_blank" href="<?php echo esc_url( $api->homepage ); ?>"><?php _e( 'Plugin Homepage &#187;' ); ?></a></li>
+		<?php } if ( ! empty( $api->donate_link ) && empty( $api->contributors ) ) { ?>
+			<li><a target="_blank" href="<?php echo esc_url( $api->donate_link ); ?>"><?php _e( 'Donate to this plugin &#187;' ); ?></a></li>
+		<?php } ?>
 		</ul>
-		<?php if ( ! empty( $api->rating ) ) : ?>
-		<h3><?php _e('Average Rating') ?></h3>
+		<?php if ( ! empty( $api->rating ) ) { ?>
+		<h3><?php _e( 'Average Rating' ); ?></h3>
 		<?php wp_star_rating( array( 'rating' => $api->rating, 'type' => 'percent', 'number' => $api->num_ratings ) ); ?>
-		<small><?php printf( _n('(based on %s rating)', '(based on %s ratings)', $api->num_ratings), number_format_i18n($api->num_ratings) ); ?></small>
-		<?php endif; ?>
+		<small><?php printf( _n( '(based on %s rating)', '(based on %s ratings)', $api->num_ratings ), number_format_i18n( $api->num_ratings ) ); ?></small>
+		<?php }
+
+		if ( ! empty( $api->ratings ) && array_sum( (array) $api->ratings ) > 0 ) {
+			foreach( $api->ratings as $key => $ratecount ) {
+				// Avoid div-by-zero.
+				$_rating = $api->num_ratings ? ( $ratecount / $api->num_ratings ) : 0;
+				?>
+				<div class="counter-container">
+					<a href="<?php echo esc_url( self_admin_url( 'plugin-install.php?tab=plugin-information&amp;plugin=' . $api->slug . '&amp;section=reviews' ) ); ?>"
+					   title="<?php echo esc_attr( sprintf( _n( 'Click to see reviews that provided a rating of %d star', 'Click to see reviews that provided a rating of %d stars', $key ), $key ) ); ?>">
+						<span class="counter-label"><?php printf( _n( '%d star', '%d stars', $key ), $key ); ?></span>
+						<span class="counter-back">
+							<span class="counter-bar" style="width: <?php echo 92 * $_rating; ?>px;"></span>
+						</span>
+					</a>
+					<span class="counter-count"><?php echo number_format_i18n( $ratecount ); ?></span>
+				</div>
+				<?php
+			}
+		}
+		if ( ! empty( $api->contributors ) ) { ?>
+			<h3><?php _e( 'Contributors' ); ?></h3>
+			<ul class="contributors">
+				<?php
+				foreach ( (array) $api->contributors as $contrib_username => $contrib_profile ) {
+					if ( empty( $contrib_username ) && empty( $contrib_profile ) ) {
+						continue;
+					}
+					if ( empty( $contrib_username ) ) {
+						$contrib_username = preg_replace( '/^.+\/(.+)\/?$/', '\1', $contrib_profile );
+					}
+					$contrib_username = sanitize_user( $contrib_username );
+					if ( empty( $contrib_profile ) ) {
+						echo "<li><img src='https://wordpress.org/grav-redirect.php?user={$contrib_username}&amp;s=36' width='18' height='18' />{$contrib_username}</li>";
+					} else {
+						echo "<li><a href='{$contrib_profile}' target='_blank'><img src='https://wordpress.org/grav-redirect.php?user={$contrib_username}&amp;s=36' width='18' height='18' />{$contrib_username}</a></li>";
+					}
+				}
+				?>
+			</ul>
+			<?php if ( ! empty( $api->donate_link ) ) { ?>
+				<a target="_blank" href="<?php echo esc_url( $api->donate_link ); ?>"><?php _e( 'Donate to this plugin &#187;' ); ?></a>
+			<?php } ?>
+		<?php } ?>
 	</div>
 	<div id="section-holder" class="wrap">
 	<?php
-		if ( ! empty( $api->tested ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->tested ) ), $api->tested, '>' ) )
-			echo '<div class="updated"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been tested</strong> with your current version of WordPress.') . '</p></div>';
+		if ( ! empty( $api->tested ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->tested ) ), $api->tested, '>' ) ) {
+			echo '<div class="error"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been tested</strong> with your current version of WordPress.') . '</p></div>';
+		} else if ( ! empty( $api->requires ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->requires ) ), $api->requires, '<' ) ) {
+			echo '<div class="error"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been marked as compatible</strong> with your version of WordPress.') . '</p></div>';
+		}
 
-		else if ( ! empty( $api->requires ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->requires ) ), $api->requires, '<' ) )
-			echo '<div class="updated"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been marked as compatible</strong> with your version of WordPress.') . '</p></div>';
-
-		foreach ( (array)$api->sections as $section_name => $content ) {
-
-			if ( isset( $plugins_section_titles[ $section_name ] ) )
-				$title = $plugins_section_titles[ $section_name ];
-			else
-				$title = ucwords( str_replace( '_', ' ', $section_name ) );
-
+		foreach ( (array) $api->sections as $section_name => $content ) {
 			$content = links_add_base_url( $content, 'https://wordpress.org/plugins/' . $api->slug . '/' );
 			$content = links_add_target( $content, '_blank' );
 
 			$san_section = esc_attr( $section_name );
 
-			$display = ( $section_name == $section ) ? 'block' : 'none';
+			$display = ( $section_name === $section ) ? 'block' : 'none';
 
 			echo "\t<div id='section-{$san_section}' class='section' style='display: {$display};'>\n";
 			echo $content;
@@ -429,23 +513,26 @@ function install_plugin_information() {
 		}
 	echo "</div>\n";
 	echo "</div>\n";
+	echo "</div>\n"; // #plugin-information-scrollable
 	echo "<div id='$tab-footer'>\n";
-	if ( ! empty( $api->download_link ) && ( current_user_can('install_plugins') || current_user_can('update_plugins') ) ) {
-		$status = install_plugin_install_status($api);
+	if ( ! empty( $api->download_link ) && ( current_user_can( 'install_plugins' ) || current_user_can( 'update_plugins' ) ) ) {
+		$status = install_plugin_install_status( $api );
 		switch ( $status['status'] ) {
 			case 'install':
-				if ( $status['url'] )
-					echo '<a class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __('Install Now') . '</a>';
+				if ( $status['url'] ) {
+					echo '<a class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Now' ) . '</a>';
+				}
 				break;
 			case 'update_available':
-				if ( $status['url'] )
-					echo '<a class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __('Install Update Now') .'</a>';
+				if ( $status['url'] ) {
+					echo '<a class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Update Now' ) .'</a>';
+				}
 				break;
 			case 'newer_installed':
-				echo '<a class="button button-primary right disabled">' . sprintf(__('Newer Version (%s) Installed'), $status['version']) . '</a>';
+				echo '<a class="button button-primary right disabled">' . sprintf( __( 'Newer Version (%s) Installed'), $status['version'] ) . '</a>';
 				break;
 			case 'latest_installed':
-				echo '<a class="button button-primary right disabled">' . __('Latest Version Installed') . '</a>';
+				echo '<a class="button button-primary right disabled">' . __( 'Latest Version Installed' ) . '</a>';
 				break;
 		}
 	}

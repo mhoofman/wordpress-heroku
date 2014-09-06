@@ -607,6 +607,19 @@ $(document).ready(function(){
 			}
 		);
 	}
+
+	// Quick Edit and Reply have an inline comment editor.
+	$( '#the-comment-list' ).on( 'click', '.comment-inline', function (e) {
+		e.preventDefault();
+		var $el = $( this ),
+			action = 'replyto';
+
+		if ( 'undefined' !== typeof $el.data( 'action' ) ) {
+			action = $el.data( 'action' );
+		}
+
+		commentReply.open( $el.data( 'commentId' ), $el.data( 'postId' ), action );
+	} );
 });
 
 })(jQuery);

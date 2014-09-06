@@ -35,7 +35,16 @@ class WP_Customize_Section {
 	 * @access public
 	 * @var integer
 	 */
-	public $priority = 10;
+	public $priority = 160;
+
+	/**
+	 * Panel in which to show the section, making it a sub-section.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 * @var string
+	 */
+	public $panel = '';
 
 	/**
 	 * Capability required for the section.
@@ -93,8 +102,8 @@ class WP_Customize_Section {
 	 * @param string               $id      An specific ID of the section.
 	 * @param array                $args    Section arguments.
 	 */
-	function __construct( $manager, $id, $args = array() ) {
-		$keys = array_keys( get_class_vars( __CLASS__ ) );
+	public function __construct( $manager, $id, $args = array() ) {
+		$keys = array_keys( get_object_vars( $this ) );
 		foreach ( $keys as $key ) {
 			if ( isset( $args[ $key ] ) )
 				$this->$key = $args[ $key ];
@@ -162,12 +171,19 @@ class WP_Customize_Section {
 	 * @since 3.4.0
 	 */
 	protected function render() {
+		$classes = 'control-section accordion-section';
+		if ( $this->panel ) {
+			$classes .= ' control-subsection';
+		}
 		?>
-		<li id="accordion-section-<?php echo esc_attr( $this->id ); ?>" class="control-section accordion-section">
-			<h3 class="accordion-section-title" tabindex="0"><?php echo esc_html( $this->title ); ?></h3>
+		<li id="accordion-section-<?php echo esc_attr( $this->id ); ?>" class="<?php echo esc_attr( $classes ); ?>">
+			<h3 class="accordion-section-title" tabindex="0">
+				<?php echo esc_html( $this->title ); ?>
+				<span class="screen-reader-text"><?php _e( 'Press return or enter to expand' ); ?></span>
+			</h3>
 			<ul class="accordion-section-content">
 				<?php if ( ! empty( $this->description ) ) : ?>
-				<li><p class="description"><?php echo $this->description; ?></p></li>
+				<li><p class="description customize-section-description"><?php echo $this->description; ?></p></li>
 				<?php endif; ?>
 				<?php
 				foreach ( $this->controls as $control )
