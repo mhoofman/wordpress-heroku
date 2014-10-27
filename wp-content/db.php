@@ -10,9 +10,9 @@ add_filter ( 'pre_option_siteurl', 'test_localhosts' );
 function test_localhosts( ) {
   /* DB URL is set with SetEnv in Apache https://github.com/mhoofman/wordpress-heroku#linux-or-manual-apache-config */
 
- if (preg_match('/localhost/',$_SERVER['DATABASE_URL'])) {
+  if (preg_match('/localhost/',$_ENV['DATABASE_URL'])) {
     preg_match('/(.*)\/wp-.*\/(\w*\.php)+$/', $_SERVER['REQUEST_URI'], $path);
-   return ("http://" . $_SERVER['SERVER_ADDR'] . $path[1]);
+    return ("http://" . $_SERVER['HTTP_HOST'] . $path[1]);
   }
 
   else return false; // act as normal; will pull main site info from db
@@ -42,6 +42,10 @@ define( 'PG4WP_LOG_ERRORS', false);
 // If you want to allow insecure configuration (from the author point of view) to work with PG4WP,
 // change this to true
 define( 'PG4WP_INSECURE', false);
+
+/** use ext mysql needs to be set when running with MAMP */
+if(test_localhosts())
+  define('WP_USE_EXT_MYSQL', true);
 
 // This defines the directory where PG4WP files are loaded from
 //   2 places checked : wp-content and wp-content/plugins
