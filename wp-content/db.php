@@ -43,9 +43,8 @@ define( 'PG4WP_LOG_ERRORS', false);
 // change this to true
 define( 'PG4WP_INSECURE', false);
 
-/** use ext mysql needs to be set when running with MAMP */
-if(test_localhosts())
-  define('WP_USE_EXT_MYSQL', true);
+// Not entirely sure why this needs to be set, but it seems to be required since wp version 4
+define('WP_USE_EXT_MYSQL', true);
 
 // This defines the directory where PG4WP files are loaded from
 //   2 places checked : wp-content and wp-content/plugins
