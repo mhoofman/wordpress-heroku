@@ -29,10 +29,6 @@ Promote the database (replace COLOR with the color name from the above output)
     $ heroku pg:promote HEROKU_POSTGRESQL_COLOR
     Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
 
-Use Heroku legacy PHP buildpack:
-
-    heroku config:set BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-php#legacy
-
 Add the ability to send email (i.e. Password Resets etc)
 
     $ heroku addons:add sendgrid:starter
@@ -56,15 +52,32 @@ Store unique keys and salts in Heroku environment variables. Wordpress can provi
 
 Deploy to Heroku
 
-    $ git push heroku production:master
-    -----> Heroku receiving push
+    -----> Deleting 0 files matching .slugignore patterns.
     -----> PHP app detected
-    -----> Bundling Apache v2.2.22
-    -----> Bundling PHP v5.3.10
+
+     !     WARNING: No composer.json found.
+           Using index.php to declare PHP applications is considered legacy
+           functionality and may lead to unexpected behavior.
+
+    -----> No runtime requirements in composer.json, defaulting to PHP 5.6.2.
+    -----> Installing system packages...
+           - PHP 5.6.2
+           - Apache 2.4.10
+           - Nginx 1.6.0
+    -----> Installing PHP extensions...
+           - zend-opcache (automatic; bundled, using 'ext-zend-opcache.ini')
+    -----> Installing dependencies...
+           Composer version 1.0-dev (ffffab37a294f3383c812d0329623f0a4ba45387) 2014-11-05 06:04:18
+           Loading composer repositories with package information
+           Installing dependencies
+           Nothing to install or update
+           Generating optimized autoload files
+    -----> Preparing runtime environment...
+           NOTICE: No Procfile, defaulting to 'web: vendor/bin/heroku-php-apache2'
     -----> Discovering process types
-           Procfile declares types -> (none)
-           Default types for PHP   -> web
-    -----> Compiled slug size is 13.8MB
+           Procfile declares types -> web
+
+    -----> Compressing... done, 78.5MB
     -----> Launcing... done, v5
            http://strange-turtle-1234.herokuapp.com deployed to Heroku
 
