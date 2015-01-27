@@ -51,7 +51,7 @@ function wp_get_db_schema( $scope = 'all', $blog_id = null ) {
  slug varchar(200) NOT NULL default '',
  term_group bigint(10) NOT NULL default 0,
  PRIMARY KEY  (term_id),
- UNIQUE KEY slug (slug),
+ KEY slug (slug),
  KEY name (name)
 ) $charset_collate;
 CREATE TABLE $wpdb->term_taxonomy (
@@ -324,7 +324,8 @@ $wp_queries = wp_get_db_schema( 'all' );
  * Create WordPress options and set the default values.
  *
  * @since 1.5.0
- * @uses $wpdb
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
  * @uses $wp_db_version
  */
 function populate_options() {
@@ -556,21 +557,21 @@ function populate_options() {
 	 * transient_timeout record from table b.
 	 */
 	$time = time();
-	$wpdb->query("WITH bx AS (DELETE FROM $wpdb->options a USING $wpdb->options b WHERE
-		a.option_name LIKE '\_transient\_%' AND
-		a.option_name NOT LIKE '\_transient\_timeout\_%' AND
-		b.option_name = CONCAT( '_transient_timeout_', SUBSTRING( a.option_name, 12 ) )
-		AND b.option_value < text($time) RETURNING b.option_id)
-		DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
+	$sql = "DELETE a, b FROM $wpdb->options a, $wpdb->options b
+		WHERE a.option_name LIKE %s
+		AND a.option_name NOT LIKE %s
+		AND b.option_name = CONCAT( '_transient_timeout_', SUBSTRING( a.option_name, 12 ) )
+		AND b.option_value < %d";
+	$wpdb->query( $wpdb->prepare( $sql, $wpdb->esc_like( '_transient_' ) . '%', $wpdb->esc_like( '_transient_timeout_' ) . '%', $time ) );
 
 	if ( is_main_site() && is_main_network() ) {
-		$wpdb->query("WITH bx AS (DELETE FROM $wpdb->options a USING $wpdb->options b WHERE
-			a.option_name LIKE '\_site\_transient\_%' AND
-			a.option_name NOT LIKE '\_site\_transient\_timeout\_%' AND
-			b.option_name = CONCAT( '_site_transient_timeout_', SUBSTRING( a.option_name, 17 ) )
-			AND b.option_value < text($time) RETURNING b.option_id)
-			DELETE FROM wp_options WHERE option_id in (select option_id from bx)");
-    }
+		$sql = "DELETE a, b FROM $wpdb->options a, $wpdb->options b
+			WHERE a.option_name LIKE %s
+			AND a.option_name NOT LIKE %s
+			AND b.option_name = CONCAT( '_site_transient_timeout_', SUBSTRING( a.option_name, 17 ) )
+			AND b.option_value < %d";
+		$wpdb->query( $wpdb->prepare( $sql, $wpdb->esc_like( '_site_transient_' ) . '%', $wpdb->esc_like( '_site_transient_timeout_' ) . '%', $time ) );
+	}
 }
 
 /**
@@ -915,6 +916,7 @@ Your new SITE_NAME site has been successfully set up at:
 BLOG_URL
 
 You can log in to the administrator account with the following information:
+
 Username: USERNAME
 Password: PASSWORD
 Log in here: BLOG_URLwp-login.php

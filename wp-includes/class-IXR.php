@@ -151,7 +151,7 @@ class IXR_Value {
     /**
      * Checks whether or not the supplied array is a struct or not
      *
-     * @param unknown_type $array
+     * @param array $array
      * @return boolean
      */
     function isStruct($array)
@@ -228,6 +228,13 @@ class IXR_Message
         // Bail if there are too many elements to parse
         $element_limit = 30000;
         if ( function_exists( 'apply_filters' ) ) {
+            /**
+             * Filter the number of elements to parse in an XML-RPC response.
+             *
+             * @since 4.0.0
+             *
+             * @param int $element_limit Default elements limit.
+             */
             $element_limit = apply_filters( 'xmlrpc_element_limit', $element_limit );
         }
         if ( $element_limit && 2 * $element_limit < substr_count( $this->message, '<' ) ) {

@@ -72,12 +72,14 @@ class WP_Links_List_Table extends WP_List_Table {
 				'selected' => $cat_id,
 				'name' => 'cat_id',
 				'taxonomy' => 'link_category',
-				'show_option_all' => __( 'View all categories' ),
+				'show_option_all' => __( 'All categories' ),
 				'hide_empty' => true,
 				'hierarchical' => 1,
 				'show_count' => 0,
 				'orderby' => 'name',
 			);
+
+			echo '<label class="screen-reader-text" for="cat_id">' . __( 'Filter by category' ) . '</label>';
 			wp_dropdown_categories( $dropdown_options );
 			submit_button( __( 'Filter' ), 'button', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 ?>
@@ -185,16 +187,18 @@ class WP_Links_List_Table extends WP_List_Table {
 	 					?><td <?php echo $attributes ?>><?php echo $rating; ?></td><?php
 						break;
 					default:
-						/**
-						 * Fires for each registered custom link column.
-						 *
-						 * @since 2.1.0
-						 *
-						 * @param string $column_name Name of the custom column.
-						 * @param int    $link_id     Link ID.
-						 */
 						?>
-						<td <?php echo $attributes ?>><?php do_action( 'manage_link_custom_column', $column_name, $link->link_id ); ?></td>
+						<td <?php echo $attributes ?>><?php
+							/**
+							 * Fires for each registered custom link column.
+							 *
+							 * @since 2.1.0
+							 *
+							 * @param string $column_name Name of the custom column.
+							 * @param int    $link_id     Link ID.
+							 */
+							do_action( 'manage_link_custom_column', $column_name, $link->link_id );
+						?></td>
 						<?php
 						break;
 				}

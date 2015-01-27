@@ -5,7 +5,7 @@
  * Standardizes the HTTP requests for WordPress. Handles cookies, gzip encoding and decoding, chunk
  * decoding, if HTTP 1.1 and various other difficult HTTP protocol implementations.
  *
- * @link http://trac.wordpress.org/ticket/4779 HTTP API Proposal
+ * @link https://core.trac.wordpress.org/ticket/4779 HTTP API Proposal
  *
  * @package WordPress
  * @subpackage HTTP
@@ -208,8 +208,9 @@ class WP_Http {
 		 * If we are streaming to a file but no filename was given drop it in the WP temp dir
 		 * and pick its name using the basename of the $url.
 		 */
-		if ( $r['stream']  && empty( $r['filename'] ) )
-			$r['filename'] = get_temp_dir() . basename( $url );
+		if ( $r['stream']  && empty( $r['filename'] ) ) {
+			$r['filename'] = wp_unique_filename( get_temp_dir(), basename( $url ) );
+		}
 
 		/*
 		 * Force some settings if we are streaming to a file and check for existence and perms
@@ -298,7 +299,7 @@ class WP_Http {
 	 * @param array $args Request arguments
 	 * @param string $url URL to Request
 	 *
-	 * @return string|bool Class name for the first transport that claims to support the request. False if no transport claims to support the request.
+	 * @return string|false Class name for the first transport that claims to support the request. False if no transport claims to support the request.
 	 */
 	public function _get_first_available_transport( $args, $url = null ) {
 		/**
@@ -524,6 +525,9 @@ class WP_Http {
 				$cookies[] = new WP_Http_Cookie( $value, $url );
 		}
 
+		// Cast the Response Code to an int
+		$response['code'] = intval( $response['code'] );
+
 		return array('response' => $response, 'headers' => $newheaders, 'cookies' => $cookies);
 	}
 
@@ -615,8 +619,8 @@ class WP_Http {
 	 * are supported, eg *.wordpress.org will allow for all subdomains of wordpress.org to be contacted.
 	 *
 	 * @since 2.8.0
-	 * @link http://core.trac.wordpress.org/ticket/8927 Allow preventing external requests.
-	 * @link http://core.trac.wordpress.org/ticket/14636 Allow wildcard domains in WP_ACCESSIBLE_HOSTS
+	 * @link https://core.trac.wordpress.org/ticket/8927 Allow preventing external requests.
+	 * @link https://core.trac.wordpress.org/ticket/14636 Allow wildcard domains in WP_ACCESSIBLE_HOSTS
 	 *
 	 * @param string $uri URI of url.
 	 * @return bool True to block, false to allow.
@@ -668,23 +672,89 @@ class WP_Http {
 
 	}
 
+	/**
+	 * A wrapper for PHP's parse_url() function that handles edgecases in < PHP 5.4.7
+	 *
+	 * PHP 5.4.7 expanded parse_url()'s ability to handle non-absolute url's, including
+	 * schemeless and relative url's with :// in the path, this works around those
+	 * limitations providing a standard output on PHP 5.2~5.4+.
+	 *
+	 * Error suppression is used as prior to PHP 5.3.3, an E_WARNING would be generated
+	 * when URL parsing failed.
+	 *
+	 * @since 4.1.0
+	 * @access protected
+	 *
+	 * @param string $url The URL to parse.
+	 * @return bool|array False on failure; Array of URL components on success;
+	 *                    See parse_url()'s return values.
+	 */
+	protected static function parse_url( $url ) {
+		$parts = @parse_url( $url );
+		if ( ! $parts ) {
+			// < PHP 5.4.7 compat, trouble with relative paths including a scheme break in the path
+			if ( '/' == $url[0] && false !== strpos( $url, '://' ) ) {
+				// Since we know it's a relative path, prefix with a scheme/host placeholder and try again
+				if ( ! $parts = @parse_url( 'placeholder://placeholder' . $url ) ) {
+					return $parts;
+				}
+				// Remove the placeholder values
+				unset( $parts['scheme'], $parts['host'] );
+			} else {
+				return $parts;
+			}
+		}
+
+		// < PHP 5.4.7 compat, doesn't detect schemeless URL's host field
+		if ( '//' == substr( $url, 0, 2 ) && ! isset( $parts['host'] ) ) {
+			list( $parts['host'], $slashless_path ) = explode( '/', substr( $parts['path'], 2 ), 2 );
+			$parts['path'] = "/{$slashless_path}";
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * Converts a relative URL to an absolute URL relative to a given URL.
+	 *
+	 * If an Absolute URL is provided, no processing of that URL is done.
+	 *
+	 * @since 3.4.0
+	 *
+	 * @access public
+	 * @param string $maybe_relative_path The URL which might be relative
+	 * @param string $url                 The URL which $maybe_relative_path is relative to
+	 * @return string An Absolute URL, in a failure condition where the URL cannot be parsed, the relative URL will be returned.
+	 */
 	public static function make_absolute_url( $maybe_relative_path, $url ) {
 		if ( empty( $url ) )
 			return $maybe_relative_path;
 
-		// Check for a scheme.
-		if ( false !== strpos( $maybe_relative_path, '://' ) )
+		if ( ! $url_parts = WP_HTTP::parse_url( $url ) ) {
 			return $maybe_relative_path;
+		}
 
-		if ( ! $url_parts = @parse_url( $url ) )
+		if ( ! $relative_url_parts = WP_HTTP::parse_url( $maybe_relative_path ) ) {
 			return $maybe_relative_path;
+		}
 
-		if ( ! $relative_url_parts = @parse_url( $maybe_relative_path ) )
+		// Check for a scheme on the 'relative' url
+		if ( ! empty( $relative_url_parts['scheme'] ) ) {
 			return $maybe_relative_path;
+		}
 
-		$absolute_path = $url_parts['scheme'] . '://' . $url_parts['host'];
-		if ( isset( $url_parts['port'] ) )
-			$absolute_path .= ':' . $url_parts['port'];
+		$absolute_path = $url_parts['scheme'] . '://';
+
+		// Schemeless URL's will make it this far, so we check for a host in the relative url and convert it to a protocol-url
+		if ( isset( $relative_url_parts['host'] ) ) {
+			$absolute_path .= $relative_url_parts['host'];
+			if ( isset( $relative_url_parts['port'] ) )
+				$absolute_path .= ':' . $relative_url_parts['port'];
+		} else {
+			$absolute_path .= $url_parts['host'];
+			if ( isset( $url_parts['port'] ) )
+				$absolute_path .= ':' . $url_parts['port'];
+		}
 
 		// Start off with the Absolute URL path.
 		$path = ! empty( $url_parts['path'] ) ? $url_parts['path'] : '/';
@@ -848,6 +918,11 @@ class WP_Http_Streams {
 			}
 		}
 
+		// Always pass a Path, defaulting to the root in cases such as http://example.com
+		if ( ! isset( $arrURL['path'] ) ) {
+			$arrURL['path'] = '/';
+		}
+
 		if ( isset( $r['headers']['Host'] ) || isset( $r['headers']['host'] ) ) {
 			if ( isset( $r['headers']['Host'] ) )
 				$arrURL['host'] = $r['headers']['Host'];
@@ -952,15 +1027,19 @@ class WP_Http_Streams {
 		else
 			$requestPath = $arrURL['path'] . ( isset($arrURL['query']) ? '?' . $arrURL['query'] : '' );
 
-		if ( empty($requestPath) )
-			$requestPath .= '/';
-
 		$strHeaders = strtoupper($r['method']) . ' ' . $requestPath . ' HTTP/' . $r['httpversion'] . "\r\n";
 
-		if ( $proxy->is_enabled() && $proxy->send_through_proxy( $url ) )
+		$include_port_in_host_header = (
+			( $proxy->is_enabled() && $proxy->send_through_proxy( $url ) ) ||
+			( 'http'  == $arrURL['scheme'] && 80  != $arrURL['port'] ) ||
+			( 'https' == $arrURL['scheme'] && 443 != $arrURL['port'] )
+		);
+
+		if ( $include_port_in_host_header ) {
 			$strHeaders .= 'Host: ' . $arrURL['host'] . ':' . $arrURL['port'] . "\r\n";
-		else
+		} else {
 			$strHeaders .= 'Host: ' . $arrURL['host'] . "\r\n";
+		}
 
 		if ( isset($r['user-agent']) )
 			$strHeaders .= 'User-agent: ' . $r['user-agent'] . "\r\n";
@@ -1020,8 +1099,10 @@ class WP_Http_Streams {
 
 				$this_block_size = strlen( $block );
 
-				if ( isset( $r['limit_response_size'] ) && ( $bytes_written + $this_block_size ) > $r['limit_response_size'] )
-					$block = substr( $block, 0, ( $r['limit_response_size'] - $bytes_written ) );
+				if ( isset( $r['limit_response_size'] ) && ( $bytes_written + $this_block_size ) > $r['limit_response_size'] ) {
+					$this_block_size = ( $r['limit_response_size'] - $bytes_written );
+					$block = substr( $block, 0, $this_block_size );
+				}
 
 				$bytes_written_to_file = fwrite( $stream_handle, $block );
 
@@ -1249,6 +1330,15 @@ class WP_Http_Curl {
 	private $stream_handle = false;
 
 	/**
+	 * The total bytes written in the current request.
+	 *
+	 * @since 4.1.0
+	 * @access private
+	 * @var int
+	 */
+	private $bytes_written_total = 0;
+
+	/**
 	 * Send a HTTP request to a URI using cURL extension.
 	 *
 	 * @access public
@@ -1420,31 +1510,32 @@ class WP_Http_Curl {
 		curl_exec( $handle );
 		$theHeaders = WP_Http::processHeaders( $this->headers, $url );
 		$theBody = $this->body;
+		$bytes_written_total = $this->bytes_written_total;
 
 		$this->headers = '';
 		$this->body = '';
+		$this->bytes_written_total = 0;
 
 		$curl_error = curl_errno( $handle );
 
 		// If an error occurred, or, no response.
 		if ( $curl_error || ( 0 == strlen( $theBody ) && empty( $theHeaders['headers'] ) ) ) {
-			if ( CURLE_WRITE_ERROR /* 23 */ == $curl_error &&  $r['stream'] ) {
-				fclose( $this->stream_handle );
-				return new WP_Error( 'http_request_failed', __( 'Failed to write request to temporary file.' ) );
-			}
-			if ( $curl_error = curl_error( $handle ) ) {
-				curl_close( $handle );
-				return new WP_Error( 'http_request_failed', $curl_error );
+			if ( CURLE_WRITE_ERROR /* 23 */ == $curl_error && $r['stream'] ) {
+				if ( ! $this->max_body_length || $this->max_body_length != $bytes_written_total ) {
+					fclose( $this->stream_handle );
+					return new WP_Error( 'http_request_failed', __( 'Failed to write request to temporary file.' ) );
+				}
+			} else {
+				if ( $curl_error = curl_error( $handle ) ) {
+					curl_close( $handle );
+					return new WP_Error( 'http_request_failed', $curl_error );
+				}
 			}
 			if ( in_array( curl_getinfo( $handle, CURLINFO_HTTP_CODE ), array( 301, 302 ) ) ) {
 				curl_close( $handle );
 				return new WP_Error( 'http_request_failed', __( 'Too many redirects.' ) );
 			}
 		}
-
-		$response = array();
-		$response['code'] = curl_getinfo( $handle, CURLINFO_HTTP_CODE );
-		$response['message'] = get_status_header_desc($response['code']);
 
 		curl_close( $handle );
 
@@ -1454,7 +1545,7 @@ class WP_Http_Curl {
 		$response = array(
 			'headers' => $theHeaders['headers'],
 			'body' => null,
-			'response' => $response,
+			'response' => $theHeaders['response'],
 			'cookies' => $theHeaders['cookies'],
 			'filename' => $r['filename']
 		);
@@ -1489,7 +1580,7 @@ class WP_Http_Curl {
 	 * Grab the body of the cURL request
 	 *
 	 * The contents of the document are passed in chunks, so we append to the $body property for temporary storage.
-	 * Returning a length shorter than the length of $data passed in will cause cURL to abort the request as "completed"
+	 * Returning a length shorter than the length of $data passed in will cause cURL to abort the request with CURLE_WRITE_ERROR
 	 *
 	 * @since 3.6.0
 	 * @access private
@@ -1498,8 +1589,10 @@ class WP_Http_Curl {
 	private function stream_body( $handle, $data ) {
 		$data_length = strlen( $data );
 
-		if ( $this->max_body_length && ( strlen( $this->body ) + $data_length ) > $this->max_body_length )
-			$data = substr( $data, 0, ( $this->max_body_length - $data_length ) );
+		if ( $this->max_body_length && ( $this->bytes_written_total + $data_length ) > $this->max_body_length ) {
+			$data_length = ( $this->max_body_length - $this->bytes_written_total );
+			$data = substr( $data, 0, $data_length );
+		}
 
 		if ( $this->stream_handle ) {
 			$bytes_written = fwrite( $this->stream_handle, $data );
@@ -1507,6 +1600,8 @@ class WP_Http_Curl {
 			$this->body .= $data;
 			$bytes_written = $data_length;
 		}
+
+		$this->bytes_written_total += $bytes_written;
 
 		// Upon event of this function returning less than strlen( $data ) curl will error with CURLE_WRITE_ERROR.
 		return $bytes_written;
@@ -1567,14 +1662,13 @@ class WP_Http_Curl {
  * </ol>
  *
  * An example can be as seen below.
- * <code>
- * define('WP_PROXY_HOST', '192.168.84.101');
- * define('WP_PROXY_PORT', '8080');
- * define('WP_PROXY_BYPASS_HOSTS', 'localhost, www.example.com, *.wordpress.org');
- * </code>
  *
- * @link http://core.trac.wordpress.org/ticket/4011 Proxy support ticket in WordPress.
- * @link http://core.trac.wordpress.org/ticket/14636 Allow wildcard domains in WP_PROXY_BYPASS_HOSTS
+ *     define('WP_PROXY_HOST', '192.168.84.101');
+ *     define('WP_PROXY_PORT', '8080');
+ *     define('WP_PROXY_BYPASS_HOSTS', 'localhost, www.example.com, *.wordpress.org');
+ *
+ * @link https://core.trac.wordpress.org/ticket/4011 Proxy support ticket in WordPress.
+ * @link https://core.trac.wordpress.org/ticket/14636 Allow wildcard domains in WP_PROXY_BYPASS_HOSTS
  * @since 2.8.0
  */
 class WP_HTTP_Proxy {
@@ -1692,7 +1786,6 @@ class WP_HTTP_Proxy {
 	 * some proxies can not handle this. We also have the constant available for defining other
 	 * hosts that won't be sent through the proxy.
 	 *
-	 * @uses WP_PROXY_BYPASS_HOSTS
 	 * @since 2.8.0
 	 *
 	 * @param string $uri URI to check.
@@ -1987,7 +2080,7 @@ class WP_Http_Encoding {
 	 * @param string $raw String to compress.
 	 * @param int $level Optional, default is 9. Compression level, 9 is highest.
 	 * @param string $supports Optional, not used. When implemented it will choose the right compression based on what the server supports.
-	 * @return string|bool False on failure.
+	 * @return string|false False on failure.
 	 */
 	public static function compress( $raw, $level = 9, $supports = null ) {
 		return gzdeflate( $raw, $level );
@@ -2041,10 +2134,10 @@ class WP_Http_Encoding {
 	 * Warning: Magic numbers within. Due to the potential different formats that the compressed
 	 * data may be returned in, some "magic offsets" are needed to ensure proper decompression
 	 * takes place. For a simple progmatic way to determine the magic offset in use, see:
-	 * http://core.trac.wordpress.org/ticket/18273
+	 * https://core.trac.wordpress.org/ticket/18273
 	 *
 	 * @since 2.8.1
-	 * @link http://core.trac.wordpress.org/ticket/18273
+	 * @link https://core.trac.wordpress.org/ticket/18273
 	 * @link http://au2.php.net/manual/en/function.gzinflate.php#70875
 	 * @link http://au2.php.net/manual/en/function.gzinflate.php#77336
 	 *
@@ -2087,6 +2180,8 @@ class WP_Http_Encoding {
 	 *
 	 * @since 2.8.0
 	 *
+	 * @param string $url
+	 * @param array  $args
 	 * @return string Types of encoding to accept.
 	 */
 	public static function accept_encoding( $url, $args ) {

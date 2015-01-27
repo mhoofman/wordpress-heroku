@@ -356,7 +356,7 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 				if ( 'markup' == $response_format ) {
 					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_post( $object_id ) ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
-					echo json_encode(
+					echo wp_json_encode(
 						array(
 							'ID' => $object_id,
 							'post_title' => get_the_title( $object_id ),
@@ -373,7 +373,7 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_term( $object_id, $object_type ) ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
 					$post_obj = get_term( $object_id, $object_type );
-					echo json_encode(
+					echo wp_json_encode(
 						array(
 							'ID' => $object_id,
 							'post_title' => $post_obj->name,
@@ -401,7 +401,7 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 					$var_by_ref = get_the_ID();
 					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_post( $var_by_ref ) ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
-					echo json_encode(
+					echo wp_json_encode(
 						array(
 							'ID' => get_the_ID(),
 							'post_title' => get_the_title(),
@@ -422,7 +422,7 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 				if ( 'markup' == $response_format ) {
 					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( $term ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
-					echo json_encode(
+					echo wp_json_encode(
 						array(
 							'ID' => $term->term_id,
 							'post_title' => $term->name,
@@ -550,7 +550,6 @@ function wp_nav_menu_taxonomy_meta_boxes() {
  * @since 3.6.0
  *
  * @uses global $one_theme_location_no_menus to determine if no menus exist
- * @uses disabled() to output the disabled attribute in $other_attributes param in submit_button()
  *
  * @param int|string $nav_menu_selected_id (id, name or slug) of the currently-selected menu
  * @return string Disabled attribute if at least one menu exists, false if not
@@ -793,8 +792,8 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 				 * Filter the posts displayed in the 'View All' tab of the current
 				 * post type's menu items meta box.
 				 *
-				 * The dynamic portion of the hook name, $post_type_name,
-				 * refers to the slug of the current post type.
+				 * The dynamic portion of the hook name, `$post_type_name`, refers
+				 * to the slug of the current post type.
 				 *
 				 * @since 3.2.0
 				 *
@@ -1149,7 +1148,7 @@ function _wp_nav_menu_meta_box_object( $object = null ) {
  *
  * @since 3.0.0
  *
- * @param string $menu_id The ID of the menu to format.
+ * @param int $menu_id Optional. The ID of the menu to format. Default 0.
  * @return string|WP_Error $output The menu formatted to edit or error object on failure.
  */
 function wp_get_nav_menu_to_edit( $menu_id = 0 ) {
@@ -1246,9 +1245,6 @@ add_action('admin_head-nav-menus.php', '_wp_delete_orphaned_draft_menu_items');
  * Saves nav menu items
  *
  * @since 3.6.0
- *
- * @uses wp_get_nav_menu_items() to retrieve the nav menu's menu items
- * @uses wp_defer_term_counter() to enable then disable term counting
  *
  * @param int|string $nav_menu_selected_id (id, slug, or name ) of the currently-selected menu
  * @param string $nav_menu_selected_title Title of the currently-selected menu

@@ -158,6 +158,7 @@ window.wp = window.wp || {};
 		initialize: function( initial, options ) {
 			this._value = initial; // @todo: potentially change this to a this.set() call.
 			this.callbacks = $.Callbacks();
+			this._dirty = false;
 
 			$.extend( this, options || {} );
 
@@ -183,10 +184,12 @@ window.wp = window.wp || {};
 			to = this.validate( to );
 
 			// Bail if the sanitized value is null or unchanged.
-			if ( null === to || this._value === to )
+			if ( null === to || _.isEqual( from, to ) ) {
 				return this;
+			}
 
 			this._value = to;
+			this._dirty = true;
 
 			this.callbacks.fireWith( this, [ to, from ] );
 
@@ -423,10 +426,14 @@ window.wp = window.wp || {};
 
 				if ( this.element.is('input') ) {
 					type = this.element.prop('type');
-					if ( api.Element.synchronizer[ type ] )
+					if ( api.Element.synchronizer[ type ] ) {
 						synchronizer = api.Element.synchronizer[ type ];
-					if ( 'text' === type || 'password' === type )
+					}
+					if ( 'text' === type || 'password' === type ) {
 						this.events += ' keyup';
+					} else if ( 'range' === type ) {
+						this.events += ' input propertychange';
+					}
 				} else if ( this.element.is('textarea') ) {
 					this.events += ' keyup';
 				}

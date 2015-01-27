@@ -176,7 +176,7 @@ function wp_print_media_templates() {
 			<h3 class="upload-message">{{ data.message }}</h3>
 		<# } #>
 		<?php if ( ! _device_can_upload() ) : ?>
-			<h3 class="upload-instructions"><?php printf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'http://apps.wordpress.org/' ); ?></h3>
+			<h3 class="upload-instructions"><?php printf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'https://apps.wordpress.org/' ); ?></h3>
 		<?php elseif ( is_multisite() && ! is_upload_space_available() ) : ?>
 			<h3 class="upload-instructions"><?php _e( 'Upload Limit Exceeded' ); ?></h3>
 			<?php
@@ -312,7 +312,7 @@ function wp_print_media_templates() {
 				<# } #>
 
 				<div class="attachment-actions">
-					<# if ( 'image' === data.type && ! data.uploading && data.sizes ) { #>
+					<# if ( 'image' === data.type && ! data.uploading && data.sizes && data.can.save ) { #>
 						<a class="button edit-attachment" href="#"><?php _e( 'Edit Image' ); ?></a>
 					<# } #>
 				</div>
@@ -394,7 +394,7 @@ function wp_print_media_templates() {
 					<span class="name"><?php _e( 'Uploaded By' ); ?></span>
 					<span class="value">{{ data.authorName }}</span>
 				</label>
-				<# if ( data.uploadedTo ) { #>
+				<# if ( data.uploadedToTitle ) { #>
 					<label class="setting">
 						<span class="name"><?php _e( 'Uploaded To' ); ?></span>
 						<# if ( data.uploadedToLink ) { #>
@@ -408,19 +408,21 @@ function wp_print_media_templates() {
 			</div>
 
 			<div class="actions">
-				<a class="view-attachment" href="{{ data.link }}"><?php _e( 'View attachment page' ); ?></a> |
-				<a href="post.php?post={{ data.id }}&action=edit"><?php _e( 'Edit more details' ); ?></a>
+				<a class="view-attachment" href="{{ data.link }}"><?php _e( 'View attachment page' ); ?></a>
+				<# if ( data.can.save ) { #> |
+					<a href="post.php?post={{ data.id }}&action=edit"><?php _e( 'Edit more details' ); ?></a>
+				<# } #>
 				<# if ( ! data.uploading && data.can.remove ) { #> |
-						<?php if ( MEDIA_TRASH ): ?>
+					<?php if ( MEDIA_TRASH ): ?>
 						<# if ( 'trash' === data.status ) { #>
 							<a class="untrash-attachment" href="#"><?php _e( 'Untrash' ); ?></a>
 						<# } else { #>
-							<a class="trash-attachment" href="#"><?php _e( 'Trash' ); ?></a>
+							<a class="trash-attachment" href="#"><?php _ex( 'Trash', 'verb' ); ?></a>
 						<# } #>
-						<?php else: ?>
-							<a class="delete-attachment" href="#"><?php _e( 'Delete Permanently' ); ?></a>
-						<?php endif; ?>
-					<# } #>
+					<?php else: ?>
+						<a class="delete-attachment" href="#"><?php _e( 'Delete Permanently' ); ?></a>
+					<?php endif; ?>
+				<# } #>
 			</div>
 
 		</div>
@@ -518,7 +520,7 @@ function wp_print_media_templates() {
 					<# if ( 'trash' === data.status ) { #>
 						<a class="untrash-attachment" href="#"><?php _e( 'Untrash' ); ?></a>
 					<# } else { #>
-						<a class="trash-attachment" href="#"><?php _e( 'Trash' ); ?></a>
+						<a class="trash-attachment" href="#"><?php _ex( 'Trash', 'verb' ); ?></a>
 					<# } #>
 					<?php else: ?>
 						<a class="delete-attachment" href="#"><?php _e( 'Delete Permanently' ); ?></a>
@@ -573,7 +575,7 @@ function wp_print_media_templates() {
 		<div class="selection-info">
 			<span class="count"></span>
 			<# if ( data.editable ) { #>
-				<a class="edit-selection" href="#"><?php _e('Edit'); ?></a>
+				<a class="edit-selection" href="#"><?php _e( 'Edit Selection' ); ?></a>
 			<# } #>
 			<# if ( data.clearable ) { #>
 				<a class="clear-selection" href="#"><?php _e('Clear'); ?></a>
@@ -731,6 +733,31 @@ function wp_print_media_templates() {
 		<label class="setting">
 			<span><?php _e( 'Random Order' ); ?></span>
 			<input type="checkbox" data-setting="_orderbyRandom" />
+		</label>
+
+		<label class="setting size">
+			<span><?php _e( 'Size' ); ?></span>
+			<select class="size" name="size"
+				data-setting="size"
+				<# if ( data.userSettings ) { #>
+					data-user-setting="imgsize"
+				<# } #>
+				>
+				<?php
+				// This filter is documented in wp-admin/includes/media.php
+				$size_names = apply_filters( 'image_size_names_choose', array(
+					'thumbnail' => __( 'Thumbnail' ),
+					'medium'    => __( 'Medium' ),
+					'large'     => __( 'Large' ),
+					'full'      => __( 'Full Size' ),
+				) );
+
+				foreach ( $size_names as $size => $label ) : ?>
+					<option value="<?php echo esc_attr( $size ); ?>">
+						<?php echo esc_html( $label ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
 		</label>
 	</script>
 

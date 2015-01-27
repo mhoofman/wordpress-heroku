@@ -27,12 +27,6 @@ if ( ! is_network_admin() ) {
 	$submenu_file = 'themes.php';
 }
 
-$sections = array(
-	'featured' => __( 'Featured Themes' ),
-	'popular'  => __( 'Popular Themes' ),
-	'new'      => __( 'Newest Themes' ),
-);
-
 $installed_themes = search_theme_directories();
 foreach ( $installed_themes as $k => $v ) {
 	if ( false !== strpos( $k, '/' ) ) {
@@ -57,23 +51,20 @@ wp_localize_script( 'theme', '_wpThemeSettings', array(
 		'error'  => __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' )
 	),
 	'installedThemes' => array_keys( $installed_themes ),
-	'browse' => array(
-		'sections' => $sections,
-	),
 ) );
 
 wp_enqueue_script( 'theme' );
 
-/**
- * Fires before each of the tabs are rendered on the Install Themes page.
- *
- * The dynamic portion of the hook name, $tab, refers to the current
- * theme install tab. Possible values are 'dashboard', 'search', 'upload',
- * 'featured', 'new', or 'updated'.
- *
- * @since 2.8.0
- */
 if ( $tab ) {
+	/**
+	 * Fires before each of the tabs are rendered on the Install Themes page.
+	 *
+	 * The dynamic portion of the hook name, `$tab`, refers to the current
+	 * theme install tab. Possible values are 'dashboard', 'search', 'upload',
+	 * 'featured', 'new', or 'updated'.
+	 *
+	 * @since 2.8.0
+	 */
 	do_action( "install_themes_pre_{$tab}" );
 }
 
@@ -114,10 +105,11 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 	/**
 	 * Filter the tabs shown on the Add Themes screen.
 	 *
-	 * This filter is for backwards compatibility only,
-	 * for the suppression of the upload tab.
+	 * This filter is for backwards compatibility only, for the suppression
+	 * of the upload tab.
 	 *
 	 * @since 2.8.0
+	 *
 	 * @param array $tabs The tabs shown on the Add Themes screen. Default is 'upload'.
 	 */
 	$tabs = apply_filters( 'install_themes_tabs', array( 'upload' => __( 'Upload Theme' ) ) );
@@ -154,11 +146,7 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 		<?php
 		$feature_list = get_theme_feature_list();
 		foreach ( $feature_list as $feature_name => $features ) {
-			if ( $feature_name === 'Features' || $feature_name === __( 'Features' ) ) { // hack hack hack
-				echo '<div class="filter-group wide">';
-			} else {
-				echo '<div class="filter-group">';
-			}
+			echo '<div class="filter-group">';
 			$feature_name = esc_html( $feature_name );
 			echo '<h4>' . $feature_name . '</h4>';
 			echo '<ol class="feature-group">';
@@ -186,18 +174,18 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 
 	<br class="clear" />
 <?php
-/**
- * Fires at the top of each of the tabs on the Install Themes page.
- *
- * The dynamic portion of the hook name, $tab, refers to the current
- * theme install tab. Possible values are 'dashboard', 'search', 'upload',
- * 'featured', 'new', or 'updated'.
- *
- * @since 2.8.0
- *
- * @param int $paged Number of the current page of results being viewed.
- */
 if ( $tab ) {
+	/**
+	 * Fires at the top of each of the tabs on the Install Themes page.
+	 *
+	 * The dynamic portion of the hook name, `$tab`, refers to the current
+	 * theme install tab. Possible values are 'dashboard', 'search', 'upload',
+	 * 'featured', 'new', or 'updated'.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param int $paged Number of the current page of results being viewed.
+	 */
 	do_action( "install_themes_{$tab}", $paged );
 }
 ?>
@@ -252,9 +240,9 @@ if ( $tab ) {
 						<span class="four"></span>
 						<span class="five"></span>
 					<# if ( data.num_ratings ) { #>
-						<p class="ratings">{{ data.num_ratings }}</p>
+						<small class="ratings">{{ data.num_ratings }}</small>
 					<# } else { #>
-						<p class="ratings"><?php _e( 'No ratings.' ); ?></p>
+						<small class="ratings"><?php _e( 'No ratings.' ); ?></small>
 					<# } #>
 					</div>
 					<div class="theme-version"><?php printf( __( 'Version: %s' ), '{{ data.version }}' ); ?></div>

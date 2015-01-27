@@ -241,6 +241,10 @@ function list_plugin_updates() {
 <?php
 	foreach ( (array) $plugins as $plugin_file => $plugin_data) {
 		$info = plugins_api('plugin_information', array('slug' => $plugin_data->update->slug ));
+		if ( is_wp_error( $info ) ) {
+			continue;
+		}
+
 		// Get plugin compat for running version of WordPress.
 		if ( isset($info->tested) && version_compare($info->tested, $cur_wp_version, '>=') ) {
 			$compat = '<br />' . sprintf(__('Compatibility with WordPress %1$s: 100%% (according to its author)'), $cur_wp_version);
@@ -377,19 +381,23 @@ function do_core_upgrade( $reinstall = false ) {
 	if ( !$update )
 		return;
 
+	// Allow relaxed file ownership writes for User-initiated upgrades when the API specifies
+	// that it's safe to do so. This only happens when there are no new files to create.
+	$allow_relaxed_file_ownership = ! $reinstall && isset( $update->new_files ) && ! $update->new_files;
+
 ?>
 	<div class="wrap">
 	<h2><?php _e('Update WordPress'); ?></h2>
 <?php
 
-	if ( false === ( $credentials = request_filesystem_credentials( $url, '', false, ABSPATH ) ) ) {
+	if ( false === ( $credentials = request_filesystem_credentials( $url, '', false, ABSPATH, array(), $allow_relaxed_file_ownership ) ) ) {
 		echo '</div>';
 		return;
 	}
 
-	if ( ! WP_Filesystem( $credentials, ABSPATH ) ) {
+	if ( ! WP_Filesystem( $credentials, ABSPATH, $allow_relaxed_file_ownership ) ) {
 		// Failed to connect, Error and request again
-		request_filesystem_credentials( $url, '', true, ABSPATH );
+		request_filesystem_credentials( $url, '', true, ABSPATH, array(), $allow_relaxed_file_ownership );
 		echo '</div>';
 		return;
 	}
@@ -407,7 +415,9 @@ function do_core_upgrade( $reinstall = false ) {
 	add_filter( 'update_feedback', 'show_message' );
 
 	$upgrader = new Core_Upgrader();
-	$result = $upgrader->upgrade( $update );
+	$result = $upgrader->upgrade( $update, array(
+		'allow_relaxed_file_ownership' => $allow_relaxed_file_ownership
+	) );
 
 	if ( is_wp_error($result) ) {
 		show_message($result);
@@ -639,7 +649,7 @@ if ( 'upgrade-core' == $action ) {
 	/**
 	 * Fires for each custom update action on the WordPress Updates screen.
 	 *
-	 * The dynamic portion of the hook name, $action, refers to the
+	 * The dynamic portion of the hook name, `$action`, refers to the
 	 * passed update action. The hook fires in lieu of all available
 	 * default update actions.
 	 *

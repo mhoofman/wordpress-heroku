@@ -65,6 +65,15 @@ class WP_List_Table {
 	private $_pagination;
 
 	/**
+	 * The view switcher modes.
+	 *
+	 * @since 4.1.0
+	 * @var array
+	 * @access protected
+	 */
+	protected $modes = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * The child class should call this constructor from its own constructor to override
@@ -113,6 +122,13 @@ class WP_List_Table {
 		if ( $args['ajax'] ) {
 			// wp_enqueue_script( 'list-table' );
 			add_action( 'admin_footer', array( $this, '_js_vars' ) );
+		}
+
+		if ( empty( $this->modes ) ) {
+			$this->modes = array(
+				'list'    => __( 'List View' ),
+				'excerpt' => __( 'Excerpt View' )
+			);
 		}
 	}
 
@@ -184,7 +200,6 @@ class WP_List_Table {
 
 	/**
 	 * Checks the current user's permissions
-	 * @uses wp_die()
 	 *
 	 * @since 3.1.0
 	 * @access public
@@ -232,13 +247,14 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Access the pagination args
+	 * Access the pagination args.
 	 *
 	 * @since 3.1.0
 	 * @access public
 	 *
-	 * @param string $key
-	 * @return array
+	 * @param string $key Pagination argument to retrieve. Common values include 'total_items',
+	 *                    'total_pages', 'per_page', or 'infinite_scroll'.
+	 * @return int Number of items that correspond to the given pagination argument.
 	 */
 	public function get_pagination_arg( $key ) {
 		if ( 'page' == $key )
@@ -326,7 +342,7 @@ class WP_List_Table {
 		/**
 		 * Filter the list of available list table views.
 		 *
-		 * The dynamic portion of the hook name, $this->screen->id, refers
+		 * The dynamic portion of the hook name, `$this->screen->id`, refers
 		 * to the ID of the current screen, usually a string.
 		 *
 		 * @since 3.5.0
@@ -374,7 +390,7 @@ class WP_List_Table {
 			/**
 			 * Filter the list table Bulk Actions drop-down.
 			 *
-			 * The dynamic portion of the hook name, $this->screen->id, refers
+			 * The dynamic portion of the hook name, `$this->screen->id`, refers
 			 * to the ID of the current screen, usually a string.
 			 *
 			 * This filter can currently only be used to remove bulk actions.
@@ -463,6 +479,8 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 *
+	 * @param string $post_type
 	 */
 	protected function months_dropdown( $post_type ) {
 		global $wpdb, $wp_locale;
@@ -519,18 +537,15 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 *
+	 * @param string $current_mode
 	 */
 	protected function view_switcher( $current_mode ) {
-		$modes = array(
-			'list'    => __( 'List View' ),
-			'excerpt' => __( 'Excerpt View' )
-		);
-
 ?>
 		<input type="hidden" name="mode" value="<?php echo esc_attr( $current_mode ); ?>" />
 		<div class="view-switch">
 <?php
-			foreach ( $modes as $mode => $title ) {
+			foreach ( $this->modes as $mode => $title ) {
 				$classes = array( 'view-' . $mode );
 				if ( $current_mode == $mode )
 					$classes[] = 'current';
@@ -590,6 +605,8 @@ class WP_List_Table {
 	 * @since 3.1.0
 	 * @access protected
 	 *
+	 * @param string $option
+	 * @param int    $default
 	 * @return int
 	 */
 	protected function get_items_per_page( $option, $default = 20 ) {
@@ -600,10 +617,11 @@ class WP_List_Table {
 		/**
 		 * Filter the number of items to be displayed on each page of the list table.
 		 *
-		 * The dynamic hook name, $option, refers to the per page option depending
-		 * on the type of list table in use. Possible values may include:
-		 * 'edit_comments_per_page', 'sites_network_per_page', 'site_themes_network_per_page',
-		 * 'themes_netework_per_page', 'users_network_per_page', 'edit_{$post_type}', etc.
+		 * The dynamic hook name, $option, refers to the `per_page` option depending
+		 * on the type of list table in use. Possible values include: 'edit_comments_per_page',
+		 * 'sites_network_per_page', 'site_themes_network_per_page', 'themes_network_per_page',
+		 * 'users_network_per_page', 'edit_post_per_page', 'edit_page_per_page',
+		 * 'edit_{$post_type}_per_page', etc.
 		 *
 		 * @since 2.9.0
 		 *
@@ -617,6 +635,8 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 *
+	 * @param string $which
 	 */
 	protected function pagination( $which ) {
 		if ( empty( $this->_pagination_args ) ) {
@@ -754,7 +774,7 @@ class WP_List_Table {
 		/**
 		 * Filter the list table sortable columns for a specific screen.
 		 *
-		 * The dynamic portion of the hook name, $this->screen->id, refers
+		 * The dynamic portion of the hook name, `$this->screen->id`, refers
 		 * to the ID of the current screen, usually a string.
 		 *
 		 * @since 3.5.0
@@ -901,12 +921,12 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Get a list of CSS classes for the <table> tag
+	 * Get a list of CSS classes for the list table table tag.
 	 *
 	 * @since 3.1.0
 	 * @access protected
 	 *
-	 * @return array
+	 * @return array List of CSS classes for the table tag.
 	 */
 	protected function get_table_classes() {
 		return array( 'widefat', 'fixed', $this->_args['plural'] );
@@ -917,6 +937,7 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 * @param string $which
 	 */
 	protected function display_tablenav( $which ) {
 		if ( 'top' == $which )
@@ -942,11 +963,13 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 *
+	 * @param string $which
 	 */
 	protected function extra_tablenav( $which ) {}
 
 	/**
-	 * Generate the <tbody> part of the table
+	 * Generate the tbody element for the list table.
 	 *
 	 * @since 3.1.0
 	 * @access public
@@ -1058,7 +1081,7 @@ class WP_List_Table {
 			$response['total_pages_i18n'] = number_format_i18n( $this->_pagination_args['total_pages'] );
 		}
 
-		die( json_encode( $response ) );
+		die( wp_json_encode( $response ) );
 	}
 
 	/**
@@ -1075,6 +1098,6 @@ class WP_List_Table {
 			)
 		);
 
-		printf( "<script type='text/javascript'>list_args = %s;</script>\n", json_encode( $args ) );
+		printf( "<script type='text/javascript'>list_args = %s;</script>\n", wp_json_encode( $args ) );
 	}
 }

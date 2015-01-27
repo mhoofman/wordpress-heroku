@@ -387,8 +387,7 @@
 
 		events: {
 			'click .left':  'previousMediaItem',
-			'click .right': 'nextMediaItem',
-			'keydown':      'keyEvent'
+			'click .right': 'nextMediaItem'
 		},
 
 		initialize: function() {
@@ -577,10 +576,11 @@
 			return ( this.getCurrentIndex() - 1 ) > -1;
 		},
 		/**
-		 * Respond to the keyboard events: right arrow, left arrow, escape.
+		 * Respond to the keyboard events: right arrow, left arrow, except when
+		 * focus is in a textarea or input field.
 		 */
 		keyEvent: function( event ) {
-			if ( 'INPUT' === event.target.tagName && ! ( event.target.readOnly || event.target.disabled ) ) {
+			if ( ( 'INPUT' === event.target.nodeName || 'TEXTAREA' === event.target.nodeName ) && ! ( event.target.readOnly || event.target.disabled ) ) {
 				return;
 			}
 
@@ -630,22 +630,32 @@
 
 			children = toolbar.$( '.media-toolbar-secondary > *, .media-toolbar-primary > *');
 
+			// TODO: the Frame should be doing all of this.
 			if ( this.controller.isModeActive( 'select' ) ) {
 				this.model.set( 'text', l10n.cancelSelection );
-				children.not( '.delete-selected-button' ).hide();
-				toolbar.$( '.select-mode-toggle-button' ).show();
+				children.not( '.media-button' ).hide();
+				this.$el.show();
 				toolbar.$( '.delete-selected-button' ).removeClass( 'hidden' );
 			} else {
 				this.model.set( 'text', l10n.bulkSelect );
-				this.controller.content.get().$el.removeClass('fixed');
-				toolbar.$el.css('width', '');
+				this.controller.content.get().$el.removeClass( 'fixed' );
+				toolbar.$el.css( 'width', '' );
 				toolbar.$( '.delete-selected-button' ).addClass( 'hidden' );
-				children.not( '.spinner, .delete-selected-button' ).show();
+				children.not( '.spinner, .media-button' ).show();
 				this.controller.state().get( 'selection' ).reset();
 			}
 		}
 	});
 
+	/**
+	 * A button that handles bulk Delete/Trash logic
+	 *
+	 * @constructor
+	 * @augments wp.media.view.Button
+	 * @augments wp.media.View
+	 * @augments wp.Backbone.View
+	 * @augments Backbone.View
+	 */
 	media.view.DeleteSelectedButton = media.view.Button.extend({
 		initialize: function() {
 			media.view.Button.prototype.initialize.apply( this, arguments );
@@ -676,36 +686,46 @@
 			} else {
 				this.$el.addClass( 'delete-selected-button hidden' );
 			}
+			this.toggleDisabled();
 			return this;
 		}
 	});
 
 	/**
-	 * A filter dropdown for month/dates.
+	 * When MEDIA_TRASH is true, a button that handles bulk Delete Permanently logic
+	 *
+	 * @constructor
+	 * @augments wp.media.view.DeleteSelectedButton
+	 * @augments wp.media.view.Button
+	 * @augments wp.media.View
+	 * @augments wp.Backbone.View
+	 * @augments Backbone.View
 	 */
-	media.view.DateFilter = media.view.AttachmentFilters.extend({
-		id: 'media-attachment-date-filters',
+	media.view.DeleteSelectedPermanentlyButton = media.view.DeleteSelectedButton.extend({
+		initialize: function() {
+			media.view.DeleteSelectedButton.prototype.initialize.apply( this, arguments );
+			this.listenTo( this.controller, 'select:activate', this.selectActivate );
+			this.listenTo( this.controller, 'select:deactivate', this.selectDeactivate );
+		},
 
-		createFilters: function() {
-			var filters = {};
-			_.each( media.view.settings.months || {}, function( value, index ) {
-				filters[ index ] = {
-					text: value.text,
-					props: {
-						year: value.year,
-						monthnum: value.month
-					}
-				};
-			});
-			filters.all = {
-				text:  l10n.allDates,
-				props: {
-					monthnum: false,
-					year:  false
-				},
-				priority: 10
-			};
-			this.filters = filters;
+		filterChange: function( model ) {
+			this.canShow = ( 'trash' === model.get( 'status' ) );
+		},
+
+		selectActivate: function() {
+			this.toggleDisabled();
+			this.$el.toggleClass( 'hidden', ! this.canShow );
+		},
+
+		selectDeactivate: function() {
+			this.toggleDisabled();
+			this.$el.addClass( 'hidden' );
+		},
+
+		render: function() {
+			media.view.Button.prototype.render.apply( this, arguments );
+			this.selectActivate();
+			return this;
 		}
 	});
 

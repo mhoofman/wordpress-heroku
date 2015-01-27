@@ -20,10 +20,11 @@
  * @param array $args Optional. Arguments to pass to the hook's callback function.
  */
 function wp_schedule_single_event( $timestamp, $hook, $args = array()) {
-	// don't schedule a duplicate if there's already an identical event due in the next 10 minutes
+	// don't schedule a duplicate if there's already an identical event due within 10 minutes of it
 	$next = wp_next_scheduled($hook, $args);
-	if ( $next && $next <= $timestamp + 10 * MINUTE_IN_SECONDS )
+	if ( $next && abs( $next - $timestamp ) <= 10 * MINUTE_IN_SECONDS ) {
 		return;
+	}
 
 	$crons = _get_cron_array();
 	$event = (object) array( 'hook' => $hook, 'timestamp' => $timestamp, 'schedule' => false, 'args' => $args );
@@ -65,7 +66,7 @@ function wp_schedule_single_event( $timestamp, $hook, $args = array()) {
  * @param string $recurrence How often the event should recur.
  * @param string $hook Action hook to execute when cron is run.
  * @param array $args Optional. Arguments to pass to the hook's callback function.
- * @return bool|null False on failure, null when complete with scheduling event.
+ * @return false|null False on failure, null when complete with scheduling event.
  */
 function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array()) {
 	$crons = _get_cron_array();
@@ -98,7 +99,7 @@ function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array()) {
  * @param string $recurrence How often the event should recur.
  * @param string $hook Action hook to execute when cron is run.
  * @param array $args Optional. Arguments to pass to the hook's callback function.
- * @return bool|null False on failure. Null when event is rescheduled.
+ * @return false|null False on failure. Null when event is rescheduled.
  */
 function wp_reschedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
 	$crons = _get_cron_array();
@@ -245,9 +246,10 @@ function spawn_cron( $gmt_time = 0 ) {
 	if ( isset($keys[0]) && $keys[0] > $gmt_time )
 		return;
 
-	if ( defined('ALTERNATE_WP_CRON') && ALTERNATE_WP_CRON ) {
-		if ( !empty($_POST) || defined('DOING_AJAX') )
+	if ( defined( 'ALTERNATE_WP_CRON' ) && ALTERNATE_WP_CRON ) {
+		if ( ! empty( $_POST ) || defined( 'DOING_AJAX' ) ||  defined( 'XMLRPC_REQUEST' ) ) {
 			return;
+		}
 
 		$doing_wp_cron = sprintf( '%.22F', $gmt_time );
 		set_transient( 'doing_cron', $doing_wp_cron );
@@ -347,17 +349,17 @@ function wp_cron() {
  * 60*60*24*7 or 604800. The value of 'interval' would then be 604800.
  *
  * The 'display' is the description. For the 'weekly' key, the 'display' would
- * be <code>__('Once Weekly')</code>.
+ * be `__( 'Once Weekly' )`.
  *
  * For your plugin, you will be passed an array. you can easily add your
  * schedule by doing the following.
- * <code>
- * // filter parameter variable name is 'array'
- *	$array['weekly'] = array(
- *		'interval' => 604800,
- *		'display' => __('Once Weekly')
- *	);
- * </code>
+ *
+ *     // Filter parameter variable name is 'array'.
+ *     $array['weekly'] = array(
+ *         'interval' => 604800,
+ *     	   'display'  => __( 'Once Weekly' )
+ *     );
+ *
  *
  * @since 2.1.0
  *

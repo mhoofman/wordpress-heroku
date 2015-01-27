@@ -10,26 +10,25 @@
  * needing to use these functions a lot, you might experience time outs. If you
  * do, then it is advised to just write the SQL code yourself.
  *
- * <code>
- * check_column('wp_links', 'link_description', 'mediumtext');
- * if (check_column($wpdb->comments, 'comment_author', 'tinytext'))
- *     echo "ok\n";
+ *     check_column( 'wp_links', 'link_description', 'mediumtext' );
+ *     if ( check_column( $wpdb->comments, 'comment_author', 'tinytext' ) ) {
+ *         echo "ok\n";
+ *     }
  *
- * $error_count = 0;
- * $tablename = $wpdb->links;
- * // check the column
- * if (!check_column($wpdb->links, 'link_description', 'varchar(255)')) {
- *     $ddl = "ALTER TABLE $wpdb->links MODIFY COLUMN link_description varchar(255) NOT NULL DEFAULT '' ";
- *     $q = $wpdb->query($ddl);
- * }
+ *     $error_count = 0;
+ *     $tablename = $wpdb->links;
+ *     // Check the column.
+ *     if ( ! check_column($wpdb->links, 'link_description', 'varchar( 255 )' ) ) {
+ *         $ddl = "ALTER TABLE $wpdb->links MODIFY COLUMN link_description varchar(255) NOT NULL DEFAULT '' ";
+ *         $q = $wpdb->query( $ddl );
+ *     }
  *
- * if (check_column($wpdb->links, 'link_description', 'varchar(255)')) {
- *     $res .= $tablename . ' - ok <br />';
- * } else {
- *     $res .= 'There was a problem with ' . $tablename . '<br />';
- *     ++$error_count;
- * }
- * </code>
+ *     if ( check_column( $wpdb->links, 'link_description', 'varchar( 255 )' ) ) {
+ *         $res .= $tablename . ' - ok <br />';
+ *     } else {
+ *         $res .= 'There was a problem with ' . $tablename . '<br />';
+ *         ++$error_count;
+ *     }
  *
  * @package WordPress
  * @subpackage Plugin
@@ -44,7 +43,7 @@ if ( ! function_exists('maybe_create_table') ) :
  *
  * @since 1.0.0
  *
- * @uses $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param string $table_name Database table name.
  * @param string $create_ddl Create database table SQL.
@@ -76,7 +75,7 @@ if ( ! function_exists('maybe_add_column') ) :
  *
  * @since 1.0.0
  *
- * @uses $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param string $table_name Database table name
  * @param string $column_name Table column name
@@ -110,7 +109,7 @@ endif;
  *
  * @since 1.0.0
  *
- * @uses $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param string $table_name Table name
  * @param string $column_name Column name

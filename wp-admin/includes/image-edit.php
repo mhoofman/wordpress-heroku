@@ -6,6 +6,10 @@
  * @subpackage Administration
  */
 
+/**
+ * @param int $post_id
+ * @param bool|object $msg
+ */
 function wp_image_editor($post_id, $msg = false) {
 	$nonce = wp_create_nonce("image_editor-$post_id");
 	$meta = wp_get_attachment_metadata($post_id);
@@ -399,9 +403,11 @@ function _crop_image_resource($img, $x, $y, $w, $h) {
 /**
  * Performs group of changes on Editor specified.
  *
- * @param WP_Image_Editor $image
- * @param type $changes
- * @return WP_Image_Editor
+ * @since 2.9.0
+ *
+ * @param WP_Image_Editor $image   {@see WP_Image_Editor} instance.
+ * @param array           $changes Array of change operations.
+ * @return WP_Image_Editor {@see WP_Image_Editor} instance with changes applied.
  */
 function image_edit_apply_changes( $image, $changes ) {
 	if ( is_resource( $image ) )
@@ -554,6 +560,10 @@ function stream_preview_image( $post_id ) {
 	return wp_stream_image( $img, $post->post_mime_type, $post_id );
 }
 
+/**
+ * @param int $post_id
+ * @return stdClass
+ */
 function wp_restore_image($post_id) {
 	$meta = wp_get_attachment_metadata($post_id);
 	$file = get_attached_file($post_id);

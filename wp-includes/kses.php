@@ -88,6 +88,14 @@ if ( ! CUSTOM_TAGS ) {
 			'lang' => true,
 			'xml:lang' => true,
 		),
+		'audio' => array(
+			'autoplay' => true,
+			'controls' => true,
+			'loop' => true,
+			'muted' => true,
+			'preload' => true,
+			'src' => true,
+		),
 		'b' => array(),
 		'big' => array(),
 		'blockquote' => array(
@@ -116,6 +124,14 @@ if ( ! CUSTOM_TAGS ) {
 			'charoff' => true,
 			'span' => true,
 			'dir' => true,
+			'valign' => true,
+			'width' => true,
+		),
+		'colgroup' => array(
+			'align' => true,
+			'char' => true,
+			'charoff' => true,
+			'span' => true,
 			'valign' => true,
 			'width' => true,
 		),
@@ -364,6 +380,13 @@ if ( ! CUSTOM_TAGS ) {
 			'charoff' => true,
 			'valign' => true,
 		),
+		'track' => array(
+			'default' => true,
+			'kind' => true,
+			'label' => true,
+			'src' => true,
+			'srclang' => true,
+		),
 		'tt' => array(),
 		'u' => array(),
 		'ul' => array(
@@ -374,6 +397,17 @@ if ( ! CUSTOM_TAGS ) {
 			'type' => true,
 		),
 		'var' => array(),
+		'video' => array(
+			'autoplay' => true,
+			'controls' => true,
+			'height' => true,
+			'loop' => true,
+			'muted' => true,
+			'poster' => true,
+			'preload' => true,
+			'src' => true,
+			'width' => true,
+		),
 	);
 
 	/**
@@ -627,7 +661,6 @@ function _wp_kses_split_callback( $match ) {
  *
  * @access private
  * @since 1.0.0
- * @uses wp_kses_attr()
  *
  * @param string $string Content to filter
  * @param array $allowed_html Allowed HTML elements
@@ -1139,8 +1172,8 @@ function wp_kses_bad_protocol_once2( $string, $allowed_protocols ) {
 /**
  * Converts and fixes HTML entities.
  *
- * This function normalizes HTML entities. It will convert "AT&T" to the correct
- * "AT&amp;T", "&#00058;" to "&#58;", "&#XYZZY;" to "&amp;#XYZZY;" and so on.
+ * This function normalizes HTML entities. It will convert `AT&T` to the correct
+ * `AT&amp;T`, `&#00058;` to `&#58;`, `&#XYZZY;` to `&amp;#XYZZY;` and so on.
  *
  * @since 1.0.0
  *
@@ -1185,8 +1218,8 @@ function wp_kses_named_entities($matches) {
 /**
  * Callback for wp_kses_normalize_entities() regular expression.
  *
- * This function helps wp_kses_normalize_entities() to only accept 16-bit values
- * and nothing more for &#number; entities.
+ * This function helps {@see wp_kses_normalize_entities()} to only accept 16-bit
+ * values and nothing more for `&#number;` entities.
  *
  * @access private
  * @since 1.0.0
@@ -1244,9 +1277,9 @@ function valid_unicode($i) {
 /**
  * Convert all entities to their character counterparts.
  *
- * This function decodes numeric HTML entities (&#65; and &#x41;). It doesn't do
- * anything with other entities like &auml;, but we don't need them in the URL
- * protocol whitelisting system anyway.
+ * This function decodes numeric HTML entities (`&#65;` and `&#x41;`).
+ * It doesn't do anything with other entities like &auml;, but we don't
+ * need them in the URL protocol whitelisting system anyway.
  *
  * @since 1.0.0
  *
@@ -1284,7 +1317,6 @@ function _wp_kses_decode_entities_chr_hexdec( $match ) {
  * Sanitize content with allowed HTML Kses rules.
  *
  * @since 1.0.0
- * @uses $allowedtags
  *
  * @param string $data Content to filter, expected to be escaped with slashes
  * @return string Filtered content
@@ -1297,7 +1329,6 @@ function wp_filter_kses( $data ) {
  * Sanitize content with allowed HTML Kses rules.
  *
  * @since 2.9.0
- * @uses $allowedtags
  *
  * @param string $data Content to filter, expected to not be escaped
  * @return string Filtered content
@@ -1358,7 +1389,6 @@ function wp_filter_nohtml_kses( $data ) {
  * 'excerpt_save_pre', and 'content_filtered_save_pre' hooks.
  *
  * @since 2.0.0
- * @uses add_filter() See description for what functions are added to what hooks.
  */
 function kses_init_filters() {
 	// Normal filtering
@@ -1413,9 +1443,6 @@ function kses_remove_filters() {
  * to have Kses filter the content. If the user does not have unfiltered_html
  * capability, then Kses filters are added.
  *
- * @uses kses_remove_filters() Removes the Kses filters
- * @uses kses_init_filters() Adds the Kses filters back if the user
- *		does not have unfiltered HTML capability.
  * @since 2.0.0
  */
 function kses_init() {
@@ -1440,7 +1467,7 @@ function safecss_filter_attr( $css, $deprecated = '' ) {
 	$css = wp_kses_no_null($css);
 	$css = str_replace(array("\n","\r","\t"), '', $css);
 
-	if ( preg_match( '%[\\(&=}]|/\*%', $css ) ) // remove any inline css containing \ ( & } = or comments
+	if ( preg_match( '%[\\\\(&=}]|/\*%', $css ) ) // remove any inline css containing \ ( & } = or comments
 		return '';
 
 	$css_array = explode( ';', trim( $css ) );

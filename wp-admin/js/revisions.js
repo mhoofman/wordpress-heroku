@@ -1,17 +1,31 @@
-/* global _wpRevisionsSettings, isRtl */
+/* global isRtl */
+/**
+ * @file Revisions interface functions, Backbone classes and
+ * the revisions.php document.ready bootstrap.
+ *
+ */
+
 window.wp = window.wp || {};
 
 (function($) {
 	var revisions;
-
+	/**
+	 * Expose the module in window.wp.revisions.
+	 */
 	revisions = wp.revisions = { model: {}, view: {}, controller: {} };
 
-	// Link settings.
-	revisions.settings = _.isUndefined( _wpRevisionsSettings ) ? {} : _wpRevisionsSettings;
+	// Link post revisions data served from the back-end.
+	revisions.settings = window._wpRevisionsSettings || {};
 
 	// For debugging
 	revisions.debug = false;
 
+	/**
+	 * wp.revisions.log
+	 *
+	 * A debugging utility for revisions. Works only when a
+	 * debug flag is on and the browser supports it.
+	 */
 	revisions.log = function() {
 		if ( window.console && revisions.debug ) {
 			window.console.log.apply( window.console, arguments );
@@ -34,19 +48,6 @@ window.wp = window.wp || {};
 			bottom: parent.outerHeight() - position.top  - this.outerHeight()
 		});
 	};
-
-	// wp_localize_script transforms top-level numbers into strings. Undo that.
-	if ( revisions.settings.to ) {
-		revisions.settings.to = parseInt( revisions.settings.to, 10 );
-	}
-	if ( revisions.settings.from ) {
-		revisions.settings.from = parseInt( revisions.settings.from, 10 );
-	}
-
-	// wp_localize_script does not allow for top-level booleans. Fix that.
-	if ( revisions.settings.compareTwoMode ) {
-		revisions.settings.compareTwoMode = revisions.settings.compareTwoMode === '1';
-	}
 
 	/**
 	 * ========================================================================
@@ -73,13 +74,13 @@ window.wp = window.wp || {};
 			this.listenTo( this.frame, 'change:compareTwoMode', this.updateMode );
 
 			// Listen for internal changes
-			this.listenTo( this, 'change:from', this.handleLocalChanges );
-			this.listenTo( this, 'change:to', this.handleLocalChanges );
-			this.listenTo( this, 'change:compareTwoMode', this.updateSliderSettings );
-			this.listenTo( this, 'update:revisions', this.updateSliderSettings );
+			this.on( 'change:from', this.handleLocalChanges );
+			this.on( 'change:to', this.handleLocalChanges );
+			this.on( 'change:compareTwoMode', this.updateSliderSettings );
+			this.on( 'update:revisions', this.updateSliderSettings );
 
 			// Listen for changes to the hovered revision
-			this.listenTo( this, 'change:hoveredRevision', this.hoverRevision );
+			this.on( 'change:hoveredRevision', this.hoverRevision );
 
 			this.set({
 				max:   this.revisions.length - 1,
@@ -179,6 +180,11 @@ window.wp = window.wp || {};
 
 	revisions.model.Revision = Backbone.Model.extend({});
 
+	/**
+	 * wp.revisions.model.Revisions
+	 *
+	 * A collection of post revisions.
+	 */
 	revisions.model.Revisions = Backbone.Collection.extend({
 		model: revisions.model.Revision,
 
@@ -223,6 +229,7 @@ window.wp = window.wp || {};
 			_.bindAll( this, 'getClosestUnloaded' );
 			this.loadAll = _.once( this._loadAll );
 			this.revisions = options.revisions;
+			this.postId = options.postId;
 			this.requests  = {};
 		},
 
@@ -320,7 +327,7 @@ window.wp = window.wp || {};
 				options.context = this;
 				options.data = _.extend( options.data || {}, {
 					action: 'get-revision-diffs',
-					post_id: revisions.settings.postId
+					post_id: this.postId
 				});
 
 				var deferred = wp.ajax.send( options ),
@@ -352,6 +359,17 @@ window.wp = window.wp || {};
 	});
 
 
+	/**
+	 * wp.revisions.model.FrameState
+	 *
+	 * The frame state.
+	 *
+	 * @see wp.revisions.view.Frame
+	 *
+	 * @param {object}                    attributes        Model attributes - none are required.
+	 * @param {object}                    options           Options for the model.
+	 * @param {revisions.model.Revisions} options.revisions A collection of revisions.
+	 */
 	revisions.model.FrameState = Backbone.Model.extend({
 		defaults: {
 			loading: false,
@@ -360,16 +378,19 @@ window.wp = window.wp || {};
 		},
 
 		initialize: function( attributes, options ) {
-			var properties = {};
-
+			var state = this.get( 'initialDiffState' );
 			_.bindAll( this, 'receiveDiff' );
 			this._debouncedEnsureDiff = _.debounce( this._ensureDiff, 200 );
 
 			this.revisions = options.revisions;
-			this.diffs = new revisions.model.Diffs( [], { revisions: this.revisions });
 
-			// Set the initial diffs collection provided through the settings
-			this.diffs.set( revisions.settings.diffData );
+			this.diffs = new revisions.model.Diffs( [], {
+				revisions: this.revisions,
+				postId: this.get( 'postId' )
+			} );
+
+			// Set the initial diffs collection.
+			this.diffs.set( this.get( 'diffData' ) );
 
 			// Set up internal listeners
 			this.listenTo( this, 'change:from', this.changeRevisionHandler );
@@ -379,12 +400,13 @@ window.wp = window.wp || {};
 			this.listenTo( this.diffs, 'ensure:load', this.updateLoadingStatus );
 			this.listenTo( this, 'update:diff', this.updateLoadingStatus );
 
-			// Set the initial revisions, baseUrl, and mode as provided through settings
-			properties.to = this.revisions.get( revisions.settings.to );
-			properties.from = this.revisions.get( revisions.settings.from );
-			properties.compareTwoMode = revisions.settings.compareTwoMode;
-			properties.baseUrl = revisions.settings.baseUrl;
-			this.set( properties );
+			// Set the initial revisions, baseUrl, and mode as provided through attributes.
+
+			this.set( {
+				to : this.revisions.get( state.to ),
+				from : this.revisions.get( state.from ),
+				compareTwoMode : state.compareTwoMode
+			} );
 
 			// Start the router if browser supports History API
 			if ( window.history && window.history.pushState ) {
@@ -499,7 +521,14 @@ window.wp = window.wp || {};
 	 * ========================================================================
 	 */
 
-	// The frame view. This contains the entire page.
+	/**
+	 * wp.revisions.view.Frame
+	 *
+	 * Top level frame that orchestrates the revisions experience.
+	 *
+	 * @param {object}                     options       The options hash for the view.
+	 * @param {revisions.model.FrameState} options.model The frame state model.
+	 */
 	revisions.view.Frame = wp.Backbone.View.extend({
 		className: 'revisions',
 		template: wp.template('revisions-frame'),
@@ -546,8 +575,13 @@ window.wp = window.wp || {};
 		}
 	});
 
-	// The control view.
-	// This contains the revision slider, previous/next buttons, the meta info and the compare checkbox.
+	/**
+	 * wp.revisions.view.Controls
+	 *
+	 * The controls view.
+	 *
+	 * Contains the revision slider, previous/next buttons, the meta info and the compare checkbox.
+	 */
 	revisions.view.Controls = wp.Backbone.View.extend({
 		className: 'revisions-controls',
 
@@ -1097,12 +1131,34 @@ window.wp = window.wp || {};
 		}
 	});
 
-	// Initialize the revisions UI.
+	/**
+	 * Initialize the revisions UI for revision.php.
+	 */
 	revisions.init = function() {
+		var state;
+
+		// Bail if the current page is not revision.php.
+		if ( ! window.adminpage || 'revision-php' !== window.adminpage ) {
+			return;
+		}
+
+		state = new revisions.model.FrameState({
+			initialDiffState: {
+				// wp_localize_script doesn't stringifies ints, so cast them.
+				to: parseInt( revisions.settings.to, 10 ),
+				from: parseInt( revisions.settings.from, 10 ),
+				// wp_localize_script does not allow for top-level booleans so do a comparator here.
+				compareTwoMode: ( revisions.settings.compareTwoMode === '1' )
+			},
+			diffData: revisions.settings.diffData,
+			baseUrl: revisions.settings.baseUrl,
+			postId: parseInt( revisions.settings.postId, 10 )
+		}, {
+			revisions: new revisions.model.Revisions( revisions.settings.revisionData )
+		});
+
 		revisions.view.frame = new revisions.view.Frame({
-			model: new revisions.model.FrameState({}, {
-				revisions: new revisions.model.Revisions( revisions.settings.revisionData )
-			})
+			model: state
 		}).render();
 	};
 

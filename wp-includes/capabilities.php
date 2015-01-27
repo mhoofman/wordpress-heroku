@@ -13,14 +13,12 @@
  * the name in value of the 'name' key. The capabilities are stored as an array
  * in the value of the 'capability' key.
  *
- * <code>
- * array (
- *		'rolename' => array (
- *			'name' => 'rolename',
- *			'capabilities' => array()
- *		)
- * )
- * </code>
+ *     array (
+ *    		'rolename' => array (
+ *    			'name' => 'rolename',
+ *    			'capabilities' => array()
+ *    		)
+ *     )
  *
  * @since 2.0.0
  * @package WordPress
@@ -104,7 +102,8 @@ class WP_Roles {
 	 *
 	 * @since 2.1.0
 	 * @access protected
-	 * @uses $wpdb Used to get the database prefix.
+	 *
+	 * @global wpdb  $wpdb          WordPress database abstraction object.
 	 * @global array $wp_user_roles Used to set the 'roles' property value.
 	 */
 	protected function _init() {
@@ -612,6 +611,8 @@ class WP_User {
 	 * Magic method for checking the existence of a certain custom field
 	 *
 	 * @since 3.3.0
+	 * @param string $key
+	 * @return bool
 	 */
 	public function __isset( $key ) {
 		if ( 'id' == $key ) {
@@ -632,6 +633,8 @@ class WP_User {
 	 * Magic method for accessing custom fields
 	 *
 	 * @since 3.3.0
+	 * @param string $key
+	 * @return mixed
 	 */
 	public function __get( $key ) {
 		if ( 'id' == $key ) {
@@ -1205,8 +1208,8 @@ function map_meta_cap( $cap, $user_id ) {
 			/**
 			 * Filter whether the user is allowed to add post meta to a post.
 			 *
-			 * The dynamic portion of the hook name, $meta_key, refers to the
-			 * meta key passed to map_meta_cap().
+			 * The dynamic portion of the hook name, `$meta_key`, refers to the
+			 * meta key passed to {@see map_meta_cap()}.
 			 *
 			 * @since 3.3.0
 			 *

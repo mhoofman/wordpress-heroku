@@ -39,6 +39,10 @@ class WP_Styles extends WP_Dependencies {
 		do_action_ref_array( 'wp_default_styles', array(&$this) );
 	}
 
+	/**
+	 * @param string $handle
+	 * @return bool
+	 */
 	public function do_item( $handle ) {
 		if ( !parent::do_item($handle) )
 			return false;
@@ -110,7 +114,7 @@ class WP_Styles extends WP_Dependencies {
 		if ( $this->do_concat ) {
 			$this->print_html .= $tag;
 			if ( $inline_style = $this->print_inline_style( $handle, false ) )
-				$this->print_html .= sprintf( "<style type='text/css'>\n%s\n</style>\n", $inline_style );
+				$this->print_html .= sprintf( "<style id='%s-inline-css' type='text/css'>\n%s\n</style>\n", esc_attr( $handle ), $inline_style );
 		} else {
 			echo $tag;
 			$this->print_inline_style( $handle );
@@ -119,37 +123,54 @@ class WP_Styles extends WP_Dependencies {
 		return true;
 	}
 
+	/**
+	 * @param string $handle
+	 * @param string $code
+	 */
 	public function add_inline_style( $handle, $code ) {
-		if ( !$code )
+		if ( ! $code ) {
 			return false;
+		}
 
 		$after = $this->get_data( $handle, 'after' );
-		if ( !$after )
+		if ( ! $after ) {
 			$after = array();
+		}
 
 		$after[] = $code;
 
 		return $this->add_data( $handle, 'after', $after );
 	}
 
+	/**
+	 * @param string $handle
+	 * @param bool $echo
+	 * @return bool
+	 */
 	public function print_inline_style( $handle, $echo = true ) {
 		$output = $this->get_data( $handle, 'after' );
 
-		if ( empty( $output ) )
+		if ( empty( $output ) ) {
 			return false;
+		}
 
 		$output = implode( "\n", $output );
 
-		if ( !$echo )
+		if ( ! $echo ) {
 			return $output;
+		}
 
-		echo "<style type='text/css'>\n";
-		echo "$output\n";
-		echo "</style>\n";
+		printf( "<style id='%s-inline-css' type='text/css'>\n%s\n</style>\n", esc_attr( $handle ), $output );
 
 		return true;
 	}
 
+	/**
+	 * @param mixed $handles
+	 * @param bool $recursion
+	 * @param mixed $group
+	 * @return bool
+	 */
 	public function all_deps( $handles, $recursion = false, $group = false ) {
 		$r = parent::all_deps( $handles, $recursion );
 		if ( !$recursion ) {
@@ -165,6 +186,12 @@ class WP_Styles extends WP_Dependencies {
 		return $r;
 	}
 
+	/**
+	 * @param string $src
+	 * @param string $ver
+	 * @param string $handle
+	 * @return string
+	 */
 	public function _css_href( $src, $ver, $handle ) {
 		if ( !is_bool($src) && !preg_match('|^(https?:)?//|', $src) && ! ( $this->content_url && 0 === strpos($src, $this->content_url) ) ) {
 			$src = $this->base_url . $src;
@@ -185,6 +212,10 @@ class WP_Styles extends WP_Dependencies {
 		return esc_url( $src );
 	}
 
+	/**
+	 * @param string $src
+	 * @return bool
+	 */
 	public function in_default_dir($src) {
 		if ( ! $this->default_dirs )
 			return true;

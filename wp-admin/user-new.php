@@ -11,9 +11,9 @@ require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( is_multisite() ) {
 	if ( ! current_user_can( 'create_users' ) && ! current_user_can( 'promote_users' ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ) );
+		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 } elseif ( ! current_user_can( 'create_users' ) ) {
-	wp_die( __( 'Cheatin&#8217; uh?' ) );
+	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 }
 
 if ( is_multisite() ) {
@@ -31,21 +31,18 @@ Please click the following link to activate your user account:
 %%s' ), get_bloginfo( 'name' ), home_url(), wp_specialchars_decode( translate_user_role( $role['name'] ) ) );
 	}
 	add_filter( 'wpmu_signup_user_notification_email', 'admin_created_user_email' );
-
-	function admin_created_user_subject( $text ) {
-		return sprintf( __( '[%s] Your site invite' ), get_bloginfo( 'name' ) );
-	}
 }
 
 if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 	check_admin_referer( 'add-user', '_wpnonce_add-user' );
 
 	$user_details = null;
-	if ( false !== strpos($_REQUEST[ 'email' ], '@') ) {
-		$user_details = get_user_by('email', $_REQUEST[ 'email' ]);
+	$user_email = wp_unslash( $_REQUEST['email'] );
+	if ( false !== strpos( $user_email, '@' ) ) {
+		$user_details = get_user_by( 'email', $user_email );
 	} else {
 		if ( is_super_admin() ) {
-			$user_details = get_user_by('login', $_REQUEST[ 'email' ]);
+			$user_details = get_user_by( 'login', $user_email );
 		} else {
 			wp_redirect( add_query_arg( array('update' => 'enter_email'), 'user-new.php' ) );
 			die();
@@ -58,7 +55,7 @@ if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 	}
 
 	if ( ! current_user_can('promote_user', $user_details->ID) )
-		wp_die(__('Cheatin&#8217; uh?'));
+		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 
 	// Adding an existing user to this blog
 	$new_user_email = $user_details->user_email;
@@ -95,7 +92,7 @@ Please click the following link to confirm the invite:
 	check_admin_referer( 'create-user', '_wpnonce_create-user' );
 
 	if ( ! current_user_can('create_users') )
-		wp_die(__('Cheatin&#8217; uh?'));
+		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 
 	if ( ! is_multisite() ) {
 		$user_id = edit_user();
@@ -112,7 +109,8 @@ Please click the following link to confirm the invite:
 		}
 	} else {
 		// Adding a new user to this site
-		$user_details = wpmu_validate_user_signup( $_REQUEST[ 'user_login' ], $_REQUEST[ 'email' ] );
+		$new_user_email = wp_unslash( $_REQUEST['email'] );
+		$user_details = wpmu_validate_user_signup( $_REQUEST['user_login'], $new_user_email );
 		if ( is_wp_error( $user_details[ 'errors' ] ) && !empty( $user_details[ 'errors' ]->errors ) ) {
 			$add_user_errors = $user_details[ 'errors' ];
 		} else {
@@ -126,10 +124,11 @@ Please click the following link to confirm the invite:
 			$new_user_login = apply_filters( 'pre_user_login', sanitize_user( wp_unslash( $_REQUEST['user_login'] ), true ) );
 			if ( isset( $_POST[ 'noconfirmation' ] ) && is_super_admin() ) {
 				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
+				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email
 			}
-			wpmu_signup_user( $new_user_login, $_REQUEST[ 'email' ], array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST[ 'role' ] ) );
+			wpmu_signup_user( $new_user_login, $new_user_email, array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) );
 			if ( isset( $_POST[ 'noconfirmation' ] ) && is_super_admin() ) {
-				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $_REQUEST[ 'email' ] ) );
+				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $new_user_email ) );
 				wpmu_activate_signup( $key );
 				$redirect = add_query_arg( array('update' => 'addnoconfirmation'), 'user-new.php' );
 			} else {
@@ -281,14 +280,14 @@ if ( is_multisite() ) {
 		$type  = 'text';
 	}
 ?>
-<?php
-/**
- * Fires inside the adduser form tag.
- *
- * @since 3.0.0
- */
-?>
-<form action="" method="post" name="adduser" id="adduser" class="validate" novalidate="novalidate"<?php do_action( 'user_new_form_tag' );?>>
+<form action="" method="post" name="adduser" id="adduser" class="validate" novalidate="novalidate"<?php
+	/**
+	 * Fires inside the adduser form tag.
+	 *
+	 * @since 3.0.0
+	 */
+	do_action( 'user_new_form_tag' );
+?>>
 <input name="action" type="hidden" value="adduser" />
 <?php wp_nonce_field( 'add-user', '_wpnonce_add-user' ) ?>
 
@@ -335,8 +334,10 @@ if ( current_user_can( 'create_users') ) {
 		echo '<h3 id="create-new-user">' . __( 'Add New User' ) . '</h3>';
 ?>
 <p><?php _e('Create a brand new user and add them to this site.'); ?></p>
-<?php /** This action is documented in wp-admin/user-new.php */ ?>
-<form action="" method="post" name="createuser" id="createuser" class="validate" novalidate="novalidate"<?php do_action( 'user_new_form_tag' );?>>
+<form action="" method="post" name="createuser" id="createuser" class="validate" novalidate="novalidate"<?php
+	/** This action is documented in wp-admin/user-new.php */
+	do_action( 'user_new_form_tag' );
+?>>
 <input name="action" type="hidden" value="createuser" />
 <?php wp_nonce_field( 'create-user', '_wpnonce_create-user' ); ?>
 <?php
@@ -397,7 +398,7 @@ if ( apply_filters( 'show_password_fields', true ) ) : ?>
 		<input name="pass2" type="password" id="pass2" autocomplete="off" />
 		<br />
 		<div id="pass-strength-result"><?php _e('Strength indicator'); ?></div>
-		<p class="description indicator-hint"><?php _e('Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers, and symbols like ! " ? $ % ^ &amp; ).'); ?></p>
+		<p class="description indicator-hint"><?php echo wp_get_password_hint(); ?></p>
 		</td>
 	</tr>
 	<tr>

@@ -58,8 +58,8 @@ function got_url_rewrite() {
  *
  * @since 1.5.0
  *
- * @param unknown_type $filename
- * @param unknown_type $marker
+ * @param string $filename
+ * @param string $marker
  * @return array An array of strings from a file (.htaccess ) from between BEGIN and END markers.
  */
 function extract_from_markers( $filename, $marker ) {
@@ -94,9 +94,9 @@ function extract_from_markers( $filename, $marker ) {
  *
  * @since 1.5.0
  *
- * @param unknown_type $filename
- * @param unknown_type $marker
- * @param unknown_type $insertion
+ * @param string $filename
+ * @param string $marker
+ * @param array  $insertion
  * @return bool True on write success, false on failure.
  */
 function insert_with_markers( $filename, $marker, $insertion ) {
@@ -211,7 +211,7 @@ function iis7_save_url_rewrite_rules(){
  *
  * @since 1.5.0
  *
- * @param unknown_type $file
+ * @param string $file
  */
 function update_recently_edited( $file ) {
 	$oldfiles = (array ) get_option( 'recently_edited' );
@@ -294,7 +294,7 @@ function wp_reset_vars( $vars ) {
  *
  * @since 2.1.0
  *
- * @param unknown_type $message
+ * @param string|WP_Error $message
  */
 function show_message($message) {
 	if ( is_wp_error($message) ){
@@ -621,7 +621,7 @@ function admin_color_scheme_picker( $user_id ) {
 			<div class="color-option <?php echo ( $color == $current_color ) ? 'selected' : ''; ?>">
 				<input name="admin_color" id="admin_color_<?php echo esc_attr( $color ); ?>" type="radio" value="<?php echo esc_attr( $color ); ?>" class="tog" <?php checked( $color, $current_color ); ?> />
 				<input type="hidden" class="css_url" value="<?php echo esc_url( $color_info->url ); ?>" />
-				<input type="hidden" class="icon_colors" value="<?php echo esc_attr( json_encode( array( 'icons' => $color_info->icon_colors ) ) ); ?>" />
+				<input type="hidden" class="icon_colors" value="<?php echo esc_attr( wp_json_encode( array( 'icons' => $color_info->icon_colors ) ) ); ?>" />
 				<label for="admin_color_<?php echo esc_attr( $color ); ?>"><?php echo esc_html( $color_info->name ); ?></label>
 				<table class="color-palette">
 					<tr>
@@ -665,7 +665,7 @@ function wp_color_scheme_settings() {
 		$icon_colors = array( 'base' => '#999', 'focus' => '#2ea2cc', 'current' => '#fff' );
 	}
 
-	echo '<script type="text/javascript">var _wpColorScheme = ' . json_encode( array( 'icons' => $icon_colors ) ) . ";</script>\n";
+	echo '<script type="text/javascript">var _wpColorScheme = ' . wp_json_encode( array( 'icons' => $icon_colors ) ) . ";</script>\n";
 }
 add_action( 'admin_head', 'wp_color_scheme_settings' );
 

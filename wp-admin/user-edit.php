@@ -39,6 +39,7 @@ else
 $profile_help = '<p>' . __('Your profile contains information about you (your &#8220;account&#8221;) as well as some personal options related to using WordPress.') . '</p>' .
 	'<p>' . __('You can change your password, turn on keyboard shortcuts, change the color scheme of your WordPress administration screens, and turn off the WYSIWYG (Visual) editor, among other things. You can hide the Toolbar (formerly called the Admin Bar) from the front end of your site, however it cannot be disabled on the admin screens.') . '</p>' .
 	'<p>' . __('Your username cannot be changed, but you can use other fields to enter your real name or a nickname, and change which name to display on your posts.') . '</p>' .
+	'<p>' . __( 'You can log out of other devices, such as your phone or a public computer, by clicking the Log Out of All Other Sessions button. The button will only display if you are logged in to more than one device.' ) . '</p>' .
 	'<p>' . __('Required fields are indicated; the rest are optional. Profile information will only be displayed if your theme is set up to do so.') . '</p>' .
 	'<p>' . __('Remember to click the Update Profile button when you are finished.') . '</p>';
 
@@ -67,7 +68,7 @@ $user_can_edit = current_user_can( 'edit_posts' ) || current_user_can( 'edit_pag
  */
 function use_ssl_preference($user) {
 ?>
-	<tr>
+	<tr class="user-use-ssl-wrap">
 		<th scope="row"><?php _e('Use https')?></th>
 		<td><label for="use_ssl"><input name="use_ssl" type="checkbox" id="use_ssl" value="1" <?php checked('1', $user->use_ssl); ?> /> <?php _e('Always use https when visiting the admin'); ?></label></td>
 	</tr>
@@ -187,6 +188,8 @@ $profileuser = get_user_to_edit($user_id);
 if ( !current_user_can('edit_user', $user_id) )
 	wp_die(__('You do not have permission to edit this user.'));
 
+$sessions = WP_Session_Tokens::get_instance( $profileuser->ID );
+
 include(ABSPATH . 'wp-admin/admin-header.php');
 ?>
 
@@ -221,14 +224,14 @@ if ( ! IS_PROFILE_PAGE ) {
 	<?php }
 } ?>
 </h2>
-<?php
-/**
- * Fires inside the your-profile form tag on the user editing screen.
- *
- * @since 3.0.0
- */
-?>
-<form id="your-profile" action="<?php echo esc_url( self_admin_url( IS_PROFILE_PAGE ? 'profile.php' : 'user-edit.php' ) ); ?>" method="post" novalidate="novalidate"<?php do_action( 'user_edit_form_tag' ); ?>>
+<form id="your-profile" action="<?php echo esc_url( self_admin_url( IS_PROFILE_PAGE ? 'profile.php' : 'user-edit.php' ) ); ?>" method="post" novalidate="novalidate"<?php
+	/**
+	 * Fires inside the your-profile form tag on the user editing screen.
+	 *
+	 * @since 3.0.0
+	 */
+	do_action( 'user_edit_form_tag' );
+?>>
 <?php wp_nonce_field('update-user_' . $user_id) ?>
 <?php if ( $wp_http_referer ) : ?>
 	<input type="hidden" name="wp_http_referer" value="<?php echo esc_url($wp_http_referer); ?>" />
@@ -242,36 +245,39 @@ if ( ! IS_PROFILE_PAGE ) {
 
 <table class="form-table">
 <?php if ( ! ( IS_PROFILE_PAGE && ! $user_can_edit ) ) : ?>
-	<tr>
-		<th scope="row"><?php _e('Visual Editor')?></th>
+	<tr class="user-rich-editing-wrap">
+		<th scope="row"><label for="rich_editing"><?php _e( 'Visual Editor' )?></label></th>
 		<td><label for="rich_editing"><input name="rich_editing" type="checkbox" id="rich_editing" value="false" <?php if ( ! empty( $profileuser->rich_editing ) ) checked( 'false', $profileuser->rich_editing ); ?> /> <?php _e( 'Disable the visual editor when writing' ); ?></label></td>
 	</tr>
 <?php endif; ?>
 <?php if ( count($_wp_admin_css_colors) > 1 && has_action('admin_color_scheme_picker') ) : ?>
-<tr>
+<tr class="user-admin-color-wrap">
 <th scope="row"><?php _e('Admin Color Scheme')?></th>
-<?php
-/**
- * Fires in the 'Admin Color Scheme' section of the user editing screen.
- *
- * The section is only enabled if a callback is hooked to the action,
- * and if there is more than one defined color scheme for the admin.
- *
- * @since 3.0.0
- */
-?>
-<td><?php do_action( 'admin_color_scheme_picker', $user_id ); ?></td>
+<td><?php
+	/**
+	 * Fires in the 'Admin Color Scheme' section of the user editing screen.
+	 *
+	 * The section is only enabled if a callback is hooked to the action,
+	 * and if there is more than one defined color scheme for the admin.
+	 *
+	 * @since 3.0.0
+	 * @since 3.8.1 Added `$user_id` parameter.
+	 *
+	 * @param int $user_id The user ID.
+	 */
+	do_action( 'admin_color_scheme_picker', $user_id );
+?></td>
 </tr>
 <?php
 endif; // $_wp_admin_css_colors
 if ( !( IS_PROFILE_PAGE && !$user_can_edit ) ) : ?>
-<tr>
-<th scope="row"><?php _e( 'Keyboard Shortcuts' ); ?></th>
+<tr class="user-comment-shortcuts-wrap">
+<th scope="row"><label for="comment_shortcuts"><?php _e( 'Keyboard Shortcuts' ); ?></label></th>
 <td><label for="comment_shortcuts"><input type="checkbox" name="comment_shortcuts" id="comment_shortcuts" value="true" <?php if ( ! empty( $profileuser->comment_shortcuts ) ) checked( 'true', $profileuser->comment_shortcuts ); ?> /> <?php _e('Enable keyboard shortcuts for comment moderation.'); ?></label> <?php _e('<a href="http://codex.wordpress.org/Keyboard_Shortcuts" target="_blank">More information</a>'); ?></td>
 </tr>
 <?php endif; ?>
-<tr class="show-admin-bar">
-<th scope="row"><?php _e('Toolbar')?></th>
+<tr class="show-admin-bar user-admin-bar-front-wrap">
+<th scope="row"><label for="admin_bar_front"><?php _e( 'Toolbar' )?></label></th>
 <td><fieldset><legend class="screen-reader-text"><span><?php _e('Toolbar') ?></span></legend>
 <label for="admin_bar_front">
 <input name="admin_bar_front" type="checkbox" id="admin_bar_front" value="1"<?php checked( _get_admin_bar_pref( 'front', $profileuser->ID ) ); ?> />
@@ -289,6 +295,7 @@ if ( !( IS_PROFILE_PAGE && !$user_can_edit ) ) : ?>
  */
 do_action( 'personal_options', $profileuser );
 ?>
+
 </table>
 <?php
 	if ( IS_PROFILE_PAGE ) {
@@ -308,13 +315,13 @@ do_action( 'personal_options', $profileuser );
 <h3><?php _e('Name') ?></h3>
 
 <table class="form-table">
-	<tr>
+	<tr class="user-user-login-wrap">
 		<th><label for="user_login"><?php _e('Username'); ?></label></th>
 		<td><input type="text" name="user_login" id="user_login" value="<?php echo esc_attr($profileuser->user_login); ?>" disabled="disabled" class="regular-text" /> <span class="description"><?php _e('Usernames cannot be changed.'); ?></span></td>
 	</tr>
 
 <?php if ( !IS_PROFILE_PAGE && !is_network_admin() ) : ?>
-<tr><th><label for="role"><?php _e('Role') ?></label></th>
+<tr class="user-role-wrap"><th><label for="role"><?php _e('Role') ?></label></th>
 <td><select name="role" id="role">
 <?php
 // Compare user role against currently editable roles
@@ -334,7 +341,7 @@ else
 <?php endif; //!IS_PROFILE_PAGE
 
 if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_can( 'manage_network_options' ) && !isset($super_admins) ) { ?>
-<tr><th><?php _e('Super Admin'); ?></th>
+<tr class="user-super-admin-wrap"><th><?php _e('Super Admin'); ?></th>
 <td>
 <?php if ( $profileuser->user_email != get_site_option( 'admin_email' ) || ! is_super_admin( $profileuser->ID ) ) : ?>
 <p><label><input type="checkbox" id="super_admin" name="super_admin"<?php checked( is_super_admin( $profileuser->ID ) ); ?> /> <?php _e( 'Grant this user super admin privileges for the Network.' ); ?></label></p>
@@ -344,22 +351,22 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 </td></tr>
 <?php } ?>
 
-<tr>
+<tr class="user-first-name-wrap">
 	<th><label for="first_name"><?php _e('First Name') ?></label></th>
 	<td><input type="text" name="first_name" id="first_name" value="<?php echo esc_attr($profileuser->first_name) ?>" class="regular-text" /></td>
 </tr>
 
-<tr>
+<tr class="user-last-name-wrap">
 	<th><label for="last_name"><?php _e('Last Name') ?></label></th>
 	<td><input type="text" name="last_name" id="last_name" value="<?php echo esc_attr($profileuser->last_name) ?>" class="regular-text" /></td>
 </tr>
 
-<tr>
+<tr class="user-nickname-wrap">
 	<th><label for="nickname"><?php _e('Nickname'); ?> <span class="description"><?php _e('(required)'); ?></span></label></th>
 	<td><input type="text" name="nickname" id="nickname" value="<?php echo esc_attr($profileuser->nickname) ?>" class="regular-text" /></td>
 </tr>
 
-<tr>
+<tr class="user-display-name-wrap">
 	<th><label for="display_name"><?php _e('Display name publicly as') ?></label></th>
 	<td>
 		<select name="display_name" id="display_name">
@@ -399,7 +406,7 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 <h3><?php _e('Contact Info') ?></h3>
 
 <table class="form-table">
-<tr>
+<tr class="user-email-wrap">
 	<th><label for="email"><?php _e('E-mail'); ?> <span class="description"><?php _e('(required)'); ?></span></label></th>
 	<td><input type="email" name="email" id="email" value="<?php echo esc_attr( $profileuser->user_email ) ?>" class="regular-text ltr" />
 	<?php
@@ -412,7 +419,7 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 	</td>
 </tr>
 
-<tr>
+<tr class="user-url-wrap">
 	<th><label for="url"><?php _e('Website') ?></label></th>
 	<td><input type="url" name="url" id="url" value="<?php echo esc_attr( $profileuser->user_url ) ?>" class="regular-text code" /></td>
 </tr>
@@ -420,20 +427,22 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 <?php
 	foreach ( wp_get_user_contact_methods( $profileuser ) as $name => $desc ) {
 ?>
-<tr>
-	<?php
-	/**
-	 * Filter a user contactmethod label.
-	 *
-	 * The dynamic portion of the filter hook, $name, refers to
-	 * each of the keys in the contactmethods array.
-	 *
-	 * @since 2.9.0
-	 *
-	 * @param string $desc The translatable label for the contactmethod.
-	 */
-	?>
-	<th><label for="<?php echo $name; ?>"><?php echo apply_filters( "user_{$name}_label", $desc ); ?></label></th>
+<tr class="user-<?php echo $name; ?>-wrap">
+	<th><label for="<?php echo $name; ?>">
+		<?php
+		/**
+		 * Filter a user contactmethod label.
+		 *
+		 * The dynamic portion of the filter hook, `$name`, refers to
+		 * each of the keys in the contactmethods array.
+		 *
+		 * @since 2.9.0
+		 *
+		 * @param string $desc The translatable label for the contactmethod.
+		 */
+		echo apply_filters( "user_{$name}_label", $desc );
+		?>
+	</label></th>
 	<td><input type="text" name="<?php echo $name; ?>" id="<?php echo $name; ?>" value="<?php echo esc_attr($profileuser->$name) ?>" class="regular-text" /></td>
 </tr>
 <?php
@@ -444,10 +453,10 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 <h3><?php IS_PROFILE_PAGE ? _e('About Yourself') : _e('About the user'); ?></h3>
 
 <table class="form-table">
-<tr>
+<tr class="user-description-wrap">
 	<th><label for="description"><?php _e('Biographical Info'); ?></label></th>
-	<td><textarea name="description" id="description" rows="5" cols="30"><?php echo $profileuser->description; // textarea_escaped ?></textarea><br />
-	<span class="description"><?php _e('Share a little biographical information to fill out your profile. This may be shown publicly.'); ?></span></td>
+	<td><textarea name="description" id="description" rows="5" cols="30"><?php echo $profileuser->description; // textarea_escaped ?></textarea>
+	<p class="description"><?php _e('Share a little biographical information to fill out your profile. This may be shown publicly.'); ?></p></td>
 </tr>
 
 <?php
@@ -455,25 +464,62 @@ if ( is_multisite() && is_network_admin() && ! IS_PROFILE_PAGE && current_user_c
 $show_password_fields = apply_filters( 'show_password_fields', true, $profileuser );
 if ( $show_password_fields ) :
 ?>
-<tr id="password">
+<tr id="password" class="user-pass1-wrap">
 	<th><label for="pass1"><?php _e( 'New Password' ); ?></label></th>
 	<td>
 		<input class="hidden" value=" " /><!-- #24364 workaround -->
-		<input type="password" name="pass1" id="pass1" class="regular-text" size="16" value="" autocomplete="off" /><br />
-		<span class="description"><?php _e( 'If you would like to change the password type a new one. Otherwise leave this blank.' ); ?></span>
+		<input type="password" name="pass1" id="pass1" class="regular-text" size="16" value="" autocomplete="off" />
+		<p class="description"><?php _e( 'If you would like to change the password type a new one. Otherwise leave this blank.' ); ?></p>
 	</td>
 </tr>
-<tr>
+<tr class="user-pass2-wrap">
 	<th scope="row"><label for="pass2"><?php _e( 'Repeat New Password' ); ?></label></th>
 	<td>
-	<input name="pass2" type="password" id="pass2" class="regular-text" size="16" value="" autocomplete="off" /><br />
-	<span class="description" for="pass2"><?php _e( 'Type your new password again.' ); ?></span>
+	<input name="pass2" type="password" id="pass2" class="regular-text" size="16" value="" autocomplete="off" />
+	<p class="description"><?php _e( 'Type your new password again.' ); ?></p>
 	<br />
 	<div id="pass-strength-result"><?php _e( 'Strength indicator' ); ?></div>
-	<p class="description indicator-hint"><?php _e( 'Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers, and symbols like ! " ? $ % ^ &amp; ).' ); ?></p>
+	<p class="description indicator-hint"><?php echo wp_get_password_hint(); ?></p>
 	</td>
 </tr>
 <?php endif; ?>
+
+<?php
+if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>
+	<tr class="user-sessions-wrap hide-if-no-js">
+		<th>&nbsp;</th>
+		<td aria-live="assertive">
+			<div class="destroy-sessions"><button disabled class="button button-secondary"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<p class="description">
+				<?php _e( 'You are only logged in at this location.' ); ?>
+			</p>
+		</td>
+	</tr>
+<?php elseif ( IS_PROFILE_PAGE && count( $sessions->get_all() ) > 1 ) : ?>
+	<tr class="user-sessions-wrap hide-if-no-js">
+		<th>&nbsp;</th>
+		<td aria-live="assertive">
+			<div class="destroy-sessions"><button class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<p class="description">
+				<?php _e( 'Left your account logged in at a public computer? Lost your phone? This will log you out everywhere except your current browser.' ); ?>
+			</p>
+		</td>
+	</tr>
+<?php elseif ( ! IS_PROFILE_PAGE && $sessions->get_all() ) : ?>
+	<tr class="user-sessions-wrap hide-if-no-js">
+		<th>&nbsp;</th>
+		<td>
+			<p><button class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Sessions' ); ?></button></p>
+			<p class="description">
+				<?php
+				/* translators: 1: User's display name. */
+				printf( __( 'Log %s out of all sessions' ), $profileuser->display_name );
+				?>
+			</p>
+		</td>
+	</tr>
+<?php endif; ?>
+
 </table>
 
 <?php
@@ -518,7 +564,7 @@ if ( count( $profileuser->caps ) > count( $profileuser->roles )
 ) : ?>
 <h3><?php _e( 'Additional Capabilities' ); ?></h3>
 <table class="form-table">
-<tr>
+<tr class="user-capabilities-wrap">
 	<th scope="row"><?php _e( 'Capabilities' ); ?></th>
 	<td>
 <?php

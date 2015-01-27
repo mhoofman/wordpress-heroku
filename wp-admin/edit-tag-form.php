@@ -51,7 +51,7 @@ if ( 'category' == $taxonomy ) {
 /**
  * Fires before the Edit Term form for all taxonomies.
  *
- * The dynamic portion of the hook name, $taxonomy, refers to
+ * The dynamic portion of the hook name, `$taxonomy`, refers to
  * the taxonomy slug.
  *
  * @since 3.0.0
@@ -64,30 +64,31 @@ do_action( "{$taxonomy}_pre_edit_form", $tag, $taxonomy ); ?>
 <div class="wrap">
 <h2><?php echo $tax->labels->edit_item; ?></h2>
 <div id="ajax-response"></div>
+<form name="edittag" id="edittag" method="post" action="edit-tags.php" class="validate"
 <?php
 /**
  * Fires inside the Edit Term form tag.
  *
- * The dynamic portion of the hook name, $taxonomy, refers to
+ * The dynamic portion of the hook name, `$taxonomy`, refers to
  * the taxonomy slug.
  *
  * @since 3.7.0
  */
-?>
-<form name="edittag" id="edittag" method="post" action="edit-tags.php" class="validate"<?php do_action( "{$taxonomy}_term_edit_form_tag" ); ?>>
+do_action( "{$taxonomy}_term_edit_form_tag" );
+?>>
 <input type="hidden" name="action" value="editedtag" />
 <input type="hidden" name="tag_ID" value="<?php echo esc_attr($tag->term_id) ?>" />
 <input type="hidden" name="taxonomy" value="<?php echo esc_attr($taxonomy) ?>" />
 <?php wp_original_referer_field(true, 'previous'); wp_nonce_field('update-tag_' . $tag_ID); ?>
 	<table class="form-table">
-		<tr class="form-field form-required">
-			<th scope="row"><label for="name"><?php _ex('Name', 'Taxonomy Name'); ?></label></th>
+		<tr class="form-field form-required term-name-wrap">
+			<th scope="row"><label for="name"><?php _ex( 'Name', 'term name' ); ?></label></th>
 			<td><input name="name" id="name" type="text" value="<?php if ( isset( $tag->name ) ) echo esc_attr($tag->name); ?>" size="40" aria-required="true" />
 			<p class="description"><?php _e('The name is how it appears on your site.'); ?></p></td>
 		</tr>
 <?php if ( !global_terms_enabled() ) { ?>
-		<tr class="form-field">
-			<th scope="row"><label for="slug"><?php _ex('Slug', 'Taxonomy Slug'); ?></label></th>
+		<tr class="form-field term-slug-wrap">
+			<th scope="row"><label for="slug"><?php _e( 'Slug' ); ?></label></th>
 			<?php
 			/**
 			 * Filter the editable term slug.
@@ -102,8 +103,8 @@ do_action( "{$taxonomy}_pre_edit_form", $tag, $taxonomy ); ?>
 		</tr>
 <?php } ?>
 <?php if ( is_taxonomy_hierarchical($taxonomy) ) : ?>
-		<tr class="form-field">
-			<th scope="row"><label for="parent"><?php _ex('Parent', 'Taxonomy Parent'); ?></label></th>
+		<tr class="form-field term-parent-wrap">
+			<th scope="row"><label for="parent"><?php _ex( 'Parent', 'term parent' ); ?></label></th>
 			<td>
 				<?php wp_dropdown_categories(array('hide_empty' => 0, 'hide_if_empty' => false, 'name' => 'parent', 'orderby' => 'name', 'taxonomy' => $taxonomy, 'selected' => $tag->parent, 'exclude_tree' => $tag->term_id, 'hierarchical' => true, 'show_option_none' => __('None'))); ?>
 				<?php if ( 'category' == $taxonomy ) : ?>
@@ -112,10 +113,10 @@ do_action( "{$taxonomy}_pre_edit_form", $tag, $taxonomy ); ?>
 			</td>
 		</tr>
 <?php endif; // is_taxonomy_hierarchical() ?>
-		<tr class="form-field">
-			<th scope="row"><label for="description"><?php _ex('Description', 'Taxonomy Description'); ?></label></th>
-			<td><textarea name="description" id="description" rows="5" cols="50" class="large-text"><?php echo $tag->description; // textarea_escaped ?></textarea><br />
-			<span class="description"><?php _e('The description is not prominent by default; however, some themes may show it.'); ?></span></td>
+		<tr class="form-field term-description-wrap">
+			<th scope="row"><label for="description"><?php _e( 'Description' ); ?></label></th>
+			<td><textarea name="description" id="description" rows="5" cols="50" class="large-text"><?php echo $tag->description; // textarea_escaped ?></textarea>
+			<p class="description"><?php _e('The description is not prominent by default; however, some themes may show it.'); ?></p></td>
 		</tr>
 		<?php
 		// Back compat hooks
@@ -153,7 +154,7 @@ do_action( "{$taxonomy}_pre_edit_form", $tag, $taxonomy ); ?>
 		/**
 		 * Fires after the Edit Term form fields are displayed.
 		 *
-		 * The dynamic portion of the hook name, $taxonomy, refers to
+		 * The dynamic portion of the hook name, `$taxonomy`, refers to
 		 * the taxonomy slug.
 		 *
 		 * @since 3.0.0
@@ -186,7 +187,7 @@ if ( 'category' == $taxonomy ) {
 /**
  * Fires at the end of the Edit Term form for all taxonomies.
  *
- * The dynamic portion of the hook name, $taxonomy, refers to the taxonomy slug.
+ * The dynamic portion of the hook name, `$taxonomy`, refers to the taxonomy slug.
  *
  * @since 3.0.0
  *
@@ -199,6 +200,9 @@ submit_button( __('Update') );
 ?>
 </form>
 </div>
+
+<?php if ( ! wp_is_mobile() ) : ?>
 <script type="text/javascript">
 try{document.forms.edittag.name.focus();}catch(e){}
 </script>
+<?php endif;

@@ -15,7 +15,9 @@
 			change: false,
 			clear: false,
 			hide: true,
-			palettes: true
+			palettes: true,
+			width: 255,
+			mode: 'hsv'
 		},
 		_create: function() {
 			// bail early for unsupported Iris.
@@ -50,9 +52,9 @@
 
 			el.iris( {
 				target: self.pickerContainer,
-				hide: true,
-				width: 255,
-				mode: 'hsv',
+				hide: self.options.hide,
+				width: self.options.width,
+				mode: self.options.mode,
 				palettes: self.options.palettes,
 				change: function( event, ui ) {
 					self.toggler.css( { backgroundColor: ui.color.toString() } );

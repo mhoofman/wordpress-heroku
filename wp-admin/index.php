@@ -69,9 +69,9 @@ if ( current_user_can( 'edit_posts' ) )
 if ( is_blog_admin() && current_user_can( 'edit_posts' ) )
 	$help .= '<p>' . __( "<strong>Quick Draft</strong> - Allows you to create a new post and save it as a draft. Also displays links to the 5 most recent draft posts you've started." ) . '</p>';
 if ( ! is_multisite() && current_user_can( 'install_plugins' ) )
-	$help .= '<p>' . __( '<strong>WordPress News</strong> - Latest news from the official WordPress project, the <a href="http://planet.wordpress.org/">WordPress Planet</a>, and popular and recent plugins.' ) . '</p>';
+	$help .= '<p>' . __( '<strong>WordPress News</strong> - Latest news from the official WordPress project, the <a href="https://planet.wordpress.org/">WordPress Planet</a>, and popular and recent plugins.' ) . '</p>';
 else
-	$help .= '<p>' . __( '<strong>WordPress News</strong> - Latest news from the official WordPress project, the <a href="http://planet.wordpress.org/">WordPress Planet</a>.' ) . '</p>';
+	$help .= '<p>' . __( '<strong>WordPress News</strong> - Latest news from the official WordPress project, the <a href="https://planet.wordpress.org/">WordPress Planet</a>.' ) . '</p>';
 if ( current_user_can( 'edit_theme_options' ) )
 	$help .= '<p>' . __( '<strong>Welcome</strong> - Shows links for some of the most common tasks when setting up a new site.' ) . '</p>';
 
@@ -111,8 +111,9 @@ include( ABSPATH . 'wp-admin/admin-header.php' );
 		/**
 		 * Add content to the welcome panel on the admin dashboard.
 		 *
-		 * To remove the default welcome panel, use remove_action():
-		 * <code>remove_action( 'welcome_panel', 'wp_welcome_panel' );</code>
+		 * To remove the default welcome panel, use {@see remove_action()}:
+		 *
+		 *     remove_action( 'welcome_panel', 'wp_welcome_panel' );
 		 *
 		 * @since 3.5.0
 		 */

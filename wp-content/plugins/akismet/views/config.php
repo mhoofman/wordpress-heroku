@@ -88,7 +88,23 @@
 													<p><label for="akismet_strictness_1"><input type="radio" name="akismet_strictness" id="akismet_strictness_1" value="1" <?php checked('1', get_option('akismet_strictness')); ?> /> <?php esc_html_e('Silently discard the worst and most pervasive spam so I never see it.', 'akismet'); ?></label></p>
 													<p><label for="akismet_strictness_0"><input type="radio" name="akismet_strictness" id="akismet_strictness_0" value="0" <?php checked('0', get_option('akismet_strictness')); ?> /> <?php esc_html_e('Always put spam in the Spam folder for review.', 'akismet'); ?></label></p>
 													</fieldset>
-													<span class="note"><strong><?php esc_html_e('Note:', 'akismet');?></strong> <?php printf( __( 'Spam in the <a href="%s">spam folder</a> older than 15 days is deleted automatically.' , 'akismet'), admin_url( 'edit-comments.php?comment_status=spam' ) );?></span>
+													<span class="note"><strong><?php esc_html_e('Note:', 'akismet');?></strong>
+													<?php
+													
+													$delete_interval = max( 1, intval( apply_filters( 'akismet_delete_comment_interval', 15 ) ) );
+													
+													printf(
+														_n(
+															'Spam in the <a href="%s">spam folder</a> older than 1 day is deleted automatically.',
+															'Spam in the <a href="%1$s">spam folder</a> older than %2$d days is deleted automatically.',
+															$delete_interval,
+															'akismet'
+														),
+														admin_url( 'edit-comments.php?comment_status=spam' ),
+														$delete_interval
+													);
+													
+													?>
 												</td>
 											</tr>
 										</tbody>

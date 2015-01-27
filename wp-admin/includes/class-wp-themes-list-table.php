@@ -95,6 +95,10 @@ class WP_Themes_List_Table extends WP_List_Table {
 		printf( __( 'Only the current theme is available to you. Contact the %s administrator for information about accessing additional themes.' ), get_site_option( 'site_name' ) );
 	}
 
+	/**
+	 * @param string $which
+	 * @return null
+	 */
 	public function tablenav( $which = 'top' ) {
 		if ( $this->get_pagination_arg( 'total_pages' ) <= 1 )
 			return;
@@ -205,7 +209,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 			</div>
 
 			<div class="themedetaildiv hide-if-js">
-				<p><strong><?php _e('Version: '); ?></strong><?php echo $version; ?></p>
+				<p><strong><?php _e('Version:'); ?></strong> <?php echo $version; ?></p>
 				<p><?php echo $theme->display('Description'); ?></p>
 				<?php if ( $theme->parent() ) {
 					printf( ' <p class="howto">' . __( 'This <a href="%1$s">child theme</a> requires its parent theme, %2$s.' ) . '</p>',
@@ -219,6 +223,10 @@ class WP_Themes_List_Table extends WP_List_Table {
 		endforeach;
 	}
 
+	/**
+	 * @param WP_Theme $theme
+	 * @return bool
+	 */
 	public function search_theme( $theme ) {
 		// Search the features
 		foreach ( $this->features as $word ) {
@@ -256,9 +264,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 	 * @since 3.4.0
 	 * @access public
 	 *
-	 * @uses $this->features Array of all feature search terms.
-	 * @uses get_pagenum()
-	 * @uses _pagination_args['total_pages']
+	 * @param array $extra_args
 	 */
 	public function _js_vars( $extra_args = array() ) {
 		$search_string = isset( $_REQUEST['s'] ) ? esc_attr( wp_unslash( $_REQUEST['s'] ) ) : '';
@@ -273,7 +279,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 		if ( is_array( $extra_args ) )
 			$args = array_merge( $args, $extra_args );
 
-		printf( "<script type='text/javascript'>var theme_list_args = %s;</script>\n", json_encode( $args ) );
+		printf( "<script type='text/javascript'>var theme_list_args = %s;</script>\n", wp_json_encode( $args ) );
 		parent::_js_vars();
 	}
 }

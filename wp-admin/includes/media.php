@@ -159,6 +159,22 @@ function get_image_send_to_editor($id, $caption, $title, $align, $url='', $rel =
 function image_add_caption( $html, $id, $caption, $title, $align, $url, $size, $alt = '' ) {
 
 	/**
+	 * Filter the caption text.
+	 *
+	 * Note: If the caption text is empty, the caption shortcode will not be appended
+	 * to the image HTML when inserted into the editor.
+	 *
+	 * Passing an empty value also prevents the {@see 'image_add_caption_shortcode'}
+	 * filter from being evaluated at the end of {@see image_add_caption()}.
+	 *
+	 * @since 4.1.0
+	 *
+	 * @param string $caption The original caption text.
+	 * @param int    $id      The attachment ID.
+	 */
+	$caption = apply_filters( 'image_add_caption_text', $caption, $id );
+
+	/**
 	 * Filter whether to disable captions.
 	 *
 	 * Prevents image captions from being appended to image HTML when inserted into the editor.
@@ -319,7 +335,7 @@ function media_handle_upload($file_id, $post_id, $post_data = array(), $override
 			$content .= ' ' . sprintf( __( 'Genre: %s.' ), $meta['genre'] );
 
 	// Use image exif/iptc data for title and caption defaults if possible.
-	} elseif ( $image_meta = @wp_read_image_metadata( $file ) ) {
+	} elseif ( 0 === strpos( $type, 'image/' ) && $image_meta = @wp_read_image_metadata( $file ) ) {
 		if ( trim( $image_meta['title'] ) && ! is_numeric( sanitize_title( $image_meta['title'] ) ) )
 			$title = $image_meta['title'];
 		if ( trim( $image_meta['caption'] ) )
@@ -416,7 +432,7 @@ function media_handle_sideload($file_array, $post_id, $desc = null, $post_data =
  *
  * @since 2.5.0
  *
- * @param array $content_func
+ * @param string|callable $content_func
  */
 function wp_iframe($content_func /* ... */) {
 	_wp_admin_html_begin();
@@ -478,7 +494,7 @@ if ( is_string( $content_func ) ) {
 	 * Fires in the admin header for each specific form tab in the legacy
 	 * (pre-3.5.0) media upload popup.
 	 *
-	 * The dynamic portion of the hook, $content_func, refers to the form
+	 * The dynamic portion of the hook, `$content_func`, refers to the form
 	 * callback for the media upload type. Possible values include
 	 * 'media_upload_type_form', 'media_upload_type_url_form', and
 	 * 'media_upload_library_form'.
@@ -554,6 +570,14 @@ function media_buttons($editor_id = 'content') {
 }
 add_action( 'media_buttons', 'media_buttons' );
 
+/**
+ *
+ * @global int $post_ID
+ * @param string $type
+ * @param int $post_id
+ * @param string $tab
+ * @return string
+ */
 function get_upload_iframe_src( $type = null, $post_id = null, $tab = null ) {
 	global $post_ID;
 
@@ -571,7 +595,7 @@ function get_upload_iframe_src( $type = null, $post_id = null, $tab = null ) {
 	/**
 	 * Filter the upload iframe source URL for a specific media type.
 	 *
-	 * The dynamic portion of the hook name, $type, refers to the type
+	 * The dynamic portion of the hook name, `$type`, refers to the type
 	 * of media uploaded.
 	 *
 	 * @since 3.0.0
@@ -701,7 +725,7 @@ function media_upload_form_handler() {
  *
  * @since 2.5.0
  *
- * @return mixed
+ * @return null|string
  */
 function wp_media_upload_handler() {
 	$errors = array();
@@ -739,7 +763,7 @@ function wp_media_upload_handler() {
 			/**
 			 * Filter the URL sent to the editor for a specific media type.
 			 *
-			 * The dynamic portion of the hook name, $type, refers to the type
+			 * The dynamic portion of the hook name, `$type`, refers to the type
 			 * of media being sent.
 			 *
 			 * @since 3.3.0
@@ -848,7 +872,7 @@ function media_sideload_image( $file, $post_id, $desc = null ) {
  *
  * @since 2.5.0
  *
- * @return unknown
+ * @return string|null
  */
 function media_upload_gallery() {
 	$errors = array();
@@ -871,7 +895,7 @@ function media_upload_gallery() {
  *
  * @since 2.5.0
  *
- * @return unknown
+ * @return string|null
  */
 function media_upload_library() {
 	$errors = array();
@@ -892,7 +916,7 @@ function media_upload_library() {
  *
  * @since 2.7.0
  *
- * @param object $post
+ * @param WP_Post $post
  * @param string $checked
  * @return string
  */
@@ -920,7 +944,7 @@ function image_align_input_fields( $post, $checked = '' ) {
  *
  * @since 2.7.0
  *
- * @param object $post
+ * @param WP_Post $post
  * @param bool|string $check
  * @return array
  */
@@ -992,7 +1016,7 @@ function image_size_input_fields( $post, $check = '' ) {
  *
  * @since 2.7.0
  *
- * @param object $post
+ * @param WP_Post $post
  * @param string $url_type
  * @return string
  */
@@ -1075,8 +1099,8 @@ function media_post_single_attachment_fields_to_edit( $form_fields, $post ) {
  *
  * @since 2.5.0
  *
- * @param WP_Post $post       The WP_Post attachment object.
- * @param array   $attachment An array of attachment metadata.
+ * @param array $post       The WP_Post attachment object converted to an array.
+ * @param array $attachment An array of attachment metadata.
  * @return array Filtered attachment post object.
  */
 function image_attachment_fields_to_save( $post, $attachment ) {
@@ -1101,7 +1125,7 @@ add_filter( 'attachment_fields_to_save', 'image_attachment_fields_to_save', 10, 
  * @param string $html
  * @param integer $attachment_id
  * @param array $attachment
- * @return array
+ * @return string
  */
 function image_media_send_to_editor($html, $attachment_id, $attachment) {
 	$post = get_post($attachment_id);
@@ -1125,7 +1149,7 @@ add_filter('media_send_to_editor', 'image_media_send_to_editor', 10, 3);
  *
  * @since 2.5.0
  *
- * @param object $post
+ * @param WP_Post $post
  * @param array $errors
  * @return array
  */
@@ -1696,13 +1720,13 @@ function media_upload_header() {
  *
  * @since 2.5.0
  *
- * @param unknown_type $errors
+ * @param array $errors
  */
 function media_upload_form( $errors = null ) {
 	global $type, $tab, $is_IE, $is_opera;
 
 	if ( ! _device_can_upload() ) {
-		echo '<p>' . sprintf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'http://apps.wordpress.org/' ) . '</p>';
+		echo '<p>' . sprintf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'https://apps.wordpress.org/' ) . '</p>';
 		return;
 	}
 
@@ -1780,6 +1804,14 @@ $plupload_init = array(
 	'multipart_params'    => $post_params,
 );
 
+// Currently only iOS Safari supports multiple files uploading but iOS 7.x has a bug that prevents uploading of videos
+// when enabled. See #29602.
+if ( wp_is_mobile() && strpos( $_SERVER['HTTP_USER_AGENT'], 'OS 7_' ) !== false &&
+	strpos( $_SERVER['HTTP_USER_AGENT'], 'like Mac OS X' ) !== false ) {
+
+	$plupload_init['multi_selection'] = false;
+}
+
 /**
  * Filter the default Plupload settings.
  *
@@ -1802,7 +1834,7 @@ if( !$large_size_w )
 	$large_size_w = 1024;
 ?>
 var resize_height = <?php echo $large_size_h; ?>, resize_width = <?php echo $large_size_w; ?>,
-wpUploaderInit = <?php echo json_encode($plupload_init); ?>;
+wpUploaderInit = <?php echo wp_json_encode( $plupload_init ); ?>;
 </script>
 
 <div id="plupload-upload-ui" class="hide-if-no-js">
@@ -2317,7 +2349,7 @@ foreach ( $post_mime_types as $mime_type => $label ) {
 /**
  * Filter the media upload mime type list items.
  *
- * Returned values should begin with an <li> tag.
+ * Returned values should begin with an `<li>` tag.
  *
  * @since 3.1.0
  *
@@ -2860,7 +2892,7 @@ function wp_add_id3_tag_data( &$metadata, $data ) {
 	foreach ( array( 'id3v2', 'id3v1' ) as $version ) {
 		if ( ! empty( $data[$version]['comments'] ) ) {
 			foreach ( $data[$version]['comments'] as $key => $list ) {
-				if ( ! empty( $list ) ) {
+				if ( 'length' !== $key && ! empty( $list ) ) {
 					$metadata[$key] = reset( $list );
 					// Fix bug in byte stream analysis.
 					if ( 'terms_of_use' === $key && 0 === strpos( $metadata[$key], 'yright notice.' ) )
@@ -2898,7 +2930,7 @@ function wp_add_id3_tag_data( &$metadata, $data ) {
  * @since 3.6.0
  *
  * @param string $file Path to file.
- * @return array|boolean Returns array of metadata, if found.
+ * @return array|bool Returns array of metadata, if found.
  */
 function wp_read_video_metadata( $file ) {
 	if ( ! file_exists( $file ) )
@@ -2922,7 +2954,7 @@ function wp_read_video_metadata( $file ) {
 	if ( ! empty( $data['mime_type'] ) )
 		$metadata['mime_type'] = $data['mime_type'];
 	if ( ! empty( $data['playtime_seconds'] ) )
-		$metadata['length'] = (int) ceil( $data['playtime_seconds'] );
+		$metadata['length'] = (int) round( $data['playtime_seconds'] );
 	if ( ! empty( $data['playtime_string'] ) )
 		$metadata['length_formatted'] = $data['playtime_string'];
 	if ( ! empty( $data['video']['resolution_x'] ) )
@@ -2978,7 +3010,7 @@ function wp_read_audio_metadata( $file ) {
 	if ( ! empty( $data['mime_type'] ) )
 		$metadata['mime_type'] = $data['mime_type'];
 	if ( ! empty( $data['playtime_seconds'] ) )
-		$metadata['length'] = (int) ceil( $data['playtime_seconds'] );
+		$metadata['length'] = (int) round( $data['playtime_seconds'] );
 	if ( ! empty( $data['playtime_string'] ) )
 		$metadata['length_formatted'] = $data['playtime_string'];
 
