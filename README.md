@@ -52,6 +52,7 @@ Store unique keys and salts in Heroku environment variables. Wordpress can provi
 
 Deploy to Heroku
 
+    $ git push heroku production:master
     -----> Deleting 0 files matching .slugignore patterns.
     -----> PHP app detected
 
