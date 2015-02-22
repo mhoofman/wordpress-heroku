@@ -185,7 +185,7 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 		windowWidth = window.innerWidth;
 		toolbarWidth = toolbarNode.offsetWidth;
 		toolbarHalf = toolbarWidth / 2;
-		iframe = editor.getContentAreaContainer().firstChild;
+		iframe = document.getElementById( editor.id + '_ifr' );
 		iframePos = DOM.getPos( iframe );
 		iframeWidth = iframe.offsetWidth;
 		iframeHeigth = iframe.offsetHeight;
@@ -238,7 +238,9 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 		left = boundaryMiddle - toolbarHalf;
 		left += iframePos.x;
 
-		if ( toolbarWidth >= windowWidth ) {
+		if ( boundary.left < 0 || boundary.right > iframeWidth ) {
+			left = iframePos.x + ( iframeWidth - toolbarWidth ) / 2;
+		} else if ( toolbarWidth >= windowWidth ) {
 			className += ' mce-arrow-full';
 			left = 0;
 		} else if ( ( left < 0 && boundary.left + toolbarWidth > windowWidth ) ||

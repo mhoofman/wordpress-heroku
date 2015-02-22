@@ -3353,8 +3353,8 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 	$parent = apply_filters( 'wp_update_term_parent', $args['parent'], $term_id, $taxonomy, $parsed_args, $args );
 
 	// Check for duplicate slug
-	$id = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM $wpdb->terms WHERE slug = %s", $slug ) );
-	if ( $id && ($id != $term_id) ) {
+	$duplicate = get_term_by( 'slug', $slug, $taxonomy );
+	if ( $duplicate && $duplicate->term_id != $term_id ) {
 		// If an empty slug was passed or the parent changed, reset the slug to something unique.
 		// Otherwise, bail.
 		if ( $empty_slug || ( $parent != $term['parent']) )
@@ -4336,13 +4336,14 @@ function get_ancestors( $object_id = 0, $object_type = '', $resource_type = '' )
 	 * Filter a given object's ancestors.
 	 *
 	 * @since 3.1.0
+	 * @since 4.1.1 Introduced the `$resource_type` parameter.
 	 *
 	 * @param array  $ancestors     An array of object ancestors.
 	 * @param int    $object_id     Object ID.
 	 * @param string $object_type   Type of object.
 	 * @param string $resource_type Type of resource $object_type is.
 	 */
-	return apply_filters( 'get_ancestors', $ancestors, $object_id, $object_type );
+	return apply_filters( 'get_ancestors', $ancestors, $object_id, $object_type, $resource_type );
 }
 
 /**
