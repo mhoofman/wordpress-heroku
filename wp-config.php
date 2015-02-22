@@ -45,14 +45,16 @@ define('DB_COLLATE', '');
  *
  * @since 2.6.0
  */
-define('AUTH_KEY',         getenv('AUTH_KEY'));
-define('SECURE_AUTH_KEY',  getenv('SECURE_AUTH_KEY'));
-define('LOGGED_IN_KEY',    getenv('LOGGED_IN_KEY'));
-define('NONCE_KEY',        getenv('NONCE_KEY'));
-define('AUTH_SALT',        getenv('AUTH_SALT'));
-define('SECURE_AUTH_SALT', getenv('SECURE_AUTH_SALT'));
-define('LOGGED_IN_SALT',   getenv('LOGGED_IN_SALT'));
-define('NONCE_SALT',       getenv('NONCE_SALT'));
+define('AUTH_KEY',              getenv('AUTH_KEY'));
+define('SECURE_AUTH_KEY',       getenv('SECURE_AUTH_KEY'));
+define('LOGGED_IN_KEY',         getenv('LOGGED_IN_KEY'));
+define('NONCE_KEY',             getenv('NONCE_KEY'));
+define('AUTH_SALT',             getenv('AUTH_SALT'));
+define('SECURE_AUTH_SALT',      getenv('SECURE_AUTH_SALT'));
+define('LOGGED_IN_SALT',        getenv('LOGGED_IN_SALT'));
+define('NONCE_SALT',            getenv('NONCE_SALT'));
+define('AWS_ACCESS_KEY_ID',     getenv('AWS_ACCESS_KEY_ID'));
+define('AWS_SECRET_ACCESS_KEY', getenv('AWS_SECRET_ACCESS_KEY'));
 
 /**#@-*/
 
