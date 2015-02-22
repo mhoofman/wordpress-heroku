@@ -41,7 +41,7 @@ define( 'PG4WP_LOG_ERRORS', false);
 
 // If you want to allow insecure configuration (from the author point of view) to work with PG4WP,
 // change this to true
-define( 'PG4WP_INSECURE', false);
+define( 'PG4WP_INSECURE', true);
 
 // Not entirely sure why this needs to be set, but it seems to be required since wp version 4
 define('WP_USE_EXT_MYSQL', true);
