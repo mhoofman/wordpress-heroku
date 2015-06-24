@@ -22,20 +22,30 @@ With the [Heroku gem](http://devcenter.heroku.com/articles/heroku-command), crea
 
 Add a database to your app
 
-    $ heroku addons:add heroku-postgresql:dev
-    Adding heroku-postgresql:dev to strange-turtle-1234... done, v2 (free)
-    Attached as HEROKU_POSTGRESQL_COLOR
+    $ heroku addons:create heroku-postgresql
+    Creating HEROKU_POSTGRESQL_INSTANCE... done, (free)
+    Adding HEROKU_POSTGRESQL_INSTANCE to strange-turtle-1234... done
+    Setting DATABASE_URL and restarting strange-turtle-1234... done, v3
     Database has been created and is available
-    Use `heroku addons:docs heroku-postgresql:dev` to view documentation
+     ! This database is empty. If upgrading, you can transfer
+     ! data from another database with pgbackups:restore
+    Use `heroku addons:docs heroku-postgresql` to view documentation.
 
-Promote the database (replace COLOR with the color name from the above output)
+Promote the database (replace HEROKU_POSTGRESQL_INSTANCE with the name from the above output)
 
-    $ heroku pg:promote HEROKU_POSTGRESQL_COLOR
-    Promoting HEROKU_POSTGRESQL_COLOR to DATABASE_URL... done
+    $ heroku pg:promote HEROKU_POSTGRESQL_INSTANCE
+    Promoting HEROKU_POSTGRESQL_INSTANCE to DATABASE_URL... done
+    Ensuring an alternate alias for existing DATABASE... done, HEROKU_POSTGRESQL_COLOR
+    Promoting HEROKU_POSTGRESQL_INSTANCE to DATABASE_URL on strange-turtle-1234... done
 
 Add the ability to send email (i.e. Password Resets etc)
 
-    $ heroku addons:add sendgrid:starter
+    $ heroku addons:create sendgrid:starter
+    Creating SENDGRID_INSTANCE... done, (free)
+    Adding SENDGRID_INSTANCE to handlesite-prod... done
+    Setting SENDGRID_PASSWORD, SENDGRID_USERNAME and restarting strange-turtle-1234... done, v7
+    Use `heroku addons:docs sendgrid` to view documentation.
+
     Adding sendgrid:starter on your-app... done, v14 (free)
     Use `heroku addons:docs sendgrid` to view documentation.
 
