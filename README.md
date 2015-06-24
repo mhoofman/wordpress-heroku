@@ -42,7 +42,7 @@ Add the ability to send email (i.e. Password Resets etc)
 
     $ heroku addons:create sendgrid:starter
     Creating SENDGRID_INSTANCE... done, (free)
-    Adding SENDGRID_INSTANCE to handlesite-prod... done
+    Adding SENDGRID_INSTANCE to strange-turtle-1234... done
     Setting SENDGRID_PASSWORD, SENDGRID_USERNAME and restarting strange-turtle-1234... done, v7
     Use `heroku addons:docs sendgrid` to view documentation.
 
