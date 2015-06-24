@@ -46,9 +46,6 @@ Add the ability to send email (i.e. Password Resets etc)
     Setting SENDGRID_PASSWORD, SENDGRID_USERNAME and restarting strange-turtle-1234... done, v7
     Use `heroku addons:docs sendgrid` to view documentation.
 
-    Adding sendgrid:starter on your-app... done, v14 (free)
-    Use `heroku addons:docs sendgrid` to view documentation.
-
 Create a new branch for any configuration/setup changes needed
 
     $ git checkout -b production
