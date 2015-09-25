@@ -22,21 +22,15 @@ With the [Heroku gem](http://devcenter.heroku.com/articles/heroku-command), crea
 
 Add a database to your app
 
-    $ heroku addons:create heroku-postgresql
-    Creating HEROKU_POSTGRESQL_INSTANCE... done, (free)
-    Adding HEROKU_POSTGRESQL_INSTANCE to strange-turtle-1234... done
-    Setting DATABASE_URL and restarting strange-turtle-1234... done, v3
+    
+    $ heroku addons:add heroku-postgresql
+    Adding heroku-postgresql on strange-turtle-1234... done, v4 (free)
+    Attached as DATABASE_URL
     Database has been created and is available
      ! This database is empty. If upgrading, you can transfer
-     ! data from another database with pgbackups:restore
+     ! data from another database with pgbackups:restore.
     Use `heroku addons:docs heroku-postgresql` to view documentation.
 
-Promote the database (replace HEROKU_POSTGRESQL_INSTANCE with the name from the above output)
-
-    $ heroku pg:promote HEROKU_POSTGRESQL_INSTANCE
-    Promoting HEROKU_POSTGRESQL_INSTANCE to DATABASE_URL... done
-    Ensuring an alternate alias for existing DATABASE... done, HEROKU_POSTGRESQL_COLOR
-    Promoting HEROKU_POSTGRESQL_INSTANCE to DATABASE_URL on strange-turtle-1234... done
 
 Add the ability to send email (i.e. Password Resets etc)
 
