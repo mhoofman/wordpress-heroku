@@ -11,7 +11,7 @@ if ( !defined('ABSPATH') )
 	die('-1');
 
 if ( empty($tag_ID) ) { ?>
-	<div id="message" class="updated"><p><strong><?php _e( 'You did not select an item for editing.' ); ?></strong></p></div>
+	<div id="message" class="updated notice is-dismissible"><p><strong><?php _e( 'You did not select an item for editing.' ); ?></strong></p></div>
 <?php
 	return;
 }
@@ -48,6 +48,17 @@ if ( 'category' == $taxonomy ) {
 	 */
 	do_action( 'edit_tag_form_pre', $tag );
 }
+
+/**
+ * Use with caution, see http://codex.wordpress.org/Function_Reference/wp_reset_vars
+ */
+wp_reset_vars( array( 'wp_http_referer' ) );
+
+$wp_http_referer = remove_query_arg( array( 'action', 'message', 'tag_ID' ), $wp_http_referer );
+
+/** Also used by Edit Tags */
+require_once( ABSPATH . 'wp-admin/includes/edit-tag-messages.php' );
+
 /**
  * Fires before the Edit Term form for all taxonomies.
  *
@@ -62,8 +73,21 @@ if ( 'category' == $taxonomy ) {
 do_action( "{$taxonomy}_pre_edit_form", $tag, $taxonomy ); ?>
 
 <div class="wrap">
-<h2><?php echo $tax->labels->edit_item; ?></h2>
+<h1><?php echo $tax->labels->edit_item; ?></h1>
+
+<?php if ( $message ) : ?>
+<div id="message" class="updated">
+	<p><strong><?php echo $message; ?></strong></p>
+	<?php if ( $wp_http_referer ) { ?>
+	<p><a href="<?php echo esc_url( $wp_http_referer ); ?>"><?php printf( __( '&larr; Back to %s' ), $tax->labels->name ); ?></a></p>
+	<?php } else { ?>
+	<p><a href="<?php echo esc_url( wp_get_referer() ); ?>"><?php printf( __( '&larr; Back to %s' ), $tax->labels->name ); ?></a></p>
+	<?php } ?>
+</div>
+<?php endif; ?>
+
 <div id="ajax-response"></div>
+
 <form name="edittag" id="edittag" method="post" action="edit-tags.php" class="validate"
 <?php
 /**
@@ -91,14 +115,21 @@ do_action( "{$taxonomy}_term_edit_form_tag" );
 			<th scope="row"><label for="slug"><?php _e( 'Slug' ); ?></label></th>
 			<?php
 			/**
-			 * Filter the editable term slug.
+			 * Filter the editable slug.
+			 *
+			 * Note: This is a multi-use hook in that it is leveraged both for editable
+			 * post URIs and term slugs.
 			 *
 			 * @since 2.6.0
+			 * @since 4.4.0 The `$tag` parameter was added.
 			 *
-			 * @param string $slug The current term slug.
+			 * @param string         $slug The editable slug. Will be either a term slug or post URI depending
+			 *                             upon the context in which it is evaluated.
+			 * @param object|WP_Post $tag  Term or WP_Post object.
 			 */
+			$slug = isset( $tag->slug ) ? apply_filters( 'editable_slug', $tag->slug, $tag ) : '';
 			?>
-			<td><input name="slug" id="slug" type="text" value="<?php if ( isset( $tag->slug ) ) echo esc_attr( apply_filters( 'editable_slug', $tag->slug ) ); ?>" size="40" />
+			<td><input name="slug" id="slug" type="text" value="<?php echo esc_attr( $slug ); ?>" size="40" />
 			<p class="description"><?php _e('The &#8220;slug&#8221; is the URL-friendly version of the name. It is usually all lowercase and contains only letters, numbers, and hyphens.'); ?></p></td>
 		</tr>
 <?php } ?>
@@ -106,7 +137,22 @@ do_action( "{$taxonomy}_term_edit_form_tag" );
 		<tr class="form-field term-parent-wrap">
 			<th scope="row"><label for="parent"><?php _ex( 'Parent', 'term parent' ); ?></label></th>
 			<td>
-				<?php wp_dropdown_categories(array('hide_empty' => 0, 'hide_if_empty' => false, 'name' => 'parent', 'orderby' => 'name', 'taxonomy' => $taxonomy, 'selected' => $tag->parent, 'exclude_tree' => $tag->term_id, 'hierarchical' => true, 'show_option_none' => __('None'))); ?>
+				<?php
+				$dropdown_args = array(
+					'hide_empty'       => 0,
+					'hide_if_empty'    => false,
+					'taxonomy'         => $taxonomy,
+					'name'             => 'parent',
+					'orderby'          => 'name',
+					'selected'         => $tag->parent,
+					'exclude_tree'     => $tag->term_id,
+					'hierarchical'     => true,
+					'show_option_none' => __( 'None' ),
+				);
+
+				/** This filter is documented in wp-admin/edit-tags.php */
+				$dropdown_args = apply_filters( 'taxonomy_parent_dropdown_args', $dropdown_args, $taxonomy, 'edit' );
+				wp_dropdown_categories( $dropdown_args ); ?>
 				<?php if ( 'category' == $taxonomy ) : ?>
 				<p class="description"><?php _e('Categories, unlike tags, can have a hierarchy. You might have a Jazz category, and under that have children categories for Bebop and Big Band. Totally optional.'); ?></p>
 				<?php endif; ?>

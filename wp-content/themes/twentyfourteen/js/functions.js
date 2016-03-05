@@ -7,29 +7,34 @@
  */
 ( function( $ ) {
 	var body    = $( 'body' ),
-		_window = $( window );
+		_window = $( window ),
+		nav, button, menu;
+
+	nav = $( '#primary-navigation' );
+	button = nav.find( '.menu-toggle' );
+	menu = nav.find( '.nav-menu' );
 
 	// Enable menu toggle for small screens.
 	( function() {
-		var nav = $( '#primary-navigation' ), button, menu;
-		if ( ! nav ) {
-			return;
-		}
-
-		button = nav.find( '.menu-toggle' );
-		if ( ! button ) {
+		if ( ! nav || ! button ) {
 			return;
 		}
 
 		// Hide button if menu is missing or empty.
-		menu = nav.find( '.nav-menu' );
 		if ( ! menu || ! menu.children().length ) {
 			button.hide();
 			return;
 		}
 
-		$( '.menu-toggle' ).on( 'click.twentyfourteen', function() {
+		button.on( 'click.twentyfourteen', function() {
 			nav.toggleClass( 'toggled-on' );
+			if ( nav.hasClass( 'toggled-on' ) ) {
+				$( this ).attr( 'aria-expanded', 'true' );
+				menu.attr( 'aria-expanded', 'true' );
+			} else {
+				$( this ).attr( 'aria-expanded', 'false' );
+				menu.attr( 'aria-expanded', 'false' );
+			}
 		} );
 	} )();
 
@@ -64,10 +69,17 @@
 		// Search toggle.
 		$( '.search-toggle' ).on( 'click.twentyfourteen', function( event ) {
 			var that    = $( this ),
-				wrapper = $( '.search-box-wrapper' );
+				wrapper = $( '#search-container' ),
+				container = that.find( 'a' );
 
 			that.toggleClass( 'active' );
 			wrapper.toggleClass( 'hide' );
+
+			if ( that.hasClass( 'active' ) ) {
+				container.attr( 'aria-expanded', 'true' );
+			} else {
+				container.attr( 'aria-expanded', 'false' );
+			}
 
 			if ( that.is( '.active' ) || $( '.search-toggle .screen-reader-text' )[0] === event.target ) {
 				wrapper.find( '.search-field' ).focus();
@@ -107,6 +119,30 @@
 		$( '.primary-navigation, .secondary-navigation' ).find( 'a' ).on( 'focus.twentyfourteen blur.twentyfourteen', function() {
 			$( this ).parents().toggleClass( 'focus' );
 		} );
+	} );
+
+	/**
+	 * @summary Add or remove ARIA attributes.
+	 * Uses jQuery's width() function to determine the size of the window and add
+	 * the default ARIA attributes for the menu toggle if it's visible.
+	 * @since Twenty Fourteen 1.4
+	 */
+	function onResizeARIA() {
+		if ( 781 > _window.width() ) {
+			button.attr( 'aria-expanded', 'false' );
+			menu.attr( 'aria-expanded', 'false' );
+			button.attr( 'aria-controls', 'primary-menu' );
+		} else {
+			button.removeAttr( 'aria-expanded' );
+			menu.removeAttr( 'aria-expanded' );
+			button.removeAttr( 'aria-controls' );
+		}
+	}
+
+	_window
+		.on( 'load.twentyfourteen', onResizeARIA )
+		.on( 'resize.twentyfourteen', function() {
+			onResizeARIA();
 	} );
 
 	_window.load( function() {

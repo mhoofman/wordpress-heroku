@@ -50,19 +50,6 @@
 	width: 35%;
 }
 
-.wp-fullscreen-title {
-	width: 97%;
-}
-
-#wp_mce_fullscreen_ifr {
-	background-color: #f9f9f9;
-}
-
-#wp-fullscreen-tagline {
-	color: #888;
-	font-size: 14px;
-}
-
 #adminmenuback {
 	right: 0;
 	background-image: none;
@@ -409,13 +396,8 @@ p.search-box {
 	margin: -3px 0 4px;
 }
 
-#widget-list .widget,
-.feature-filter .feature-group li {
+#widget-list .widget {
 	display: inline;
-}
-
-.feature-filter .feature-group li input {
-	vertical-align: middle;
 }
 
 #editorcontainer #content {
@@ -497,12 +479,16 @@ table.ie-fixed {
 }
 
 .widefat tr,
-.widefat th {
+.widefat th,
+.widefat thead td,
+.widefat tfoot td {
 	margin-bottom: 0;
 	border-spacing: 0;
 }
 
-.widefat th input {
+.widefat th input,
+.widefat thead td input,
+.widefat tfoot td input {
 	margin: 0 5px 0 0;
 }
 
@@ -670,7 +656,7 @@ input[type="password"],
 }
 
 .mce-btn i.mce-i-wp_adv {
-	background-color: #aaa;
+	background-color: #a0a5aa;
 }
 
 .mce-btn i.mce-i-help,
@@ -684,7 +670,7 @@ input[type="password"],
 	visibility: visible;
 }
 
-* html div.widget-liquid-right,
+* html div.widget-liquid-left,
 * html div.widget-liquid-right {
 	display: block;
 	position: relative;
@@ -702,10 +688,6 @@ input[type="password"],
 * html .stuffbox input,
 * html .stuffbox textarea {
 	border: 1px solid #DFDFDF;
-}
-
-* html .feature-filter .feature-group li {
-	width: 145px;
 }
 
 * html div.widget-liquid-left {

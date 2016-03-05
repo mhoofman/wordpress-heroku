@@ -9,7 +9,8 @@ class Akismet {
 	private static $initiated = false;
 	private static $prevent_moderation_email_for_these_comments = array();
 	private static $last_comment_result = null;
-	
+	private static $comment_as_submitted_allowed_keys = array( 'blog' => '', 'blog_charset' => '', 'blog_lang' => '', 'blog_ua' => '', 'comment_agent' => '', 'comment_author' => '', 'comment_author_IP' => '', 'comment_author_email' => '', 'comment_author_url' => '', 'comment_content' => '', 'comment_date_gmt' => '', 'comment_tags' => '', 'comment_type' => '', 'guid' => '', 'is_test' => '', 'permalink' => '', 'reporter' => '', 'site_domain' => '', 'submit_referer' => '', 'submit_uri' => '', 'user_ID' => '', 'user_agent' => '', 'user_id' => '', 'user_ip' => '' );
+
 	public static function init() {
 		if ( ! self::$initiated ) {
 			self::init_hooks();
@@ -23,11 +24,19 @@ class Akismet {
 		self::$initiated = true;
 
 		add_action( 'wp_insert_comment', array( 'Akismet', 'auto_check_update_meta' ), 10, 2 );
-		add_action( 'preprocess_comment', array( 'Akismet', 'auto_check_comment' ), 1 );
+		add_filter( 'preprocess_comment', array( 'Akismet', 'auto_check_comment' ), 1 );
 		add_action( 'akismet_scheduled_delete', array( 'Akismet', 'delete_old_comments' ) );
 		add_action( 'akismet_scheduled_delete', array( 'Akismet', 'delete_old_comments_meta' ) );
 		add_action( 'akismet_schedule_cron_recheck', array( 'Akismet', 'cron_recheck' ) );
 
+		/**
+		 * To disable the Akismet comment nonce, add a filter for the 'akismet_comment_nonce' tag
+		 * and return any string value that is not 'true' or '' (empty string).
+		 *
+		 * Don't return boolean false, because that implies that the 'akismet_comment_nonce' option
+		 * has not been set and that Akismet should just choose the default behavior for that
+		 * situation.
+		 */
 		$akismet_comment_nonce_option = apply_filters( 'akismet_comment_nonce', get_option( 'akismet_comment_nonce' ) );
 
 		if ( $akismet_comment_nonce_option == 'true' || $akismet_comment_nonce_option == '' )
@@ -42,11 +51,8 @@ class Akismet {
 		
 		add_action( 'transition_comment_status', array( 'Akismet', 'transition_comment_status' ), 10, 3 );
 
-		if ( '3.0.5' == $GLOBALS['wp_version'] ) {
-			remove_filter( 'comment_text', 'wp_kses_data' );
-			if ( is_admin() )
-				add_filter( 'comment_text', 'wp_kses_post' );
-		}
+		// Run this early in the pingback call, before doing a remote fetch of the source uri
+		add_action( 'xmlrpc_call', array( 'Akismet', 'pre_check_pingback' ) );
 	}
 
 	public static function get_api_key() {
@@ -63,7 +69,14 @@ class Akismet {
 		if ( $response[1] != 'valid' && $response[1] != 'invalid' )
 			return 'failed';
 
-		self::update_alert( $response );
+		return $response[1];
+	}
+
+	public static function deactivate_key( $key ) {
+		$response = self::http_post( Akismet::build_query( array( 'key' => $key, 'blog' => get_option('home') ) ), 'deactivate' );
+
+		if ( $response[1] != 'deactivated' )
+			return 'failed';
 
 		return $response[1];
 	}
@@ -84,6 +97,7 @@ class Akismet {
 		if ( !empty( $comment['user_ID'] ) )
 			$comment['user_role'] = Akismet::get_user_roles( $comment['user_ID'] );
 
+		/** See filter documentation in init_hooks(). */
 		$akismet_nonce_option = apply_filters( 'akismet_comment_nonce', get_option( 'akismet_comment_nonce' ) );
 		$comment['akismet_comment_nonce'] = 'inactive';
 		if ( $akismet_nonce_option == 'true' || $akismet_nonce_option == '' ) {
@@ -121,9 +135,7 @@ class Akismet {
 
 		do_action( 'akismet_comment_check_response', $response );
 
-		self::update_alert( $response );
-
-		$commentdata['comment_as_submitted'] = array_intersect_key( $comment, array( 'blog' => '', 'blog_charset' => '', 'blog_lang' => '', 'blog_ua' => '', 'comment_agent' => '', 'comment_author' => '', 'comment_author_IP' => '', 'comment_author_email' => '', 'comment_author_url' => '', 'comment_content' => '', 'comment_date_gmt' => '', 'comment_tags' => '', 'comment_type' => '', 'guid' => '', 'is_test' => '', 'permalink' => '', 'reporter' => '', 'site_domain' => '', 'submit_referer' => '', 'submit_uri' => '', 'user_ID' => '', 'user_agent' => '', 'user_id' => '', 'user_ip' => '' ) );
+		$commentdata['comment_as_submitted'] = array_intersect_key( $comment, self::$comment_as_submitted_allowed_keys );
 		$commentdata['akismet_result']       = $response[1];
 
 		if ( isset( $response[0]['x-akismet-pro-tip'] ) )
@@ -161,6 +173,7 @@ class Akismet {
 			if ( function_exists('wp_next_scheduled') && function_exists('wp_schedule_single_event') ) {
 				if ( !wp_next_scheduled( 'akismet_schedule_cron_recheck' ) ) {
 					wp_schedule_single_event( time() + 1200, 'akismet_schedule_cron_recheck' );
+					do_action( 'akismet_scheduled_recheck', 'invalid-response-' . $response[1] );
 				}
 			}
 
@@ -180,7 +193,7 @@ class Akismet {
 		self::set_last_comment( $commentdata );
 		self::fix_scheduled_recheck();
 
-		return self::$last_comment;
+		return $commentdata;
 	}
 	
 	public static function get_last_comment() {
@@ -224,23 +237,32 @@ class Akismet {
 					// normal result: true or false
 					if ( self::$last_comment['akismet_result'] == 'true' ) {
 						update_comment_meta( $comment->comment_ID, 'akismet_result', 'true' );
-						self::update_comment_history( $comment->comment_ID, __('Akismet caught this comment as spam', 'akismet'), 'check-spam' );
+						self::update_comment_history( $comment->comment_ID, '', 'check-spam' );
 						if ( $comment->comment_approved != 'spam' )
-							self::update_comment_history( $comment->comment_ID, sprintf( __('Comment status was changed to %s', 'akismet'), $comment->comment_approved), 'status-changed'.$comment->comment_approved );
+							self::update_comment_history(
+								$comment->comment_ID,
+								'',
+								'status-changed-'.$comment->comment_approved
+							);
 					}
 					elseif ( self::$last_comment['akismet_result'] == 'false' ) {
 						update_comment_meta( $comment->comment_ID, 'akismet_result', 'false' );
-						self::update_comment_history( $comment->comment_ID, __('Akismet cleared this comment', 'akismet'), 'check-ham' );
+						self::update_comment_history( $comment->comment_ID, '', 'check-ham' );
 						if ( $comment->comment_approved == 'spam' ) {
 							if ( wp_blacklist_check($comment->comment_author, $comment->comment_author_email, $comment->comment_author_url, $comment->comment_content, $comment->comment_author_IP, $comment->comment_agent) )
-								self::update_comment_history( $comment->comment_ID, __('Comment was caught by wp_blacklist_check', 'akismet'), 'wp-blacklisted' );
+								self::update_comment_history( $comment->comment_ID, '', 'wp-blacklisted' );
 							else
-								self::update_comment_history( $comment->comment_ID, sprintf( __('Comment status was changed to %s', 'akismet'), $comment->comment_approved), 'status-changed-'.$comment->comment_approved );
+								self::update_comment_history( $comment->comment_ID, '', 'status-changed-'.$comment->comment_approved );
 						}
 					} // abnormal result: error
 					else {
 						update_comment_meta( $comment->comment_ID, 'akismet_error', time() );
-						self::update_comment_history( $comment->comment_ID, sprintf( __('Akismet was unable to check this comment (response: %s), will automatically retry again later.', 'akismet'), substr(self::$last_comment['akismet_result'], 0, 50)), 'check-error' );
+						self::update_comment_history(
+							$comment->comment_ID,
+							'',
+							'check-error',
+							array( 'response' => substr( self::$last_comment['akismet_result'], 0, 50 ) )
+						);
 					}
 
 					// record the complete original data as submitted for checking
@@ -346,8 +368,15 @@ class Akismet {
 		return $history;
 	}
 
-	// log an event for a given comment, storing it in comment_meta
-	public static function update_comment_history( $comment_id, $message, $event=null ) {
+	/**
+	 * Log an event for a given comment, storing it in comment_meta.
+	 *
+	 * @param int $comment_id The ID of the relevant comment.
+	 * @param string $message The string description of the event. No longer used.
+	 * @param string $event The event code.
+	 * @param array $meta Metadata about the history entry. e.g., the user that reported or changed the status of a given comment.
+	 */
+	public static function update_comment_history( $comment_id, $message, $event=null, $meta=null ) {
 		global $current_user;
 
 		// failsafe for old WP versions
@@ -355,15 +384,19 @@ class Akismet {
 			return false;
 
 		$user = '';
-		if ( is_object( $current_user ) && isset( $current_user->user_login ) )
-			$user = $current_user->user_login;
 
 		$event = array(
 			'time'    => self::_get_microtime(),
-			'message' => $message,
 			'event'   => $event,
-			'user'    => $user,
 		);
+		
+		if ( is_object( $current_user ) && isset( $current_user->user_login ) ) {
+			$event['user'] = $current_user->user_login;
+		}
+		
+		if ( ! empty( $meta ) ) {
+			$event['meta'] = $meta;
+		}
 
 		// $unique = false so as to allow multiple values per comment
 		$r = add_comment_meta( $comment_id, 'akismet_history', $event, false );
@@ -439,7 +472,7 @@ class Akismet {
 			}
 		}
 
-		self::update_comment_history( $comment->comment_ID, sprintf( __('%1$s changed the comment status to %2$s', 'akismet'), $reporter, $new_status ), 'status-' . $new_status );
+		self::update_comment_history( $comment->comment_ID, '', 'status-' . $new_status );
 	}
 	
 	public static function submit_spam_comment( $comment_id ) {
@@ -456,7 +489,7 @@ class Akismet {
 			return;
 
 		// use the original version stored in comment_meta if available
-		$as_submitted = get_comment_meta( $comment_id, 'akismet_as_submitted', true);
+		$as_submitted = self::sanitize_comment_as_submitted( get_comment_meta( $comment_id, 'akismet_as_submitted', true ) );
 
 		if ( $as_submitted && is_array( $as_submitted ) && isset( $as_submitted['comment_content'] ) )
 			$comment = (object) array_merge( (array)$comment, $as_submitted );
@@ -484,7 +517,7 @@ class Akismet {
 
 		$response = Akismet::http_post( Akismet::build_query( $comment ), 'submit-spam' );
 		if ( $comment->reporter ) {
-			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as spam', 'akismet'), $comment->reporter ), 'report-spam' );
+			self::update_comment_history( $comment_id, '', 'report-spam' );
 			update_comment_meta( $comment_id, 'akismet_user_result', 'true' );
 			update_comment_meta( $comment_id, 'akismet_user', $comment->reporter );
 		}
@@ -502,7 +535,7 @@ class Akismet {
 			return;
 
 		// use the original version stored in comment_meta if available
-		$as_submitted = get_comment_meta( $comment_id, 'akismet_as_submitted', true);
+		$as_submitted = self::sanitize_comment_as_submitted( get_comment_meta( $comment_id, 'akismet_as_submitted', true ) );
 
 		if ( $as_submitted && is_array($as_submitted) && isset($as_submitted['comment_content']) )
 			$comment = (object) array_merge( (array)$comment, $as_submitted );
@@ -530,7 +563,7 @@ class Akismet {
 
 		$response = self::http_post( Akismet::build_query( $comment ), 'submit-ham' );
 		if ( $comment->reporter ) {
-			self::update_comment_history( $comment_id, sprintf( __('%s reported this comment as not spam', 'akismet'), $comment->reporter ), 'report-ham' );
+			self::update_comment_history( $comment_id, '', 'report-ham' );
 			update_comment_meta( $comment_id, 'akismet_user_result', 'false' );
 			update_comment_meta( $comment_id, 'akismet_user', $comment->reporter );
 		}
@@ -547,6 +580,7 @@ class Akismet {
 		if ( get_option( 'akismet_alert_code' ) || $status == 'invalid' ) {
 			// since there is currently a problem with the key, reschedule a check for 6 hours hence
 			wp_schedule_single_event( time() + 21600, 'akismet_schedule_cron_recheck' );
+			do_action( 'akismet_scheduled_recheck', 'key-problem-' . get_option( 'akismet_alert_code' ) . '-' . $status );
 			return false;
 		}
 
@@ -568,19 +602,19 @@ class Akismet {
 			add_comment_meta( $comment_id, 'akismet_rechecking', true );
 			$status = self::check_db_comment( $comment_id, 'retry' );
 
-			$msg = '';
+			$event = '';
 			if ( $status == 'true' ) {
-				$msg = __( 'Akismet caught this comment as spam during an automatic retry.' , 'akismet');
+				$event = 'cron-retry-spam';
 			} elseif ( $status == 'false' ) {
-				$msg = __( 'Akismet cleared this comment during an automatic retry.' , 'akismet');
+				$event = 'cron-retry-ham';
 			}
 
 			// If we got back a legit response then update the comment history
 			// other wise just bail now and try again later.  No point in
 			// re-trying all the comments once we hit one failure.
-			if ( !empty( $msg ) ) {
+			if ( !empty( $event ) ) {
 				delete_comment_meta( $comment_id, 'akismet_error' );
-				self::update_comment_history( $comment_id, $msg, 'cron-retry' );
+				self::update_comment_history( $comment_id, '', $event );
 				update_comment_meta( $comment_id, 'akismet_result', $status );
 				// make sure the comment status is still pending.  if it isn't, that means the user has already moved it elsewhere.
 				$comment = get_comment( $comment_id );
@@ -608,6 +642,7 @@ class Akismet {
 
 				delete_comment_meta( $comment_id, 'akismet_rechecking' );
 				wp_schedule_single_event( time() + 1200, 'akismet_schedule_cron_recheck' );
+				do_action( 'akismet_scheduled_recheck', 'check-db-comment-' . $status );
 				return;
 			}
 			delete_comment_meta( $comment_id, 'akismet_rechecking' );
@@ -616,6 +651,7 @@ class Akismet {
 		$remaining = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->commentmeta} WHERE meta_key = 'akismet_error'" );
 		if ( $remaining && !wp_next_scheduled('akismet_schedule_cron_recheck') ) {
 			wp_schedule_single_event( time() + 1200, 'akismet_schedule_cron_recheck' );
+			do_action( 'akismet_scheduled_recheck', 'remaining' );
 		}
 	}
 
@@ -633,6 +669,7 @@ class Akismet {
 		if ( $future_check > $check_range ) {
 			wp_clear_scheduled_hook( 'akismet_schedule_cron_recheck' );
 			wp_schedule_single_event( time() + 300, 'akismet_schedule_cron_recheck' );
+			do_action( 'akismet_scheduled_recheck', 'fix-scheduled-recheck' );
 		}
 	}
 
@@ -673,8 +710,21 @@ class Akismet {
 		return (
 			   isset( $comment1['comment_post_ID'], $comment2['comment_post_ID'] )
 			&& intval( $comment1['comment_post_ID'] ) == intval( $comment2['comment_post_ID'] )
-			&& $comment1['comment_author'] == $comment2['comment_author']
-			&& $comment1['comment_author_email'] == $comment2['comment_author_email']
+			&& (
+				// The comment author length max is 255 characters, limited by the TINYTEXT column type.
+				substr( $comment1['comment_author'], 0, 255 ) == substr( $comment2['comment_author'], 0, 255 )
+				|| substr( stripslashes( $comment1['comment_author'] ), 0, 255 ) == substr( $comment2['comment_author'], 0, 255 )
+				|| substr( $comment1['comment_author'], 0, 255 ) == substr( stripslashes( $comment2['comment_author'] ), 0, 255 )
+				)
+			&& (
+				// The email max length is 100 characters, limited by the VARCHAR(100) column type.
+				substr( $comment1['comment_author_email'], 0, 100 ) == substr( $comment2['comment_author_email'], 0, 100 )
+				|| substr( stripslashes( $comment1['comment_author_email'] ), 0, 100 ) == substr( $comment2['comment_author_email'], 0, 100 )
+				|| substr( $comment1['comment_author_email'], 0, 100 ) == substr( stripslashes( $comment2['comment_author_email'] ), 0, 100 )
+				// Very long emails can be truncated and then stripped if the [0:100] substring isn't a valid address.
+				|| ( ! $comment1['comment_author_email'] && strlen( $comment2['comment_author_email'] ) > 100 )
+				|| ( ! $comment2['comment_author_email'] && strlen( $comment1['comment_author_email'] ) > 100 )
+			)
 		);
 	}
 	
@@ -809,13 +859,77 @@ class Akismet {
 			'timeout' => 15
 		);
 
-		$akismet_url = "http://{$http_host}/1.1/{$path}";
-		$response = wp_remote_post( $akismet_url, $http_args );
-		Akismet::log( compact( 'akismet_url', 'http_args', 'response' ) );
-		if ( is_wp_error( $response ) )
-			return array( '', '' );
+		$akismet_url = $http_akismet_url = "http://{$http_host}/1.1/{$path}";
 
-		return array( $response['headers'], $response['body'] );
+		/**
+		 * Try SSL first; if that fails, try without it and don't try it again for a while.
+		 */
+
+		$ssl = $ssl_failed = false;
+
+		// Check if SSL requests were disabled fewer than X hours ago.
+		$ssl_disabled = get_option( 'akismet_ssl_disabled' );
+
+		if ( $ssl_disabled && $ssl_disabled < ( time() - 60 * 60 * 24 ) ) { // 24 hours
+			$ssl_disabled = false;
+			delete_option( 'akismet_ssl_disabled' );
+		}
+		else if ( $ssl_disabled ) {
+			do_action( 'akismet_ssl_disabled' );
+		}
+
+		if ( ! $ssl_disabled && function_exists( 'wp_http_supports') && ( $ssl = wp_http_supports( array( 'ssl' ) ) ) ) {
+			$akismet_url = set_url_scheme( $akismet_url, 'https' );
+
+			do_action( 'akismet_https_request_pre' );
+		}
+
+		$response = wp_remote_post( $akismet_url, $http_args );
+
+		Akismet::log( compact( 'akismet_url', 'http_args', 'response' ) );
+
+		if ( $ssl && is_wp_error( $response ) ) {
+			do_action( 'akismet_https_request_failure', $response );
+
+			// Intermittent connection problems may cause the first HTTPS
+			// request to fail and subsequent HTTP requests to succeed randomly.
+			// Retry the HTTPS request once before disabling SSL for a time.
+			$response = wp_remote_post( $akismet_url, $http_args );
+			
+			Akismet::log( compact( 'akismet_url', 'http_args', 'response' ) );
+
+			if ( is_wp_error( $response ) ) {
+				$ssl_failed = true;
+
+				do_action( 'akismet_https_request_failure', $response );
+
+				do_action( 'akismet_http_request_pre' );
+
+				// Try the request again without SSL.
+				$response = wp_remote_post( $http_akismet_url, $http_args );
+
+				Akismet::log( compact( 'http_akismet_url', 'http_args', 'response' ) );
+			}
+		}
+
+		if ( is_wp_error( $response ) ) {
+			do_action( 'akismet_request_failure', $response );
+
+			return array( '', '' );
+		}
+
+		if ( $ssl_failed ) {
+			// The request failed when using SSL but succeeded without it. Disable SSL for future requests.
+			update_option( 'akismet_ssl_disabled', time() );
+			
+			do_action( 'akismet_https_disabled' );
+		}
+		
+		$simplified_response = array( $response['headers'], $response['body'] );
+		
+		self::update_alert( $simplified_response );
+
+		return $simplified_response;
 	}
 
 	// given a response from an API call like check_key_status(), update the alert code options if an alert is present.
@@ -931,7 +1045,7 @@ p {
 	 * @static
 	 */
 	public static function plugin_deactivation( ) {
-		//tidy up
+		return self::deactivate_key( self::get_api_key() );
 	}
 	
 	/**
@@ -955,5 +1069,88 @@ p {
 		if ( apply_filters( 'akismet_debug_log', defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) ) {
 			error_log( print_r( compact( 'akismet_debug' ), true ) );
 		}
+	}
+
+	public static function pre_check_pingback( $method ) {
+		if ( $method !== 'pingback.ping' )
+			return;
+
+		global $wp_xmlrpc_server;
+	
+		if ( !is_object( $wp_xmlrpc_server ) )
+			return false;
+	
+		// Lame: tightly coupled with the IXR class.
+		$args = $wp_xmlrpc_server->message->params;
+	
+		if ( !empty( $args[1] ) ) {
+			$post_id = url_to_postid( $args[1] );
+
+			// If this gets through the pre-check, make sure we properly identify the outbound request as a pingback verification
+			Akismet::pingback_forwarded_for( null, $args[0] );
+			add_filter( 'http_request_args', array( 'Akismet', 'pingback_forwarded_for' ), 10, 2 );
+
+			$comment = array(
+				'comment_author_url' => $args[0],
+				'comment_post_ID' => $post_id,
+				'comment_author' => '',
+				'comment_author_email' => '',
+				'comment_content' => '',
+				'comment_type' => 'pingback',
+				'akismet_pre_check' => '1',
+				'comment_pingback_target' => $args[1],
+			);
+
+			$comment = Akismet::auto_check_comment( $comment );
+
+			if ( isset( $comment['akismet_result'] ) && 'true' == $comment['akismet_result'] ) {
+				// Lame: tightly coupled with the IXR classes. Unfortunately the action provides no context and no way to return anything.
+				$wp_xmlrpc_server->error( new IXR_Error( 0, 'Invalid discovery target' ) );
+			}
+		}
+	}
+	
+	public static function pingback_forwarded_for( $r, $url ) {
+		static $urls = array();
+	
+		// Call this with $r == null to prime the callback to add headers on a specific URL
+		if ( is_null( $r ) && !in_array( $url, $urls ) ) {
+			$urls[] = $url;
+		}
+
+		// Add X-Pingback-Forwarded-For header, but only for requests to a specific URL (the apparent pingback source)
+		if ( is_array( $r ) && is_array( $r['headers'] ) && !isset( $r['headers']['X-Pingback-Forwarded-For'] ) && in_array( $url, $urls ) ) {
+			$remote_ip = preg_replace( '/[^a-fx0-9:.,]/i', '', $_SERVER['REMOTE_ADDR'] );
+		
+			// Note: this assumes REMOTE_ADDR is correct, and it may not be if a reverse proxy or CDN is in use
+			$r['headers']['X-Pingback-Forwarded-For'] = $remote_ip;
+
+			// Also identify the request as a pingback verification in the UA string so it appears in logs
+			$r['user-agent'] .= '; verifying pingback from ' . $remote_ip;
+		}
+
+		return $r;
+	}
+	
+	/**
+	 * Ensure that we are loading expected scalar values from akismet_as_submitted commentmeta.
+	 *
+	 * @param mixed $meta_value
+	 * @return mixed
+	 */
+	private static function sanitize_comment_as_submitted( $meta_value ) {
+		if ( empty( $meta_value ) ) {
+			return $meta_value;
+		}
+
+		$meta_value = (array) $meta_value;
+
+		foreach ( $meta_value as $key => $value ) {
+			if ( ! isset( self::$comment_as_submitted_allowed_keys[$key] ) || ! is_scalar( $value ) ) {
+				unset( $meta_value[$key] );
+			}
+		}
+
+		return $meta_value;
 	}
 }

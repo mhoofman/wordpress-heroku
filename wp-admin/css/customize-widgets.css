@@ -14,6 +14,10 @@
 	display: none;
 }
 
+.control-section.control-section-sidebar .accordion-section-content.ui-sortable {
+	overflow: visible;
+}
+
 .customize-control-widget_form .widget-top {
 	-webkit-transition: opacity 0.5s;
 	transition: opacity 0.5s;
@@ -23,13 +27,17 @@
 	opacity: 0.5;
 }
 
-.customize-control-widget_form .widget-control-save,
-.customize-control-widget_form .spinner {
+.customize-control-widget_form .widget-control-save {
 	display: none;
 }
 
+.customize-control-widget_form .spinner {
+	visibility: hidden;
+	margin-top: 0;
+}
+
 .customize-control-widget_form.previewer-loading .spinner {
-	display: inline;
+	visibility: visible;
 }
 
 .customize-control-widget_form.widget-form-disabled .widget-content {
@@ -109,39 +117,8 @@
 }
 
 /**
-* Widget reordering styles
-**/
-
-.reorder-toggle {
-	float: right;
-	padding: 5px 8px;
-	text-decoration: none;
-	cursor: pointer;
-	outline: none;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
-.reorder-toggle:focus {
-	outline: 1px dotted;
-}
-
-.reorder-done,
-.reordering .reorder {
-	display: none;
-}
-
-.reordering .reorder-done {
-	display: block;
-	color: #aa0000;
-}
-
-#customize-theme-controls .reordering .add-new-widget {
-	opacity: 0.2;
-	pointer-events: none;
-	cursor: not-allowed;
-}
+ * Widget reordering styles
+ */
 
 #customize-theme-controls .widget-reorder-nav {
 	display: none;
@@ -156,7 +133,7 @@
 	display: block;
 	width: 33px; /* was 42px for mobile */
 	height: 43px;
-	color: #888;
+	color: #82878c;
 	text-indent: -9999px;
 	cursor: pointer;
 	outline: none;
@@ -169,7 +146,7 @@
 	right: 0;
 	width: 100%;
 	height: 100%;
-	font: normal 20px/43px 'dashicons';
+	font: normal 20px/43px dashicons;
 	text-align: center;
 	text-indent: 0;
 	-webkit-font-smoothing: antialiased;
@@ -183,15 +160,15 @@
 }
 
 .move-widget:before {
-	content: '\f504';
+	content: "\f504";
 }
 
 .move-widget-down:before {
-	content: '\f347';
+	content: "\f347";
 }
 
 .move-widget-up:before {
-	content: '\f343';
+	content: "\f343";
 }
 
 #customize-theme-controls .first-widget .move-widget-up,
@@ -200,7 +177,7 @@
 	cursor: default;
 }
 
-#customize-theme-controls  .move-widget-area {
+#customize-theme-controls .move-widget-area {
 	display: none;
 	background: #fff;
 	border: 1px solid #dedede;
@@ -239,11 +216,11 @@
 
 #customize-theme-controls .widget-area-select li:before {
 	display: none;
-	content: '\f147';
+	content: "\f147";
 	position: absolute;
 	top: 12px;
 	left: 10px;
-	font: normal 20px/1 'dashicons';
+	font: normal 20px/1 dashicons;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
@@ -255,7 +232,7 @@
 #customize-theme-controls .widget-area-select .selected {
 	color: #fff;
 	text-shadow: 0 -1px 0 rgba(0,0,0,.4);
-	background: #2ea2cc;
+	background: #00a0d2;
 }
 
 #customize-theme-controls .widget-area-select .selected:before {
@@ -275,47 +252,20 @@
 	display: block;
 }
 
-
 /**
  * Styles for new widget addition panel
  */
+
 .wp-full-overlay-main {
 	right: auto; /* this overrides a right: 0; which causes the preview to resize, I'd rather have it go off screen at the normal size. */
 	width: 100%;
-}
-
-#customize-theme-controls .add-new-widget {
-	cursor: pointer;
-	float: right;
-	margin-left: 10px;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	outline: none;
-}
-
-.add-new-widget:before {
-	content: "\f132";
-	display: inline-block;
-	position: relative;
-	left: -2px;
-	top: -1px;
-	font: normal 20px/1 'dashicons';
-	vertical-align: middle;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
 }
 
 body.adding-widget .add-new-widget,
 body.adding-widget .add-new-widget:hover {
 	background: #eee;
 	border-color: #999;
-	color: #333;
+	color: #32373c;
 	-webkit-box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
 	box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
 }
@@ -337,21 +287,41 @@ body.adding-widget .add-new-widget:before {
 
 #available-widgets {
 	position: absolute;
-	overflow: auto;
 	top: 0;
 	bottom: 0;
 	left: -301px;
+	visibility: hidden;
+	overflow: auto;
 	width: 300px;
 	margin: 0;
 	z-index: 1;
-	background: #fff;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	border-right: 1px solid #dddddd;
+	background: #eee !important;
+	-webkit-transition: left .18s;
+	transition: left .18s;
+	border-right: 1px solid #ddd;
+}
+
+.ios #available-widgets {
+	-webkit-transition: left 0s;
+	transition: left 0s;
+}
+
+#available-widgets-list {
+	top: 46px;
+	position: absolute;
+	overflow: auto;
+	bottom: 0;
+	width: 100%;
 }
 
 #available-widgets-filter {
+	position: fixed;
+	top: 0;
+	z-index: 1;
+	width: 300px;
+	height: 46px;
 	padding: 8px 17px 7px 13px;
+	background: #eee;
 	border-bottom: 1px solid #e4e4e4;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -366,6 +336,7 @@ body.adding-widget .add-new-widget:before {
 #available-widgets .widget-tpl {
 	position: relative;
 	padding: 20px 15px 20px 60px;
+	background: #fff;
 	border-bottom: 1px solid #e4e4e4;
 	cursor: pointer;
 	display: none;
@@ -373,7 +344,8 @@ body.adding-widget .add-new-widget:before {
 
 #available-widgets .widget-tpl:hover,
 #available-widgets .widget-tpl.selected {
-	background: #fafafa;
+	background: #eee;
+	border-bottom-color: #ccc;
 }
 
 #available-widgets .widget-top,
@@ -384,7 +356,11 @@ body.adding-widget .add-new-widget:before {
 	box-shadow: none;
 }
 
-#available-widgets .widget-title h4 {
+#customize-controls .widget-title h3 {
+	font-size: 1em;
+}
+
+#available-widgets .widget-title h3 {
 	padding: 0 0 5px;
 	font-size: 14px;
 }
@@ -401,6 +377,7 @@ body.adding-widget .add-new-widget:before {
 
 body.adding-widget #available-widgets {
 	left: 0;
+	visibility: visible;
 }
 
 body.adding-widget .wp-full-overlay-main {
@@ -416,7 +393,8 @@ body.adding-widget #customize-preview {
  * Widget Icon styling
  * No plurals in naming.
  * Ordered from lowest to highest specificity.
- **/
+ */
+
 #available-widgets .widget-title {
 	position: relative;
 }
@@ -429,8 +407,8 @@ body.adding-widget #customize-preview {
 	margin-right: 20px;
 	width: 20px;
 	height: 20px;
-	color: #333;
-	font: normal 20px/1 'dashicons';
+	color: #32373c;
+	font: normal 20px/1 dashicons;
 	text-align: center;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -565,9 +543,12 @@ body.adding-widget #customize-preview {
 #available-widgets [class*="tweet"] .widget-title:before,
 #available-widgets [class*="twitter"] .widget-title:before { content: "\f301"; }
 
+#available-widgets .customize-section-title {
+	display: none;
+}
 
 @media screen and (max-height: 700px) and (min-width: 981px) {
-	.customize-control {
+	.customize-control-widget {
 		margin-bottom: 0;
 	}
 	.widget-top {
@@ -582,11 +563,8 @@ body.adding-widget #customize-preview {
 	.last-widget {
 		margin-bottom: 15px;
 	}
-	.widget-title h4 {
+	.widget-title h3 {
 		padding: 13px 15px;
-	}
-	.widget-top a.widget-action:after {
-		padding-top: 9px;
 	}
 	.widget-reorder-nav span {
 		height: 39px;
@@ -599,5 +577,57 @@ body.adding-widget #customize-preview {
 	}
 	#customize-theme-controls .widget-area-select li:before {
 		top: 8px;
+	}
+}
+
+@media screen and ( max-width: 640px ) {
+	body.adding-widget div#available-widgets {
+		top: 46px;
+		left: 0;
+		z-index: 10;
+		width: 100%;
+	}
+
+	#available-widgets .customize-section-title {
+		display: block;
+		margin: 0;
+	}
+
+	#available-widgets .customize-section-back {
+		height: 69px;
+	}
+
+	#available-widgets .customize-section-title h3 {
+		font-size: 20px;
+		font-weight: 200;
+		padding: 9px 10px 12px 14px;
+		margin: 0;
+		line-height: 24px;
+		color: #555;
+		display: block;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	#available-widgets .customize-section-title .customize-action {
+		font-size: 13px;
+		display: block;
+		font-weight: 400;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	#available-widgets-filter {
+		position: relative;
+		width: 100%;
+		background: #fff;
+		height: auto;
+		padding: 10px 15px;
+	}
+
+	#available-widgets-list {
+		top: 140px;
 	}
 }

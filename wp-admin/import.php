@@ -25,7 +25,7 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Tools_Import_Screen" target="_blank">Documentation on Import</a>') . '</p>' .
+	'<p>' . __('<a href="https://codex.wordpress.org/Tools_Import_Screen" target="_blank">Documentation on Import</a>') . '</p>' .
 	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
@@ -52,7 +52,7 @@ $parent_file = 'tools.php';
 ?>
 
 <div class="wrap">
-<h2><?php echo esc_html( $title ); ?></h2>
+<h1><?php echo esc_html( $title ); ?></h1>
 <?php if ( ! empty( $_GET['invalid'] ) ) : ?>
 	<div class="error"><p><strong><?php _e('ERROR:')?></strong> <?php printf( __('The <strong>%s</strong> importer is invalid or is not installed.'), esc_html( $_GET['invalid'] ) ); ?></p></div>
 <?php endif; ?>
@@ -76,10 +76,9 @@ if ( empty( $importers ) ) {
 } else {
 	uasort( $importers, '_usort_by_first_member' );
 ?>
-<table class="widefat importers">
+<table class="widefat importers striped">
 
 <?php
-	$alt = '';
 	foreach ($importers as $importer_id => $data) {
 		$action = '';
 		if ( isset( $data['install'] ) ) {
@@ -108,9 +107,8 @@ if ( empty( $importers ) ) {
 			$action = "<a href='" . esc_url( "admin.php?import=$importer_id" ) . "' title='" . esc_attr( wptexturize( strip_tags( $data[1] ) ) ) ."'>{$data[0]}</a>";
 		}
 
-		$alt = $alt ? '' : ' class="alternate"';
 		echo "
-			<tr$alt>
+			<tr>
 				<td class='import-system row-title'>$action</td>
 				<td class='desc'>{$data[1]}</td>
 			</tr>";

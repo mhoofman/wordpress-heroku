@@ -101,10 +101,6 @@ ul.add-menu-item-tabs li {
 	margin-top: 1px;
 }
 
-.menu-edit p {
-	margin: .3em 0 .6em;
-}
-
 .menu-edit #post-body-content h3 {
 	margin: 1em 0 10px;
 }
@@ -216,8 +212,16 @@ ul.add-menu-item-tabs li {
 	margin-top: -2px;
 }
 
-.widefat td.menu-location-menus {
-	padding-bottom: 5px;
+.widefat .menu-locations tr + tr td {
+	padding-top: 0;
+}
+
+.widefat .menu-locations td {
+	vertical-align: middle;
+}
+
+.menu-location-title label {
+	font-weight: bold;
 }
 
 .menu-location-menus select {
@@ -259,7 +263,7 @@ ul.add-menu-item-tabs li {
 }
 
 .js .input-with-default-title {
-	color: #aaa;
+	color: #a0a5aa;
 	font-style: italic;
 }
 
@@ -345,11 +349,6 @@ ul.add-menu-item-tabs li {
 	float: right;
 }
 
-.postbox .spinner {
-	display: none;
-	vertical-align: middle;
-}
-
 .button-controls {
 	clear:both;
 	margin: 10px 0;
@@ -402,6 +401,11 @@ ul.add-menu-item-tabs li {
 /* Menu item types */
 .quick-search {
 	width: 190px;
+}
+
+.quick-search-wrap .spinner {
+	float: none;
+	margin: -3px -10px 0 0;
 }
 
 .nav-menus-php .list-wrap {
@@ -513,11 +517,11 @@ ul.add-menu-item-tabs li {
 }
 
 /* Sortables */
-li.menu-item.ui-sortable-helper dl {
+li.menu-item.ui-sortable-helper .menu-item-bar {
 	margin-top: 0;
 }
 
-li.menu-item.ui-sortable-helper .menu-item-transport dl {
+li.menu-item.ui-sortable-helper .menu-item-transport .menu-item-bar {
 	margin-top: 13px;
 }
 
@@ -525,6 +529,11 @@ li.menu-item.ui-sortable-helper .menu-item-transport dl {
 	height: 35px;
 	width: 410px;
 	margin-top: 13px;
+}
+
+/* Hide the transport list when it's empty */
+.menu-item .menu-item-transport:empty {
+	display: none;
 }
 
 /* WARNING: The factor of 30px is hardcoded into the nav-menus JavaScript. */
@@ -569,11 +578,11 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 
 /* Menu item controls */
 .item-type {
-	color: #777;
+	display: inline-block;
+	padding: 12px 16px;
+	color: #666;
 	font-size: 12px;
-	padding: 12px 10px;
 	line-height: 18px;
-	display: block;
 }
 
 .item-controls {
@@ -607,6 +616,33 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 	outline: none;
 	overflow: hidden;
 	white-space: nowrap;
+}
+
+.nav-menus-php .item-edit:before {
+	margin-top: 10px;
+	margin-left: 4px;
+	width: 20px;
+	-webkit-border-radius: 50%;
+	border-radius: 50%;
+	text-indent: -1px; /* account for the dashicon alignment */
+}
+
+.rtl .nav-menus-php .item-edit:before {
+	text-indent: 1px; /* account for the dashicon alignment */
+}
+
+.nav-menus-php .item-edit:focus {
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.nav-menus-php .item-edit:focus:before {
+	-webkit-box-shadow:
+    	0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+    box-shadow:
+    	0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
 /* Menu editing */
@@ -671,7 +707,6 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 
 .description-thin {
 	width: 190px;
-	height: 40px;
 }
 
 .description-wide {
@@ -709,14 +744,14 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 }
 
 .nav-menus-php .submitbox .submitcancel {
-	border-bottom: 1px solid #0074a2;
+	border-bottom: 1px solid #0073aa;
 	padding: 1px 2px;
-	color: #0074a2;
+	color: #0073aa;
 	text-decoration: none;
 }
 
 .nav-menus-php .submitbox .submitcancel:hover {
-	background: #0074a2;
+	background: #0073aa;
 	color: #fff;
 }
 
@@ -751,6 +786,24 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 
 /* =Media Queries
 -------------------------------------------------------------- */
+
+@media only screen and (min-width: 769px) and (max-width: 1000px){
+	body.menu-max-depth-0 {
+		min-width: 0 !important;
+	}
+
+	#menu-management-liquid{
+		width: 100%;
+	}
+
+	.nav-menus-php #post-body-content{
+		min-width: 0;
+	}
+
+	.menu-item-bar .menu-item-handle{
+		width: 90%;
+	}
+}
 
 @media screen and ( max-width: 782px ) {
 	body.nav-menus-php {
@@ -825,11 +878,15 @@ body.menu-max-depth-11 { min-width: 1280px !important; }
 	.menu-item-settings .description-thin,
 	.menu-item-settings .description-wide {
 		width: 100%;
-		height: auto;
 	}
 
 	.menu-item-settings input {
 		width: 100%;
+	}
+
+	.menu-item-settings input[type="checkbox"],
+	.menu-item-settings input[type="radio"] {
+		width: 25px;
 	}
 
 	.menu-settings dl {

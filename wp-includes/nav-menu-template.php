@@ -71,6 +71,7 @@ class Walker_Nav_Menu extends Walker {
 	 * @see Walker::start_el()
 	 *
 	 * @since 3.0.0
+	 * @since 4.4.0 'nav_menu_item_args' filter was added.
 	 *
 	 * @param string $output Passed by reference. Used to append additional content.
 	 * @param object $item   Menu item data object.
@@ -83,6 +84,17 @@ class Walker_Nav_Menu extends Walker {
 
 		$classes = empty( $item->classes ) ? array() : (array) $item->classes;
 		$classes[] = 'menu-item-' . $item->ID;
+
+		/**
+		 * Filter the arguments for a single nav menu item.
+		 *
+		 * @since 4.4.0
+		 *
+		 * @param array  $args  An array of arguments.
+		 * @param object $item  Menu item data object.
+		 * @param int    $depth Depth of menu item. Used for padding.
+		 */
+		$args = apply_filters( 'nav_menu_item_args', $args, $item, $depth );
 
 		/**
 		 * Filter the CSS class(es) applied to a menu item's list item element.
@@ -148,10 +160,24 @@ class Walker_Nav_Menu extends Walker {
 			}
 		}
 
+		/** This filter is documented in wp-includes/post-template.php */
+		$title = apply_filters( 'the_title', $item->title, $item->ID );
+
+		/**
+		 * Filter a menu item's title.
+		 *
+		 * @since 4.4.0
+		 *
+		 * @param string $title The menu item's title.
+		 * @param object $item  The current menu item.
+		 * @param array  $args  An array of {@see wp_nav_menu()} arguments.
+		 * @param int    $depth Depth of menu item. Used for padding.
+		 */
+		$title = apply_filters( 'nav_menu_item_title', $title, $item, $args, $depth );
+
 		$item_output = $args->before;
 		$item_output .= '<a'. $attributes .'>';
-		/** This filter is documented in wp-includes/post-template.php */
-		$item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
+		$item_output .= $args->link_before . $title . $args->link_after;
 		$item_output .= '</a>';
 		$item_output .= $args->after;
 
@@ -195,6 +221,8 @@ class Walker_Nav_Menu extends Walker {
  *
  * @since 3.0.0
  *
+ * @staticvar array $menu_id_slugs
+ *
  * @param array $args {
  *     Optional. Array of nav menu arguments.
  *
@@ -205,7 +233,7 @@ class Walker_Nav_Menu extends Walker {
  *     @type string        $container       Whether to wrap the ul, and what to wrap it with. Default 'div'.
  *     @type string        $container_class Class that is applied to the container. Default 'menu-{menu slug}-container'.
  *     @type string        $container_id    The ID that is applied to the container. Default empty.
- *     @type callback|bool $fallback_cb     If the menu doesn't exists, a callback function will fire.
+ *     @type callable|bool $fallback_cb     If the menu doesn't exists, a callback function will fire.
  *                                          Default is 'wp_page_menu'. Set to false for no fallback.
  *     @type string        $before          Text before the link text. Default empty.
  *     @type string        $after           Text after the link text. Default empty.
@@ -219,7 +247,7 @@ class Walker_Nav_Menu extends Walker {
  *     @type string        $items_wrap      How the list items should be wrapped. Default is a ul with an id and class.
  *                                          Uses printf() format with numbered placeholders.
  * }
- * @return mixed Menu output if $echo is false, false if there are no items or no menu was found.
+ * @return object|false|void Menu output if $echo is false, false if there are no items or no menu was found.
  */
 function wp_nav_menu( $args = array() ) {
 	static $menu_id_slugs = array();
@@ -284,6 +312,10 @@ function wp_nav_menu( $args = array() ) {
 		}
 	}
 
+	if ( empty( $args->menu ) ) {
+		$args->menu = $menu;
+	}
+
 	// If the menu exists, get its items.
 	if ( $menu && ! is_wp_error($menu) && !isset($menu_items) )
 		$menu_items = wp_get_nav_menu_items( $menu->term_id, array( 'update_post_term_cache' => false ) );
@@ -297,7 +329,7 @@ function wp_nav_menu( $args = array() ) {
 	 *  - Otherwise, bail.
 	 */
 	if ( ( !$menu || is_wp_error($menu) || ( isset($menu_items) && empty($menu_items) && !$args->theme_location ) )
-		&& $args->fallback_cb && is_callable( $args->fallback_cb ) )
+		&& isset( $args->fallback_cb ) && $args->fallback_cb && is_callable( $args->fallback_cb ) )
 			return call_user_func( $args->fallback_cb, (array) $args );
 
 	if ( ! $menu || is_wp_error( $menu ) )
@@ -316,7 +348,7 @@ function wp_nav_menu( $args = array() ) {
 		 *                    Default is array containing 'div' and 'nav'.
 		 */
 		$allowed_tags = apply_filters( 'wp_nav_menu_container_allowedtags', array( 'div', 'nav' ) );
-		if ( in_array( $args->container, $allowed_tags ) ) {
+		if ( is_string( $args->container ) && in_array( $args->container, $allowed_tags ) ) {
 			$show_container = true;
 			$class = $args->container_class ? ' class="' . esc_attr( $args->container_class ) . '"' : ' class="menu-'. $menu->slug .'-container"';
 			$id = $args->container_id ? ' id="' . esc_attr( $args->container_id ) . '"' : '';
@@ -429,6 +461,9 @@ function wp_nav_menu( $args = array() ) {
  *
  * @access private
  * @since 3.0.0
+ *
+ * @global WP_Query   $wp_query
+ * @global WP_Rewrite $wp_rewrite
  *
  * @param array $menu_items The current menu item objects to which to add the class property information.
  */
@@ -543,12 +578,19 @@ function _wp_menu_item_classes_by_context( &$menu_items ) {
 			$active_parent_object_ids[] = (int) $menu_item->post_parent;
 			$active_object = $menu_item->object;
 
+		// if the menu item corresponds to the currently-queried post type archive
+		} elseif (
+			'post_type_archive' == $menu_item->type &&
+			is_post_type_archive( array( $menu_item->object ) )
+		) {
+			$classes[] = 'current-menu-item';
+			$menu_items[$key]->current = true;
 		// if the menu item corresponds to the currently-requested URL
-		} elseif ( 'custom' == $menu_item->object ) {
+		} elseif ( 'custom' == $menu_item->object && isset( $_SERVER['HTTP_HOST'] ) ) {
 			$_root_relative_current = untrailingslashit( $_SERVER['REQUEST_URI'] );
 			$current_url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_root_relative_current );
 			$raw_item_url = strpos( $menu_item->url, '#' ) ? substr( $menu_item->url, 0, strpos( $menu_item->url, '#' ) ) : $menu_item->url;
-			$item_url = untrailingslashit( $raw_item_url );
+			$item_url = set_url_scheme( untrailingslashit( $raw_item_url ) );
 			$_indexless_current = untrailingslashit( preg_replace( '/' . preg_quote( $wp_rewrite->index, '/' ) . '$/', '', $current_url ) );
 
 			if ( $raw_item_url && in_array( $item_url, array( $current_url, $_indexless_current, $_root_relative_current ) ) ) {
@@ -651,13 +693,17 @@ function _wp_menu_item_classes_by_context( &$menu_items ) {
  *
  * @uses Walker_Nav_Menu to create HTML list content.
  * @since 3.0.0
- * @see Walker::walk() for parameters and return description.
+ *
+ * @param array  $items
+ * @param int    $depth
+ * @param object $r
+ * @return string
  */
 function walk_nav_menu_tree( $items, $depth, $r ) {
 	$walker = ( empty($r->walker) ) ? new Walker_Nav_Menu : $r->walker;
 	$args = array( $items, $depth, $r );
 
-	return call_user_func_array( array($walker, 'walk'), $args );
+	return call_user_func_array( array( $walker, 'walk' ), $args );
 }
 
 /**
@@ -665,12 +711,17 @@ function walk_nav_menu_tree( $items, $depth, $r ) {
  *
  * @since 3.0.1
  * @access private
+ *
+ * @staticvar array $used_ids
+ * @param string $id
+ * @param object $item
+ * @return string
  */
 function _nav_menu_item_id_use_once( $id, $item ) {
 	static $_used_ids = array();
-	if ( in_array( $item->ID, $_used_ids ) )
+	if ( in_array( $item->ID, $_used_ids ) ) {
 		return '';
+	}
 	$_used_ids[] = $item->ID;
 	return $id;
 }
-add_filter( 'nav_menu_item_id', '_nav_menu_item_id_use_once', 10, 2 );

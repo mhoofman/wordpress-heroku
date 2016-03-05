@@ -9,23 +9,50 @@
 /** WordPress Administration Bootstrap */
 require_once( dirname( __FILE__ ) . '/admin.php' );
 
-if ( !current_user_can('switch_themes') && !current_user_can('edit_theme_options') )
-	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+if ( ! current_user_can( 'switch_themes' ) && ! current_user_can( 'edit_theme_options' ) ) {
+	wp_die(
+		'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+		'<p>' . __( 'You are not allowed to edit theme options on this site.' ) . '</p>',
+		403
+	);
+}
 
 if ( current_user_can( 'switch_themes' ) && isset($_GET['action'] ) ) {
 	if ( 'activate' == $_GET['action'] ) {
 		check_admin_referer('switch-theme_' . $_GET['stylesheet']);
 		$theme = wp_get_theme( $_GET['stylesheet'] );
-		if ( ! $theme->exists() || ! $theme->is_allowed() )
-			wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+
+		if ( ! $theme->exists() || ! $theme->is_allowed() ) {
+			wp_die(
+				'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+				'<p>' . __( 'The requested theme does not exist.' ) . '</p>',
+				403
+			);
+		}
+
 		switch_theme( $theme->get_stylesheet() );
 		wp_redirect( admin_url('themes.php?activated=true') );
 		exit;
 	} elseif ( 'delete' == $_GET['action'] ) {
 		check_admin_referer('delete-theme_' . $_GET['stylesheet']);
 		$theme = wp_get_theme( $_GET['stylesheet'] );
-		if ( !current_user_can('delete_themes') || ! $theme->exists() )
-			wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+
+		if ( ! current_user_can( 'delete_themes' ) ) {
+			wp_die(
+				'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+				'<p>' . __( 'You are not allowed to delete this item.' ) . '</p>',
+				403
+			);
+		}
+
+		if ( ! $theme->exists() ) {
+			wp_die(
+				'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+				'<p>' . __( 'The requested theme does not exist.' ) . '</p>',
+				403
+			);
+		}
+
 		$active = wp_get_theme();
 		if ( $active->get( 'Template' ) == $_GET['stylesheet'] ) {
 			wp_redirect( admin_url( 'themes.php?delete-active-child=true' ) );
@@ -47,7 +74,8 @@ if ( current_user_can( 'switch_themes' ) ) {
 		'<ul><li>' . __( 'Hover or tap to see Activate and Live Preview buttons' ) . '</li>' .
 		'<li>' . __( 'Click on the theme to see the theme name, version, author, description, tags, and the Delete link' ) . '</li>' .
 		'<li>' . __( 'Click Customize for the current theme or Live Preview for any other theme to see a live preview' ) . '</li></ul>' .
-		'<p>' . __( 'The current theme is displayed highlighted as the first theme.' ) . '</p>';
+		'<p>' . __( 'The current theme is displayed highlighted as the first theme.' ) . '</p>' .
+		'<p>' . __( 'The search for installed themes will search for terms in their name, description, author, or tag.' ) . ' <span id="live-search-desc">' . __( 'The search results will be updated as you type.' ) . '</span></p>';
 
 	get_current_screen()->add_help_tab( array(
 		'id'      => 'overview',
@@ -87,7 +115,7 @@ if ( current_user_can( 'edit_theme_options' ) && current_user_can( 'customize' )
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
-	'<p>' . __( '<a href="http://codex.wordpress.org/Using_Themes" target="_blank">Documentation on Using Themes</a>' ) . '</p>' .
+	'<p>' . __( '<a href="https://codex.wordpress.org/Using_Themes" target="_blank">Documentation on Using Themes</a>' ) . '</p>' .
 	'<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
 );
 
@@ -107,9 +135,11 @@ wp_localize_script( 'theme', '_wpThemeSettings', array(
 		'adminUrl'      => parse_url( admin_url(), PHP_URL_PATH ),
 	),
  	'l10n' => array(
- 		'addNew' => __( 'Add New Theme' ),
- 		'search'  => __( 'Search Installed Themes' ),
+ 		'addNew'            => __( 'Add New Theme' ),
+ 		'search'            => __( 'Search Installed Themes' ),
  		'searchPlaceholder' => __( 'Search installed themes...' ), // placeholder (no ellipsis)
+		'themesFound'       => __( 'Number of Themes found: %d' ),
+		'noThemesFound'     => __( 'No themes found. Try a different search.' ),
   	),
 ) );
 
@@ -121,23 +151,23 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 
 <div class="wrap">
-	<h2><?php esc_html_e( 'Themes' ); ?>
+	<h1><?php esc_html_e( 'Themes' ); ?>
 		<span class="title-count theme-count"><?php echo count( $themes ); ?></span>
 	<?php if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
-		<a href="<?php echo admin_url( 'theme-install.php' ); ?>" class="hide-if-no-js add-new-h2"><?php echo esc_html_x( 'Add New', 'Add new theme' ); ?></a>
+		<a href="<?php echo admin_url( 'theme-install.php' ); ?>" class="hide-if-no-js page-title-action"><?php echo esc_html_x( 'Add New', 'Add new theme' ); ?></a>
 	<?php endif; ?>
-	</h2>
+	</h1>
 <?php
 if ( ! validate_current_theme() || isset( $_GET['broken'] ) ) : ?>
-<div id="message1" class="updated"><p><?php _e('The active theme is broken. Reverting to the default theme.'); ?></p></div>
+<div id="message1" class="updated notice is-dismissible"><p><?php _e('The active theme is broken. Reverting to the default theme.'); ?></p></div>
 <?php elseif ( isset($_GET['activated']) ) :
 		if ( isset( $_GET['previewed'] ) ) { ?>
-		<div id="message2" class="updated"><p><?php printf( __( 'Settings saved and theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div>
+		<div id="message2" class="updated notice is-dismissible"><p><?php printf( __( 'Settings saved and theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div>
 		<?php } else { ?>
-<div id="message2" class="updated"><p><?php printf( __( 'New theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div><?php
+<div id="message2" class="updated notice is-dismissible"><p><?php printf( __( 'New theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div><?php
 		}
 	elseif ( isset($_GET['deleted']) ) : ?>
-<div id="message3" class="updated"><p><?php _e('Theme deleted.') ?></p></div>
+<div id="message3" class="updated notice is-dismissible"><p><?php _e('Theme deleted.') ?></p></div>
 <?php elseif ( isset( $_GET['delete-active-child'] ) ) : ?>
 	<div id="message4" class="error"><p><?php _e( 'You cannot delete a theme while it has an active child theme.' ); ?></p></div>
 <?php
@@ -222,9 +252,14 @@ foreach ( $themes as $theme ) :
 	<div class="theme-author"><?php printf( __( 'By %s' ), $theme['author'] ); ?></div>
 
 	<?php if ( $theme['active'] ) { ?>
-		<h3 class="theme-name" id="<?php echo $aria_name; ?>"><span><?php _ex( 'Active:', 'theme' ); ?></span> <?php echo $theme['name']; ?></h3>
+		<h2 class="theme-name" id="<?php echo $aria_name; ?>">
+			<?php
+			/* translators: %s: theme name */
+			printf( __( '<span>Active:</span> %s' ), $theme['name'] );
+			?>
+		</h2>
 	<?php } else { ?>
-		<h3 class="theme-name" id="<?php echo $aria_name; ?>"><?php echo $theme['name']; ?></h3>
+		<h2 class="theme-name" id="<?php echo $aria_name; ?>"><?php echo $theme['name']; ?></h2>
 	<?php } ?>
 
 	<div class="theme-actions">
@@ -237,7 +272,6 @@ foreach ( $themes as $theme ) :
 		<a class="button button-secondary activate" href="<?php echo $theme['actions']['activate']; ?>"><?php _e( 'Activate' ); ?></a>
 		<?php if ( current_user_can( 'edit_theme_options' ) && current_user_can( 'customize' ) ) { ?>
 			<a class="button button-primary load-customize hide-if-no-customize" href="<?php echo $theme['actions']['customize']; ?>"><?php _e( 'Live Preview' ); ?></a>
-			<a class="button button-secondary hide-if-customize" href="<?php echo $theme['actions']['preview']; ?>"><?php _e( 'Preview' ); ?></a>
 		<?php } ?>
 	<?php } ?>
 
@@ -266,15 +300,18 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 
 <?php
 $can_delete = current_user_can( 'delete_themes' );
+$can_install = current_user_can( 'install_themes' );
 ?>
 <table>
 	<tr>
 		<th><?php _ex('Name', 'theme name'); ?></th>
 		<th><?php _e('Description'); ?></th>
 		<?php if ( $can_delete ) { ?>
-			<th></th>
+			<td></td>
 		<?php } ?>
-		</tr>
+		<?php if ( $can_install ) { ?>
+			<td></td>
+		<?php } ?>
 	</tr>
 	<?php foreach ( $broken_themes as $broken_theme ) : ?>
 		<tr>
@@ -291,6 +328,22 @@ $can_delete = current_user_can( 'delete_themes' );
 				?>
 				<td><a href="<?php echo esc_url( $delete_url ); ?>" class="button button-secondary delete-theme"><?php _e( 'Delete' ); ?></a></td>
 				<?php
+			}
+
+			if ( $can_install && 'theme_no_parent' === $broken_theme->errors()->get_error_code() ) {
+				$parent_theme_name = $broken_theme->get( 'Template' );
+				$parent_theme = themes_api( 'theme_information', array( 'slug' => urlencode( $parent_theme_name ) ) );
+
+				if ( ! is_wp_error( $parent_theme ) ) {
+					$install_url = add_query_arg( array(
+						'action' => 'install-theme',
+						'theme'  => urlencode( $parent_theme_name ),
+					), admin_url( 'update.php' ) );
+					$install_url = wp_nonce_url( $install_url, 'install-theme_' . $parent_theme_name );
+					?>
+					<td><a href="<?php echo esc_url( $install_url ); ?>" class="button button-secondary install-theme"><?php _e( 'Install Parent Theme' ); ?></a></td>
+					<?php
+				}
 			}
 			?>
 		</tr>
@@ -320,21 +373,25 @@ $can_delete = current_user_can( 'delete_themes' );
 	<div class="theme-author"><?php printf( __( 'By %s' ), '{{{ data.author }}}' ); ?></div>
 
 	<# if ( data.active ) { #>
-		<h3 class="theme-name" id="{{ data.id }}-name"><span><?php _ex( 'Active:', 'theme' ); ?></span> {{{ data.name }}}</h3>
+		<h2 class="theme-name" id="{{ data.id }}-name">
+			<?php
+			/* translators: %s: theme name */
+			printf( __( '<span>Active:</span> %s' ), '{{{ data.name }}}' );
+			?>
+		</h2>
 	<# } else { #>
-		<h3 class="theme-name" id="{{ data.id }}-name">{{{ data.name }}}</h3>
+		<h2 class="theme-name" id="{{ data.id }}-name">{{{ data.name }}}</h2>
 	<# } #>
 
 	<div class="theme-actions">
 
 	<# if ( data.active ) { #>
 		<# if ( data.actions.customize ) { #>
-			<a class="button button-primary customize load-customize hide-if-no-customize" href="{{ data.actions.customize }}"><?php _e( 'Customize' ); ?></a>
+			<a class="button button-primary customize load-customize hide-if-no-customize" href="{{{ data.actions.customize }}}"><?php _e( 'Customize' ); ?></a>
 		<# } #>
 	<# } else { #>
 		<a class="button button-secondary activate" href="{{{ data.actions.activate }}}"><?php _e( 'Activate' ); ?></a>
 		<a class="button button-primary load-customize hide-if-no-customize" href="{{{ data.actions.customize }}}"><?php _e( 'Live Preview' ); ?></a>
-		<a class="button button-secondary hide-if-customize" href="{{{ data.actions.preview }}}"><?php _e( 'Preview' ); ?></a>
 	<# } #>
 
 	</div>
@@ -350,7 +407,7 @@ $can_delete = current_user_can( 'delete_themes' );
 		<div class="theme-header">
 			<button class="left dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show previous theme' ); ?></span></button>
 			<button class="right dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show next theme' ); ?></span></button>
-			<button class="close dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Close overlay' ); ?></span></button>
+			<button class="close dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Close details dialog' ); ?></span></button>
 		</div>
 		<div class="theme-about">
 			<div class="theme-screenshots">
@@ -365,12 +422,12 @@ $can_delete = current_user_can( 'delete_themes' );
 				<# if ( data.active ) { #>
 					<span class="current-label"><?php _e( 'Current Theme' ); ?></span>
 				<# } #>
-				<h3 class="theme-name">{{{ data.name }}}<span class="theme-version"><?php printf( __( 'Version: %s' ), '{{{ data.version }}}' ); ?></span></h3>
-				<h4 class="theme-author"><?php printf( __( 'By %s' ), '{{{ data.authorAndUri }}}' ); ?></h4>
+				<h2 class="theme-name">{{{ data.name }}}<span class="theme-version"><?php printf( __( 'Version: %s' ), '{{ data.version }}' ); ?></span></h2>
+				<p class="theme-author"><?php printf( __( 'By %s' ), '{{{ data.authorAndUri }}}' ); ?></p>
 
 				<# if ( data.hasUpdate ) { #>
-				<div class="theme-update-message">
-					<h4 class="theme-update"><?php _e( 'Update Available' ); ?></h4>
+				<div class="notice notice-warning notice-alt notice-large">
+					<h3 class="notice-title"><?php _e( 'Update Available' ); ?></h3>
 					{{{ data.update }}}
 				</div>
 				<# } #>
@@ -396,7 +453,6 @@ $can_delete = current_user_can( 'delete_themes' );
 					<a href="{{{ data.actions.activate }}}" class="button button-secondary activate"><?php _e( 'Activate' ); ?></a>
 				<# } #>
 				<a href="{{{ data.actions.customize }}}" class="button button-primary load-customize hide-if-no-customize"><?php _e( 'Live Preview' ); ?></a>
-				<a href="{{{ data.actions.preview }}}" class="button button-secondary hide-if-customize"><?php _e( 'Preview' ); ?></a>
 			</div>
 
 			<# if ( ! data.active && data.actions['delete'] ) { #>

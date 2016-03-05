@@ -15,7 +15,7 @@
 			$visualEditor = $(),
 			$textTop = $( '#ed_toolbar' ),
 			$textEditor = $( '#content' ),
-			$textEditorClone = $( '<div id="content-textarea-clone"></div>' ),
+			$textEditorClone = $( '<div id="content-textarea-clone" class="wp-exclude-emoji"></div>' ),
 			$bottom = $( '#post-status-info' ),
 			$menuBar = $(),
 			$statusBar = $(),
@@ -177,7 +177,7 @@
 				var node = editor.selection.getNode(),
 					range, view, offset;
 
-				if ( editor.plugins.wpview && ( view = editor.plugins.wpview.getView( node ) ) ) {
+				if ( editor.wp && editor.wp.getView && ( view = editor.wp.getView( node ) ) ) {
 					offset = view.getBoundingClientRect();
 				} else {
 					range = editor.selection.getRng();
@@ -323,7 +323,7 @@
 			var windowPos = $window.scrollTop(),
 				type = event && event.type,
 				resize = type !== 'scroll',
-				visual = ( mceEditor && ! mceEditor.isHidden() ),
+				visual = mceEditor && ! mceEditor.isHidden(),
 				buffer = autoresizeMinHeight,
 				postBodyTop = $postBody.offset().top,
 				borderWidth = 1,
@@ -348,6 +348,11 @@
 				$top = $textTop;
 				$editor = $textEditor;
 				topHeight = heights.textTopHeight;
+			}
+
+			// TinyMCE still intializing.
+			if ( ! visual && ! $top.length ) {
+				return;
 			}
 
 			topPos = $top.parent().offset().top;
@@ -380,7 +385,8 @@
 						width: contentWrapWidth - ( borderWidth * 2 ) - ( visual ? 0 : ( $top.outerWidth() - $top.width() ) )
 					} );
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			} else {
 				// Maybe pin the top.
@@ -489,11 +495,8 @@
 						( windowPos + heights.windowHeight ) > ( editorPos + editorHeight + heights.bottomHeight + heights.statusBarHeight - borderWidth ) ) ) {
 					fixedBottom = false;
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
-
-					if ( ! advanced ) {
-						$statusBar.css( 'visibility', 'hidden' );
-					}
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			}
 
@@ -682,7 +685,13 @@
 		}
 
 		function off() {
-			var height = window.getUserSetting('ed_size');
+			var height = parseInt( window.getUserSetting( 'ed_size', 300 ), 10 );
+
+			if ( height < 50 ) {
+				height = 50;
+			} else if ( height > 5000 ) {
+				height = 5000;
+			}
 
 			// Scroll to the top when triggering this from JS.
 			// Ensures toolbars are reset properly.
@@ -1175,7 +1184,7 @@
 				$document.on( 'dfw-on.focus', mceBind ).on( 'dfw-off.focus', mceUnbind );
 
 				// Make sure the body focuses when clicking outside it.
-				editor.on( 'click', function( event ) {
+				editor.on( 'click', function( event ) {
 					if ( event.target === editor.getDoc().documentElement ) {
 						editor.focus();
 					}

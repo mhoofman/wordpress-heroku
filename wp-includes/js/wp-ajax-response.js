@@ -12,7 +12,7 @@ var wpAjax = jQuery.extend( {
 		return r;
 	},
 	parseAjaxResponse: function( x, r, e ) { // 1 = good, 0 = strange (bad data?), -1 = you lack permission
-		var parsed = {}, re = jQuery('#' + r).html(''), err = '';
+		var parsed = {}, re = jQuery('#' + r).empty(), err = '';
 
 		if ( x && typeof x == 'object' && x.getElementsByTagName('wp_ajax') ) {
 			parsed.responses = [];
@@ -50,7 +50,7 @@ var wpAjax = jQuery.extend( {
 		return true;
 	},
 	invalidateForm: function ( selector ) {
-		return jQuery( selector ).addClass( 'form-invalid' ).find('input:visible').change( function() { jQuery(this).closest('.form-invalid').removeClass( 'form-invalid' ); } );
+		return jQuery( selector ).addClass( 'form-invalid' ).find('input').one( 'change wp-check-valid-field', function() { jQuery(this).closest('.form-invalid').removeClass( 'form-invalid' ); } );
 	},
 	validateForm: function( selector ) {
 		selector = jQuery( selector );

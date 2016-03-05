@@ -1,11 +1,19 @@
 <?php
 /**
- * Themes List Table class.
+ * List Table API: WP_Themes_List_Table class
  *
  * @package WordPress
- * @subpackage List_Table
+ * @subpackage Administration
+ * @since 3.1.0
+ */
+
+/**
+ * Core class used to implement displaying installed themes in a list table.
+ *
  * @since 3.1.0
  * @access private
+ *
+ * @see WP_List_Table
  */
 class WP_Themes_List_Table extends WP_List_Table {
 
@@ -29,11 +37,18 @@ class WP_Themes_List_Table extends WP_List_Table {
 		) );
 	}
 
+	/**
+	 *
+	 * @return bool
+	 */
 	public function ajax_user_can() {
 		// Do not check edit_theme_options here. AJAX calls for available themes require switch_themes.
 		return current_user_can( 'switch_themes' );
 	}
 
+	/**
+	 * @access public
+	 */
 	public function prepare_items() {
 		$themes = wp_get_themes( array( 'allowed' => true ) );
 
@@ -67,6 +82,9 @@ class WP_Themes_List_Table extends WP_List_Table {
 		) );
 	}
 
+	/**
+	 * @access public
+	 */
 	public function no_items() {
 		if ( $this->search_terms || $this->features ) {
 			_e( 'No items found.' );
@@ -97,7 +115,6 @@ class WP_Themes_List_Table extends WP_List_Table {
 
 	/**
 	 * @param string $which
-	 * @return null
 	 */
 	public function tablenav( $which = 'top' ) {
 		if ( $this->get_pagination_arg( 'total_pages' ) <= 1 )
@@ -111,6 +128,9 @@ class WP_Themes_List_Table extends WP_List_Table {
 		<?php
 	}
 
+	/**
+	 * @access public
+	 */
 	public function display() {
 		wp_nonce_field( "fetch-list-" . get_class( $this ), '_ajax_fetch_list_nonce' );
 ?>
@@ -124,10 +144,17 @@ class WP_Themes_List_Table extends WP_List_Table {
 <?php
 	}
 
+	/**
+	 *
+	 * @return array
+	 */
 	public function get_columns() {
 		return array();
 	}
 
+	/**
+	 * @access public
+	 */
 	public function display_rows_or_placeholder() {
 		if ( $this->has_items() ) {
 			$this->display_rows();
@@ -138,6 +165,9 @@ class WP_Themes_List_Table extends WP_List_Table {
 		}
 	}
 
+	/**
+	 * @access public
+	 */
 	public function display_rows() {
 		$themes = $this->items;
 
@@ -152,16 +182,9 @@ class WP_Themes_List_Table extends WP_List_Table {
 
 			$activate_link = wp_nonce_url( "themes.php?action=activate&amp;template=" . urlencode( $template ) . "&amp;stylesheet=" . urlencode( $stylesheet ), 'switch-theme_' . $stylesheet );
 
-			$preview_link = esc_url( add_query_arg(
-				array( 'preview' => 1, 'template' => urlencode( $template ), 'stylesheet' => urlencode( $stylesheet ), 'preview_iframe' => true, 'TB_iframe' => 'true' ),
-				home_url( '/' ) ) );
-
 			$actions = array();
 			$actions['activate'] = '<a href="' . $activate_link . '" class="activatelink" title="'
 				. esc_attr( sprintf( __( 'Activate &#8220;%s&#8221;' ), $title ) ) . '">' . __( 'Activate' ) . '</a>';
-
-			$actions['preview'] = '<a href="' . $preview_link . '" class="hide-if-customize" title="'
-				. esc_attr( sprintf( __( 'Preview &#8220;%s&#8221;' ), $title ) ) . '">' . __( 'Preview' ) . '</a>';
 
 			if ( current_user_can( 'edit_theme_options' ) && current_user_can( 'customize' ) ) {
 				$actions['preview'] .= '<a href="' . wp_customize_url( $stylesheet ) . '" class="load-customize hide-if-no-customize">'
@@ -183,11 +206,11 @@ class WP_Themes_List_Table extends WP_List_Table {
 
 			?>
 
-			<a href="<?php echo $preview_link; ?>" class="screenshot hide-if-customize">
+			<span class="screenshot hide-if-customize">
 				<?php if ( $screenshot = $theme->get_screenshot() ) : ?>
 					<img src="<?php echo esc_url( $screenshot ); ?>" alt="" />
 				<?php endif; ?>
-			</a>
+			</span>
 			<a href="<?php echo wp_customize_url( $stylesheet ); ?>" class="screenshot load-customize hide-if-no-customize">
 				<?php if ( $screenshot = $theme->get_screenshot() ) : ?>
 					<img src="<?php echo esc_url( $screenshot ); ?>" alt="" />
@@ -213,7 +236,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 				<p><?php echo $theme->display('Description'); ?></p>
 				<?php if ( $theme->parent() ) {
 					printf( ' <p class="howto">' . __( 'This <a href="%1$s">child theme</a> requires its parent theme, %2$s.' ) . '</p>',
-						__( 'http://codex.wordpress.org/Child_Themes' ),
+						__( 'https://codex.wordpress.org/Child_Themes' ),
 						$theme->parent()->display( 'Name' ) );
 				} ?>
 			</div>

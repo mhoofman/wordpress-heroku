@@ -1,8 +1,8 @@
 /*!
- * jQuery UI CSS Framework 1.11.2
+ * jQuery UI CSS Framework 1.11.4
  * http://jqueryui.com
  *
- * Copyright 2014 jQuery Foundation and other contributors
+ * Copyright jQuery Foundation and other contributors
  * Released under the MIT license.
  * http://jquery.org/license
  *
@@ -93,10 +93,10 @@
 }
 
 /*!
- * jQuery UI Resizable 1.11.2
+ * jQuery UI Resizable 1.11.4
  * http://jqueryui.com
  *
- * Copyright 2014 jQuery Foundation and other contributors
+ * Copyright jQuery Foundation and other contributors
  * Released under the MIT license.
  * http://jquery.org/license
  */
@@ -128,7 +128,7 @@
 	bottom: -5px;
 	left: 0;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-e {
 	cursor: e-resize;
 	width: 7px;
@@ -136,7 +136,7 @@
 	top: 0;
 	height: 100%;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-w {
 	cursor: w-resize;
 	width: 7px;
@@ -144,7 +144,7 @@
 	top: 0;
 	height: 100%;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-se {
 	cursor: se-resize;
 	width: 12px;
@@ -152,7 +152,7 @@
 	right: 1px;
 	bottom: 1px;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-sw {
 	cursor: sw-resize;
 	width: 9px;
@@ -160,7 +160,7 @@
 	left: -5px;
 	bottom: -5px;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-nw {
 	cursor: nw-resize;
 	width: 9px;
@@ -168,7 +168,7 @@
 	left: -5px;
 	top: -5px;
 }
-/* @noflip */
+/* rtl:ignore */
 .ui-resizable-ne {
 	cursor: ne-resize;
 	width: 9px;
@@ -222,7 +222,7 @@
 .ui-button:focus {
 	background: #fafafa;
 	border-color: #999;
-	color: #222;
+	color: #23282d;
 }
 
 .ui-button:focus {
@@ -237,14 +237,14 @@
 .ui-button:active {
 	background: #eee;
 	border-color: #999;
-	color: #333;
+	color: #32373c;
 	-webkit-box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
 	box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
 }
 
 .ui-button[disabled],
 .ui-button:disabled {
-	color: #aaa !important;
+	color: #a0a5aa !important;
 	border-color: #ddd !important;
 	background: #f7f7f7 !important;
 	-webkit-box-shadow: none !important;
@@ -306,7 +306,7 @@
 }
 
 .ui-dialog-titlebar-close:before {
-	font: normal 20px/1 'dashicons';
+	font: normal 20px/1 dashicons;
 	vertical-align: top;
 	speak: none;
 	-webkit-font-smoothing: antialiased;
@@ -318,7 +318,7 @@
 }
 
 .ui-button.ui-dialog-titlebar-close:hover {
-	color: #2ea2cc;
+	color: #00a0d2;
 }
 
 .ui-dialog-titlebar-close .ui-button-text {

@@ -7,8 +7,11 @@
  */
 
 /**
- * @param int $post_id
- * @param bool|object $msg
+ * Loads the WP image-editing interface.
+ *
+ * @param int         $post_id Post ID.
+ * @param bool|object $msg     Optional. Message to display for image editor updates or errors.
+ *                             Default false.
  */
 function wp_image_editor($post_id, $msg = false) {
 	$nonce = wp_create_nonce("image_editor-$post_id");
@@ -43,7 +46,7 @@ function wp_image_editor($post_id, $msg = false) {
 	<div class="imgedit-settings">
 	<div class="imgedit-group">
 	<div class="imgedit-group-top">
-		<h3><?php _e( 'Scale Image' ); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h3>
+		<h2><?php _e( 'Scale Image' ); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h2>
 		<div class="imgedit-help">
 		<p><?php _e('You can proportionally scale the original image. For best results, scaling should be done before you crop, flip, or rotate. Images can only be scaled down, not up.'); ?></p>
 		</div>
@@ -62,7 +65,7 @@ function wp_image_editor($post_id, $msg = false) {
 
 	<div class="imgedit-group">
 	<div class="imgedit-group-top">
-		<h3><a onclick="imageEdit.toggleHelp(this);return false;" href="#"><?php _e('Restore Original Image'); ?> <span class="dashicons dashicons-arrow-down imgedit-help-toggle"></span></a></h3>
+		<h2><a onclick="imageEdit.toggleHelp(this);return false;" href="#"><?php _e('Restore Original Image'); ?> <span class="dashicons dashicons-arrow-down imgedit-help-toggle"></span></a></h2>
 		<div class="imgedit-help">
 		<p><?php _e('Discard any changes and restore the original image.');
 
@@ -81,7 +84,7 @@ function wp_image_editor($post_id, $msg = false) {
 
 	<div class="imgedit-group">
 	<div class="imgedit-group-top">
-		<h3><?php _e('Image Crop'); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h3>
+		<h2><?php _e( 'Image Crop' ); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h2>
 
 		<div class="imgedit-help">
 		<p><?php _e('To crop the image, click on it and drag to make your selection.'); ?></p>
@@ -119,7 +122,7 @@ function wp_image_editor($post_id, $msg = false) {
 
 	<div class="imgedit-group imgedit-applyto">
 	<div class="imgedit-group-top">
-		<h3><?php _e('Thumbnail Settings'); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h3>
+		<h2><?php _e( 'Thumbnail Settings' ); ?> <a href="#" class="dashicons dashicons-editor-help imgedit-help-toggle" onclick="imageEdit.toggleHelp(this);return false;"></a></h2>
 		<p class="imgedit-help"><?php _e('You can edit the image while preserving the thumbnail. For example, you may wish to have a square thumbnail that displays just a section of the image.'); ?></p>
 	</div>
 
@@ -181,7 +184,7 @@ function wp_image_editor($post_id, $msg = false) {
 		<input type="hidden" id="imgedit-y-<?php echo $post_id; ?>" value="<?php echo isset( $meta['height'] ) ? $meta['height'] : 0; ?>" />
 
 		<div id="imgedit-crop-<?php echo $post_id; ?>" class="imgedit-crop-wrap">
-		<img id="image-preview-<?php echo $post_id; ?>" onload="imageEdit.imgLoaded('<?php echo $post_id; ?>')" src="<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>?action=imgedit-preview&amp;_ajax_nonce=<?php echo $nonce; ?>&amp;postid=<?php echo $post_id; ?>&amp;rand=<?php echo rand(1, 99999); ?>" />
+		<img id="image-preview-<?php echo $post_id; ?>" onload="imageEdit.imgLoaded('<?php echo $post_id; ?>')" src="<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>?action=imgedit-preview&amp;_ajax_nonce=<?php echo $nonce; ?>&amp;postid=<?php echo $post_id; ?>&amp;rand=<?php echo rand(1, 99999); ?>" alt="<?php esc_attr_e( 'Image preview' ); ?>" />
 		</div>
 
 		<div class="imgedit-submit">
@@ -205,7 +208,7 @@ function wp_image_editor($post_id, $msg = false) {
  * @param WP_Image_Editor $image
  * @param string $mime_type
  * @param int $post_id
- * @return boolean
+ * @return bool
  */
 function wp_stream_image( $image, $mime_type, $post_id ) {
 	if ( $image instanceof WP_Image_Editor ) {
@@ -261,7 +264,7 @@ function wp_stream_image( $image, $mime_type, $post_id ) {
  * @param WP_Image_Editor $image
  * @param string $mime_type
  * @param int $post_id
- * @return boolean
+ * @return bool
  */
 function wp_save_image_file( $filename, $image, $mime_type, $post_id ) {
 	if ( $image instanceof WP_Image_Editor ) {
@@ -330,12 +333,31 @@ function wp_save_image_file( $filename, $image, $mime_type, $post_id ) {
 	}
 }
 
+/**
+ * Image preview ratio. Internal use only.
+ *
+ * @since 2.9.0
+ *
+ * @ignore
+ * @param int $w Image width in pixels.
+ * @param int $h Image height in pixels.
+ * @return float|int Image preview ratio.
+ */
 function _image_get_preview_ratio($w, $h) {
 	$max = max($w, $h);
 	return $max > 400 ? (400 / $max) : 1;
 }
 
-// @TODO: Returns GD resource, but is NOT public
+/**
+ * Returns an image resource. Internal use only.
+ *
+ * @since 2.9.0
+ *
+ * @ignore
+ * @param resource  $img   Image resource.
+ * @param float|int $angle Image rotation angle, in degrees.
+ * @return resource|false GD image resource, false otherwise.
+ */
 function _rotate_image_resource($img, $angle) {
 	_deprecated_function( __FUNCTION__, '3.5', __( 'Use WP_Image_Editor::rotate' ) );
 	if ( function_exists('imagerotate') ) {
@@ -349,14 +371,15 @@ function _rotate_image_resource($img, $angle) {
 }
 
 /**
- * @TODO: Only used within image_edit_apply_changes
- *		  and receives/returns GD Resource.
- *		  Consider removal.
+ * Flips an image resource. Internal use only.
  *
- * @param GD_Resource $img
- * @param boolean $horz
- * @param boolean $vert
- * @return GD_Resource
+ * @since 2.9.0
+ *
+ * @ignore
+ * @param resource $img  Image resource.
+ * @param bool     $horz Whether to flip horizontally.
+ * @param bool     $vert Whether to flip vertically.
+ * @return resource (maybe) flipped image resource.
  */
 function _flip_image_resource($img, $horz, $vert) {
 	_deprecated_function( __FUNCTION__, '3.5', __( 'Use WP_Image_Editor::flip' ) );
@@ -378,16 +401,17 @@ function _flip_image_resource($img, $horz, $vert) {
 }
 
 /**
- * @TODO: Only used within image_edit_apply_changes
- *		  and receives/returns GD Resource.
- *		  Consider removal.
+ * Crops an image resource. Internal use only.
  *
- * @param GD_Resource $img
- * @param float $x
- * @param float $y
- * @param float $w
- * @param float $h
- * @return GD_Resource
+ * @since 2.9.0
+ *
+ * @ignore
+ * @param resource $img Image resource.
+ * @param float    $x   Source point x-coordinate.
+ * @param float    $y   Source point y-cooredinate.
+ * @param float    $w   Source width.
+ * @param float    $h   Source height.
+ * @return resource (maybe) cropped image resource.
  */
 function _crop_image_resource($img, $x, $y, $w, $h) {
 	$dst = wp_imagecreatetruecolor($w, $h);
@@ -437,7 +461,7 @@ function image_edit_apply_changes( $image, $changes ) {
 	// Combine operations.
 	if ( count($changes) > 1 ) {
 		$filtered = array($changes[0]);
-		for ( $i = 0, $j = 1; $j < count($changes); $j++ ) {
+		for ( $i = 0, $j = 1, $c = count( $changes ); $j < $c; $j++ ) {
 			$combined = false;
 			if ( $filtered[$i]->type == $changes[$j]->type ) {
 				switch ( $filtered[$i]->type ) {
@@ -528,7 +552,7 @@ function image_edit_apply_changes( $image, $changes ) {
  * in $_REQUEST['history']
  *
  * @param int $post_id
- * @return boolean
+ * @return bool
  */
 function stream_preview_image( $post_id ) {
 	$post = get_post( $post_id );
@@ -561,13 +585,17 @@ function stream_preview_image( $post_id ) {
 }
 
 /**
- * @param int $post_id
- * @return stdClass
+ * Restores the metadata for a given attachment.
+ *
+ * @since 2.9.0
+ *
+ * @param int $post_id Attachment post ID.
+ * @return stdClass Image restoration message object.
  */
 function wp_restore_image($post_id) {
 	$meta = wp_get_attachment_metadata($post_id);
 	$file = get_attached_file($post_id);
-	$backup_sizes = get_post_meta( $post_id, '_wp_attachment_backup_sizes', true );
+	$backup_sizes = $old_backup_sizes = get_post_meta( $post_id, '_wp_attachment_backup_sizes', true );
 	$restored = false;
 	$msg = new stdClass;
 
@@ -586,12 +614,9 @@ function wp_restore_image($post_id) {
 		if ( $parts['basename'] != $data['file'] ) {
 			if ( defined('IMAGE_EDIT_OVERWRITE') && IMAGE_EDIT_OVERWRITE ) {
 
-				// Delete only if it's edited image.
+				// Delete only if it's an edited image.
 				if ( preg_match('/-e[0-9]{13}\./', $parts['basename']) ) {
-
-					/** This filter is documented in wp-admin/custom-header.php */
-					$delpath = apply_filters( 'wp_delete_file', $file );
-					@unlink($delpath);
+					wp_delete_file( $file );
 				}
 			} elseif ( isset( $meta['width'], $meta['height'] ) ) {
 				$backup_sizes["full-$suffix"] = array('width' => $meta['width'], 'height' => $meta['height'], 'file' => $parts['basename']);
@@ -612,11 +637,10 @@ function wp_restore_image($post_id) {
 			if ( isset($meta['sizes'][$default_size]) && $meta['sizes'][$default_size]['file'] != $data['file'] ) {
 				if ( defined('IMAGE_EDIT_OVERWRITE') && IMAGE_EDIT_OVERWRITE ) {
 
-					// Delete only if it's edited image
+					// Delete only if it's an edited image.
 					if ( preg_match('/-e[0-9]{13}-/', $meta['sizes'][$default_size]['file']) ) {
-						/** This filter is documented in wp-admin/custom-header.php */
-						$delpath = apply_filters( 'wp_delete_file', path_join($parts['dirname'], $meta['sizes'][$default_size]['file']) );
-						@unlink($delpath);
+						$delete_file = path_join( $parts['dirname'], $meta['sizes'][$default_size]['file'] );
+						wp_delete_file( $delete_file );
 					}
 				} else {
 					$backup_sizes["$default_size-{$suffix}"] = $meta['sizes'][$default_size];
@@ -629,7 +653,9 @@ function wp_restore_image($post_id) {
 		}
 	}
 
-	if ( !wp_update_attachment_metadata($post_id, $meta) || !update_post_meta( $post_id, '_wp_attachment_backup_sizes', $backup_sizes) ) {
+	if ( ! wp_update_attachment_metadata( $post_id, $meta ) ||
+		( $old_backup_sizes !== $backup_sizes && ! update_post_meta( $post_id, '_wp_attachment_backup_sizes', $backup_sizes ) ) ) {
+
 		$msg->error = __('Cannot save image metadata.');
 		return $msg;
 	}
@@ -645,6 +671,8 @@ function wp_restore_image($post_id) {
 /**
  * Saves image to post along with enqueued changes
  * in $_REQUEST['history']
+ *
+ * @global array $_wp_additional_image_sizes
  *
  * @param int $post_id
  * @return \stdClass
@@ -748,7 +776,7 @@ function wp_save_image( $post_id ) {
 		if ( $tag )
 			$backup_sizes[$tag] = array('width' => $meta['width'], 'height' => $meta['height'], 'file' => $path_parts['basename']);
 
-		$success = update_attached_file( $post_id, $new_path );
+		$success = ( $path === $new_path ) || update_attached_file( $post_id, $new_path );
 
 		$meta['file'] = _wp_relative_upload_path( $new_path );
 
@@ -827,10 +855,7 @@ function wp_save_image( $post_id ) {
 	}
 
 	if ( $delete ) {
-
-		/** This filter is documented in wp-admin/custom-header.php */
-		$delpath = apply_filters( 'wp_delete_file', $new_path );
-		@unlink( $delpath );
+		wp_delete_file( $new_path );
 	}
 
 	$return->msg = esc_js( __('Image saved') );

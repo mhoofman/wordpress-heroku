@@ -1,6 +1,6 @@
 <?php
 /**
- * Widgets administration panel.
+ * Widget administration panel
  *
  * @package WordPress
  * @subpackage Administration
@@ -12,17 +12,18 @@ require_once( dirname( __FILE__ ) . '/admin.php' );
 /** WordPress Administration Widgets API */
 require_once(ABSPATH . 'wp-admin/includes/widgets.php');
 
-if ( ! current_user_can('edit_theme_options') )
-	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+if ( ! current_user_can( 'edit_theme_options' ) ) {
+	wp_die(
+		'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+		'<p>' . __( 'You are not allowed to edit theme options on this site.' ) . '</p>',
+		403
+	);
+}
 
 $widgets_access = get_user_setting( 'widgets_access' );
 if ( isset($_GET['widgets-access']) ) {
 	$widgets_access = 'on' == $_GET['widgets-access'] ? 'on' : 'off';
 	set_user_setting( 'widgets_access', $widgets_access );
-}
-
-function wp_widgets_access_body_class($classes) {
-	return "$classes widgets_access ";
 }
 
 if ( 'on' == $widgets_access ) {
@@ -70,12 +71,12 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Appearance_Widgets_Screen" target="_blank">Documentation on Widgets</a>') . '</p>' .
+	'<p>' . __('<a href="https://codex.wordpress.org/Appearance_Widgets_Screen" target="_blank">Documentation on Widgets</a>') . '</p>' .
 	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
 if ( ! current_theme_supports( 'widgets' ) ) {
-	wp_die( __( 'The theme you are currently using isn&#8217;t widget-aware, meaning that it has no sidebars that you are able to change. For information on making your theme widget-aware, please <a href="http://codex.wordpress.org/Widgetizing_Themes">follow these instructions</a>.' ) );
+	wp_die( __( 'The theme you are currently using isn&#8217;t widget-aware, meaning that it has no sidebars that you are able to change. For information on making your theme widget-aware, please <a href="https://codex.wordpress.org/Widgetizing_Themes">follow these instructions</a>.' ) );
 }
 
 // These are the widgets grouped by sidebar
@@ -88,7 +89,7 @@ foreach ( $sidebars_widgets as $sidebar_id => $widgets ) {
 	if ( 'wp_inactive_widgets' == $sidebar_id )
 		continue;
 
-	if ( !isset( $wp_registered_sidebars[ $sidebar_id ] ) ) {
+	if ( ! is_registered_sidebar( $sidebar_id ) ) {
 		if ( ! empty( $widgets ) ) { // register the inactive_widgets area as sidebar
 			register_sidebar(array(
 				'name' => __( 'Inactive Sidebar (not used)' ),
@@ -151,6 +152,17 @@ if ( isset($_POST['savewidget']) || isset($_POST['removewidget']) ) {
 
 		$sidebar = array_diff( $sidebar, array($widget_id) );
 		$_POST = array('sidebar' => $sidebar_id, 'widget-' . $id_base => array(), 'the-widget-id' => $widget_id, 'delete_widget' => '1');
+
+		/**
+		 * Fires immediately after a widget has been marked for deletion.
+		 *
+		 * @since 4.4.0
+		 *
+		 * @param string $widget_id  ID of the widget marked for deletion.
+		 * @param string $sidebar_id ID of the sidebar the widget was deleted from.
+		 * @param string $id_base    ID base for the widget.
+		 */
+		do_action( 'delete_widget', $widget_id, $sidebar_id, $id_base );
 	}
 
 	$_POST['widget-id'] = $sidebar;
@@ -182,6 +194,28 @@ if ( isset($_POST['savewidget']) || isset($_POST['removewidget']) ) {
 	exit;
 }
 
+// Remove inactive widgets without js
+if ( isset( $_POST['removeinactivewidgets'] ) ) {
+	check_admin_referer( 'remove-inactive-widgets', '_wpnonce_remove_inactive_widgets' );
+
+	if ( $_POST['removeinactivewidgets'] ) {
+		foreach ( $sidebars_widgets['wp_inactive_widgets'] as $key => $widget_id ) {
+			$pieces = explode( '-', $widget_id );
+			$multi_number = array_pop( $pieces );
+			$id_base = implode( '-', $pieces );
+			$widget = get_option( 'widget_' . $id_base );
+			unset( $widget[$multi_number] );
+			update_option( 'widget_' . $id_base, $widget );
+			unset( $sidebars_widgets['wp_inactive_widgets'][$key] );
+		}
+
+		wp_set_sidebars_widgets( $sidebars_widgets );
+	}
+
+	wp_redirect( admin_url( 'widgets.php?message=0' ) );
+	exit;
+}
+
 // Output the widget form without js
 if ( isset($_GET['editwidget']) && $_GET['editwidget'] ) {
 	$widget_id = $_GET['editwidget'];
@@ -189,7 +223,7 @@ if ( isset($_GET['editwidget']) && $_GET['editwidget'] ) {
 	if ( isset($_GET['addnew']) ) {
 		// Default to the first sidebar
 		$keys = array_keys( $wp_registered_sidebars );
-		$sidebar = array_shift( $keys );
+		$sidebar = reset( $keys );
 
 		if ( isset($_GET['base']) && isset($_GET['num']) ) { // multi-widget
 			// Copy minimal info from an existing instance of this widget to a new instance
@@ -230,9 +264,9 @@ if ( isset($_GET['editwidget']) && $_GET['editwidget'] ) {
 
 	require_once( ABSPATH . 'wp-admin/admin-header.php' ); ?>
 	<div class="wrap">
-	<h2><?php echo esc_html( $title ); ?></h2>
+	<h1><?php echo esc_html( $title ); ?></h1>
 	<div class="editwidget"<?php echo $width; ?>>
-	<h3><?php printf( __( 'Widget %s' ), $name ); ?></h3>
+	<h2><?php printf( __( 'Widget %s' ), $name ); ?></h2>
 
 	<form action="widgets.php" method="post">
 	<div class="widget-inside">
@@ -310,21 +344,27 @@ $errors = array(
 require_once( ABSPATH . 'wp-admin/admin-header.php' ); ?>
 
 <div class="wrap">
-<h2>
+<h1>
 <?php
 	echo esc_html( $title );
 	if ( current_user_can( 'customize' ) ) {
 		printf(
-			' <a class="add-new-h2 hide-if-no-customize" href="%1$s">%2$s</a>',
-			admin_url( 'customize.php?autofocus[panel]=widgets' ),
+			' <a class="page-title-action hide-if-no-customize" href="%1$s">%2$s</a>',
+			esc_url( add_query_arg(
+				array(
+					array( 'autofocus' => array( 'panel' => 'widgets' ) ),
+					'return' => urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+				),
+				admin_url( 'customize.php' )
+			) ),
 			__( 'Manage in Customizer' )
 		);
 	}
 ?>
-</h2>
+</h1>
 
 <?php if ( isset($_GET['message']) && isset($messages[$_GET['message']]) ) { ?>
-<div id="message" class="updated"><p><?php echo $messages[$_GET['message']]; ?></p></div>
+<div id="message" class="updated notice is-dismissible"><p><?php echo $messages[$_GET['message']]; ?></p></div>
 <?php } ?>
 <?php if ( isset($_GET['error']) && isset($errors[$_GET['error']]) ) { ?>
 <div id="message" class="error"><p><?php echo $errors[$_GET['error']]; ?></p></div>
@@ -343,7 +383,7 @@ do_action( 'widgets_admin_page' ); ?>
 	<div id="available-widgets" class="widgets-holder-wrap">
 		<div class="sidebar-name">
 			<div class="sidebar-name-arrow"><br /></div>
-			<h3><?php _e('Available Widgets'); ?> <span id="removing-widget"><?php _ex('Deactivate', 'removing-widget'); ?> <span></span></span></h3>
+			<h2><?php _e( 'Available Widgets' ); ?> <span id="removing-widget"><?php _ex( 'Deactivate', 'removing-widget' ); ?> <span></span></span></h2>
 		</div>
 		<div class="widget-holder">
 			<div class="sidebar-description">
@@ -366,12 +406,35 @@ foreach ( $wp_registered_sidebars as $sidebar => $registered_sidebar ) {
 		if ( !empty( $registered_sidebar['class'] ) )
 			$wrap_class .= ' ' . $registered_sidebar['class'];
 
+		$is_inactive_widgets = 'wp_inactive_widgets' == $registered_sidebar['id'];
 		?>
 		<div class="<?php echo esc_attr( $wrap_class ); ?>">
 			<div class="widget-holder inactive">
 				<?php wp_list_widget_controls( $registered_sidebar['id'], $registered_sidebar['name'] ); ?>
-				<div class="clear"></div>
+
+				<?php if ( $is_inactive_widgets ) { ?>
+				<div class="remove-inactive-widgets">
+					<form action="" method="post">
+						<p>
+							<?php
+							$attributes = array( 'id' => 'inactive-widgets-control-remove' );
+
+							if ( empty($sidebars_widgets['wp_inactive_widgets']) ) {
+								$attributes['disabled'] = '';
+							}
+
+							submit_button( __( 'Clear Inactive Widgets' ), 'delete', 'removeinactivewidgets', false, $attributes );
+							?>
+							<span class="spinner">
+						</p>
+						<?php wp_nonce_field( 'remove-inactive-widgets', '_wpnonce_remove_inactive_widgets' ); ?>
+					</form>
+				</div>
+				<?php } ?>
 			</div>
+			<?php if ( $is_inactive_widgets ) { ?>
+			<p class="description"><?php _e( 'This will clear all items from the inactive widgets list. You will not be able to restore any customizations.' ); ?></p>
+			<?php } ?>
 		</div>
 		<?php
 
@@ -428,7 +491,7 @@ foreach ( $theme_sidebars as $sidebar => $registered_sidebar ) {
 </div>
 </div>
 </div>
-<form action="" method="post">
+<form method="post">
 <?php wp_nonce_field( 'save-sidebar-widgets', '_wpnonce_widgets', false ); ?>
 </form>
 <br class="clear" />
