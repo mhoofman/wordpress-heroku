@@ -4,6 +4,7 @@
  *
  * @package WordPress
  * @subpackage Administration
+ * @since 3.6.0
  */
 
 /**
@@ -199,17 +200,41 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 			$current_id = $revision->ID;
 		}
 
-		$revisions[ $revision->ID ] = array(
+		$revisions_data = array(
 			'id'         => $revision->ID,
 			'title'      => get_the_title( $post->ID ),
 			'author'     => $authors[ $revision->post_author ],
-			'date'       => date_i18n( __( 'M j, Y @ G:i' ), $modified ),
-			'dateShort'  => date_i18n( _x( 'j M @ G:i', 'revision date short format' ), $modified ),
+			'date'       => date_i18n( __( 'M j, Y @ H:i' ), $modified ),
+			'dateShort'  => date_i18n( _x( 'j M @ H:i', 'revision date short format' ), $modified ),
 			'timeAgo'    => sprintf( __( '%s ago' ), human_time_diff( $modified_gmt, $now_gmt ) ),
 			'autosave'   => $autosave,
 			'current'    => $current,
 			'restoreUrl' => $can_restore ? $restore_link : false,
 		);
+
+		/**
+		 * Filter the array of revisions used on the revisions screen.
+		 *
+		 * @since 4.4.0
+		 *
+		 * @param array   $revisions_data {
+		 *     The bootstrapped data for the revisions screen.
+		 *
+		 *     @type int        $id         Revision ID.
+		 *     @type string     $title      Title for the revision's parent WP_Post object.
+		 *     @type int        $author     Revision post author ID.
+		 *     @type string     $date       Date the revision was modified.
+		 *     @type string     $dateShort  Short-form version of the date the revision was modified.
+		 *     @type string     $timeAgo    GMT-aware amount of time ago the revision was modified.
+		 *     @type bool       $autosave   Whether the revision is an autosave.
+		 *     @type bool       $current    Whether the revision is both not an autosave and the post
+		 *                                  modified date matches the revision modified date (GMT-aware).
+		 *     @type bool|false $restoreUrl URL if the revision can be restored, false otherwise.
+		 * }
+		 * @param WP_Post $revision       The revision's WP_Post object.
+		 * @param WP_Post $post           The revision's parent WP_Post object.
+		 */
+		$revisions[ $revision->ID ] = apply_filters( 'wp_prepare_revision_for_js', $revisions_data, $revision, $post );
 	}
 
 	/**
@@ -221,8 +246,8 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 			'id'         => $post->ID,
 			'title'      => get_the_title( $post->ID ),
 			'author'     => $authors[ $post->post_author ],
-			'date'       => date_i18n( __( 'M j, Y @ G:i' ), strtotime( $post->modified ) ),
-			'dateShort'  => date_i18n( _x( 'j M @ G:i', 'revision date short format' ), strtotime( $post->modified ) ),
+			'date'       => date_i18n( __( 'M j, Y @ H:i' ), strtotime( $post->post_modified ) ),
+			'dateShort'  => date_i18n( _x( 'j M @ H:i', 'revision date short format' ), strtotime( $post->post_modified ) ),
 			'timeAgo'    => sprintf( __( '%s ago' ), human_time_diff( strtotime( $post->post_modified_gmt ), $now_gmt ) ),
 			'autosave'   => false,
 			'current'    => true,

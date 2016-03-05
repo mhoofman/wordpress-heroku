@@ -20,7 +20,9 @@ var wpNavMenu;
 
 		options : {
 			menuItemDepthPerLevel : 30, // Do not use directly. Use depthToPx and pxToDepth instead.
-			globalMaxDepth : 11
+			globalMaxDepth:  11,
+			sortableItems:   '> *',
+			targetTolerance: 0
 		},
 
 		menuList : undefined,	// Set in init.
@@ -87,10 +89,10 @@ var wpNavMenu;
 				childMenuItems : function() {
 					var result = $();
 					this.each(function(){
-						var t = $(this), depth = t.menuItemDepth(), next = t.next();
+						var t = $(this), depth = t.menuItemDepth(), next = t.next( '.menu-item' );
 						while( next.length && next.menuItemDepth() > depth ) {
 							result = result.add( next );
-							next = next.next();
+							next = next.next( '.menu-item' );
 						}
 					});
 					return result;
@@ -177,7 +179,7 @@ var wpNavMenu;
 							return false;
 
 						// Show the ajax spinner
-						t.find('.spinner').show();
+						t.find( '.spinner' ).addClass( 'is-active' );
 
 						// Retrieve menu item data
 						$(checkboxes).each(function(){
@@ -194,7 +196,7 @@ var wpNavMenu;
 						api.addItemToMenu(menuItems, processMethod, function(){
 							// Deselect the items and hide the ajax spinner
 							checkboxes.removeAttr('checked');
-							t.find('.spinner').hide();
+							t.find( '.spinner' ).removeClass( 'is-active' );
 						});
 					});
 				},
@@ -386,108 +388,139 @@ var wpNavMenu;
 			api.refreshKeyboardAccessibility();
 			api.refreshAdvancedAccessibility();
 
-			// Events
-			menu.on( 'click', '.menus-move-up', function ( e ) {
-				api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), 'up' );
-				e.preventDefault();
-			});
-			menu.on( 'click', '.menus-move-down', function ( e ) {
-				api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), 'down' );
-				e.preventDefault();
-			});
-			menu.on( 'click', '.menus-move-top', function ( e ) {
-				api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), 'top' );
-				e.preventDefault();
-			});
-			menu.on( 'click', '.menus-move-left', function ( e ) {
-				api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), 'left' );
-				e.preventDefault();
-			});
-			menu.on( 'click', '.menus-move-right', function ( e ) {
-				api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), 'right' );
+			// Refresh the accessibility when the user comes close to the item in any way
+			menu.on( 'mouseenter.refreshAccessibility focus.refreshAccessibility touchstart.refreshAccessibility' , '.menu-item' , function(){
+				api.refreshAdvancedAccessibilityOfItem( $( this ).find( 'a.item-edit' ) );
+			} );
+
+			// We have to update on click as well because we might hover first, change the item, and then click.
+			menu.on( 'click', 'a.item-edit', function() {
+				api.refreshAdvancedAccessibilityOfItem( $( this ) );
+			} );
+
+			// Links for moving items
+			menu.on( 'click', '.menus-move', function ( e ) {
+				var $this = $( this ),
+					dir = $this.data( 'dir' );
+
+				if ( 'undefined' !== typeof dir ) {
+					api.moveMenuItem( $( this ).parents( 'li.menu-item' ).find( 'a.item-edit' ), dir );
+				}
 				e.preventDefault();
 			});
 		},
 
+		/**
+		 * refreshAdvancedAccessibilityOfItem( [itemToRefresh] )
+		 *
+		 * Refreshes advanced accessibility buttons for one menu item.
+		 * Shows or hides buttons based on the location of the menu item.
+		 *
+		 * @param  {object} itemToRefresh The menu item that might need its advanced accessibility buttons refreshed
+		 */
+		refreshAdvancedAccessibilityOfItem : function( itemToRefresh ) {
+
+			// Only refresh accessibility when necessary
+			if ( true !== $( itemToRefresh ).data( 'needs_accessibility_refresh' ) ) {
+				return;
+			}
+
+			var thisLink, thisLinkText, primaryItems, itemPosition, title,
+				parentItem, parentItemId, parentItemName, subItems,
+				$this = $( itemToRefresh ),
+				menuItem = $this.closest( 'li.menu-item' ).first(),
+				depth = menuItem.menuItemDepth(),
+				isPrimaryMenuItem = ( 0 === depth ),
+				itemName = $this.closest( '.menu-item-handle' ).find( '.menu-item-title' ).text(),
+				position = parseInt( menuItem.index(), 10 ),
+				prevItemDepth = ( isPrimaryMenuItem ) ? depth : parseInt( depth - 1, 10 ),
+				prevItemNameLeft = menuItem.prevAll('.menu-item-depth-' + prevItemDepth).first().find( '.menu-item-title' ).text(),
+				prevItemNameRight = menuItem.prevAll('.menu-item-depth-' + depth).first().find( '.menu-item-title' ).text(),
+				totalMenuItems = $('#menu-to-edit li').length,
+				hasSameDepthSibling = menuItem.nextAll( '.menu-item-depth-' + depth ).length;
+
+				menuItem.find( '.field-move' ).toggle( totalMenuItems > 1 );
+
+			// Where can they move this menu item?
+			if ( 0 !== position ) {
+				thisLink = menuItem.find( '.menus-move-up' );
+				thisLink.prop( 'title', menus.moveUp ).css( 'display', 'inline' );
+			}
+
+			if ( 0 !== position && isPrimaryMenuItem ) {
+				thisLink = menuItem.find( '.menus-move-top' );
+				thisLink.prop( 'title', menus.moveToTop ).css( 'display', 'inline' );
+			}
+
+			if ( position + 1 !== totalMenuItems && 0 !== position ) {
+				thisLink = menuItem.find( '.menus-move-down' );
+				thisLink.prop( 'title', menus.moveDown ).css( 'display', 'inline' );
+			}
+
+			if ( 0 === position && 0 !== hasSameDepthSibling ) {
+				thisLink = menuItem.find( '.menus-move-down' );
+				thisLink.prop( 'title', menus.moveDown ).css( 'display', 'inline' );
+			}
+
+			if ( ! isPrimaryMenuItem ) {
+				thisLink = menuItem.find( '.menus-move-left' ),
+				thisLinkText = menus.outFrom.replace( '%s', prevItemNameLeft );
+				thisLink.prop( 'title', menus.moveOutFrom.replace( '%s', prevItemNameLeft ) ).text( thisLinkText ).css( 'display', 'inline' );
+			}
+
+			if ( 0 !== position ) {
+				if ( menuItem.find( '.menu-item-data-parent-id' ).val() !== menuItem.prev().find( '.menu-item-data-db-id' ).val() ) {
+					thisLink = menuItem.find( '.menus-move-right' ),
+					thisLinkText = menus.under.replace( '%s', prevItemNameRight );
+					thisLink.prop( 'title', menus.moveUnder.replace( '%s', prevItemNameRight ) ).text( thisLinkText ).css( 'display', 'inline' );
+				}
+			}
+
+			if ( isPrimaryMenuItem ) {
+				primaryItems = $( '.menu-item-depth-0' ),
+				itemPosition = primaryItems.index( menuItem ) + 1,
+				totalMenuItems = primaryItems.length,
+
+				// String together help text for primary menu items
+				title = menus.menuFocus.replace( '%1$s', itemName ).replace( '%2$d', itemPosition ).replace( '%3$d', totalMenuItems );
+			} else {
+				parentItem = menuItem.prevAll( '.menu-item-depth-' + parseInt( depth - 1, 10 ) ).first(),
+				parentItemId = parentItem.find( '.menu-item-data-db-id' ).val(),
+				parentItemName = parentItem.find( '.menu-item-title' ).text(),
+				subItems = $( '.menu-item .menu-item-data-parent-id[value="' + parentItemId + '"]' ),
+				itemPosition = $( subItems.parents('.menu-item').get().reverse() ).index( menuItem ) + 1;
+
+				// String together help text for sub menu items
+				title = menus.subMenuFocus.replace( '%1$s', itemName ).replace( '%2$d', itemPosition ).replace( '%3$s', parentItemName );
+			}
+
+			$this.prop('title', title).text( title );
+
+			// Mark this item's accessibility as refreshed
+			$this.data( 'needs_accessibility_refresh', false );
+		},
+
+		/**
+		 * refreshAdvancedAccessibility
+		 *
+		 * Hides all advanced accessibility buttons and marks them for refreshing.
+		 */
 		refreshAdvancedAccessibility : function() {
 
 			// Hide all links by default
-			$( '.menu-item-settings .field-move a' ).css( 'display', 'none' );
+			$( '.menu-item-settings .field-move a' ).hide();
 
-			$( '.item-edit' ).each( function() {
-				var thisLink, thisLinkText, primaryItems, itemPosition, title,
-					parentItem, parentItemId, parentItemName, subItems,
-					$this = $(this),
-					menuItem = $this.closest( 'li.menu-item' ).first(),
-					depth = menuItem.menuItemDepth(),
-					isPrimaryMenuItem = ( 0 === depth ),
-					itemName = $this.closest( '.menu-item-handle' ).find( '.menu-item-title' ).text(),
-					position = parseInt( menuItem.index(), 10 ),
-					prevItemDepth = ( isPrimaryMenuItem ) ? depth : parseInt( depth - 1, 10 ),
-					prevItemNameLeft = menuItem.prevAll('.menu-item-depth-' + prevItemDepth).first().find( '.menu-item-title' ).text(),
-					prevItemNameRight = menuItem.prevAll('.menu-item-depth-' + depth).first().find( '.menu-item-title' ).text(),
-					totalMenuItems = $('#menu-to-edit li').length,
-					hasSameDepthSibling = menuItem.nextAll( '.menu-item-depth-' + depth ).length;
+			// Mark all menu items as unprocessed
+			$( 'a.item-edit' ).data( 'needs_accessibility_refresh', true );
 
-				// Where can they move this menu item?
-				if ( 0 !== position ) {
-					thisLink = menuItem.find( '.menus-move-up' );
-					thisLink.prop( 'title', menus.moveUp ).css( 'display', 'inline' );
-				}
-
-				if ( 0 !== position && isPrimaryMenuItem ) {
-					thisLink = menuItem.find( '.menus-move-top' );
-					thisLink.prop( 'title', menus.moveToTop ).css( 'display', 'inline' );
-				}
-
-				if ( position + 1 !== totalMenuItems && 0 !== position ) {
-					thisLink = menuItem.find( '.menus-move-down' );
-					thisLink.prop( 'title', menus.moveDown ).css( 'display', 'inline' );
-				}
-
-				if ( 0 === position && 0 !== hasSameDepthSibling ) {
-					thisLink = menuItem.find( '.menus-move-down' );
-					thisLink.prop( 'title', menus.moveDown ).css( 'display', 'inline' );
-				}
-
-				if ( ! isPrimaryMenuItem ) {
-					thisLink = menuItem.find( '.menus-move-left' ),
-					thisLinkText = menus.outFrom.replace( '%s', prevItemNameLeft );
-					thisLink.prop( 'title', menus.moveOutFrom.replace( '%s', prevItemNameLeft ) ).html( thisLinkText ).css( 'display', 'inline' );
-				}
-
-				if ( 0 !== position ) {
-					if ( menuItem.find( '.menu-item-data-parent-id' ).val() !== menuItem.prev().find( '.menu-item-data-db-id' ).val() ) {
-						thisLink = menuItem.find( '.menus-move-right' ),
-						thisLinkText = menus.under.replace( '%s', prevItemNameRight );
-						thisLink.prop( 'title', menus.moveUnder.replace( '%s', prevItemNameRight ) ).html( thisLinkText ).css( 'display', 'inline' );
-					}
-				}
-
-				if ( isPrimaryMenuItem ) {
-					primaryItems = $( '.menu-item-depth-0' ),
-					itemPosition = primaryItems.index( menuItem ) + 1,
-					totalMenuItems = primaryItems.length,
-
-					// String together help text for primary menu items
-					title = menus.menuFocus.replace( '%1$s', itemName ).replace( '%2$d', itemPosition ).replace( '%3$d', totalMenuItems );
-				} else {
-					parentItem = menuItem.prevAll( '.menu-item-depth-' + parseInt( depth - 1, 10 ) ).first(),
-					parentItemId = parentItem.find( '.menu-item-data-db-id' ).val(),
-					parentItemName = parentItem.find( '.menu-item-title' ).text(),
-					subItems = $( '.menu-item .menu-item-data-parent-id[value="' + parentItemId + '"]' ),
-					itemPosition = $( subItems.parents('.menu-item').get().reverse() ).index( menuItem ) + 1;
-
-					// String together help text for sub menu items
-					title = menus.subMenuFocus.replace( '%1$s', itemName ).replace( '%2$d', itemPosition ).replace( '%3$s', parentItemName );
-				}
-
-				$this.prop('title', title).html( title );
-			});
+			// All open items have to be refreshed or they will show no links
+			$( '.menu-item-edit-active a.item-edit' ).each( function() {
+				api.refreshAdvancedAccessibilityOfItem( this );
+			} );
 		},
 
 		refreshKeyboardAccessibility : function() {
-			$( '.item-edit' ).off( 'focus' ).on( 'focus', function(){
+			$( 'a.item-edit' ).off( 'focus' ).on( 'focus', function(){
 				$(this).off( 'keydown' ).on( 'keydown', function(e){
 
 					var arrows,
@@ -589,6 +622,7 @@ var wpNavMenu;
 			api.menuList.sortable({
 				handle: '.menu-item-handle',
 				placeholder: 'sortable-placeholder',
+				items: api.options.sortableItems,
 				start: function(e, ui) {
 					var height, width, parent, children, tempHolder;
 
@@ -629,7 +663,7 @@ var wpNavMenu;
 					ui.placeholder.width(width);
 
 					// Update the list of menu items.
-					tempHolder = ui.placeholder.next();
+					tempHolder = ui.placeholder.next( '.menu-item' );
 					tempHolder.css( 'margin-top', helperHeight + 'px' ); // Set the margin to absorb the placeholder
 					ui.placeholder.detach(); // detach or jQuery UI will think the placeholder is a menu item
 					$(this).sortable( 'refresh' ); // The children aren't sortable. We should let jQ UI know.
@@ -688,11 +722,15 @@ var wpNavMenu;
 					var offset = ui.helper.offset(),
 						edge = api.isRTL ? offset.left + ui.helper.width() : offset.left,
 						depth = api.negateIfRTL * api.pxToDepth( edge - menuEdge );
+
 					// Check and correct if depth is not within range.
 					// Also, if the dragged element is dragged upwards over
 					// an item, shift the placeholder to a child position.
-					if ( depth > maxDepth || offset.top < prevBottom ) depth = maxDepth;
-					else if ( depth < minDepth ) depth = minDepth;
+					if ( depth > maxDepth || offset.top < ( prevBottom - api.options.targetTolerance ) ) {
+						depth = maxDepth;
+					} else if ( depth < minDepth ) {
+						depth = minDepth;
+					}
 
 					if( depth != currentDepth )
 						updateCurrentDepth(ui, depth);
@@ -709,12 +747,12 @@ var wpNavMenu;
 			function updateSharedVars(ui) {
 				var depth;
 
-				prev = ui.placeholder.prev();
-				next = ui.placeholder.next();
+				prev = ui.placeholder.prev( '.menu-item' );
+				next = ui.placeholder.next( '.menu-item' );
 
 				// Make sure we don't select the moving item.
-				if( prev[0] == ui.item[0] ) prev = prev.prev();
-				if( next[0] == ui.item[0] ) next = next.next();
+				if( prev[0] == ui.item[0] ) prev = prev.prev( '.menu-item' );
+				if( next[0] == ui.item[0] ) next = next.next( '.menu-item' );
 
 				prevBottom = (prev.length) ? prev.offset().top + prev.height() : 0;
 				nextThreshold = (next.length) ? next.offset().top + next.height() / 3 : 0;
@@ -786,6 +824,8 @@ var wpNavMenu;
 				}
 			});
 			$('#add-custom-links input[type="text"]').keypress(function(e){
+				$('#customlinkdiv').removeClass('form-invalid');
+
 				if ( e.keyCode === 13 ) {
 					e.preventDefault();
 					$( '#submit-customlinkdiv' ).click();
@@ -831,9 +871,9 @@ var wpNavMenu;
 				loc.find('select').each(function() {
 					params[this.name] = $(this).val();
 				});
-				loc.find('.spinner').show();
+				loc.find( '.spinner' ).addClass( 'is-active' );
 				$.post( ajaxurl, params, function() {
-					loc.find('.spinner').hide();
+					loc.find( '.spinner' ).removeClass( 'is-active' );
 				});
 				return false;
 			});
@@ -875,7 +915,7 @@ var wpNavMenu;
 				'type': input.attr('name')
 			};
 
-			$('.spinner', panel).show();
+			$( '.spinner', panel ).addClass( 'is-active' );
 
 			$.post( ajaxurl, params, function(menuMarkup) {
 				api.processQuickSearchQueryResponse(menuMarkup, params, panel);
@@ -888,14 +928,16 @@ var wpNavMenu;
 
 			processMethod = processMethod || api.addMenuItemToBottom;
 
-			if ( '' === url || 'http://' == url )
+			if ( '' === url || 'http://' == url ) {
+				$('#customlinkdiv').addClass('form-invalid');
 				return false;
+			}
 
 			// Show the ajax spinner
-			$('.customlinkdiv .spinner').show();
+			$( '.customlinkdiv .spinner' ).addClass( 'is-active' );
 			this.addLinkToMenu( url, label, processMethod, function() {
 				// Remove the ajax spinner
-				$('.customlinkdiv .spinner').hide();
+				$( '.customlinkdiv .spinner' ).removeClass( 'is-active' );
 				// Set custom link form back to defaults
 				$('#custom-menu-item-name').val('').blur();
 				$('#custom-menu-item-url').val('http://');
@@ -1143,7 +1185,7 @@ var wpNavMenu;
 
 			if( ! $items.length ) {
 				$('.categorychecklist', panel).html( '<li><p>' + navMenuL10n.noResultsFound + '</p></li>' );
-				$('.spinner', panel).hide();
+				$( '.spinner', panel ).removeClass( 'is-active' );
 				return;
 			}
 
@@ -1170,7 +1212,7 @@ var wpNavMenu;
 			});
 
 			$('.categorychecklist', panel).html( $items );
-			$('.spinner', panel).hide();
+			$( '.spinner', panel ).removeClass( 'is-active' );
 		},
 
 		removeMenuItem : function(el) {
@@ -1187,6 +1229,7 @@ var wpNavMenu;
 						$( '.drag-instructions' ).hide();
 						ins.removeClass( 'menu-instructions-inactive' );
 					}
+					api.refreshAdvancedAccessibility();
 				});
 		},
 

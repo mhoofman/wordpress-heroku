@@ -8,7 +8,7 @@ buttons in the following files are updated.
 
 WordPress-style Buttons
 =======================
-Create a button by adding the %60.button` class to an element. For backwards
+Create a button by adding the `.button` class to an element. For backwards
 compatibility, we support several other classes (such as `.button-secondary`),
 but these will *not* work with the stackable classes described below.
 
@@ -127,8 +127,8 @@ TABLE OF CONTENTS:
 	color: #555;
 	border-color: #cccccc;
 	background: #f7f7f7;
-	-webkit-box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgba( 0, 0, 0, 0.08 );
-	box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgba( 0, 0, 0, 0.08 );
+	-webkit-box-shadow: 0 1px 0 #cccccc;
+	box-shadow: 0 1px 0 #cccccc;
  	vertical-align: top;
 }
 
@@ -144,18 +144,16 @@ TABLE OF CONTENTS:
 .wp-core-ui .button-secondary:focus {
 	background: #fafafa;
 	border-color: #999;
-	color: #222;
+	color: #23282d;
 }
 
 .wp-core-ui .button.focus,
 .wp-core-ui .button:focus,
-.wp-core-ui .button-secondary:focus {
-	-webkit-box-shadow:
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
-	box-shadow:
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
+.wp-core-ui .button-secondary:focus,
+.wp-core-ui .button-link:focus {
+	border-color: #5b9dd9;
+	-webkit-box-shadow: 0 0 3px rgba( 0, 115, 170, .8 );
+	box-shadow: 0 0 3px rgba( 0, 115, 170, .8 );
 }
 
 .wp-core-ui .button.active,
@@ -164,20 +162,21 @@ TABLE OF CONTENTS:
 .wp-core-ui .button-secondary:active {
 	background: #eee;
 	border-color: #999;
-	color: #333;
  	-webkit-box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
  	box-shadow: inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 );
+ 	-webkit-transform: translateY(1px);
+ 	-ms-transform: translateY(1px);
+ 	transform: translateY(1px);
 }
 
 .wp-core-ui .button.active:focus {
+	border-color: #5b9dd9;
 	-webkit-box-shadow:
 		inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 ),
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
+		0 0 3px rgba( 0, 115, 170, .8 );
 	box-shadow:
 		inset 0 2px 5px -3px rgba( 0, 0, 0, 0.5 ),
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
+		0 0 3px rgba( 0, 115, 170, .8 );
 }
 
 .wp-core-ui .button[disabled],
@@ -187,13 +186,34 @@ TABLE OF CONTENTS:
 .wp-core-ui .button-secondary:disabled,
 .wp-core-ui .button-secondary.disabled,
 .wp-core-ui .button-disabled {
-	color: #aaa !important;
+	color: #a0a5aa !important;
 	border-color: #ddd !important;
 	background: #f7f7f7 !important;
 	-webkit-box-shadow: none !important;
 	box-shadow: none !important;
 	text-shadow: 0 1px 0 #fff !important;
 	cursor: default;
+	-webkit-transform: none !important;
+	-ms-transform: none !important;
+	transform: none !important;
+}
+
+/* Buttons that look like links, for a cross of good semantics with the visual */
+.wp-core-ui .button-link {
+	margin: 0;
+	padding: 0;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border: 0;
+	-webkit-border-radius: 0;
+	border-radius: 0;
+	background: none;
+	outline: none;
+	cursor: pointer;
+}
+
+.wp-core-ui .button-link:focus {
+	outline: #5b9dd9 solid 1px;
 }
 
 /* ----------------------------------------------------------------------------
@@ -201,47 +221,43 @@ TABLE OF CONTENTS:
 ---------------------------------------------------------------------------- */
 
 .wp-core-ui .button-primary {
-	background: #2ea2cc;
-	border-color: #0074a2;
- 	-webkit-box-shadow: inset 0 1px 0 rgba( 120, 200, 230, 0.5), 0 1px 0 rgba( 0, 0, 0, 0.15 );
- 	box-shadow: inset 0 1px 0 rgba( 120, 200, 230, 0.5 ), 0 1px 0 rgba( 0, 0, 0, 0.15 );
+	background: #0085ba;
+	border-color: #0073aa #006799 #006799;
+	-webkit-box-shadow: 0 1px 0 #006799;
+ 	box-shadow: 0 1px 0 #006799;
  	color: #fff;
 	text-decoration: none;
+	text-shadow: 0 -1px 1px #006799,
+		-1px 0 1px #006799,
+		0 1px 1px #006799,
+		1px 0 1px #006799;
 }
 
 .wp-core-ui .button-primary.hover,
 .wp-core-ui .button-primary:hover,
 .wp-core-ui .button-primary.focus,
 .wp-core-ui .button-primary:focus {
-	background: #1e8cbe;
-	border-color: #0074a2;
- 	-webkit-box-shadow: inset 0 1px 0 rgba( 120, 200, 230, 0.6 );
- 	box-shadow: inset 0 1px 0 rgba( 120, 200, 230, 0.6 );
+	background: #008ec2;
+	border-color: #006799;
 	color: #fff;
 }
 
 .wp-core-ui .button-primary.focus,
 .wp-core-ui .button-primary:focus {
-	border-color: #0e3950;
-	-webkit-box-shadow:
-		inset 0 1px 0 rgba( 120, 200, 230, 0.6 ),
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
-	box-shadow:
-		inset 0 1px 0 rgba( 120, 200, 230, 0.6 ),
-		0 0 0 1px #5b9dd9,
-		0 0 2px 1px rgba(30, 140, 190, .8);
+	-webkit-box-shadow: 0 1px 0 #0073aa,
+		0 0 2px 1px #33b3db;
+	box-shadow: 0 1px 0 #0073aa,
+		0 0 2px 1px #33b3db;
 }
 
 .wp-core-ui .button-primary.active,
 .wp-core-ui .button-primary.active:hover,
 .wp-core-ui .button-primary.active:focus,
 .wp-core-ui .button-primary:active {
-	background: #1b7aa6;
-	border-color: #005684;
-	color: rgba( 255, 255, 255, 0.95 );
- 	-webkit-box-shadow: inset 0 1px 0 rgba( 0, 0, 0, 0.1 );
- 	box-shadow: inset 0 1px 0 rgba( 0, 0, 0, 0.1 );
+	background: #0073aa;
+	border-color: #006799;
+ 	-webkit-box-shadow: inset 0 2px 0 #006799;
+ 	box-shadow: inset 0 2px 0 #006799;
  	vertical-align: top;
 }
 
@@ -249,13 +265,26 @@ TABLE OF CONTENTS:
 .wp-core-ui .button-primary:disabled,
 .wp-core-ui .button-primary-disabled,
 .wp-core-ui .button-primary.disabled {
-	color: #94cde7 !important;
-	background: #298cba !important;
-	border-color: #1b607f !important;
+	color: #66c6e4 !important;
+	background: #008ec2 !important;
+	border-color: #007cb2 !important;
 	-webkit-box-shadow: none !important;
 	box-shadow: none !important;
 	text-shadow: 0 -1px 0 rgba( 0, 0, 0, 0.1 ) !important;
 	cursor: default;
+}
+
+.wp-core-ui .button.button-primary.button-hero {
+	-webkit-box-shadow: 0 2px 0 #006799;
+ 	box-shadow: 0 2px 0 #006799;
+}
+
+.wp-core-ui .button.button-primary.button-hero.active,
+.wp-core-ui .button.button-primary.button-hero.active:hover,
+.wp-core-ui .button.button-primary.button-hero.active:focus,
+.wp-core-ui .button.button-primary.button-hero:active {
+	-webkit-box-shadow: inset 0 3px 0 #006799;
+ 	box-shadow: inset 0 3px 0 #006799;
 }
 
 /* ----------------------------------------------------------------------------
@@ -340,11 +369,7 @@ TABLE OF CONTENTS:
 
 	/* Reset responsive styles in Press This, Customizer */
 
-	.wp-core-ui.wp-customizer .button,
-	.press-this.wp-core-ui .button,
-	.press-this input#publish,
-	.press-this input#save-post,
-	.press-this a.preview {
+	.wp-core-ui.wp-customizer .button {
 		padding: 0 10px 1px;
 		font-size: 13px;
 		line-height: 26px;

@@ -1,6 +1,6 @@
 <?php
 
-if ( !class_exists('SimplePie') )
+if ( ! class_exists( 'SimplePie', false ) )
 	require_once( ABSPATH . WPINC . '/class-simplepie.php' );
 
 class WP_Feed_Cache extends SimplePie_Cache {
@@ -36,27 +36,43 @@ class WP_Feed_Cache_Transient {
 		$this->lifetime = apply_filters( 'wp_feed_cache_transient_lifetime', $lifetime, $filename);
 	}
 
+	/**
+	 * @access public
+	 */
 	public function save($data) {
-		if ( is_a($data, 'SimplePie') )
+		if ( $data instanceof SimplePie ) {
 			$data = $data->data;
+		}
 
 		set_transient($this->name, $data, $this->lifetime);
 		set_transient($this->mod_name, time(), $this->lifetime);
 		return true;
 	}
 
+	/**
+	 * @access public
+	 */
 	public function load() {
 		return get_transient($this->name);
 	}
 
+	/**
+	 * @access public
+	 */
 	public function mtime() {
 		return get_transient($this->mod_name);
 	}
 
+	/**
+	 * @access public
+	 */
 	public function touch() {
 		return set_transient($this->mod_name, time(), $this->lifetime);
 	}
 
+	/**
+	 * @access public
+	 */
 	public function unlink() {
 		delete_transient($this->name);
 		delete_transient($this->mod_name);

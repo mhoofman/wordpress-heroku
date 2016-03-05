@@ -1,4 +1,4 @@
-/* global plugininstallL10n, tb_click, confirm */
+/* global plugininstallL10n, tb_click */
 
 /* Plugin Browser Thickbox related JS*/
 var tb_position;
@@ -38,15 +38,16 @@ jQuery( document ).ready( function( $ ) {
 		tb_position();
 	});
 
-	$( '.plugin-card, .plugins .column-description' ).on( 'click', 'a.thickbox', function() {
+	$( '.plugin-card, .plugins .plugin-version-author-uri' ).on( 'click', 'a.thickbox', function( e ) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		tb_click.call(this);
 
-		$('#TB_title').css({'background-color':'#222','color':'#cfcfcf'});
+		$('#TB_title').css({'background-color':'#23282d','color':'#cfcfcf'});
 		$('#TB_ajaxWindowTitle').html( '<strong>' + plugininstallL10n.plugin_information + '</strong>&nbsp;' + $(this).data( 'title' ) );
 		$('#TB_iframeContent').attr( 'title', plugininstallL10n.plugin_information + ' ' + $(this).data( 'title' ) );
 		$('#TB_closeWindowButton').focus();
-
-		return false;
 	});
 
 	/* Plugin install related JS */
@@ -68,9 +69,5 @@ jQuery( document ).ready( function( $ ) {
 		// Flip the content.
 		$( '#section-holder div.section' ).hide(); // Hide 'em all.
 		$( '#section-' + tab ).show();
-	});
-
-	$( 'a.install-now' ).click( function() {
-		return confirm( plugininstallL10n.ays );
 	});
 });

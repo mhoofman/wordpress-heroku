@@ -25,15 +25,15 @@ if ( isset( $_REQUEST['post_id'] ) ) {
 }
 
 if ( $_POST ) {
-	$location = 'upload.php';
 	if ( isset($_POST['html-upload']) && !empty($_FILES) ) {
 		check_admin_referer('media-form');
 		// Upload File button was clicked
-		$id = media_handle_upload( 'async-upload', $post_id );
-		if ( is_wp_error( $id ) )
-			$location .= '?message=3';
+		$upload_id = media_handle_upload( 'async-upload', $post_id );
+		if ( is_wp_error( $upload_id ) ) {
+			wp_die( $upload_id );
+		}
 	}
-	wp_redirect( admin_url( $location ) );
+	wp_redirect( admin_url( 'upload.php' ) );
 	exit;
 }
 
@@ -53,7 +53,7 @@ get_current_screen()->add_help_tab( array(
 ) );
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Media_Add_New_Screen" target="_blank">Documentation on Uploading Media Files</a>') . '</p>' .
+	'<p>' . __('<a href="https://codex.wordpress.org/Media_Add_New_Screen" target="_blank">Documentation on Uploading Media Files</a>') . '</p>' .
 	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
@@ -65,7 +65,7 @@ if ( get_user_setting('uploader') || isset( $_GET['browser-uploader'] ) )
 	$form_class .= ' html-uploader';
 ?>
 <div class="wrap">
-	<h2><?php echo esc_html( $title ); ?></h2>
+	<h1><?php echo esc_html( $title ); ?></h1>
 
 	<form enctype="multipart/form-data" method="post" action="<?php echo admin_url('media-new.php'); ?>" class="<?php echo esc_attr( $form_class ); ?>" id="file-form">
 

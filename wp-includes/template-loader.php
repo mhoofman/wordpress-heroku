@@ -39,6 +39,20 @@ elseif ( is_feed() ) :
 elseif ( is_trackback() ) :
 	include( ABSPATH . 'wp-trackback.php' );
 	return;
+elseif ( is_embed() ) :
+	$template = ABSPATH . WPINC . '/embed-template.php';
+
+	/**
+	 * Filter the template used for embedded posts.
+	 *
+	 * @since 4.4.0
+	 *
+	 * @param string $template Path to the template file.
+	 */
+	$template = apply_filters( 'embed_template', $template );
+
+	include ( $template );
+	return;
 endif;
 
 if ( defined('WP_USE_THEMES') && WP_USE_THEMES ) :
@@ -53,6 +67,7 @@ if ( defined('WP_USE_THEMES') && WP_USE_THEMES ) :
 		remove_filter('the_content', 'prepend_attachment');
 	elseif ( is_single()         && $template = get_single_template()         ) :
 	elseif ( is_page()           && $template = get_page_template()           ) :
+	elseif ( is_singular()       && $template = get_singular_template()       ) :
 	elseif ( is_category()       && $template = get_category_template()       ) :
 	elseif ( is_tag()            && $template = get_tag_template()            ) :
 	elseif ( is_author()         && $template = get_author_template()         ) :

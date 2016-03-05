@@ -23,7 +23,12 @@ elseif ( isset( $_POST['post_ID'] ) )
 else
  	$post_id = $post_ID = 0;
 
-$post = $post_type = $post_type_object = null;
+/**
+ * @global string  $post_type
+ * @global object  $post_type_object
+ * @global WP_Post $post
+ */
+global $post_type, $post_type_object, $post;
 
 if ( $post_id )
 	$post = get_post( $post_id );
@@ -31,55 +36,6 @@ if ( $post_id )
 if ( $post ) {
 	$post_type = $post->post_type;
 	$post_type_object = get_post_type_object( $post_type );
-}
-
-/**
- * Redirect to previous page.
- *
- * @param int $post_id Optional. Post ID.
- */
-function redirect_post($post_id = '') {
-	if ( isset($_POST['save']) || isset($_POST['publish']) ) {
-		$status = get_post_status( $post_id );
-
-		if ( isset( $_POST['publish'] ) ) {
-			switch ( $status ) {
-				case 'pending':
-					$message = 8;
-					break;
-				case 'future':
-					$message = 9;
-					break;
-				default:
-					$message = 6;
-			}
-		} else {
-				$message = 'draft' == $status ? 10 : 1;
-		}
-
-		$location = add_query_arg( 'message', $message, get_edit_post_link( $post_id, 'url' ) );
-	} elseif ( isset($_POST['addmeta']) && $_POST['addmeta'] ) {
-		$location = add_query_arg( 'message', 2, wp_get_referer() );
-		$location = explode('#', $location);
-		$location = $location[0] . '#postcustom';
-	} elseif ( isset($_POST['deletemeta']) && $_POST['deletemeta'] ) {
-		$location = add_query_arg( 'message', 3, wp_get_referer() );
-		$location = explode('#', $location);
-		$location = $location[0] . '#postcustom';
-	} else {
-		$location = add_query_arg( 'message', 4, get_edit_post_link( $post_id, 'url' ) );
-	}
-
-	/**
-	 * Filter the post redirect destination URL.
-	 *
-	 * @since 2.9.0
-	 *
-	 * @param string $location The destination URL.
-	 * @param int    $post_id  The post ID.
-	 */
-	wp_redirect( apply_filters( 'redirect_post_location', $location, $post_id ) );
-	exit;
 }
 
 if ( isset( $_POST['deletepost'] ) )
@@ -95,7 +51,9 @@ if ( ! $sendback ||
 		$sendback = admin_url( 'upload.php' );
 	} else {
 		$sendback = admin_url( 'edit.php' );
-		$sendback .= ( ! empty( $post_type ) ) ? '?post_type=' . $post_type : '';
+		if ( ! empty( $post_type ) ) {
+			$sendback = add_query_arg( 'post_type', $post_type, $sendback );
+		}
 	}
 } else {
 	$sendback = remove_query_arg( array('trashed', 'untrashed', 'deleted', 'ids'), $sendback );
@@ -113,8 +71,9 @@ case 'post-quickdraft-save':
 	if ( ! wp_verify_nonce( $nonce, 'add-post' ) )
 		$error_msg = __( 'Unable to submit this form, please refresh and try again.' );
 
-	if ( ! current_user_can( 'edit_posts' ) )
-		$error_msg = __( 'Oops, you don&#8217;t have access to add new drafts.' );
+	if ( ! current_user_can( get_post_type_object( 'post' )->cap->create_posts ) ) {
+		exit;
+	}
 
 	if ( $error_msg )
 		return wp_dashboard_quick_press( $error_msg );
@@ -122,8 +81,8 @@ case 'post-quickdraft-save':
 	$post = get_post( $_REQUEST['post_ID'] );
 	check_admin_referer( 'add-' . $post->post_type );
 
-	$_POST['comment_status'] = get_option( 'default_comment_status' );
-	$_POST['ping_status'] = get_option( 'default_ping_status' );
+	$_POST['comment_status'] = get_default_comment_status( $post->post_type );
+	$_POST['ping_status']    = get_default_comment_status( $post->post_type, 'pingback' );
 
 	edit_post();
 	wp_dashboard_quick_press();
@@ -150,6 +109,10 @@ case 'edit':
 	if ( ! $post_type_object )
 		wp_die( __( 'Unknown post type.' ) );
 
+	if ( ! in_array( $typenow, get_post_types( array( 'show_ui' => true ) ) ) ) {
+		wp_die( __( 'You are not allowed to edit posts in this post type.' ) );
+	}
+
 	if ( ! current_user_can( 'edit_post', $post_id ) )
 		wp_die( __( 'You are not allowed to edit this item.' ) );
 
@@ -157,6 +120,7 @@ case 'edit':
 		wp_die( __( 'You can&#8217;t edit this item because it is in the Trash. Please restore it and try again.' ) );
 
 	if ( ! empty( $_GET['get-post-lock'] ) ) {
+		check_admin_referer( 'lock-post_' . $post_id );
 		wp_set_post_lock( $post_id );
 		wp_redirect( get_edit_post_link( $post_id, 'url' ) );
 		exit();
@@ -230,7 +194,7 @@ case 'editpost':
 
 	// Session cookie flag that the post was saved
 	if ( isset( $_COOKIE['wp-saving-post'] ) && $_COOKIE['wp-saving-post'] === $post_id . '-check' ) {
-		setcookie( 'wp-saving-post', $post_id . '-saved', time() + DAY_IN_SECONDS );
+		setcookie( 'wp-saving-post', $post_id . '-saved', time() + DAY_IN_SECONDS, ADMIN_COOKIE_PATH, COOKIE_DOMAIN, is_ssl() );
 	}
 
 	redirect_post($post_id); // Send user on their way while we keep working
@@ -270,7 +234,7 @@ case 'untrash':
 		wp_die( __( 'Unknown post type.' ) );
 
 	if ( ! current_user_can( 'delete_post', $post_id ) )
-		wp_die( __( 'You are not allowed to move this item out of the Trash.' ) );
+		wp_die( __( 'You are not allowed to restore this item from the Trash.' ) );
 
 	if ( ! wp_untrash_post( $post_id ) )
 		wp_die( __( 'Error in restoring from Trash.' ) );
@@ -290,13 +254,12 @@ case 'delete':
 	if ( ! current_user_can( 'delete_post', $post_id ) )
 		wp_die( __( 'You are not allowed to delete this item.' ) );
 
-	$force = ! EMPTY_TRASH_DAYS;
 	if ( $post->post_type == 'attachment' ) {
-		$force = ( $force || ! MEDIA_TRASH );
+		$force = ( ! MEDIA_TRASH );
 		if ( ! wp_delete_attachment( $post_id, $force ) )
 			wp_die( __( 'Error in deleting.' ) );
 	} else {
-		if ( ! wp_delete_post( $post_id, $force ) )
+		if ( ! wp_delete_post( $post_id, true ) )
 			wp_die( __( 'Error in deleting.' ) );
 	}
 

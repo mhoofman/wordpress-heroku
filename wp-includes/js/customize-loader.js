@@ -1,4 +1,8 @@
 /* global _wpCustomizeLoaderSettings, confirm */
+/*
+ * Expose a public API that allows the customizer to be
+ * loaded on any page.
+ */
 window.wp = window.wp || {};
 
 (function( exports, $ ){
@@ -111,10 +115,14 @@ window.wp = window.wp || {};
 			this.active = true;
 			this.body.addClass('customize-loading');
 
-			// Dirty state of Customizer in iframe
+			/*
+			 * Track the dirtiness state (whether the drafted changes have been published)
+			 * of the Customizer in the iframe. This is used to decide whether to display
+			 * an AYS alert if the user tries to close the window before saving changes.
+			 */
 			this.saved = new api.Value( true );
 
-			this.iframe = $( '<iframe />', { src: src }).appendTo( this.element );
+			this.iframe = $( '<iframe />', { 'src': src, 'title': Loader.settings.l10n.mainIframeTitle } ).appendTo( this.element );
 			this.iframe.one( 'load', this.loaded );
 
 			// Create a postMessage connection with the iframe.
@@ -154,6 +162,10 @@ window.wp = window.wp || {};
 			this.messenger.bind( 'change', function () {
 				Loader.saved( false );
 			} );
+
+			this.messenger.bind( 'title', function( newTitle ){
+				window.document.title = newTitle;
+			});
 
 			this.pushState( src );
 

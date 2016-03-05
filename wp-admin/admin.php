@@ -63,7 +63,11 @@ if ( get_option('db_upgraded') ) {
 	 */
 	} elseif ( apply_filters( 'do_mu_upgrade', true ) ) {
 		$c = get_blog_count();
-		// If 50 or fewer sites, run every time. Else, run "about ten percent" of the time. Shh, don't check that math.
+
+		/*
+		 * If there are 50 or fewer sites, run every time. Otherwise, throttle to reduce load:
+		 * attempt to do no more than threshold value, with some +/- allowed.
+		 */
 		if ( $c <= 50 || ( $c > 50 && mt_rand( 0, (int)( $c / 50 ) ) == 1 ) ) {
 			require_once( ABSPATH . WPINC . '/http.php' );
 			$response = wp_remote_get( admin_url( 'upgrade.php?step=1' ), array( 'timeout' => 120, 'httpversion' => '1.1' ) );
@@ -80,7 +84,7 @@ require_once(ABSPATH . 'wp-admin/includes/admin.php');
 auth_redirect();
 
 // Schedule trash collection
-if ( !wp_next_scheduled('wp_scheduled_delete') && !defined('WP_INSTALLING') )
+if ( ! wp_next_scheduled( 'wp_scheduled_delete' ) && ! wp_installing() )
 	wp_schedule_event(time(), 'daily', 'wp_scheduled_delete');
 
 set_screen_options();
@@ -89,6 +93,25 @@ $date_format = get_option('date_format');
 $time_format = get_option('time_format');
 
 wp_enqueue_script( 'common' );
+
+
+
+
+/**
+ * $pagenow is set in vars.php
+ * $wp_importers is sometimes set in wp-admin/includes/import.php
+ * The remaining variables are imported as globals elsewhere, declared as globals here
+ *
+ * @global string $pagenow
+ * @global array  $wp_importers
+ * @global string $hook_suffix
+ * @global string $plugin_page
+ * @global string $typenow
+ * @global string $taxnow
+ */
+global $pagenow, $wp_importers, $hook_suffix, $plugin_page, $typenow, $taxnow;
+
+$page_hook = null;
 
 $editing = false;
 
@@ -167,12 +190,13 @@ if ( isset($plugin_page) ) {
 }
 
 $hook_suffix = '';
-if ( isset($page_hook) )
+if ( isset( $page_hook ) ) {
 	$hook_suffix = $page_hook;
-else if ( isset($plugin_page) )
+} elseif ( isset( $plugin_page ) ) {
 	$hook_suffix = $plugin_page;
-else if ( isset($pagenow) )
+} elseif ( isset( $pagenow ) ) {
 	$hook_suffix = $pagenow;
+}
 
 set_current_screen();
 
@@ -206,7 +230,7 @@ if ( isset($plugin_page) ) {
 		/**
 		 * Used to call the registered callback for a plugin screen.
 		 *
-		 * @internal
+		 * @ignore
 		 * @since 1.5.0
 		 */
 		do_action( $page_hook );
@@ -243,7 +267,7 @@ if ( isset($plugin_page) ) {
 	include(ABSPATH . 'wp-admin/admin-footer.php');
 
 	exit();
-} else if (isset($_GET['import'])) {
+} elseif ( isset( $_GET['import'] ) ) {
 
 	$importer = $_GET['import'];
 

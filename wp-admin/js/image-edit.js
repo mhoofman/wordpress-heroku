@@ -165,7 +165,7 @@ var imageEdit = window.imageEdit = {
 			'rand': t.intval(Math.random() * 1000000)
 		};
 
-		img = $('<img id="image-preview-' + postid + '" />')
+		img = $( '<img id="image-preview-' + postid + '" alt="" />' )
 			.on('load', function() {
 				var max1, max2, parent = $('#imgedit-crop-' + postid), t = imageEdit;
 
@@ -306,7 +306,7 @@ var imageEdit = window.imageEdit = {
 			btn = $('#imgedit-open-btn-' + postid), spin = btn.siblings('.spinner');
 
 		btn.prop('disabled', true);
-		spin.show();
+		spin.addClass( 'is-active' );
 
 		data = {
 			'action': 'image-editor',
@@ -324,7 +324,7 @@ var imageEdit = window.imageEdit = {
 			head.fadeOut('fast', function(){
 				elem.fadeIn('fast');
 				btn.removeAttr('disabled');
-				spin.hide();
+				spin.removeClass( 'is-active' );
 			});
 		});
 
