@@ -3,7 +3,7 @@
 Plugin Name: PostgreSQL for WordPress (PG4WP)
 Plugin URI: http://www.hawkix.net
 Description: PG4WP is a special 'plugin' enabling WordPress to use a PostgreSQL database.
-Version: 1.3.1
+Version: 1.3.1+
 Author: Hawk__
 Author URI: http://www.hawkix.net
 License: GPLv2 or newer.
@@ -18,7 +18,7 @@ define('DB_DRIVER', 'pgsql'); // 'pgsql' or 'mysql' are supported for now
 define( 'PG4WP_DEBUG', false);
 // If you just want to log queries that generate errors, leave PG4WP_DEBUG to "false"
 // and set this to true
-define( 'PG4WP_LOG_ERRORS', false);
+define( 'PG4WP_LOG_ERRORS', true);
 
 // If you want to allow insecure configuration (from the author point of view) to work with PG4WP,
 // change this to true
