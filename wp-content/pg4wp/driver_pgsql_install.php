@@ -20,6 +20,7 @@
 		'unsigned'		=> '',
 		'gmt datetime NOT NULL default \'0000-00-00 00:00:00\''	=> 'gmt timestamp NOT NULL DEFAULT timezone(\'gmt\'::text, now())',
 		'default \'0000-00-00 00:00:00\''	=> 'DEFAULT now()',
+		'\'0000-00-00 00:00:00\''	=> 'now()',
 		'datetime'		=> 'timestamp',
 		'DEFAULT CHARACTER SET utf8'	=> '',
 		
@@ -31,19 +32,57 @@
 		'tinyint(1)'	=> 'smallint',
 		"enum('0','1')"	=> 'smallint',
 		'COLLATE utf8_general_ci'	=> '',
+
+		// For flash-album-gallery plugin
+		'tinyint'		=> 'smallint',
 	);
 	
 	function pg4wp_installing( $sql, &$logto)
 	{
 		global $wpdb;
 		
-		// SHOW INDEX emulation
-		if( 0 === strpos( $sql, 'SHOW INDEX'))
+		// Emulate SHOW commands
+		if( 0 === strpos( $sql, 'SHOW') || 0 === strpos( $sql, 'show'))
 		{
-			$logto = 'SHOWINDEX';
-			$pattern = '/SHOW INDEX FROM\s+(\w+)/';
-			preg_match( $pattern, $sql, $matches);
-			$table = $matches[1];
+			// SHOW VARIABLES LIKE emulation for sql_mode
+			// Used by nextgen-gallery plugin
+			if( 0 === strpos( $sql, "SHOW VARIABLES LIKE 'sql_mode'"))
+			{
+				// Act like MySQL default configuration, where sql_mode is ""
+				$sql = 'SELECT \'sql_mode\' AS "Variable_name", \'\' AS "Value";';
+			}
+			// SHOW COLUMNS emulation
+			elseif( preg_match('/SHOW\s+(FULL\s+)?COLUMNS\s+(?:FROM\s+|IN\s+)`?(\w+)`?(?:\s+LIKE\s+(.+)|\s+WHERE\s+(.+))?/i', $sql, $matches))
+			{
+				$logto = 'SHOWCOLUMN';
+				$full = $matches[1];
+				$table = $matches[2];
+				$like = isset($matches[3]) ? $matches[3] : FALSE;
+				$where = isset($matches[4]) ? $matches[4] : FALSE;
+// Wrap as sub-query to emulate WHERE behavior
+$sql = ($where ? 'SELECT * FROM (' : '').
+'SELECT column_name as "Field",
+	data_type as "Type",'.($full ? '
+	NULL as "Collation",' : '').'
+	is_nullable as "Null",
+	\'\' as "Key",
+	column_default as "Default",
+	\'\' as "Extra"'.($full ? ',
+	\'select,insert,update,references\' as "Privileges",
+	\'\' as "Comment"' : '').'
+FROM information_schema.columns
+WHERE table_name = \''.$table.'\''.($like ? '
+	AND column_name LIKE '.$like : '').($where ? ') AS columns
+WHERE '.$where : '').';';
+			}
+			// SHOW INDEX emulation
+			elseif( 0 === strpos( $sql, 'SHOW INDEX'))
+			{
+				$logto = 'SHOWINDEX';
+				$pattern = '/SHOW INDEX FROM\s+(\w+)/';
+				preg_match( $pattern, $sql, $matches);
+				$table = $matches[1];
+				// Note:  Row order must be in column index position order
 $sql = 'SELECT bc.relname AS "Table",
 	CASE WHEN i.indisunique THEN \'0\' ELSE \'1\' END AS "Non_unique",
 	CASE WHEN i.indisprimary THEN \'PRIMARY\' WHEN bc.relname LIKE \'%usermeta\' AND ic.relname = \'umeta_key\'
@@ -56,19 +95,44 @@ WHERE bc.oid = i.indrelid
 	AND (i.indkey[0] = a.attnum OR i.indkey[1] = a.attnum OR i.indkey[2] = a.attnum OR i.indkey[3] = a.attnum OR i.indkey[4] = a.attnum OR i.indkey[5] = a.attnum OR i.indkey[6] = a.attnum OR i.indkey[7] = a.attnum)
 	AND a.attrelid = bc.oid
 	AND bc.relname = \''.$table.'\'
-	ORDER BY a.attname;';
+	ORDER BY "Key_name", CASE a.attnum
+		WHEN i.indkey[0] THEN 0
+		WHEN i.indkey[1] THEN 1
+		WHEN i.indkey[2] THEN 2
+		WHEN i.indkey[3] THEN 3
+		WHEN i.indkey[4] THEN 4
+		WHEN i.indkey[5] THEN 5
+		WHEN i.indkey[6] THEN 6
+		WHEN i.indkey[7] THEN 7
+	END;';
+			}
+			// SHOW TABLES emulation
+			elseif( preg_match('/SHOW\s+(FULL\s+)?TABLES\s+(?:LIKE\s+(.+)|WHERE\s+(.+))?/i', $sql, $matches))
+			{
+				$logto = 'SHOWTABLES';
+				$full = $matches[1];
+				$like = $matches[2];
+				$where = $matches[3];
+// Wrap as sub-query to emulate WHERE behavior
+$sql = ($where ? 'SELECT * FROM (' : '').
+'SELECT table_name as "Tables_in_'.$wpdb->dbname.'"'.($full ? ',
+	table_type AS "Table_type"' : '').'
+FROM information_schema.tables'.($like ? '
+WHERE table_name LIKE '.$like : '').($where ? ') AS tables
+WHERE '.$where : '').';';
+			}
 		}
 		// Table alteration
 		elseif( 0 === strpos( $sql, 'ALTER TABLE'))
 		{
 			$logto = 'ALTER';
-			$pattern = '/ALTER TABLE\s+(\w+)\s+CHANGE COLUMN\s+([^\s]+)\s+([^\s]+)\s+([^ ]+)( unsigned|)\s+(NOT NULL|)\s*(default (.+)|)/';
+			$pattern = '/ALTER TABLE\s+(\w+)\s+CHANGE COLUMN\s+([^\s]+)\s+([^\s]+)\s+([^ ]+)( unsigned|)\s*(NOT NULL|)\s*(default (.+)|)/';
 			if( 1 === preg_match( $pattern, $sql, $matches))
 			{
 				$table = $matches[1];
 				$col = $matches[2];
 				$newname = $matches[3];
-				$type = $matches[4];
+				$type = strtolower($matches[4]);
 				if( isset($GLOBALS['pg4wp_ttr'][$type]))
 					$type = $GLOBALS['pg4wp_ttr'][$type];
 				$unsigned = $matches[5];
@@ -86,12 +150,19 @@ WHERE bc.oid = i.indrelid
 					$newq .= ";ALTER TABLE $table RENAME COLUMN $col TO $newcol;";
 				$sql = $newq;
 			}
+			$pattern = '/ALTER TABLE\s+(\w+)\s+ALTER COLUMN\s+/';
+			if( 1 === preg_match( $pattern, $sql))
+			{
+				// Translate default values
+				$sql = str_replace(
+					array_keys($GLOBALS['pg4wp_ttr']), array_values($GLOBALS['pg4wp_ttr']), $sql);
+			}
 			$pattern = '/ALTER TABLE\s+(\w+)\s+ADD COLUMN\s+([^\s]+)\s+([^ ]+)( unsigned|)\s+(NOT NULL|)\s*(default (.+)|)/';
 			if( 1 === preg_match( $pattern, $sql, $matches))
 			{
 				$table = $matches[1];
 				$col = $matches[2];
-				$type = $matches[3];
+				$type = strtolower($matches[3]);
 				if( isset($GLOBALS['pg4wp_ttr'][$type]))
 					$type = $GLOBALS['pg4wp_ttr'][$type];
 				$unsigned = $matches[4];
@@ -107,13 +178,18 @@ WHERE bc.oid = i.indrelid
 					$newq .= " NOT NULL";
 				$sql = $newq;
 			}
-			$pattern = '/ALTER TABLE\s+(\w+)\s+ADD (UNIQUE |)KEY\s+([^\s]+)\s+\(([^\)]+)\)/';
+			$pattern = '/ALTER TABLE\s+(\w+)\s+ADD (UNIQUE |)KEY\s+([^\s]+)\s+\(((?:[^\(\)]+|\([^\(\)]+\))+)\)/';
 			if( 1 === preg_match( $pattern, $sql, $matches))
 			{
 				$table = $matches[1];
 				$unique = $matches[2];
 				$index = $matches[3];
 				$columns = $matches[4];
+
+				// Remove prefix indexing
+				// Rarely used and apparently unnecessary for current uses
+				$columns = preg_replace( '/\([^\)]*\)/', '', $columns);
+
 				// Workaround for index name duplicate
 				$index = $table.'_'.$index;
 				$sql = "CREATE {$unique}INDEX $index ON $table ($columns)";

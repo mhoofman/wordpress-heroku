@@ -29,8 +29,10 @@ $replaces = array(
 	'<?php'		=> '',
 	'?>'		=> '',
 );
+// Ensure class uses the replaced mysql_ functions rather than mysqli_
+define( 'WP_USE_EXT_MYSQL', true);
 eval( str_replace( array_keys($replaces), array_values($replaces), file_get_contents(ABSPATH.'/wp-includes/wp-db.php')));
 
 // Create wpdb object if not already done
-if (! isset($wpdb))
+if (! isset($wpdb) && defined('DB_USER'))
 	$wpdb = new wpdb2( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
