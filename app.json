@@ -1,0 +1,6 @@
+{
+  "name": "RetaStore:Wordpress",
+  "description": "Nasty and Silly store using WooCOmmerce",
+  "repository": "https://github.com/moughamir/wordpress-heroku",
+  "addons": []
+}
