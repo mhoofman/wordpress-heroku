@@ -70,6 +70,9 @@ $table_prefix  = 'wp_';
  */
 define('WP_DEBUG', false);
 
+/** Load static files from the current domain. */
+define("WP_SITEURL", "http://" . $_SERVER["HTTP_HOST"]);
+
 /* That's all, stop editing! Happy blogging. */
 
 /** Absolute path to the WordPress directory. */
