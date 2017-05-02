@@ -1,0 +1,382 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: wp theme bones\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-03-02 22:11+0100\n"
+"PO-Revision-Date: \n"
+"Language-Team: Colt Ma <mumchristmas@gmail.com>\n"
+"Language-Team: fulgor <frag.fulgor@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;_n\n"
+"X-Poedit-Basepath: /home/fulgor/GIT/bones\n"
+"Last-Translator: Colt Ma <mumchristmas@gmail.com>\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SearchPath-0: /home/fulgor/GIT/bones\n"
+
+#: comments.php:12
+msgid "This post is password protected. Enter the password to view comments."
+msgstr "本文已开启密码保护。阅读前请输入密码。"
+
+#: comments.php:23
+msgid "Response"
+msgstr "回复"
+
+#: comments.php:24
+msgid "Responses"
+msgstr "条回复"
+
+#: comments.php:25
+msgid "One"
+msgstr "一个"
+
+#: comments.php:26
+msgid "No"
+msgstr "未"
+
+#: comments.php:32
+msgid "to"
+msgstr "于"
+
+#: comments.php:59
+msgid "Comments are closed."
+msgstr "评论已关闭"
+
+#: comments.php:70
+msgid "Leave a Reply"
+msgstr "发表评论"
+
+#: comments.php:70
+#, php-format
+msgid "Leave a Reply to %s"
+msgstr "对 %s 发表评论"
+
+#: comments.php:78
+msgid "You must be"
+msgstr "你必须"
+
+#: comments.php:78
+msgid "logged in"
+msgstr "已登录"
+
+#: comments.php:78
+msgid "to post a comment"
+msgstr "发表评论"
+
+#: comments.php:86
+msgid "Logged in as"
+msgstr "用户名："
+
+#: comments.php:86
+msgid "Log out of this account"
+msgstr "注销此帐户"
+
+#: comments.php:86
+msgid "Log out"
+msgstr "注销"
+
+#: comments.php:93
+msgid "Name"
+msgstr "称谓"
+
+#: comments.php:93
+#: comments.php:98
+msgid "(required)"
+msgstr "（必填项）"
+
+#: comments.php:94
+msgid "Your Name"
+msgstr "您的称谓"
+
+#: comments.php:98
+msgid "Email"
+msgstr "电子邮件"
+
+#: comments.php:99
+msgid "Your Email"
+msgstr "你的电邮"
+
+#: comments.php:100
+msgid "will not be published"
+msgstr "未被发布"
+
+#: comments.php:104
+msgid "Website"
+msgstr "个人网址"
+
+#: comments.php:105
+msgid "Your Website"
+msgstr "个人网页"
+
+#: comments.php:112
+msgid "Your Comment Here..."
+msgstr "请填写评论……"
+
+#: comments.php:115
+msgid "Submit Comment"
+msgstr "提交评论"
+
+#: comments.php:120
+msgid "You can use these tags"
+msgstr "你可以使用这些标签"
+
+#: header.php:23
+#, php-format
+msgid "Page %s"
+msgstr "第 %s 页"
+
+#: taxonomy-custom_cat.php:22
+#: archive.php:9
+msgid "Posts Categorized:"
+msgstr "文章分类："
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "Posted"
+msgstr "发布于"
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "by"
+msgstr "作者:"
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "filed under"
+msgstr "分类:"
+
+#: taxonomy-custom_cat.php:41
+msgid "Read more"
+msgstr "阅读全文"
+
+#: functions.php:103
+msgid "(Edit)"
+msgstr "【编辑】"
+
+#: functions.php:107
+msgid "Your comment is awaiting moderation."
+msgstr "您的评论正等待审核"
+
+#: functions.php:124
+msgid "Search for:"
+msgstr "搜索内容："
+
+#: functions.php:125
+msgid "Search the Site..."
+msgstr "站内搜索"
+
+#: 404.php:11
+msgid "Epic 404 - Article Not Found"
+msgstr "错误 404 － 您所访问的文档似乎并不存在"
+
+#: 404.php:17
+msgid "The article you were looking for was not found, but maybe try looking again!"
+msgstr "您寻找的内容并不存在，要不再找找？"
+
+#: search.php:7
+msgid "Search Results for:"
+msgstr "搜索结果："
+
+#: search.php:23
+msgid "Read more on"
+msgstr "阅读全文："
+
+#: archive.php:13
+msgid "Posts Tagged:"
+msgstr "文章标签："
+
+#: archive.php:17
+#: author.php:8
+msgid "Posts By:"
+msgstr "文章作者："
+
+#: archive.php:21
+msgid "Daily Archives:"
+msgstr "每日归档："
+
+#: archive.php:25
+msgid "Monthly Archives:"
+msgstr "月度归档："
+
+#: archive.php:29
+msgid "Yearly Archives:"
+msgstr "年度归档："
+
+#: single-custom_type.php:43
+msgid "Custom Tags"
+msgstr "自定义标签"
+
+#: embed-tags.php:3
+msgid "Tag"
+msgstr "标签"
+
+#: embed-tags.php:3
+msgid "Tags"
+msgstr "标签"
+
+#: image.php:20
+msgid "Read the rest of this entry"
+msgstr "阅读剩余内容"
+
+#: image.php:38
+msgid "Sorry, no attachments matched your criteria."
+msgstr "抱歉，未找到您所需的内容。"
+
+#: embed-prev_next.php:3
+msgid "&laquo; Older Entries"
+msgstr "&laquo; 往期内容"
+
+#: embed-prev_next.php:4
+msgid "Newer Entries &raquo;"
+msgstr "近期内容 &raquo;"
+
+#: footer.php:9
+msgid "is powered by"
+msgstr "基于"
+
+#: embed-not_found.php:3
+msgid "Not Found"
+msgstr "未能找到内容"
+
+#: embed-not_found.php:6
+msgid "Sorry, but the requested resource was not found on this site."
+msgstr "抱歉，本站未能提供您所寻找的资源。"
+
+#: sidebar.php:15
+msgid "Please activate some Widgets."
+msgstr "请启用一些小插件"
+
+#: library/bones.php:52
+msgid "Read more &raquo;"
+msgstr "阅读全文 &raquo;"
+
+#: library/custom-post-type.php:24
+msgid "Custom Types"
+msgstr "自定义类型"
+
+#: library/custom-post-type.php:25
+msgid "Custom Post"
+msgstr "自定义文章板式"
+
+#: library/custom-post-type.php:26
+msgid "Add New"
+msgstr "新建"
+
+#: library/custom-post-type.php:27
+msgid "Add New Custom Type"
+msgstr "新建自定义类型"
+
+#: library/custom-post-type.php:28
+msgid "Edit"
+msgstr "编辑"
+
+#: library/custom-post-type.php:29
+msgid "Edit Post Types"
+msgstr "编辑文章类型"
+
+#: library/custom-post-type.php:30
+msgid "New Post Type"
+msgstr "新建文章类型"
+
+#: library/custom-post-type.php:31
+msgid "View Post Type"
+msgstr "查看文章类型"
+
+#: library/custom-post-type.php:32
+msgid "Search Post Type"
+msgstr "搜索文章类型"
+
+#: library/custom-post-type.php:33
+msgid "Nothing found in the Database."
+msgstr "数据库无内容。"
+
+#: library/custom-post-type.php:34
+msgid "Nothing found in Trash"
+msgstr "垃圾箱无内容"
+
+#: library/custom-post-type.php:37
+msgid "This is the example custom post type"
+msgstr "这是个自定义文章类型的样例"
+
+#: library/custom-post-type.php:73
+msgid "Custom Categories"
+msgstr "自定义分类"
+
+#: library/custom-post-type.php:74
+msgid "Custom Category"
+msgstr "自定义分类"
+
+#: library/custom-post-type.php:75
+msgid "Search Custom Categories"
+msgstr "搜索自定义分类"
+
+#: library/custom-post-type.php:76
+msgid "All Custom Categories"
+msgstr "全部自定义分类"
+
+#: library/custom-post-type.php:77
+msgid "Parent Custom Category"
+msgstr "上级自定义分类"
+
+#: library/custom-post-type.php:78
+msgid "Parent Custom Category:"
+msgstr "上级自定义分类："
+
+#: library/custom-post-type.php:79
+msgid "Edit Custom Category"
+msgstr "编辑自定义分类"
+
+#: library/custom-post-type.php:80
+msgid "Update Custom Category"
+msgstr "更新自定义分类"
+
+#: library/custom-post-type.php:81
+msgid "Add New Custom Category"
+msgstr "新建自定义分类"
+
+#: library/custom-post-type.php:82
+msgid "New Custom Category Name"
+msgstr "新自定义分类名称"
+
+#: library/custom-post-type.php:95
+msgid "Custom Tag"
+msgstr "自定义标签"
+
+#: library/custom-post-type.php:96
+msgid "Search Custom Tags"
+msgstr "搜索自定义标签"
+
+#: library/custom-post-type.php:97
+msgid "All Custom Tags"
+msgstr "所有自定义标签"
+
+#: library/custom-post-type.php:98
+msgid "Parent Custom Tag"
+msgstr "上级自定义标签"
+
+#: library/custom-post-type.php:99
+msgid "Parent Custom Tag:"
+msgstr "上级自定义标签："
+
+#: library/custom-post-type.php:100
+msgid "Edit Custom Tag"
+msgstr "编辑自定义标签"
+
+#: library/custom-post-type.php:101
+msgid "Update Custom Tag"
+msgstr "更新自定义标签"
+
+#: library/custom-post-type.php:102
+msgid "Add New Custom Tag"
+msgstr "新建自定义标签"
+
+#: library/custom-post-type.php:103
+msgid "New Custom Tag Name"
+msgstr "新自定义标签名称"
+
