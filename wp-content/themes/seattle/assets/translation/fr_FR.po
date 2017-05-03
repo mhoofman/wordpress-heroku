@@ -1,0 +1,380 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: wp theme bones\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-03-02 22:11+0100\n"
+"PO-Revision-Date: \n"
+"Language-Team: fulgor <frag.fulgor@gmail.com>\n"
+"Language-Team: fulgor <frag.fulgor@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;_n\n"
+"X-Poedit-Basepath: /home/fulgor/GIT/bones\n"
+"Last-Translator: \n"
+"X-Poedit-SearchPath-0: /home/fulgor/GIT/bones\n"
+
+#: comments.php:12
+msgid "This post is password protected. Enter the password to view comments."
+msgstr "Cet article est protégé par un mot de passe. Entrer le mot de passe pour voir les commentaires."
+
+#: comments.php:23
+msgid "Response"
+msgstr "Réponse"
+
+#: comments.php:24
+msgid "Responses"
+msgstr "Réponses"
+
+#: comments.php:25
+msgid "One"
+msgstr "Un"
+
+#: comments.php:26
+msgid "No"
+msgstr "Aucun"
+
+#: comments.php:32
+msgid "to"
+msgstr "à"
+
+#: comments.php:59
+msgid "Comments are closed."
+msgstr "Les commentaires sont clos."
+
+#: comments.php:70
+msgid "Leave a Reply"
+msgstr "Laisser une réponse"
+
+#: comments.php:70
+#, php-format
+msgid "Leave a Reply to %s"
+msgstr "Laisser une réponse à %s"
+
+#: comments.php:78
+msgid "You must be"
+msgstr "Vous devez être"
+
+#: comments.php:78
+msgid "logged in"
+msgstr "identifié"
+
+#: comments.php:78
+msgid "to post a comment"
+msgstr "pour laisser un commentaire."
+
+#: comments.php:86
+msgid "Logged in as"
+msgstr "Connecté comme"
+
+#: comments.php:86
+msgid "Log out of this account"
+msgstr "Se déconnecter de ce compte"
+
+#: comments.php:86
+msgid "Log out"
+msgstr "Se déconnecter"
+
+#: comments.php:93
+msgid "Name"
+msgstr "Nom"
+
+#: comments.php:93
+#: comments.php:98
+msgid "(required)"
+msgstr "(requis)"
+
+#: comments.php:94
+msgid "Your Name"
+msgstr "Votre nom"
+
+#: comments.php:98
+msgid "Email"
+msgstr "Email"
+
+#: comments.php:99
+msgid "Your Email"
+msgstr "Votre Email"
+
+#: comments.php:100
+msgid "will not be published"
+msgstr "ne sera pas publié"
+
+#: comments.php:104
+msgid "Website"
+msgstr "Site internet"
+
+#: comments.php:105
+msgid "Your Website"
+msgstr "Votre site internet"
+
+#: comments.php:112
+msgid "Your Comment Here..."
+msgstr "Vote commentaire ici..."
+
+#: comments.php:115
+msgid "Submit Comment"
+msgstr "Soumettre un commentaire"
+
+#: comments.php:120
+msgid "You can use these tags"
+msgstr "Vous pouvez utiliser ces tags"
+
+#: header.php:23
+#, php-format
+msgid "Page %s"
+msgstr "Page %s"
+
+#: taxonomy-custom_cat.php:22
+#: archive.php:9
+msgid "Posts Categorized:"
+msgstr "Archive des articles sous la catégorie :"
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "Posted"
+msgstr "Publié"
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "by"
+msgstr "par"
+
+#: taxonomy-custom_cat.php:32
+#: embed-post_meta.php:1
+#: single-custom_type.php:30
+msgid "filed under"
+msgstr "dans la catégorie"
+
+#: taxonomy-custom_cat.php:41
+msgid "Read more"
+msgstr "En lire plus"
+
+#: functions.php:103
+msgid "(Edit)"
+msgstr "(Editer)"
+
+#: functions.php:107
+msgid "Your comment is awaiting moderation."
+msgstr "Votre commentaire est en attente de modération"
+
+#: functions.php:124
+msgid "Search for:"
+msgstr "Recherche pour :"
+
+#: functions.php:125
+msgid "Search the Site..."
+msgstr "Chercher sur le site..."
+
+#: 404.php:11
+msgid "Epic 404 - Article Not Found"
+msgstr "404 Epique - Article non trouvé"
+
+#: 404.php:17
+msgid "The article you were looking for was not found, but maybe try looking again!"
+msgstr "L'article que vous demandez est inexistant, effectuez plutôt une recherche"
+
+#: search.php:7
+msgid "Search Results for:"
+msgstr "Résultats de recherche pour :"
+
+#: search.php:23
+msgid "Read more on"
+msgstr "En lire plus sur"
+
+#: archive.php:13
+msgid "Posts Tagged:"
+msgstr "Articles taggés :"
+
+#: archive.php:17
+#: author.php:8
+msgid "Posts By:"
+msgstr "Articles par :"
+
+#: archive.php:21
+msgid "Daily Archives:"
+msgstr "Archives quotidiennes :"
+
+#: archive.php:25
+msgid "Monthly Archives:"
+msgstr "Archives mensuelles :"
+
+#: archive.php:29
+msgid "Yearly Archives:"
+msgstr "Archives annuelles :"
+
+#: single-custom_type.php:43
+msgid "Custom Tags"
+msgstr "Tags personnalisés"
+
+#: embed-tags.php:3
+msgid "Tag"
+msgstr "Tag"
+
+#: embed-tags.php:3
+msgid "Tags"
+msgstr "Tags"
+
+#: image.php:20
+msgid "Read the rest of this entry"
+msgstr "Lire la suite de cette article"
+
+#: image.php:38
+msgid "Sorry, no attachments matched your criteria."
+msgstr "Désolé, aucun attachement ne correspond à vos critères."
+
+#: embed-prev_next.php:3
+msgid "&laquo; Older Entries"
+msgstr "&laquo; Anciens articles"
+
+#: embed-prev_next.php:4
+msgid "Newer Entries &raquo;"
+msgstr "Nouveaux articles &raquo;"
+
+#: footer.php:9
+msgid "is powered by"
+msgstr "est propulsé par"
+
+#: embed-not_found.php:3
+msgid "Not Found"
+msgstr "Non trouvé"
+
+#: embed-not_found.php:6
+msgid "Sorry, but the requested resource was not found on this site."
+msgstr "Désolé mais la ressource recherchée est introuvable sur ce site."
+
+#: sidebar.php:15
+msgid "Please activate some Widgets."
+msgstr "Veuillez activer quelques widgets."
+
+#: library/bones.php:52
+msgid "Read more &raquo;"
+msgstr "En lire plus &raquo;"
+
+#: library/custom-post-type.php:24
+msgid "Custom Types"
+msgstr "Types personalisés"
+
+#: library/custom-post-type.php:25
+msgid "Custom Post"
+msgstr "Article personalisé"
+
+#: library/custom-post-type.php:26
+msgid "Add New"
+msgstr "Ajouter nouveau"
+
+#: library/custom-post-type.php:27
+msgid "Add New Custom Type"
+msgstr "Ajouter un nouveau type personalisé"
+
+#: library/custom-post-type.php:28
+msgid "Edit"
+msgstr "Editer"
+
+#: library/custom-post-type.php:29
+msgid "Edit Post Types"
+msgstr "Editer les types d'article"
+
+#: library/custom-post-type.php:30
+msgid "New Post Type"
+msgstr "Nouveau type d'article"
+
+#: library/custom-post-type.php:31
+msgid "View Post Type"
+msgstr "Voir le type d'article"
+
+#: library/custom-post-type.php:32
+msgid "Search Post Type"
+msgstr "Rechercher un type d'article"
+
+#: library/custom-post-type.php:33
+msgid "Nothing found in the Database."
+msgstr "Rien trouvé dans la base de données"
+
+#: library/custom-post-type.php:34
+msgid "Nothing found in Trash"
+msgstr "Rien trouvé dans la corbeille"
+
+#: library/custom-post-type.php:37
+msgid "This is the example custom post type"
+msgstr "Ceci est un exemple de type d'article personalisé"
+
+#: library/custom-post-type.php:73
+msgid "Custom Categories"
+msgstr "Catégories personalisées"
+
+#: library/custom-post-type.php:74
+msgid "Custom Category"
+msgstr "Catégorie personalisée"
+
+#: library/custom-post-type.php:75
+msgid "Search Custom Categories"
+msgstr "Rechercher dans les catégories personalisées"
+
+#: library/custom-post-type.php:76
+msgid "All Custom Categories"
+msgstr "Toutes les catégories personalisées"
+
+#: library/custom-post-type.php:77
+msgid "Parent Custom Category"
+msgstr "Catégorie personalisée parente"
+
+#: library/custom-post-type.php:78
+msgid "Parent Custom Category:"
+msgstr "Catégorie personalisée parente :"
+
+#: library/custom-post-type.php:79
+msgid "Edit Custom Category"
+msgstr "Editer la catégorie personalisée"
+
+#: library/custom-post-type.php:80
+msgid "Update Custom Category"
+msgstr "Mettre à jour la catégorie personalisée"
+
+#: library/custom-post-type.php:81
+msgid "Add New Custom Category"
+msgstr "Ajouter une catégorie personalisée"
+
+#: library/custom-post-type.php:82
+msgid "New Custom Category Name"
+msgstr "Nouveau libellé de catégorie personalisée"
+
+#: library/custom-post-type.php:95
+msgid "Custom Tag"
+msgstr "Tag personnalisé"
+
+#: library/custom-post-type.php:96
+msgid "Search Custom Tags"
+msgstr "Rechercher un tag personalisé"
+
+#: library/custom-post-type.php:97
+msgid "All Custom Tags"
+msgstr "Tous les tags personalisés"
+
+#: library/custom-post-type.php:98
+msgid "Parent Custom Tag"
+msgstr "Tag personalisé parent"
+
+#: library/custom-post-type.php:99
+msgid "Parent Custom Tag:"
+msgstr "Tag personalisé parent :"
+
+#: library/custom-post-type.php:100
+msgid "Edit Custom Tag"
+msgstr "Editer le tag personalisé"
+
+#: library/custom-post-type.php:101
+msgid "Update Custom Tag"
+msgstr "Mettre à jour le tag personalisé"
+
+#: library/custom-post-type.php:102
+msgid "Add New Custom Tag"
+msgstr "Ajouter un nouveau tag personalisé"
+
+#: library/custom-post-type.php:103
+msgid "New Custom Tag Name"
+msgstr "Libellé du nouveau tag personalisé"
+

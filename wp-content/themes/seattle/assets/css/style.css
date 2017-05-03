@@ -1,0 +1,1018 @@
+@charset "UTF-8";
+/********* Web Fonts *******/
+
+  
+@font-face {font-family: 'ManifoldDSA-ExtraBold';src: url('webfonts/ManifoldDSA-ExtraBold.eot');src: url('webfonts/ManifoldDSA-ExtraBold.eot?#iefix') format('embedded-opentype'),url('webfonts/ManifoldDSA-ExtraBold.woff2') format('woff2'),url('webfonts/ManifoldDSA-ExtraBold.woff') format('woff'),url('webfonts/ManifoldDSA-ExtraBold.ttf') format('truetype');}
+ 
+@font-face {font-family: 'ManifoldDSA-Medium';src: url('webfonts/ManifoldDSA-Medium.eot');src: url('webfonts/ManifoldDSA-Medium.eot?#iefix') format('embedded-opentype'),url('webfonts/ManifoldDSA-Medium.woff2') format('woff2'),url('webfonts/ManifoldDSA-Medium.woff') format('woff'),url('webfonts/ManifoldDSA-Medium.ttf') format('truetype');}
+
+@font-face {font-family: 'ManifoldDSA-Light';src: url('webfonts/ManifoldDSA-Light.eot');src: url('webfonts/ManifoldDSA-Light.eot?#iefix') format('embedded-opentype'),url('webfonts/ManifoldDSA-Light.woff2') format('woff2'),url('webfonts/ManifoldDSA-Light.woff') format('woff'),url('webfonts/ManifoldDSA-Light.ttf') format('truetype');}
+
+
+/************************************************
+
+Stylesheet: Main Stylesheet
+
+*************************************************/
+
+
+/*
+Overrides
+*/
+/*
+You can add your own CSS here.
+
+Click the help icon above to learn more.
+*/
+/* Gallery Changes*/
+.gallery-columns-2 .gallery-item {
+    width: 45%;
+    padding: 2.5%;
+    margin-right: 2.5%;
+    display: inline-block;
+    vertical-align: top;
+    background-color: #f7f7f7;
+    border: 1px solid #d7d7d7;
+}
+
+.gallery-columns-3 .gallery-item {
+    width: 27.5%;
+    padding: 2.5%;
+    margin-right: 2.5%;
+    display: inline-block;
+    vertical-align: top;
+    background-color: #f7f7f7;
+    border: 1px solid #d7d7d7;
+}
+
+.top-bar, .top-bar ul, .off-canvas { background-color: #ec1f27;
+}
+
+.top-bar a, .top-bar ul a {
+color: white;
+}
+
+.top-bar-right a, .off-canvas .menu>li>a {
+text-transform: capitalize;
+font-size: 1.25rem;
+color: white;
+}
+
+.menu .active>a {
+background-color: #231F20;
+border-radius: 2em;
+}
+
+.dropdown.menu.vertical>li.opens-left>a:after, .is-accordion-submenu-parent>a:after {
+border-color: white transparent transparent !important;
+}
+
+.page-title {
+color: #231F20;
+margin: 4rem 0 3rem 0;
+}
+
+a, h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+	color: #ec1f27;
+}
+
+.bg-DSAred, .orbit-bullets button {
+  background-color: #ec1f27;
+}
+
+.bg-DSAblack {
+  background-color: #231F20;
+}
+
+.bg-DSAwhite, .orbit-bullets button.is-active, .orbit-bullets button:hover {
+	background-color: #ffffff;
+}
+
+.txt-DSAred {
+  color: #ec1f27;
+}
+
+.bg-DSAglass {
+  background: rgba(255,255,255,0.85);
+}
+
+button.orbit-next, button.orbit-previous {
+	background-color: rgba(255,255,255,0.25);
+	color: rgba(255,255,255,0.75);
+  border: 0px transparent;
+}
+
+.btn.bg-DSAred {
+  color: #fff;
+}
+
+.btn.bg-DSAred:hover {
+  color:  #ec1f27;
+  background-color: #fff;
+}
+
+.btn.bg-DSAblack {
+  background-color: #231F20;
+  color: #fff;
+}
+
+.btn.bg-DSAblack:hover {
+  color:  #231F20;
+  background-color: #fff;
+}
+
+
+.orbit-previous {
+  border-radius: 0 50% 50% 0;
+}
+
+.orbit-next {
+    border-radius: 50% 0 0 50%;
+}
+
+.txt-DSAblack {
+  color: #231F20;
+}
+
+.txt-DSAwhite, .txt-white {
+  color: white;
+}
+
+a.txt-DSAwhite:hover {
+background-color: #231F20;
+color: white;
+}
+
+#dsa-fullheight, #dsa-fullscreen {
+  min-height: 100vh;
+  padding-top: 25vh;
+}
+
+.dsa-right-fullheight, .dsa-left-fullheight {
+  margin-bottom: 2rem;
+}
+
+.dsa-slide {
+	min-height: 75vh;
+	background-color: #ec1f27;
+	color: white;
+}
+
+.dsa-slide .row {
+    padding-top: 4rem;
+    padding: bottom: 1rem;
+}
+
+.dsa-slide a {
+  color: white;
+}
+
+.dsa-slide a.button {
+  text-decoration: none;
+  color: #ec1f27;
+  border-radius: 2em;
+}
+
+.dsa-slide a.button:hover {
+  text-decoration: none;
+  color: #ec1f27;
+  background: #231F20;
+  border-radius: 2em;
+}
+
+.top-bar a:hover {
+  background: #231F20;
+  border-radius: 2em;
+}
+
+.top-bar img.dsa-rose-mark {
+  height: auto;
+  width: 35px;
+  display: inline;
+  max-width: 35px;
+  float: left;
+}
+
+.menu>li>a.dsa-top-name{
+  display:inline-block;
+  padding: 0.75rem 0 0.75rem 0.5rem;
+}
+
+.txt-center {
+  text-align: center;
+}
+
+.dsa-slide .row.dsa-continue {
+  padding-top: 2rem;
+}
+
+.dsa-slide p {
+  font-size: 1.25rem;
+}
+
+.page blockquote {
+font-size: 1.5rem;
+color: #231F20;
+border-left: 0px solid #ec1f27;
+padding: 25px 0 25px 0;
+}
+
+.page blockquote p {
+font-size: 1.5rem;
+color: #231F20;
+padding: 0;
+}
+
+img.bullet-icon {
+    height: 2em;
+    width: 2em;
+    margin-right: 1em;
+    float: left;
+    margin-top: 0.5em;
+}
+
+.dsa-column-left-wrapper h3, .dsa-column-right-wrapper h3, .dsa-column-left-wrapper h4, .dsa-column-right-wrapper h4 {
+  margin-top: 1em;
+}
+
+
+.page blockquote:before {
+        content: '';
+        width: 50%;
+top: 25px;
+border-top: 8px solid #231F20;
+    }
+
+
+.page blockquote:after {
+        content: '';
+        width: 50%;
+        bottom: 25px;
+        border-bottom: 8px solid #231F20;
+}
+
+button, .button {
+	background-color: #ec1f27;
+	color: #fff;
+  border-radius: 2em;
+}
+
+.button:focus, .button:hover {
+	background-color: #231F20;
+	color: #fff;
+}
+
+.button.success {
+  border-color: #3adb76;
+}
+
+.button.alert {
+  border-color: #cc4b37;
+}
+
+.button.warning {
+  border-color: #ffae00;
+}
+
+.makegoogleresponsive {
+ 
+position: relative; height: 0;
+ 
+}
+
+.makegoogleresponsive iframe {
+ 
+position: absolute; top:0; left: 0; width: 100%; min-height: 300px;
+ 
+}
+
+@media (max-width: 767px) {
+    .makegoogleresponsive iframe {
+        max-width: calc(100vw + 40px) !important;   
+        margin: -11px -25px;
+    min-height: 300px; padding-bottom: 300px;}
+    .makegoogleresponsive { 
+        width:100vw !important; 
+        overflow: hidden !important; 
+        margin: 0 -15px !important;
+        min-height: 350px;
+    }  
+}
+
+.home .page-title {
+	display:none;
+}
+
+.dsa-main {
+	padding-bottom: 2rem;
+}
+
+.mauticform-label {
+    font-size: 1rem;
+}
+
+#mauticform_input_contactus_submit {
+  margin-left: 15px;
+}
+
+.icon-bullet {
+    height: 2em;
+    width: 2em;
+    margin-right: 1em;
+    float: left;
+    margin-top: 0.5em;
+}
+
+.dsa-slide.dsa-slide-1, .bg-dark-1 {
+  background: url(../images/bg-dark-1.jpg) no-repeat top center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  background-color:#020205;
+}
+
+.dsa-slide.dsa-slide-2, .bg-dark-2 {
+	background: url(../images/bg-dark-2.jpg) no-repeat top center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  background-color:#020205;
+}
+
+.dsa-slide.dsa-slide-3, .bg-dark-3  {
+	background: url(../images/bg-dark-4.jpg) no-repeat top center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  background-color:#020205;
+} 
+
+.dsa-main-logo {
+  float: left;
+  margin: 1rem 1rem 0 0;
+}
+
+.dsa-main-name, .dsa-slide h1, .dsa-slide h2  {
+  font-family: ManifoldDSA-Medium, Helvetica, Tahoma, Sans-Serif;
+  color: white;
+}
+
+.dsa-main-name {
+	line-height:1.2em;
+}
+
+/*********
+*
+* Eva Mockup
+*
+**********/
+
+.button-group .button {
+margin-right: 1em;
+}
+.dsa-national-logomark {
+  float: left;
+  margin: 0 1rem 0 0;
+}
+
+h1.dsa-national-logotype {
+  font-family: ManifoldDSA-ExtraBold, Helvetica, Tahoma, Sans-Serif;
+  border-bottom: 0.25rem solid white;
+  display:inline-block;
+  font-size: 4rem;
+}
+
+h2.dsa-local-brand {
+  font-family: ManifoldDSA-Medium, Helvetica, Tahoma, Sans-Serif;
+  font-size: 2rem;
+}
+
+.card-gray, #content #inner-content.card-gray {
+  background-color: #F7F7F7;
+  padding: 2rem 4rem;
+}
+
+.card-red {
+  background-color: #ec1f27;
+  padding: 2rem 4rem;
+}
+
+.bdr-stripe-black {
+  border-bottom: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-black.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-black.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-black.png) 12 repeat;
+}
+
+.bdr-stripe-red {
+  border-bottom: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-red.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-red.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-red.png) 12 repeat;
+}
+
+.bdr-stripe-gold {
+  border-bottom: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-gold.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-gold.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-gold.png) 12 repeat;
+}
+
+.bdr-stripe-gray {
+  border-bottom: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-gray.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-gray.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-gray.png) 12 repeat;
+}
+
+.bdr-stripe-white {
+  border-bottom: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-white.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-white.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-white.png) 12 repeat;
+}
+
+.bdr-stripe-red-left {
+   border-left: 12px solid transparent;
+  padding: 12px;
+  -webkit-border-image: url(../images/stripes-red.png) 12 repeat; /* Safari 3.1-5 */
+  -o-border-image: url(../images/stripes-red.png) 12 repeat; /* Opera 11-12.1 */
+  border-image: url(../images/stripes-red.png) 12 repeat; 
+}
+
+h1 small, h2 small, h3 small, h4 small, h5 small {
+  text-transform: uppercase;
+  font-size: 0.5em;
+  display:block;
+  margin: 0.5em 0 1em 0;
+}
+
+.eva-orbit button.orbit-next, .eva-orbit button.orbit-previous {
+background-color: transparent;
+color: white;
+}
+
+.row.dsa-main-actions {
+  padding-top: 1rem;
+}
+
+
+.row.dsa-main-actions a {
+    margin: 0 3% 0 0;
+    width: 30%;
+}
+
+.row.dsa-call-to-action a {
+    margin: 0 3% 0 0;
+    width: 30%;
+    font-family: ManifoldDSA-ExtraBold, Helvetica, Tahoma, Sans-Serif;
+    text-transform: uppercase;
+    font-size: 1.25rem;
+}
+
+#menu-footer.menu > li {
+  width: 45%;
+  display:inline-block;
+}
+
+#dsa-footer .sidebar .widget {
+  text-align: center;
+}
+
+#dsa-footer .sidebar .widget div {
+  text-align: left;
+}
+
+a.button.radius.button-white {
+  border: none;
+  color: black;
+}
+
+a.button.radius.button-white:hover {
+  border: none;
+  background-color: #ec1f27;
+  color: white;
+}
+
+a.button.button-clear-white {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  margin-left: 1rem;
+}
+
+a.button.button-red-white {
+  background-color: #ec1f27;
+  color: white;
+}
+
+a.button.button-clear-blue {
+  background-color: white;
+  color: #5555ee;
+  border: 2px solid #5555ee;
+}
+
+a.button.button-clear-blue {
+  background-color: #5555ee;
+  color: white;
+  border: 2px solid #5555ee;
+}
+
+a.button.button-clear-black {
+  background-color: white;
+  color: #231F20;
+  border: 2px solid #231F20;
+}
+
+a.button.button-clear-black:hover {
+  background-color: #231F20;
+  color: white;
+  border: 2px solid #231F20;
+}
+
+a.button.button-clear-gold {
+  background-color: white;
+  color: #bbaa44;
+  border: 2px solid #bbaa44;
+}
+
+a.button.button-clear-gold:hover {
+  background-color: #bbaa44;
+  color: white;
+  border: 2px solid #bbaa44;
+}
+
+.button.radius {
+  border-radius: 1rem;
+
+}
+
+.menu>li>a.dsa-top-name:hover {
+  background-color: #ec1f27;
+}
+
+/*
+* The Events Calendar Modifications
+*/
+
+.dsa-slide .tribe-mini-calendar-event .list-info h2 {
+  font-size:1.5em;
+}
+
+.dsa-slide .tribe-events-title a {
+  color: #ec1f27;
+}
+
+.tribe-events-calendar .tribe-events-category-general, .tribe-this-week-widget-weekday-wrapper .tribe-events-category-general {
+  border-left: 0.35em solid #ec1f27;
+}
+
+.tribe-events-calendar .tribe-events-category-activism, .tribe-this-week-widget-weekday-wrapper .tribe-events-category-activism {
+  border-left: 0.35em solid #231F20;
+}
+
+.tribe-events-calendar .tribe-events-category-education, .tribe-this-week-widget-weekday-wrapper .tribe-events-category-education {
+  border-left: 0.35em solid #55e;
+}
+
+.tribe-events-calendar .tribe-events-category-community, .tribe-this-week-widget-weekday-wrapper .tribe-events-category-community {
+  border-left: 0.35em solid #bbaa44;
+}
+
+
+.tribe-this-week-widget-wrapper .tribe-this-week-widget-day .tribe-venue a {
+	display:block;
+	padding: 0.5em 0 0 0;
+}
+
+
+.tribe-events-month .tribe-events-nav-next a, .tribe-events-month .tribe-events-nav-previous a, #tribe-events .tribe-events-month .tribe-events-ical.tribe-events-button {
+  background-color: #ec1f27;
+  color: #fff;
+  display: block;
+  padding: 0.5em;
+  border-radius: 2em;
+}
+
+.tribe-events-month .tribe-events-nav-next a:hover, .tribe-events-month .tribe-events-nav-previous a:hover, #tribe-events .tribe-events-month .tribe-events-ical.tribe-events-button:hover {
+  background-color: #231F20;
+  color: #fff;
+  display: block;
+  border-radius: 2em;
+}
+
+.tribe-this-week-events-widget .tribe-this-week-event .entry-title.summary a, .tribe-this-week-events-widget .tribe-this-week-event .tribe-address a, .tribe-events-month-event-title a {
+  display: block;
+}
+
+#tribe-events-content table.tribe-events-calendar .type-tribe_events.tribe-event-featured.tribe-events-category-general {
+background-color: #ec1f27;
+
+}
+
+#tribe-events-content table.tribe-events-calendar .type-tribe_events.tribe-event-featured.tribe-events-category-community {
+background-color: #bbaa44;
+
+}
+
+.tribe-events-category-community .tribe-mini-calendar-event .list-date {
+background-color: #ec1f27;
+}
+
+.tribe-events-category-community .tribe-mini-calendar-event .list-date {
+background-color: #bbaa44;
+}
+
+#tribe-events-content table.tribe-events-calendar .type-tribe_events.tribe-event-featured .tribe-events-month-event-title a:before {
+    content: "";
+    font-family: FontAwesome;
+    float: left;
+    color: gold;
+}
+
+/*
+*	Form Changes
+*/
+[type=phone]
+{	display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 2.4375rem;
+    margin: 0 0 1rem;
+    padding: .5rem;
+    border: 1px solid #cacaca;
+    border-radius: 0;
+    background-color: #fefefe;
+    box-shadow: inset 0 1px 2px hsla(0,0%,4%,.1);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #0a0a0a;
+    -webkit-transition: border-color .25s ease-in-out,-webkit-box-shadow .5s;
+    transition: box-shadow .5s,border-color .25s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/*********************
+GENERAL STYLES
+*********************/
+
+header, body, p, h1.txt-medium, h2.txt-medium, h3.txt-medium, h4.txt-medium, h5.txt-medium {font-family: ManifoldDSA-Medium, Helvetica, Tahoma, Sans-Serif;}
+h1, h2, h3, h4, h5 {font-family: ManifoldDSA-Light, Helvetica, Tahoma, Sans-Serif;}
+b, strong, h1 small, h2 small, h3 small, h4 small, h5 small, h1.txt-bold, h2.txt-bold, h3.txt-bold, h4.txt-bold, h5.txt-bold {font-family: ManifoldDSA-ExtraBold, Helvetica, Tahoma, Sans-Serif;}
+
+/*********************
+LINK STYLES
+*********************/
+a:link, a:visited:link {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.3); }
+
+
+/*********************
+H1, H2, H3, H4, H5 P STYLES
+*********************/
+
+h1 a, .h1 a, h2 a, .h2 a, h3 a, .h3 a, h4 a, .h4 a, h5 a, .h5 a {
+  text-decoration: none; }
+/*********************
+HEADER STYLES
+*********************/
+
+.header ul.off-canvas-list li {
+  list-style: none; }
+
+
+/*********************
+NAVIGATION STYLES
+*********************/
+
+.top-bar .title-area {
+  z-index: 1; }
+
+.off-canvas-list ul {
+  margin-left: 0; }
+  .off-canvas-list ul li a {
+    border-bottom: 0px; }
+  .off-canvas-list ul .dropdown {
+    margin-left: 20px; }
+
+/*********************
+POSTS & CONTENT STYLES
+*********************/
+#content #inner-content {
+  padding: 1rem 0rem; }
+
+.page-title .vcard {
+  border: 0px;
+  padding: 0px; }
+
+.byline {
+  color: #999; }
+
+.entry-content img {
+  max-width: 100%;
+  height: auto; }
+
+.entry-content .alignleft, .entry-content img.alignleft {
+  margin-right: 1.5em;
+  display: inline;
+  float: left; }
+
+.entry-content .alignright, .entry-content img.alignright {
+  margin-left: 1.5em;
+  display: inline;
+  float: right; }
+
+.entry-content .aligncenter, .entry-content img.aligncenter {
+  margin-right: auto;
+  margin-left: auto;
+  display: block;
+  clear: both; }
+
+.entry-content video, .entry-content object {
+  max-width: 100%;
+  height: auto; }
+
+.entry-content pre {
+  background: #eee;
+  border: 1px solid #cecece;
+  padding: 10px; }
+
+.wp-caption {
+    max-width: 80%;
+    background: #eee;
+    margin-left: 10%;
+    padding: 10px 25px; }
+  .wp-caption img {
+    max-width: 100%;
+    margin-bottom: 0;
+    width: 100%; }
+  .wp-caption p.wp-caption-text {
+    font-size: 0.85em;
+    margin: 4px 0 7px;
+    text-align: center; }
+
+.post-password-form input[type="submit"] {
+  display: inline-block;
+  text-align: center;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-appearance: none;
+  transition: all 0.25s ease-out;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  border-radius: 0;
+  padding: 0.85em 1em;
+  margin: 0 1rem 1rem 0;
+  font-size: 0.9rem;
+  background: #2199e8;
+  color: #fff; }
+  [data-whatinput='mouse'] .post-password-form input[type="submit"] {
+    outline: 0; }
+  .post-password-form input[type="submit"]:hover, .post-password-form input[type="submit"]:focus {
+    background: #1583cc;
+    color: #fff; }
+
+/*********************
+IMAGE GALLERY STYLES
+*********************/
+/*********************
+PAGE NAVI STYLES
+*********************/
+.page-navigation {
+  margin-top: 1rem; }
+
+/*********************
+COMMENT STYLES
+*********************/
+#comments .commentlist {
+  margin-left: 0px; }
+
+#respond ul {
+  margin-left: 0px; }
+
+.commentlist li {
+  position: relative;
+  clear: both;
+  overflow: hidden;
+  list-style-type: none;
+  margin-bottom: 1.5em;
+  padding: 0.7335em 10px; }
+  .commentlist li:last-child {
+    margin-bottom: 0; }
+  .commentlist li ul.children {
+    margin: 0; }
+
+.commentlist li[class*=depth-] {
+  margin-top: 1.1em; }
+
+.commentlist li.depth-1 {
+  margin-left: 0;
+  margin-top: 0; }
+
+.commentlist li:not(.depth-1) {
+  margin-left: 10px;
+  margin-top: 0;
+  padding-bottom: 0; }
+
+.commentlist .vcard {
+  margin-left: 50px; }
+  .commentlist .vcard cite.fn {
+    font-weight: 700;
+    font-style: normal; }
+  .commentlist .vcard time {
+    float: right; }
+    .commentlist .vcard time a {
+      color: #999;
+      text-decoration: none; }
+      .commentlist .vcard time a:hover {
+        text-decoration: underline; }
+  .commentlist .vcard img.avatar {
+    position: absolute;
+    left: 10px;
+    padding: 2px;
+    border: 1px solid #cecece;
+    background: #fff; }
+
+.commentlist .comment_content p {
+  margin: 0.7335em 0 1.5em;
+  font-size: 1em;
+  line-height: 1.5em; }
+
+.commentlist .comment-reply-link {
+  float: right; }
+
+/*********************
+COMMENT FORM STYLES
+*********************/
+.respond-form {
+  margin: 1.5em 10px;
+  padding-bottom: 2.2em; }
+  .respond-form form {
+    margin: 0.75em 0; }
+    .respond-form form li {
+      list-style-type: none;
+      clear: both;
+      margin-bottom: 0.7335em; }
+      .respond-form form li label,
+      .respond-form form li small {
+        display: none; }
+    .respond-form form input[type=text],
+    .respond-form form input[type=email],
+    .respond-form form input[type=url],
+    .respond-form form textarea {
+      padding: 3px 6px;
+      background: #efefef;
+      border: 2px solid #cecece;
+      line-height: 1.5em; }
+      .respond-form form input[type=text]:focus,
+      .respond-form form input[type=email]:focus,
+      .respond-form form input[type=url]:focus,
+      .respond-form form textarea:focus {
+        background: #fff; }
+      .respond-form form input[type=text]:invalid,
+      .respond-form form input[type=email]:invalid,
+      .respond-form form input[type=url]:invalid,
+      .respond-form form textarea:invalid {
+        outline: none;
+        border-color: #fbc2c4;
+        background-color: #f6e7eb;
+        -ms-box-shadow: none;
+        box-shadow: none; }
+    .respond-form form input[type=text],
+    .respond-form form input[type=email],
+    .respond-form form input[type=url] {
+      max-width: 400px;
+      min-width: 250px; }
+    .respond-form form textarea {
+      resize: none;
+      width: 97.3%;
+      height: 150px; }
+
+#comment-form-title {
+  margin: 0 0 1.1em; }
+
+#allowed_tags {
+  margin: 1.5em 10px 0.7335em 0; }
+
+.nocomments {
+  margin: 0 20px 1.1em; }
+
+/*********************
+SIDEBARS & ASIDES
+*********************/
+.widget ul {
+  margin: 0; }
+  .widget ul li {
+    list-style: none; }
+
+/*********************
+FOOTER STYLES
+*********************/
+.footer {
+  clear: both;
+  margin-top: 0em;
+  padding-top:1em;
+background-color: #ec1f27;
+color: #fff;
+}
+
+.footer a {
+color: #fff;
+}
+
+.footer a:hover {
+background-color: #000;
+color: #fff;
+}
+
+.footer h4 {
+    background-color: #000;
+    color: #fff;
+    display: inline-block;
+    padding: 0.25em 1em;
+}
+
+/*********************
+FOUNDATION STYLES
+*********************/
+
+/*********************
+PLUGIN STYLES
+*********************/
+.gform_body ul {
+  list-style: none outside none;
+  margin: 0; }
+
+/******************************************************************
+
+Stylesheet: Retina Screens & Devices Stylesheet
+
+When handling retina screens you need to make adjustments, especially
+if you're not using font icons. Here you can add them in one neat
+place.
+
+******************************************************************/
+/******************************************************************
+
+Stylesheet: Print Stylesheet
+
+This is the print stylesheet. There's probably not a lot
+of reasons to edit this stylesheet. 
+
+Remember to add things that won't make sense to print at 
+the bottom. Things like nav, ads, and forms shouldbe set 
+to display none.
+******************************************************************/
+@media print {
+  * {
+    background: transparent !important;
+    color: black !important;
+    text-shadow: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+    -ms-filter: none !important; }
+  a, a:visited {
+    color: #444 !important;
+    text-decoration: underline; }
+    a:after, a:visited:after {
+      content: " (" attr(href) ")"; }
+    a abbr[title]:after, a:visited abbr[title]:after {
+      content: " (" attr(title) ")"; }
+  .ir a:after,
+  a[href^="javascript:"]:after,
+  a[href^="#"]:after {
+    content: ""; }
+  pre, blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid; }
+  thead {
+    display: table-header-group; }
+  tr, img {
+    page-break-inside: avoid; }
+  img {
+    max-width: 100% !important; }
+  @page {
+    margin: 0.5cm; }
+  p, h2, h3 {
+    orphans: 3;
+    widows: 3; }
+  h2,
+  h3 {
+    page-break-after: avoid; }
+  .sidebar,
+  .page-navigation,
+  .wp-prev-next,
+  .respond-form,
+  nav {
+    display: none; } }
