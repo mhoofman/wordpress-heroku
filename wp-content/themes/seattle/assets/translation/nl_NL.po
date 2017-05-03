@@ -1,0 +1,376 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: wp theme bones\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-03-02 22:11+0100\n"
+"PO-Revision-Date: \n"
+"Language-Team: fulgor <frag.fulgor@gmail.com>\n"
+"Language-Team: fulgor <frag.fulgor@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;_n\n"
+"X-Poedit-Basepath: /home/fulgor/GIT/bones\n"
+"Last-Translator: Youri\n"
+"X-Generator: Poedit 1.5.4\n"
+"X-Poedit-SearchPath-0: /home/fulgor/GIT/bones\n"
+
+#: comments.php:12
+msgid "This post is password protected. Enter the password to view comments."
+msgstr ""
+"Dit bericht is beveiligd met een wachtwoord. Geef het wachtwoord om reacties "
+"te bekijken."
+
+#: comments.php:23
+msgid "Response"
+msgstr "Antwoord"
+
+#: comments.php:24
+msgid "Responses"
+msgstr "Antwoorden"
+
+#: comments.php:25
+msgid "One"
+msgstr "Een"
+
+#: comments.php:26
+msgid "No"
+msgstr "Geen"
+
+#: comments.php:32
+msgid "to"
+msgstr "Aan"
+
+#: comments.php:59
+msgid "Comments are closed."
+msgstr "Reageren is niet mogelijk"
+
+#: comments.php:70
+msgid "Leave a Reply"
+msgstr "Reageer"
+
+#: comments.php:70
+#, php-format
+msgid "Leave a Reply to %s"
+msgstr "Reageer op %s"
+
+#: comments.php:78
+msgid "You must be"
+msgstr "Je moet"
+
+#: comments.php:78
+msgid "logged in"
+msgstr "aangemeld zijn"
+
+#: comments.php:78
+msgid "to post a comment"
+msgstr "om te reageren"
+
+#: comments.php:86
+msgid "Logged in as"
+msgstr "Aangemeld als"
+
+#: comments.php:86
+msgid "Log out of this account"
+msgstr "Afmelden bij dit account"
+
+#: comments.php:86
+msgid "Log out"
+msgstr "Afmelden"
+
+#: comments.php:93
+msgid "Name"
+msgstr "Naam"
+
+#: comments.php:93 comments.php:98
+msgid "(required)"
+msgstr "(verplicht)"
+
+#: comments.php:94
+msgid "Your Name"
+msgstr "Uw naam"
+
+#: comments.php:98
+msgid "Email"
+msgstr "Email"
+
+#: comments.php:99
+msgid "Your Email"
+msgstr "Uw Email"
+
+#: comments.php:100
+msgid "will not be published"
+msgstr "wordt niet gepubliceerd"
+
+#: comments.php:104
+msgid "Website"
+msgstr "Website"
+
+#: comments.php:105
+msgid "Your Website"
+msgstr "Uw website"
+
+#: comments.php:112
+msgid "Your Comment Here..."
+msgstr "Reageer hier...."
+
+#: comments.php:115
+msgid "Submit Comment"
+msgstr "Reactie versturen"
+
+#: comments.php:120
+msgid "You can use these tags"
+msgstr "U kunt deze labels gebruiken"
+
+#: header.php:23
+#, php-format
+msgid "Page %s"
+msgstr "Pagina %s"
+
+#: taxonomy-custom_cat.php:22 archive.php:9
+msgid "Posts Categorized:"
+msgstr "Artikelen in de categorie:"
+
+#: taxonomy-custom_cat.php:32 embed-post_meta.php:1 single-custom_type.php:30
+msgid "Posted"
+msgstr "Geplaatst"
+
+#: taxonomy-custom_cat.php:32 embed-post_meta.php:1 single-custom_type.php:30
+msgid "by"
+msgstr "door"
+
+#: taxonomy-custom_cat.php:32 embed-post_meta.php:1 single-custom_type.php:30
+msgid "filed under"
+msgstr "in de categorie"
+
+#: taxonomy-custom_cat.php:41
+msgid "Read more"
+msgstr "Lees meer"
+
+#: functions.php:103
+msgid "(Edit)"
+msgstr "(Bewerken)"
+
+#: functions.php:107
+msgid "Your comment is awaiting moderation."
+msgstr "Uw reactie wordt beoordeeld."
+
+#: functions.php:124
+msgid "Search for:"
+msgstr "Zoeken naar:"
+
+#: functions.php:125
+msgid "Search the Site..."
+msgstr "Doorzoek de site...."
+
+#: 404.php:11
+msgid "Epic 404 - Article Not Found"
+msgstr "404 - Artikel niet gevonden"
+
+#: 404.php:17
+msgid ""
+"The article you were looking for was not found, but maybe try looking again!"
+msgstr ""
+"Helaas, maar de opgevraagde pagina kon niet worden gevonden. Misschien kan "
+"de zoekfunctie helpen!"
+
+#: search.php:7
+msgid "Search Results for:"
+msgstr "Zoekresultaten voor:"
+
+#: search.php:23
+msgid "Read more on"
+msgstr "Lees meer over"
+
+#: archive.php:13
+msgid "Posts Tagged:"
+msgstr "Artikelen gelabeld:"
+
+#: archive.php:17 author.php:8
+msgid "Posts By:"
+msgstr "Artikelen door:"
+
+#: archive.php:21
+msgid "Daily Archives:"
+msgstr "Dagelijks archief:"
+
+#: archive.php:25
+msgid "Monthly Archives:"
+msgstr "Maandelijks archief:"
+
+#: archive.php:29
+msgid "Yearly Archives:"
+msgstr "Jaarlijks archief:"
+
+#: single-custom_type.php:43
+msgid "Custom Tags"
+msgstr "Custom labels"
+
+#: embed-tags.php:3
+msgid "Tag"
+msgstr "Label"
+
+#: embed-tags.php:3
+msgid "Tags"
+msgstr "Labels"
+
+#: image.php:20
+msgid "Read the rest of this entry"
+msgstr "Lees de rest van dit bericht"
+
+#: image.php:38
+msgid "Sorry, no attachments matched your criteria."
+msgstr "Sorry, er zijn geen bijlagen gevonden die aan uw criteria voldoen.\""
+
+#: embed-prev_next.php:3
+msgid "&laquo; Older Entries"
+msgstr "&laquo; Oudere artikelen"
+
+#: embed-prev_next.php:4
+msgid "Newer Entries &raquo;"
+msgstr "Nieuwere artikelen &raquo;"
+
+#: footer.php:9
+msgid "is powered by"
+msgstr "wordt mogelijk gemaakt door"
+
+#: embed-not_found.php:3
+msgid "Not Found"
+msgstr "Niet Gevonden"
+
+#: embed-not_found.php:6
+msgid "Sorry, but the requested resource was not found on this site."
+msgstr "Sorry, maar de opgevraagde bron is niet gevonden op deze site."
+
+#: sidebar.php:15
+msgid "Please activate some Widgets."
+msgstr "Activeer een widget. "
+
+#: library/bones.php:52
+msgid "Read more &raquo;"
+msgstr "Lees meer &raquo;"
+
+#: library/custom-post-type.php:24
+msgid "Custom Types"
+msgstr "Custom type"
+
+#: library/custom-post-type.php:25
+msgid "Custom Post"
+msgstr "Custom Artikel"
+
+#: library/custom-post-type.php:26
+msgid "Add New"
+msgstr "Nieuwe toevoegen"
+
+#: library/custom-post-type.php:27
+msgid "Add New Custom Type"
+msgstr "Nieuw custom type toevoegen"
+
+#: library/custom-post-type.php:28
+msgid "Edit"
+msgstr "Bewerken"
+
+#: library/custom-post-type.php:29
+msgid "Edit Post Types"
+msgstr "Artikel types bewerken"
+
+#: library/custom-post-type.php:30
+msgid "New Post Type"
+msgstr "Nieuw bericht type"
+
+#: library/custom-post-type.php:31
+msgid "View Post Type"
+msgstr "Bekijk bericht type"
+
+#: library/custom-post-type.php:32
+msgid "Search Post Type"
+msgstr "Zoek bericht type"
+
+#: library/custom-post-type.php:33
+msgid "Nothing found in the Database."
+msgstr "Niets gevonden in de database."
+
+#: library/custom-post-type.php:34
+msgid "Nothing found in Trash"
+msgstr "Niets gevonden in de prullenbak."
+
+#: library/custom-post-type.php:37
+msgid "This is the example custom post type"
+msgstr "Dit is het voorbeeld custom artikel type"
+
+#: library/custom-post-type.php:73
+msgid "Custom Categories"
+msgstr "Custom categorieën"
+
+#: library/custom-post-type.php:74
+msgid "Custom Category"
+msgstr "Custom categorie"
+
+#: library/custom-post-type.php:75
+msgid "Search Custom Categories"
+msgstr "Zoek custom categorie"
+
+#: library/custom-post-type.php:76
+msgid "All Custom Categories"
+msgstr "Alle custom categorieën"
+
+#: library/custom-post-type.php:77
+msgid "Parent Custom Category"
+msgstr "Parent custom categorie"
+
+#: library/custom-post-type.php:78
+msgid "Parent Custom Category:"
+msgstr "Parent custom categorie"
+
+#: library/custom-post-type.php:79
+msgid "Edit Custom Category"
+msgstr "Custom categorie bewerken"
+
+#: library/custom-post-type.php:80
+msgid "Update Custom Category"
+msgstr "Custom categorie aanpassen"
+
+#: library/custom-post-type.php:81
+msgid "Add New Custom Category"
+msgstr "Custom categorie toevoegen"
+
+#: library/custom-post-type.php:82
+msgid "New Custom Category Name"
+msgstr "Naam nieuwe custom categorie"
+
+#: library/custom-post-type.php:95
+msgid "Custom Tag"
+msgstr "Custom label"
+
+#: library/custom-post-type.php:96
+msgid "Search Custom Tags"
+msgstr "Zoek custom labels"
+
+#: library/custom-post-type.php:97
+msgid "All Custom Tags"
+msgstr "Alle custom labels"
+
+#: library/custom-post-type.php:98
+msgid "Parent Custom Tag"
+msgstr "Parent custom label"
+
+#: library/custom-post-type.php:99
+msgid "Parent Custom Tag:"
+msgstr "Parent custom label"
+
+#: library/custom-post-type.php:100
+msgid "Edit Custom Tag"
+msgstr "Custom label bewerken"
+
+#: library/custom-post-type.php:101
+msgid "Update Custom Tag"
+msgstr ""
+
+#: library/custom-post-type.php:102
+msgid "Add New Custom Tag"
+msgstr ""
+
+#: library/custom-post-type.php:103
+msgid "New Custom Tag Name"
+msgstr ""
