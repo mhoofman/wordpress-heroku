@@ -8,21 +8,17 @@ body {
 	padding: 0;
 }
 
-html {
-	background: #f1f1f1;
-}
-
 body {
 	background: #f1f1f1;
 	min-width: 0;
 	color: #444;
-	font-family: "Open Sans", sans-serif;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 	font-size: 13px;
 	line-height: 1.4em;
 }
 
 a {
-	color: #0074a2;
+	color: #0073aa;
 	-webkit-transition-property: border, background, color;
 	transition-property: border, background, color;
 	-webkit-transition-duration: .05s;
@@ -37,35 +33,39 @@ a {
 
 a:hover,
 a:active {
-	color: #2ea2cc;
+	color: #00a0d2;
 }
 
 a:focus {
 	color: #124964;
+	-webkit-box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+	box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
-a:focus,
-a:active {
-	outline: thin dotted;
+.ie8 a:focus {
+	outline: #5b9dd9 solid 1px;
 }
 
 p {
 	line-height: 1.5;
 }
 
-.login .message {
-	border-right: 4px solid #2ea2cc;
-	padding: 1px 12px;
+.login .message,
+.login #login_error {
+	border-right: 4px solid #00a0d2;
+	padding: 12px;
+	margin-right: 0;
 	background-color: #fff;
 	-webkit-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.1);
 	box-shadow: 0 1px 1px 0 rgba(0,0,0,0.1);
 }
 
 .login #login_error {
-	border-right: 4px solid #dd3d36;
-	background: #fff;
-	-webkit-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.1);
-	box-shadow: 0 1px 1px 0 rgba(0,0,0,0.1);
+	border-right-color: #dc3232;
 }
 
 #loginform p.submit,
@@ -83,7 +83,7 @@ p {
 	margin-top: 20px;
 	margin-right: 0;
 	padding: 26px 24px 46px;
-	font-weight: normal;
+	font-weight: 400;
 	overflow: hidden;
 	background: #fff;
 	-webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.13);
@@ -91,7 +91,7 @@ p {
 }
 
 .login form .forgetmenot {
-	font-weight: normal;
+	font-weight: 400;
 	float: right;
 	margin-bottom: 0;
 }
@@ -110,7 +110,7 @@ p {
 }
 
 .login label {
-	color: #777;
+	color: #72777c;
 	font-size: 14px;
 }
 
@@ -130,10 +130,10 @@ p {
 	background-size: 84px;
 	background-position: center top;
 	background-repeat: no-repeat;
-	color: #999;
+	color: #444;
 	height: 84px;
 	font-size: 20px;
-	font-weight: normal;
+	font-weight: 400;
 	line-height: 1.3em;
 	margin: 0 auto 25px;
 	padding: 0;
@@ -151,12 +151,6 @@ p {
 	margin: auto;
 }
 
-#login_error,
-.login .message {
-	margin-right: 0;
-	padding: 12px;
-}
-
 .login #nav,
 .login #backtoblog {
 	font-size: 13px;
@@ -168,19 +162,25 @@ p {
 }
 
 #backtoblog {
-	margin: 16px 0 0 0;
+	margin: 16px 0;
 }
 
 .login #nav a,
 .login #backtoblog a {
 	text-decoration: none;
-	color: #999;
+	color: #555d66;
 }
 
 .login #nav a:hover,
 .login #backtoblog a:hover,
 .login h1 a:hover {
-	color: #2ea2cc;
+	color: #00a0d2;
+}
+
+.login #nav a:focus,
+.login #backtoblog a:focus,
+.login h1 a:focus {
+	color: #124964;
 }
 
 .login form .input,
@@ -202,31 +202,18 @@ p {
 	font-family: sans-serif;
 }
 
+.login-action-rp input[type="text"] {
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	margin: 0;
+}
+
 .login #pass-strength-result {
-	width: 250px;
 	font-weight: 600;
-	margin: 12px 0 6px;
+	margin: -1px 0 16px 5px;
 	padding: 6px 5px;
 	text-align: center;
-}
-
-.mobile #login {
-	padding: 20px 0;
-}
-
-.mobile #login form,
-.mobile #login .message,
-.mobile #login_error {
-	margin-right: 0;
-}
-
-.mobile #login #nav,
-.mobile #login #backtoblog {
-	margin-right: 8px;
-}
-
-.mobile #login h1 a {
-	width: auto;
+	width: 100%;
 }
 
 body.interim-login {
@@ -255,6 +242,12 @@ body.interim-login {
 	width: device-width;
 }
 
+@media screen and ( max-height: 550px ) {
+	#login {
+		padding: 20px 0;
+	}
+}
+
 @media screen and ( max-width: 782px ) {
 	.interim-login input[type=checkbox] {
 		height: 16px;
@@ -263,7 +256,7 @@ body.interim-login {
 
 	.interim-login input[type=checkbox]:checked:before {
 		width: 16px;
-		font: normal 21px/1 'dashicons';
+		font: normal 21px/1 dashicons;
 		margin: -3px -4px 0 0;
 	}
 }

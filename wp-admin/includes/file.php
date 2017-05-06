@@ -1,47 +1,66 @@
 <?php
 /**
+ * Filesystem API: Top-level functionality
+ *
  * Functions for reading, writing, modifying, and deleting files on the file system.
  * Includes functionality for theme-specific files as well as operations for uploading,
  * archiving, and rendering output when necessary.
  *
  * @package WordPress
- * @subpackage Administration
+ * @subpackage Filesystem
+ * @since 2.3.0
  */
 
 /** The descriptions for theme files. */
 $wp_file_descriptions = array(
-	'index.php' => __( 'Main Index Template' ),
-	'style.css' => __( 'Stylesheet' ),
-	'editor-style.css' => __( 'Visual Editor Stylesheet' ),
-	'editor-style-rtl.css' => __( 'Visual Editor RTL Stylesheet' ),
-	'rtl.css' => __( 'RTL Stylesheet' ),
-	'comments.php' => __( 'Comments' ),
-	'comments-popup.php' => __( 'Popup Comments' ),
-	'footer.php' => __( 'Footer' ),
-	'header.php' => __( 'Header' ),
-	'sidebar.php' => __( 'Sidebar' ),
-	'archive.php' => __( 'Archives' ),
-	'author.php' => __( 'Author Template' ),
-	'tag.php' => __( 'Tag Template' ),
-	'category.php' => __( 'Category Template' ),
-	'page.php' => __( 'Page Template' ),
-	'search.php' => __( 'Search Results' ),
-	'searchform.php' => __( 'Search Form' ),
-	'single.php' => __( 'Single Post' ),
-	'404.php' => __( '404 Template' ),
-	'link.php' => __( 'Links Template' ),
-	'functions.php' => __( 'Theme Functions' ),
-	'attachment.php' => __( 'Attachment Template' ),
-	'image.php' => __('Image Attachment Template'),
-	'video.php' => __('Video Attachment Template'),
-	'audio.php' => __('Audio Attachment Template'),
-	'application.php' => __('Application Attachment Template'),
-	'my-hacks.php' => __( 'my-hacks.php (legacy hacks support)' ),
-	'.htaccess' => __( '.htaccess (for rewrite rules )' ),
+	'functions.php'         => __( 'Theme Functions' ),
+	'header.php'            => __( 'Theme Header' ),
+	'footer.php'            => __( 'Theme Footer' ),
+	'sidebar.php'           => __( 'Sidebar' ),
+	'comments.php'          => __( 'Comments' ),
+	'searchform.php'        => __( 'Search Form' ),
+	'404.php'               => __( '404 Template' ),
+	'link.php'              => __( 'Links Template' ),
+	// Archives
+	'index.php'             => __( 'Main Index Template' ),
+	'archive.php'           => __( 'Archives' ),
+	'author.php'            => __( 'Author Template' ),
+	'taxonomy.php'          => __( 'Taxonomy Template' ),
+	'category.php'          => __( 'Category Template' ),
+	'tag.php'               => __( 'Tag Template' ),
+	'home.php'              => __( 'Posts Page' ),
+	'search.php'            => __( 'Search Results' ),
+	'date.php'              => __( 'Date Template' ),
+	// Content
+	'singular.php'          => __( 'Singular Template' ),
+	'single.php'            => __( 'Single Post' ),
+	'page.php'              => __( 'Single Page' ),
+	'front-page.php'        => __( 'Static Front Page' ),
+	// Attachments
+	'attachment.php'        => __( 'Attachment Template' ),
+	'image.php'             => __( 'Image Attachment Template' ),
+	'video.php'             => __( 'Video Attachment Template' ),
+	'audio.php'             => __( 'Audio Attachment Template' ),
+	'application.php'       => __( 'Application Attachment Template' ),
+	// Embeds
+	'embed.php'             => __( 'Embed Template' ),
+	'embed-404.php'         => __( 'Embed 404 Template' ),
+	'embed-content.php'     => __( 'Embed Content Template' ),
+	'header-embed.php'      => __( 'Embed Header Template' ),
+	'footer-embed.php'      => __( 'Embed Footer Template' ),
+	// Stylesheets
+	'style.css'             => __( 'Stylesheet' ),
+	'editor-style.css'      => __( 'Visual Editor Stylesheet' ),
+	'editor-style-rtl.css'  => __( 'Visual Editor RTL Stylesheet' ),
+	'rtl.css'               => __( 'RTL Stylesheet' ),
+	// Other
+	'my-hacks.php'          => __( 'my-hacks.php (legacy hacks support)' ),
+	'.htaccess'             => __( '.htaccess (for rewrite rules )' ),
 	// Deprecated files
-	'wp-layout.css' => __( 'Stylesheet' ),
-	'wp-comments.php' => __( 'Comments Template' ),
+	'wp-layout.css'         => __( 'Stylesheet' ),
+	'wp-comments.php'       => __( 'Comments Template' ),
 	'wp-comments-popup.php' => __( 'Popup Comments Template' ),
+	'comments-popup.php'    => __( 'Popup Comments' ),
 );
 
 /**
@@ -50,20 +69,24 @@ $wp_file_descriptions = array(
  *
  * @since 1.5.0
  *
- * @uses $wp_file_descriptions
+ * @global array $wp_file_descriptions
  * @param string $file Filesystem path or filename
- * @return string Description of file from $wp_file_descriptions or basename of $file if description doesn't exist
+ * @return string Description of file from $wp_file_descriptions or basename of $file if description doesn't exist.
+ *                Appends 'Page Template' to basename of $file if the file is a page template
  */
 function get_file_description( $file ) {
-	global $wp_file_descriptions;
+	global $wp_file_descriptions, $allowed_files;
 
-	if ( isset( $wp_file_descriptions[basename( $file )] ) ) {
-		return $wp_file_descriptions[basename( $file )];
-	}
-	elseif ( file_exists( $file ) && is_file( $file ) ) {
-		$template_data = implode( '', file( $file ) );
-		if ( preg_match( '|Template Name:(.*)$|mi', $template_data, $name ))
-			return sprintf( __( '%s Page Template' ), _cleanup_header_comment($name[1]) );
+	$dirname = pathinfo( $file, PATHINFO_DIRNAME );
+
+	$file_path = $allowed_files[ $file ];
+	if ( isset( $wp_file_descriptions[ basename( $file ) ] ) && '.' === $dirname ) {
+		return $wp_file_descriptions[ basename( $file ) ];
+	} elseif ( file_exists( $file_path ) && is_file( $file_path ) ) {
+		$template_data = implode( '', file( $file_path ) );
+		if ( preg_match( '|Template Name:(.*)$|mi', $template_data, $name ) ) {
+			return sprintf( __( '%s Page Template' ), _cleanup_header_comment( $name[1] ) );
+		}
 	}
 
 	return trim( basename( $file ) );
@@ -141,23 +164,44 @@ function list_files( $folder = '', $levels = 100 ) {
  * @param string $dir      Optional. Directory to store the file in. Default empty.
  * @return string a writable filename
  */
-function wp_tempnam($filename = '', $dir = '') {
-	if ( empty($dir) )
+function wp_tempnam( $filename = '', $dir = '' ) {
+	if ( empty( $dir ) ) {
 		$dir = get_temp_dir();
-	$filename = basename($filename);
-	if ( empty($filename) )
-		$filename = time();
+	}
 
-	$filename = preg_replace('|\..*$|', '.tmp', $filename);
-	$filename = $dir . wp_unique_filename($dir, $filename);
-	touch($filename);
-	return $filename;
+	if ( empty( $filename ) || '.' == $filename || '/' == $filename || '\\' == $filename ) {
+		$filename = time();
+	}
+
+	// Use the basename of the given file without the extension as the name for the temporary directory
+	$temp_filename = basename( $filename );
+	$temp_filename = preg_replace( '|\.[^.]*$|', '', $temp_filename );
+
+	// If the folder is falsey, use its parent directory name instead.
+	if ( ! $temp_filename ) {
+		return wp_tempnam( dirname( $filename ), $dir );
+	}
+
+	// Suffix some random data to avoid filename conflicts
+	$temp_filename .= '-' . wp_generate_password( 6, false );
+	$temp_filename .= '.tmp';
+	$temp_filename = $dir . wp_unique_filename( $dir, $temp_filename );
+
+	$fp = @fopen( $temp_filename, 'x' );
+	if ( ! $fp && is_writable( $dir ) && file_exists( $temp_filename ) ) {
+		return wp_tempnam( $filename, $dir );
+	}
+	if ( $fp ) {
+		fclose( $fp );
+	}
+
+	return $temp_filename;
 }
 
 /**
  * Make sure that the file that was requested to edit, is allowed to be edited
  *
- * Function will die if if you are not allowed to edit the file
+ * Function will die if you are not allowed to edit the file
  *
  * @since 1.5.0
  *
@@ -187,18 +231,18 @@ function validate_file_to_edit( $file, $allowed_files = '' ) {
  * Handle PHP uploads in WordPress, sanitizing file names, checking extensions for mime type,
  * and moving the file to the appropriate directory within the uploads directory.
  *
+ * @access private
  * @since 4.0.0
  *
  * @see wp_handle_upload_error
  *
- * @param array  $file      Reference to a single element of $_FILES. Call the function once for
- *                          each uploaded file.
- * @param array  $overrides An associative array of names => values to override default variables.
- * @param string $time      Time formatted in 'yyyy/mm'.
- * @param string $action    Expected value for $_POST['action'].
+ * @param array       $file      Reference to a single element of $_FILES. Call the function once for each uploaded file.
+ * @param array|false $overrides An associative array of names => values to override default variables. Default false.
+ * @param string      $time      Time formatted in 'yyyy/mm'.
+ * @param string      $action    Expected value for $_POST['action'].
  * @return array On success, returns an associative array of file attributes. On failure, returns
  *               $overrides['upload_error_handler'](&$file, $message ) or array( 'error'=>$message ).
-*/
+ */
 function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	// The default error handler.
 	if ( ! function_exists( 'wp_handle_upload_error' ) ) {
@@ -208,7 +252,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	}
 
 	/**
-	 * Filter the data for a file before it is uploaded to WordPress.
+	 * Filters the data for a file before it is uploaded to WordPress.
 	 *
 	 * The dynamic portion of the hook name, `$action`, refers to the post action.
 	 *
@@ -227,7 +271,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 
 	// You may have had one or more 'wp_handle_upload_prefilter' functions error out the file. Handle that gracefully.
 	if ( isset( $file['error'] ) && ! is_numeric( $file['error'] ) && $file['error'] ) {
-		return $upload_error_handler( $file, $file['error'] );
+		return call_user_func_array( $upload_error_handler, array( &$file, $file['error'] ) );
 	}
 
 	// Install user overrides. Did we mention that this voids your warranty?
@@ -269,11 +313,11 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 
 	// A correct form post will pass this test.
 	if ( $test_form && ( ! isset( $_POST['action'] ) || ( $_POST['action'] != $action ) ) ) {
-		return call_user_func( $upload_error_handler, $file, __( 'Invalid form submission.' ) );
+		return call_user_func_array( $upload_error_handler, array( &$file, __( 'Invalid form submission.' ) ) );
 	}
 	// A successful upload will pass this test. It makes no sense to override this one.
 	if ( isset( $file['error'] ) && $file['error'] > 0 ) {
-		return call_user_func( $upload_error_handler, $file, $upload_error_strings[ $file['error'] ] );
+		return call_user_func_array( $upload_error_handler, array( &$file, $upload_error_strings[ $file['error'] ] ) );
 	}
 
 	$test_file_size = 'wp_handle_upload' === $action ? $file['size'] : filesize( $file['tmp_name'] );
@@ -284,13 +328,13 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 		} else {
 			$error_msg = __( 'File is empty. Please upload something more substantial. This error could also be caused by uploads being disabled in your php.ini or by post_max_size being defined as smaller than upload_max_filesize in php.ini.' );
 		}
-		return call_user_func( $upload_error_handler, $file, $error_msg );
+		return call_user_func_array( $upload_error_handler, array( &$file, $error_msg ) );
 	}
 
 	// A properly uploaded file will pass this test. There should be no reason to override this one.
 	$test_uploaded_file = 'wp_handle_upload' === $action ? @ is_uploaded_file( $file['tmp_name'] ) : @ is_file( $file['tmp_name'] );
 	if ( ! $test_uploaded_file ) {
-		return call_user_func( $upload_error_handler, $file, __( 'Specified file failed upload test.' ) );
+		return call_user_func_array( $upload_error_handler, array( &$file, __( 'Specified file failed upload test.' ) ) );
 	}
 
 	// A correct MIME type will pass this test. Override $mimes or use the upload_mimes filter.
@@ -305,7 +349,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 			$file['name'] = $proper_filename;
 		}
 		if ( ( ! $type || !$ext ) && ! current_user_can( 'unfiltered_upload' ) ) {
-			return call_user_func( $upload_error_handler, $file, __( 'Sorry, this file type is not permitted for security reasons.' ) );
+			return call_user_func_array( $upload_error_handler, array( &$file, __( 'Sorry, this file type is not permitted for security reasons.' ) ) );
 		}
 		if ( ! $type ) {
 			$type = $file['type'];
@@ -319,7 +363,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	 * overriding this one.
 	 */
 	if ( ! ( ( $uploads = wp_upload_dir( $time ) ) && false === $uploads['error'] ) ) {
-		return call_user_func( $upload_error_handler, $file, $uploads['error'] );
+		return call_user_func_array( $upload_error_handler, array( &$file, $uploads['error'] ) );
 	}
 
 	$filename = wp_unique_filename( $uploads['path'], $file['name'], $unique_filename_callback );
@@ -329,7 +373,9 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	if ( 'wp_handle_upload' === $action ) {
 		$move_new_file = @ move_uploaded_file( $file['tmp_name'], $new_file );
 	} else {
-		$move_new_file = @ rename( $file['tmp_name'], $new_file );
+		// use copy and unlink because rename breaks streams.
+		$move_new_file = @ copy( $file['tmp_name'], $new_file );
+		unlink( $file['tmp_name'] );
 	}
 
 	if ( false === $move_new_file ) {
@@ -354,7 +400,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	}
 
 	/**
-	 * Filter the data array for the uploaded file.
+	 * Filters the data array for the uploaded file.
 	 *
 	 * @since 2.1.0
 	 *
@@ -371,16 +417,19 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 		'file' => $new_file,
 		'url'  => $url,
 		'type' => $type
-	), 'wp_handle_sideload' === $action ? 'sideload' : 'upload' ); }
+	), 'wp_handle_sideload' === $action ? 'sideload' : 'upload' );
+}
 
 /**
- * Wrapper for _wp_handle_upload(), passes 'wp_handle_upload' action.
+ * Wrapper for _wp_handle_upload().
+ *
+ * Passes the {@see 'wp_handle_upload'} action.
  *
  * @since 2.0.0
  *
  * @see _wp_handle_upload()
  *
- * @param array      $file      Reference to a single element of $_FILES. Call the function once for
+ * @param array      $file      Reference to a single element of `$_FILES`. Call the function once for
  *                              each uploaded file.
  * @param array|bool $overrides Optional. An associative array of names=>values to override default
  *                              variables. Default false.
@@ -402,13 +451,15 @@ function wp_handle_upload( &$file, $overrides = false, $time = null ) {
 }
 
 /**
- * Wrapper for _wp_handle_upload(), passes 'wp_handle_sideload' action
+ * Wrapper for _wp_handle_upload().
+ *
+ * Passes the {@see 'wp_handle_sideload'} action.
  *
  * @since 2.6.0
  *
  * @see _wp_handle_upload()
  *
- * @param array      $file      An array similar to that of a PHP $_FILES POST array
+ * @param array      $file      An array similar to that of a PHP `$_FILES` POST array
  * @param array|bool $overrides Optional. An associative array of names=>values to override default
  *                              variables. Default false.
  * @param string     $time      Optional. Time formatted in 'yyyy/mm'. Default null.
@@ -429,7 +480,7 @@ function wp_handle_sideload( &$file, $overrides = false, $time = null ) {
 
 
 /**
- * Downloads a url to a local temporary file using the WordPress HTTP Class.
+ * Downloads a URL to a local temporary file using the WordPress HTTP Class.
  * Please note, That the calling function must unlink() the file.
  *
  * @since 2.5.0
@@ -443,7 +494,9 @@ function download_url( $url, $timeout = 300 ) {
 	if ( ! $url )
 		return new WP_Error('http_no_url', __('Invalid URL Provided.'));
 
-	$tmpfname = wp_tempnam($url);
+	$url_filename = basename( parse_url( $url, PHP_URL_PATH ) );
+
+	$tmpfname = wp_tempnam( $url_filename );
 	if ( ! $tmpfname )
 		return new WP_Error('http_no_file', __('Could not create Temporary file.'));
 
@@ -505,6 +558,8 @@ function verify_file_md5( $filename, $expected_md5 ) {
  *
  * @since 2.5.0
  *
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
+ *
  * @param string $file Full path and filename of zip archive
  * @param string $to Full path on the filesystem to extract archive to
  * @return mixed WP_Error on failure, True on success
@@ -515,9 +570,8 @@ function unzip_file($file, $to) {
 	if ( ! $wp_filesystem || !is_object($wp_filesystem) )
 		return new WP_Error('fs_unavailable', __('Could not access filesystem.'));
 
-	// Unzip can use a lot of memory, but not this much hopefully
-	/** This filter is documented in wp-admin/admin.php */
-	@ini_set( 'memory_limit', apply_filters( 'admin_memory_limit', WP_MAX_MEMORY_LIMIT ) );
+	// Unzip can use a lot of memory, but not this much hopefully.
+	wp_raise_memory_limit( 'admin' );
 
 	$needed_dirs = array();
 	$to = trailingslashit($to);
@@ -541,13 +595,13 @@ function unzip_file($file, $to) {
 	}
 
 	/**
-	 * Filter whether to use ZipArchive to unzip archives.
+	 * Filters whether to use ZipArchive to unzip archives.
 	 *
 	 * @since 3.0.0
 	 *
 	 * @param bool $ziparchive Whether to use ZipArchive. Default true.
 	 */
-	if ( class_exists( 'ZipArchive' ) && apply_filters( 'unzip_file_use_ziparchive', true ) ) {
+	if ( class_exists( 'ZipArchive', false ) && apply_filters( 'unzip_file_use_ziparchive', true ) ) {
 		$result = _unzip_file_ziparchive($file, $to, $needed_dirs);
 		if ( true === $result ) {
 			return $result;
@@ -567,6 +621,8 @@ function unzip_file($file, $to) {
  * @since 3.0.0
  * @see unzip_file
  * @access private
+ *
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
  *
  * @param string $file Full path and filename of zip archive
  * @param string $to Full path on the filesystem to extract archive to
@@ -593,10 +649,13 @@ function _unzip_file_ziparchive($file, $to, $needed_dirs = array() ) {
 
 		$uncompressed_size += $info['size'];
 
-		if ( '/' == substr($info['name'], -1) ) // directory
-			$needed_dirs[] = $to . untrailingslashit($info['name']);
-		else
-			$needed_dirs[] = $to . untrailingslashit(dirname($info['name']));
+		if ( '/' === substr( $info['name'], -1 ) ) {
+			// Directory.
+			$needed_dirs[] = $to . untrailingslashit( $info['name'] );
+		} elseif ( '.' !== $dirname = dirname( $info['name'] ) ) {
+			// Path to a file.
+			$needed_dirs[] = $to . untrailingslashit( $dirname );
+		}
 	}
 
 	/*
@@ -628,8 +687,10 @@ function _unzip_file_ziparchive($file, $to, $needed_dirs = array() ) {
 
 	// Create those directories if need be:
 	foreach ( $needed_dirs as $_dir ) {
-		if ( ! $wp_filesystem->mkdir($_dir, FS_CHMOD_DIR) && ! $wp_filesystem->is_dir($_dir) ) // Only check to see if the Dir exists upon creation failure. Less I/O this way.
+		// Only check to see if the Dir exists upon creation failure. Less I/O this way.
+		if ( ! $wp_filesystem->mkdir( $_dir, FS_CHMOD_DIR ) && ! $wp_filesystem->is_dir( $_dir ) ) {
 			return new WP_Error( 'mkdir_failed_ziparchive', __( 'Could not create directory.' ), substr( $_dir, strlen( $to ) ) );
+		}
 	}
 	unset($needed_dirs);
 
@@ -663,6 +724,8 @@ function _unzip_file_ziparchive($file, $to, $needed_dirs = array() ) {
  * @since 3.0.0
  * @see unzip_file
  * @access private
+ *
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
  *
  * @param string $file Full path and filename of zip archive
  * @param string $to Full path on the filesystem to extract archive to
@@ -756,6 +819,8 @@ function _unzip_file_pclzip($file, $to, $needed_dirs = array()) {
  *
  * @since 2.5.0
  *
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
+ *
  * @param string $from source directory
  * @param string $to destination directory
  * @param array $skip_list a list of files/folders to skip copying
@@ -810,13 +875,13 @@ function copy_dir($from, $to, $skip_list = array() ) {
  *
  * @since 2.5.0
  *
- * @param array  $args                         Optional. Connection args, These are passed directly to
- *                                             the `WP_Filesystem_*()` classes. Default false.
- * @param string $context                      Optional. Context for {@see get_filesystem_method()}.
- *                                             Default false.
- * @param bool   $allow_relaxed_file_ownership Optional. Whether to allow Group/World writable.
- *                                             Default false.
- * @return null|boolean false on failure, true on success.
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
+ *
+ * @param array|false  $args                         Optional. Connection args, These are passed directly to
+ *                                                   the `WP_Filesystem_*()` classes. Default false.
+ * @param string|false $context                      Optional. Context for get_filesystem_method(). Default false.
+ * @param bool         $allow_relaxed_file_ownership Optional. Whether to allow Group/World writable. Default false.
+ * @return null|bool false on failure, true on success.
  */
 function WP_Filesystem( $args = false, $context = false, $allow_relaxed_file_ownership = false ) {
 	global $wp_filesystem;
@@ -828,10 +893,10 @@ function WP_Filesystem( $args = false, $context = false, $allow_relaxed_file_own
 	if ( ! $method )
 		return false;
 
-	if ( ! class_exists("WP_Filesystem_$method") ) {
+	if ( ! class_exists( "WP_Filesystem_$method" ) ) {
 
 		/**
-		 * Filter the path for a specific filesystem method class file.
+		 * Filters the path for a specific filesystem method class file.
 		 *
 		 * @since 2.6.0
 		 *
@@ -873,31 +938,32 @@ function WP_Filesystem( $args = false, $context = false, $allow_relaxed_file_own
 }
 
 /**
- * Determines which Filesystem Method to use.
+ * Determines which method to use for reading, writing, modifying, or deleting
+ * files on the filesystem.
  *
- * The priority of the Transports are: Direct, SSH2, FTP PHP Extension,
- * FTP Sockets (Via Sockets class, or `fsockopen()`).
+ * The priority of the transports are: Direct, SSH2, FTP PHP Extension, FTP Sockets
+ * (Via Sockets class, or `fsockopen()`). Valid values for these are: 'direct', 'ssh2',
+ * 'ftpext' or 'ftpsockets'.
  *
- * Note that the return value of this function can be overridden in 2 ways
+ * The return value can be overridden by defining the `FS_METHOD` constant in `wp-config.php`,
+ * or filtering via {@see 'filesystem_method'}.
  *
- *  - By defining FS_METHOD in your `wp-config.php` file
- *  - By using the filesystem_method filter
+ * @link https://codex.wordpress.org/Editing_wp-config.php#WordPress_Upgrade_Constants
  *
- * Valid values for these are: 'direct', 'ssh2', 'ftpext' or 'ftpsockets'.
- *
- * Plugins may also define a custom transport handler, See the WP_Filesystem
- * function for more information.
+ * Plugins may define a custom transport handler, See WP_Filesystem().
  *
  * @since 2.5.0
  *
- * @todo Properly mark arguments as optional.
+ * @global callable $_wp_filesystem_direct_method
  *
- * @param array $args Connection details.
- * @param string $context Full path to the directory that is tested for being writable.
- * @param bool $allow_relaxed_file_ownership Whether to allow Group/World writable.
+ * @param array  $args                         Optional. Connection details. Default empty array.
+ * @param string $context                      Optional. Full path to the directory that is tested
+ *                                             for being writable. Default empty.
+ * @param bool   $allow_relaxed_file_ownership Optional. Whether to allow Group/World writable.
+ *                                             Default false.
  * @return string The transport to use, see description for valid return values.
  */
-function get_filesystem_method( $args = array(), $context = false, $allow_relaxed_file_ownership = false ) {
+function get_filesystem_method( $args = array(), $context = '', $allow_relaxed_file_ownership = false ) {
 	$method = defined('FS_METHOD') ? FS_METHOD : false; // Please ensure that this is either 'direct', 'ssh2', 'ftpext' or 'ftpsockets'
 
 	if ( ! $context ) {
@@ -925,11 +991,11 @@ function get_filesystem_method( $args = array(), $context = false, $allow_relaxe
 			}
 
 			if ( $wp_file_owner !== false && $wp_file_owner === $temp_file_owner ) {
-				// WordPress is creating files as the same owner as the WordPress files, 
+				// WordPress is creating files as the same owner as the WordPress files,
 				// this means it's safe to modify & create new files via PHP.
 				$method = 'direct';
 				$GLOBALS['_wp_filesystem_direct_method'] = 'file_owner';
-			} else if ( $allow_relaxed_file_ownership ) {
+			} elseif ( $allow_relaxed_file_ownership ) {
 				// The $context directory is writable, and $allow_relaxed_file_ownership is set, this means we can modify files
 				// safely in this directory. This mode doesn't create new files, only alter existing ones.
 				$method = 'direct';
@@ -946,7 +1012,7 @@ function get_filesystem_method( $args = array(), $context = false, $allow_relaxe
 	if ( ! $method && ( extension_loaded('sockets') || function_exists('fsockopen') ) ) $method = 'ftpsockets'; //Sockets: Socket extension; PHP Mode: FSockopen / fwrite / fread
 
 	/**
-	 * Filter the filesystem method to use.
+	 * Filters the filesystem method to use.
 	 *
 	 * @since 2.6.0
 	 *
@@ -962,45 +1028,52 @@ function get_filesystem_method( $args = array(), $context = false, $allow_relaxe
  * Displays a form to the user to request for their FTP/SSH details in order
  * to connect to the filesystem.
  *
- * All chosen/entered details are saved, Excluding the Password.
+ * All chosen/entered details are saved, excluding the password.
  *
  * Hostnames may be in the form of hostname:portnumber (eg: wordpress.org:2467)
  * to specify an alternate FTP/SSH port.
  *
- * Plugins may override this form by returning true|false via the
- * {@see 'request_filesystem_credentials'} filter.
+ * Plugins may override this form by returning true|false via the {@see 'request_filesystem_credentials'} filter.
  *
- * @since 2.5.
+ * @since 2.5.0
+ * @since 4.6.0 The `$context` parameter default changed from `false` to an empty string.
  *
- * @todo Properly mark optional arguments as such
+ * @global string $pagenow
  *
- * @param string $form_post the URL to post the form to
- * @param string $type the chosen Filesystem method in use
- * @param boolean $error if the current request has failed to connect
- * @param string $context The directory which is needed access to, The write-test will be performed on this directory by get_filesystem_method()
- * @param string $extra_fields Extra POST fields which should be checked for to be included in the post.
- * @param bool $allow_relaxed_file_ownership Whether to allow Group/World writable.
- * @return boolean False on failure. True on success.
+ * @param string $form_post                    The URL to post the form to.
+ * @param string $type                         Optional. Chosen type of filesystem. Default empty.
+ * @param bool   $error                        Optional. Whether the current request has failed to connect.
+ *                                             Default false.
+ * @param string $context                      Optional. Full path to the directory that is tested for being
+ *                                             writable. Default empty.
+ * @param array  $extra_fields                 Optional. Extra `POST` fields to be checked for inclusion in
+ *                                             the post. Default null.
+ * @param bool   $allow_relaxed_file_ownership Optional. Whether to allow Group/World writable. Default false.
+ *
+ * @return bool False on failure, true on success.
  */
-function request_filesystem_credentials($form_post, $type = '', $error = false, $context = false, $extra_fields = null, $allow_relaxed_file_ownership = false ) {
+function request_filesystem_credentials( $form_post, $type = '', $error = false, $context = '', $extra_fields = null, $allow_relaxed_file_ownership = false ) {
+	global $pagenow;
 
 	/**
-	 * Filter the filesystem credentials form output.
+	 * Filters the filesystem credentials form output.
 	 *
 	 * Returning anything other than an empty string will effectively short-circuit
 	 * output of the filesystem credentials form, returning that value instead.
 	 *
 	 * @since 2.5.0
+	 * @since 4.6.0 The `$context` parameter default changed from `false` to an empty string.
 	 *
-	 * @param mixed  $output       Form output to return instead. Default empty.
-	 * @param string $form_post    URL to POST the form to.
-	 * @param string $type         Chosen type of filesystem.
-	 * @param bool   $error        Whether the current request has failed to connect.
-	 *                             Default false.
-	 * @param string $context      Full path to the directory that is tested for
-	 *                             being writable.
-	 * @param bool $allow_relaxed_file_ownership Whether to allow Group/World writable.
-	 * @param array  $extra_fields Extra POST fields.
+	 * @param mixed  $output                       Form output to return instead. Default empty.
+	 * @param string $form_post                    The URL to post the form to.
+	 * @param string $type                         Chosen type of filesystem.
+	 * @param bool   $error                        Whether the current request has failed to connect.
+	 *                                             Default false.
+	 * @param string $context                      Full path to the directory that is tested for
+	 *                                             being writable.
+	 * @param bool   $allow_relaxed_file_ownership Whether to allow Group/World writable.
+	 *                                             Default false.
+	 * @param array  $extra_fields                 Extra POST fields.
 	 */
 	$req_cred = apply_filters( 'request_filesystem_credentials', '', $form_post, $type, $error, $context, $extra_fields, $allow_relaxed_file_ownership );
 	if ( '' !== $req_cred )
@@ -1038,15 +1111,15 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 		unset($credentials['port']);
 	}
 
-	if ( ( defined('FTP_SSH') && FTP_SSH ) || ( defined('FS_METHOD') && 'ssh2' == FS_METHOD ) )
+	if ( ( defined( 'FTP_SSH' ) && FTP_SSH ) || ( defined( 'FS_METHOD' ) && 'ssh2' == FS_METHOD ) ) {
 		$credentials['connection_type'] = 'ssh';
-	else if ( (defined('FTP_SSL') && FTP_SSL) && 'ftpext' == $type ) //Only the FTP Extension understands SSL
+	} elseif ( ( defined( 'FTP_SSL' ) && FTP_SSL ) && 'ftpext' == $type ) { //Only the FTP Extension understands SSL
 		$credentials['connection_type'] = 'ftps';
-	else if ( !empty($_POST['connection_type']) )
+	} elseif ( ! empty( $_POST['connection_type'] ) ) {
 		$credentials['connection_type'] = wp_unslash( $_POST['connection_type'] );
-	else if ( !isset($credentials['connection_type']) ) //All else fails (And it's not defaulted to something else saved), Default to FTP
+	} elseif ( ! isset( $credentials['connection_type'] ) ) { //All else fails (And it's not defaulted to something else saved), Default to FTP
 		$credentials['connection_type'] = 'ftp';
-
+	}
 	if ( ! $error &&
 			(
 				( !empty($credentials['password']) && !empty($credentials['username']) && !empty($credentials['hostname']) ) ||
@@ -1057,7 +1130,7 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 			$stored_credentials['hostname'] .= ':' . $stored_credentials['port'];
 
 		unset($stored_credentials['password'], $stored_credentials['port'], $stored_credentials['private_key'], $stored_credentials['public_key']);
-		if ( ! defined( 'WP_INSTALLING' ) ) {
+		if ( ! wp_installing() ) {
 			update_option( 'ftp_credentials', $stored_credentials );
 		}
 		return $credentials;
@@ -1085,9 +1158,10 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 		$types[ 'ssh' ] = __('SSH2');
 
 	/**
-	 * Filter the connection types to output to the filesystem credentials form.
+	 * Filters the connection types to output to the filesystem credentials form.
 	 *
 	 * @since 2.9.0
+	 * @since 4.6.0 The `$context` parameter default changed from `false` to an empty string.
 	 *
 	 * @param array  $types       Types of connections.
 	 * @param array  $credentials Credentials to connect with.
@@ -1099,23 +1173,17 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 	$types = apply_filters( 'fs_ftp_connection_types', $types, $credentials, $type, $error, $context );
 
 ?>
-<script type="text/javascript">
-<!--
-jQuery(function($){
-	jQuery("#ssh").click(function () {
-		jQuery("#ssh_keys").show();
-	});
-	jQuery("#ftp, #ftps").click(function () {
-		jQuery("#ssh_keys").hide();
-	});
-	jQuery('form input[value=""]:first').focus();
-});
--->
-</script>
 <form action="<?php echo esc_url( $form_post ) ?>" method="post">
-<div>
-<h3><?php _e('Connection Information') ?></h3>
-<p><?php
+<div id="request-filesystem-credentials-form" class="request-filesystem-credentials-form">
+<?php
+// Print a H1 heading in the FTP credentials modal dialog, default is a H2.
+$heading_tag = 'h2';
+if ( 'plugins.php' === $pagenow || 'plugin-install.php' === $pagenow ) {
+	$heading_tag = 'h1';
+}
+echo "<$heading_tag id='request-filesystem-credentials-title'>" . __( 'Connection Information' ) . "</$heading_tag>";
+?>
+<p id="request-filesystem-credentials-desc"><?php
 	$label_user = __('Username');
 	$label_pass = __('Password');
 	_e('To perform the requested action, WordPress needs to access your web server.');
@@ -1134,62 +1202,95 @@ jQuery(function($){
 	}
 	_e('If you do not remember your credentials, you should contact your web host.');
 ?></p>
-<table class="form-table">
-<tr>
-<th scope="row"><label for="hostname"><?php _e('Hostname') ?></label></th>
-<td><input name="hostname" type="text" id="hostname" value="<?php echo esc_attr($hostname); if ( !empty($port) ) echo ":$port"; ?>"<?php disabled( defined('FTP_HOST') ); ?> size="40" /></td>
-</tr>
-
-<tr>
-<th scope="row"><label for="username"><?php echo $label_user; ?></label></th>
-<td><input name="username" type="text" id="username" value="<?php echo esc_attr($username) ?>"<?php disabled( defined('FTP_USER') ); ?> size="40" /></td>
-</tr>
-
-<tr>
-<th scope="row"><label for="password"><?php echo $label_pass; ?></label></th>
-<td><div><input name="password" type="password" id="password" value="<?php if ( defined('FTP_PASS') ) echo '*****'; ?>"<?php disabled( defined('FTP_PASS') ); ?> size="40" /></div>
-<div><em><?php if ( ! defined('FTP_PASS') ) _e( 'This password will not be stored on the server.' ); ?></em></div></td>
-</tr>
-
-<?php if ( isset($types['ssh']) ) : ?>
-<tr id="ssh_keys" style="<?php if ( 'ssh' != $connection_type ) echo 'display:none' ?>">
-<th scope="row"><?php _e('Authentication Keys') ?>
-<div class="key-labels textright">
-<label for="public_key"><?php _e('Public Key:') ?></label ><br />
-<label for="private_key"><?php _e('Private Key:') ?></label>
-</div></th>
-<td><br /><input name="public_key" type="text" id="public_key" value="<?php echo esc_attr($public_key) ?>"<?php disabled( defined('FTP_PUBKEY') ); ?> size="40" />
-	<br /><input name="private_key" type="text" id="private_key" value="<?php echo esc_attr($private_key) ?>"<?php disabled( defined('FTP_PRIKEY') ); ?> size="40" />
-<div><?php _e('Enter the location on the server where the keys are located. If a passphrase is needed, enter that in the password field above.') ?></div></td>
-</tr>
-<?php endif; ?>
-
-<tr>
-<th scope="row"><?php _e('Connection Type') ?></th>
-<td>
-<fieldset><legend class="screen-reader-text"><span><?php _e('Connection Type') ?></span></legend>
-<?php
-	$disabled = disabled( (defined('FTP_SSL') && FTP_SSL) || (defined('FTP_SSH') && FTP_SSH), true, false );
-	foreach ( $types as $name => $text ) : ?>
-	<label for="<?php echo esc_attr($name) ?>">
-		<input type="radio" name="connection_type" id="<?php echo esc_attr($name) ?>" value="<?php echo esc_attr($name) ?>"<?php checked($name, $connection_type); echo $disabled; ?> />
-		<?php echo $text ?>
+<label for="hostname">
+	<span class="field-title"><?php _e( 'Hostname' ) ?></span>
+	<input name="hostname" type="text" id="hostname" aria-describedby="request-filesystem-credentials-desc" class="code" placeholder="<?php esc_attr_e( 'example: www.wordpress.org' ) ?>" value="<?php echo esc_attr($hostname); if ( !empty($port) ) echo ":$port"; ?>"<?php disabled( defined('FTP_HOST') ); ?> />
+</label>
+<div class="ftp-username">
+	<label for="username">
+		<span class="field-title"><?php echo $label_user; ?></span>
+		<input name="username" type="text" id="username" value="<?php echo esc_attr($username) ?>"<?php disabled( defined('FTP_USER') ); ?> />
 	</label>
-	<?php endforeach; ?>
-</fieldset>
-</td>
-</tr>
-</table>
-
+</div>
+<div class="ftp-password">
+	<label for="password">
+		<span class="field-title"><?php echo $label_pass; ?></span>
+		<input name="password" type="password" id="password" value="<?php if ( defined('FTP_PASS') ) echo '*****'; ?>"<?php disabled( defined('FTP_PASS') ); ?> />
+		<em><?php if ( ! defined('FTP_PASS') ) _e( 'This password will not be stored on the server.' ); ?></em>
+	</label>
+</div>
+<fieldset>
+<legend><?php _e( 'Connection Type' ); ?></legend>
 <?php
+	$disabled = disabled( ( defined( 'FTP_SSL' ) && FTP_SSL ) || ( defined( 'FTP_SSH' ) && FTP_SSH ), true, false );
+	foreach ( $types as $name => $text ) : ?>
+	<label for="<?php echo esc_attr( $name ) ?>">
+		<input type="radio" name="connection_type" id="<?php echo esc_attr( $name ) ?>" value="<?php echo esc_attr( $name ) ?>"<?php checked( $name, $connection_type ); echo $disabled; ?> />
+		<?php echo $text; ?>
+	</label>
+<?php
+	endforeach;
+?>
+</fieldset>
+<?php
+if ( isset( $types['ssh'] ) ) {
+	$hidden_class = '';
+	if ( 'ssh' != $connection_type || empty( $connection_type ) ) {
+		$hidden_class = ' class="hidden"';
+	}
+?>
+<fieldset id="ssh-keys"<?php echo $hidden_class; ?>">
+<legend><?php _e( 'Authentication Keys' ); ?></legend>
+<label for="public_key">
+	<span class="field-title"><?php _e('Public Key:') ?></span>
+	<input name="public_key" type="text" id="public_key" aria-describedby="auth-keys-desc" value="<?php echo esc_attr($public_key) ?>"<?php disabled( defined('FTP_PUBKEY') ); ?> />
+</label>
+<label for="private_key">
+	<span class="field-title"><?php _e('Private Key:') ?></span>
+	<input name="private_key" type="text" id="private_key" value="<?php echo esc_attr($private_key) ?>"<?php disabled( defined('FTP_PRIKEY') ); ?> />
+</label>
+<p id="auth-keys-desc"><?php _e( 'Enter the location on the server where the public and private keys are located. If a passphrase is needed, enter that in the password field above.' ) ?></p>
+</fieldset>
+<?php
+}
+
 foreach ( (array) $extra_fields as $field ) {
 	if ( isset( $_POST[ $field ] ) )
 		echo '<input type="hidden" name="' . esc_attr( $field ) . '" value="' . esc_attr( wp_unslash( $_POST[ $field ] ) ) . '" />';
 }
-submit_button( __( 'Proceed' ), 'button', 'upgrade' );
 ?>
+	<p class="request-filesystem-credentials-action-buttons">
+		<button class="button cancel-button" data-js-action="close" type="button"><?php _e( 'Cancel' ); ?></button>
+		<?php submit_button( __( 'Proceed' ), '', 'upgrade', false ); ?>
+	</p>
 </div>
 </form>
 <?php
 	return false;
+}
+
+/**
+ * Print the filesystem credentials modal when needed.
+ *
+ * @since 4.2.0
+ */
+function wp_print_request_filesystem_credentials_modal() {
+	$filesystem_method = get_filesystem_method();
+	ob_start();
+	$filesystem_credentials_are_stored = request_filesystem_credentials( self_admin_url() );
+	ob_end_clean();
+	$request_filesystem_credentials = ( $filesystem_method != 'direct' && ! $filesystem_credentials_are_stored );
+	if ( ! $request_filesystem_credentials ) {
+		return;
+	}
+	?>
+	<div id="request-filesystem-credentials-dialog" class="notification-dialog-wrap request-filesystem-credentials-dialog">
+		<div class="notification-dialog-background"></div>
+		<div class="notification-dialog" role="dialog" aria-labelledby="request-filesystem-credentials-title" tabindex="0">
+			<div class="request-filesystem-credentials-dialog-content">
+				<?php request_filesystem_credentials( site_url() ); ?>
+			</div>
+		</div>
+	</div>
+	<?php
 }

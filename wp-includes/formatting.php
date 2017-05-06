@@ -20,17 +20,43 @@
  *
  * Code within certain html blocks are skipped.
  *
+ * Do not use this function before the {@see 'init'} action hook; everything will break.
+ *
  * @since 0.71
- * @uses $wp_cockneyreplace Array of formatted entities for certain common phrases
+ *
+ * @global array $wp_cockneyreplace Array of formatted entities for certain common phrases
+ * @global array $shortcode_tags
+ * @staticvar array $static_characters
+ * @staticvar array $static_replacements
+ * @staticvar array $dynamic_characters
+ * @staticvar array $dynamic_replacements
+ * @staticvar array $default_no_texturize_tags
+ * @staticvar array $default_no_texturize_shortcodes
+ * @staticvar bool  $run_texturize
  *
  * @param string $text The text to be formatted
- * @param bool $reset Set to true for unit testing. Translated patterns will reset.
+ * @param bool   $reset Set to true for unit testing. Translated patterns will reset.
  * @return string The string replaced with html entities
  */
-function wptexturize($text, $reset = false) {
+function wptexturize( $text, $reset = false ) {
 	global $wp_cockneyreplace, $shortcode_tags;
-	static $static_characters, $static_replacements, $dynamic_characters, $dynamic_replacements,
-		$default_no_texturize_tags, $default_no_texturize_shortcodes, $run_texturize = true;
+	static $static_characters = null,
+		$static_replacements = null,
+		$dynamic_characters = null,
+		$dynamic_replacements = null,
+		$default_no_texturize_tags = null,
+		$default_no_texturize_shortcodes = null,
+		$run_texturize = true,
+		$apos = null,
+		$prime = null,
+		$double_prime = null,
+		$opening_quote = null,
+		$closing_quote = null,
+		$opening_single_quote = null,
+		$closing_single_quote = null,
+		$open_q_flag = '<!--oq-->',
+		$open_sq_flag = '<!--osq-->',
+		$apos_flag = '<!--apos-->';
 
 	// If there's nothing to do, just stop.
 	if ( empty( $text ) || false === $run_texturize ) {
@@ -40,7 +66,7 @@ function wptexturize($text, $reset = false) {
 	// Set up static variables. Run once only.
 	if ( $reset || ! isset( $static_characters ) ) {
 		/**
-		 * Filter whether to skip running wptexturize().
+		 * Filters whether to skip running wptexturize().
 		 *
 		 * Passing false to the filter will effectively short-circuit wptexturize().
 		 * returning the original text passed to the function instead.
@@ -86,13 +112,18 @@ function wptexturize($text, $reset = false) {
 
 		// if a plugin has provided an autocorrect array, use it
 		if ( isset($wp_cockneyreplace) ) {
-			$cockney = array_keys($wp_cockneyreplace);
-			$cockneyreplace = array_values($wp_cockneyreplace);
-		} elseif ( "'" != $apos ) { // Only bother if we're doing a replacement.
-			$cockney = array( "'tain't", "'twere", "'twas", "'tis", "'twill", "'til", "'bout", "'nuff", "'round", "'cause" );
-			$cockneyreplace = array( $apos . "tain" . $apos . "t", $apos . "twere", $apos . "twas", $apos . "tis", $apos . "twill", $apos . "til", $apos . "bout", $apos . "nuff", $apos . "round", $apos . "cause" );
+			$cockney = array_keys( $wp_cockneyreplace );
+			$cockneyreplace = array_values( $wp_cockneyreplace );
 		} else {
-			$cockney = $cockneyreplace = array();
+			/* translators: This is a comma-separated list of words that defy the syntax of quotations in normal use,
+			 * for example...  'We do not have enough words yet' ... is a typical quoted phrase.  But when we write
+			 * lines of code 'til we have enough of 'em, then we need to insert apostrophes instead of quotes.
+			 */
+			$cockney = explode( ',', _x( "'tain't,'twere,'twas,'tis,'twill,'til,'bout,'nuff,'round,'cause,'em",
+				'Comma-separated list of words to texturize in your language' ) );
+
+			$cockneyreplace = explode( ',', _x( '&#8217;tain&#8217;t,&#8217;twere,&#8217;twas,&#8217;tis,&#8217;twill,&#8217;til,&#8217;bout,&#8217;nuff,&#8217;round,&#8217;cause,&#8217;em',
+				'Comma-separated list of replacement words in your language' ) );
 		}
 
 		$static_characters = array_merge( array( '...', '``', '\'\'', ' (tm)' ), $cockney );
@@ -108,40 +139,30 @@ function wptexturize($text, $reset = false) {
 
 		// '99' and '99" are ambiguous among other patterns; assume it's an abbreviated year at the end of a quotation.
 		if ( "'" !== $apos || "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(\d\d)\'(?=\Z|[.,)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos . '$1' . $closing_single_quote;
+			$dynamic[ '/\'(\d\d)\'(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos_flag . '$1' . $closing_single_quote;
 		}
 		if ( "'" !== $apos || '"' !== $closing_quote ) {
-			$dynamic[ '/\'(\d\d)"(?=\Z|[.,)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos . '$1' . $closing_quote;
+			$dynamic[ '/\'(\d\d)"(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos_flag . '$1' . $closing_quote;
 		}
 
 		// '99 '99s '99's (apostrophe)  But never '9 or '99% or '999 or '99.0.
 		if ( "'" !== $apos ) {
-			$dynamic[ '/\'(?=\d\d(?:\Z|(?![%\d]|[.,]\d)))/' ] = $apos;
+			$dynamic[ '/\'(?=\d\d(?:\Z|(?![%\d]|[.,]\d)))/' ] = $apos_flag;
 		}
 
 		// Quoted Numbers like '0.42'
 		if ( "'" !== $opening_single_quote && "'" !== $closing_single_quote ) {
-			$dynamic[ '/(?<=\A|' . $spaces . ')\'(\d[.,\d]*)\'/' ] = $opening_single_quote . '$1' . $closing_single_quote;
+			$dynamic[ '/(?<=\A|' . $spaces . ')\'(\d[.,\d]*)\'/' ] = $open_sq_flag . '$1' . $closing_single_quote;
 		}
 
 		// Single quote at start, or preceded by (, {, <, [, ", -, or spaces.
 		if ( "'" !== $opening_single_quote ) {
-			$dynamic[ '/(?<=\A|[([{"\-]|&lt;|' . $spaces . ')\'/' ] = $opening_single_quote;
+			$dynamic[ '/(?<=\A|[([{"\-]|&lt;|' . $spaces . ')\'/' ] = $open_sq_flag;
 		}
 
 		// Apostrophe in a word.  No spaces, double apostrophes, or other punctuation.
 		if ( "'" !== $apos ) {
-			$dynamic[ '/(?<!' . $spaces . ')\'(?!\Z|[.,:;"\'(){}[\]\-]|&[lg]t;|' . $spaces . ')/' ] = $apos;
-		}
-
-		// 9' (prime)
-		if ( "'" !== $prime ) {
-			$dynamic[ '/(?<=\d)\'/' ] = $prime;
-		}
-
-		// Single quotes followed by spaces or ending punctuation.
-		if ( "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(?=\Z|[.,)}\-\]]|&gt;|' . $spaces . ')/' ] = $closing_single_quote;
+			$dynamic[ '/(?<!' . $spaces . ')\'(?!\Z|[.,:;!?"\'(){}[\]\-]|&[lg]t;|' . $spaces . ')/' ] = $apos_flag;
 		}
 
 		$dynamic_characters['apos'] = array_keys( $dynamic );
@@ -150,22 +171,12 @@ function wptexturize($text, $reset = false) {
 
 		// Quoted Numbers like "42"
 		if ( '"' !== $opening_quote && '"' !== $closing_quote ) {
-			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $opening_quote . '$1' . $closing_quote;
-		}
-
-		// 9" (double prime)
-		if ( '"' !== $double_prime ) {
-			$dynamic[ '/(?<=\d)"/' ] = $double_prime;
+			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $open_q_flag . '$1' . $closing_quote;
 		}
 
 		// Double quote at start, or preceded by (, {, <, [, -, or spaces, and not followed by spaces.
 		if ( '"' !== $opening_quote ) {
-			$dynamic[ '/(?<=\A|[([{\-]|&lt;|' . $spaces . ')"(?!' . $spaces . ')/' ] = $opening_quote;
-		}
-
-		// Any remaining double quotes.
-		if ( '"' !== $closing_quote ) {
-			$dynamic[ '/"/' ] = $closing_quote;
+			$dynamic[ '/(?<=\A|[([{\-]|&lt;|' . $spaces . ')"(?!' . $spaces . ')/' ] = $open_q_flag;
 		}
 
 		$dynamic_characters['quote'] = array_keys( $dynamic );
@@ -174,9 +185,9 @@ function wptexturize($text, $reset = false) {
 
 		// Dashes and spaces
 		$dynamic[ '/---/' ] = $em_dash;
-		$dynamic[ '/(?<=' . $spaces . ')--(?=' . $spaces . ')/' ] = $em_dash;
+		$dynamic[ '/(?<=^|' . $spaces . ')--(?=$|' . $spaces . ')/' ] = $em_dash;
 		$dynamic[ '/(?<!xn)--/' ] = $en_dash;
-		$dynamic[ '/(?<=' . $spaces . ')-(?=' . $spaces . ')/' ] = $en_dash;
+		$dynamic[ '/(?<=^|' . $spaces . ')-(?=$|' . $spaces . ')/' ] = $en_dash;
 
 		$dynamic_characters['dash'] = array_keys( $dynamic );
 		$dynamic_replacements['dash'] = array_values( $dynamic );
@@ -184,7 +195,7 @@ function wptexturize($text, $reset = false) {
 
 	// Must do this every time in case plugins use these filters in a context sensitive manner
 	/**
-	 * Filter the list of HTML elements not to texturize.
+	 * Filters the list of HTML elements not to texturize.
 	 *
 	 * @since 2.8.0
 	 *
@@ -192,7 +203,7 @@ function wptexturize($text, $reset = false) {
 	 */
 	$no_texturize_tags = apply_filters( 'no_texturize_tags', $default_no_texturize_tags );
 	/**
-	 * Filter the list of shortcodes not to texturize.
+	 * Filters the list of shortcodes not to texturize.
 	 *
 	 * @since 2.8.0
 	 *
@@ -205,63 +216,35 @@ function wptexturize($text, $reset = false) {
 
 	// Look for shortcodes and HTML elements.
 
-	$tagnames = array_keys( $shortcode_tags );
-	$tagregexp = join( '|', array_map( 'preg_quote', $tagnames ) );
-	$tagregexp = "(?:$tagregexp)(?![\\w-])"; // Excerpt of get_shortcode_regex().
-
-	$comment_regex =
-		  '!'           // Start of comment, after the <.
-		. '(?:'         // Unroll the loop: Consume everything until --> is found.
-		.     '-(?!->)' // Dash not followed by end of comment.
-		.     '[^\-]*+' // Consume non-dashes.
-		. ')*+'         // Loop possessively.
-		. '(?:-->)?';   // End of comment. If not found, match all input.
-
-	$shortcode_regex =
-		  '\['              // Find start of shortcode.
-		. '[\/\[]?'         // Shortcodes may begin with [/ or [[
-		. $tagregexp        // Only match registered shortcodes, because performance.
-		. '(?:'
-		.     '[^\[\]<>]+'  // Shortcodes do not contain other shortcodes. Quantifier critical.
-		. '|'
-		.     '<[^\[\]>]*>' // HTML elements permitted. Prevents matching ] before >.
-		. ')*+'             // Possessive critical.
-		. '\]'              // Find end of shortcode.
-		. '\]?';            // Shortcodes may end with ]]
-
-	$regex =
-		  '/('                   // Capture the entire match.
-		.     '<'                // Find start of element.
-		.     '(?(?=!--)'        // Is this a comment?
-		.         $comment_regex // Find end of comment.
-		.     '|'
-		.         '[^>]+>'       // Find end of element.
-		.     ')'
-		. '|'
-		.     $shortcode_regex   // Find shortcodes.
-		. ')/s';
+	preg_match_all( '@\[/?([^<>&/\[\]\x00-\x20=]++)@', $text, $matches );
+	$tagnames = array_intersect( array_keys( $shortcode_tags ), $matches[1] );
+	$found_shortcodes = ! empty( $tagnames );
+	$shortcode_regex = $found_shortcodes ? _get_wptexturize_shortcode_regex( $tagnames ) : '';
+	$regex = _get_wptexturize_split_regex( $shortcode_regex );
 
 	$textarr = preg_split( $regex, $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
 
 	foreach ( $textarr as &$curl ) {
 		// Only call _wptexturize_pushpop_element if $curl is a delimiter.
 		$first = $curl[0];
-		if ( '<' === $first && '<!--' === substr( $curl, 0, 4 ) ) {
-			// This is an HTML comment delimeter.
+		if ( '<' === $first ) {
+			if ( '<!--' === substr( $curl, 0, 4 ) ) {
+				// This is an HTML comment delimiter.
+				continue;
+			} else {
+				// This is an HTML element delimiter.
 
-			continue;
+				// Replace each & with &#038; unless it already looks like an entity.
+				$curl = preg_replace( '/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', '&#038;', $curl );
 
-		} elseif ( '<' === $first && '>' === substr( $curl, -1 ) ) {
-			// This is an HTML element delimiter.
-
-			_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags );
+				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags );
+			}
 
 		} elseif ( '' === trim( $curl ) ) {
 			// This is a newline between delimiters.  Performance improves when we check this.
-
 			continue;
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^' . $shortcode_regex . '$/', $curl ) ) {
+		} elseif ( '[' === $first && $found_shortcodes && 1 === preg_match( '/^' . $shortcode_regex . '$/', $curl ) ) {
 			// This is a shortcode delimiter.
 
 			if ( '[[' !== substr( $curl, 0, 2 ) && ']]' !== substr( $curl, -2 ) ) {
@@ -279,9 +262,14 @@ function wptexturize($text, $reset = false) {
 
 			if ( false !== strpos( $curl, "'" ) ) {
 				$curl = preg_replace( $dynamic_characters['apos'], $dynamic_replacements['apos'], $curl );
+				$curl = wptexturize_primes( $curl, "'", $prime, $open_sq_flag, $closing_single_quote );
+				$curl = str_replace( $apos_flag, $apos, $curl );
+				$curl = str_replace( $open_sq_flag, $opening_single_quote, $curl );
 			}
 			if ( false !== strpos( $curl, '"' ) ) {
 				$curl = preg_replace( $dynamic_characters['quote'], $dynamic_replacements['quote'], $curl );
+				$curl = wptexturize_primes( $curl, '"', $double_prime, $open_q_flag, $closing_quote );
+				$curl = str_replace( $open_q_flag, $opening_quote, $curl );
 			}
 			if ( false !== strpos( $curl, '-' ) ) {
 				$curl = preg_replace( $dynamic_characters['dash'], $dynamic_replacements['dash'], $curl );
@@ -292,14 +280,82 @@ function wptexturize($text, $reset = false) {
 				// Searching for a digit is 10 times more expensive than for the x, so we avoid doing this one!
 				$curl = preg_replace( '/\b(\d(?(?<=0)[\d\.,]+|[\d\.,]*))x(\d[\d\.,]*)\b/', '$1&#215;$2', $curl );
 			}
+
+			// Replace each & with &#038; unless it already looks like an entity.
+			$curl = preg_replace( '/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', '&#038;', $curl );
 		}
 	}
-	$text = implode( '', $textarr );
 
-	// Replace each & with &#038; unless it already looks like an entity.
-	$text = preg_replace('/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', '&#038;', $text);
+	return implode( '', $textarr );
+}
 
-	return $text;
+/**
+ * Implements a logic tree to determine whether or not "7'." represents seven feet,
+ * then converts the special char into either a prime char or a closing quote char.
+ *
+ * @since 4.3.0
+ *
+ * @param string $haystack    The plain text to be searched.
+ * @param string $needle      The character to search for such as ' or ".
+ * @param string $prime       The prime char to use for replacement.
+ * @param string $open_quote  The opening quote char. Opening quote replacement must be
+ *                            accomplished already.
+ * @param string $close_quote The closing quote char to use for replacement.
+ * @return string The $haystack value after primes and quotes replacements.
+ */
+function wptexturize_primes( $haystack, $needle, $prime, $open_quote, $close_quote ) {
+	$spaces = wp_spaces_regexp();
+	$flag = '<!--wp-prime-or-quote-->';
+	$quote_pattern = "/$needle(?=\\Z|[.,:;!?)}\\-\\]]|&gt;|" . $spaces . ")/";
+	$prime_pattern    = "/(?<=\\d)$needle/";
+	$flag_after_digit = "/(?<=\\d)$flag/";
+	$flag_no_digit    = "/(?<!\\d)$flag/";
+
+	$sentences = explode( $open_quote, $haystack );
+
+	foreach ( $sentences as $key => &$sentence ) {
+		if ( false === strpos( $sentence, $needle ) ) {
+			continue;
+		} elseif ( 0 !== $key && 0 === substr_count( $sentence, $close_quote ) ) {
+			$sentence = preg_replace( $quote_pattern, $flag, $sentence, -1, $count );
+			if ( $count > 1 ) {
+				// This sentence appears to have multiple closing quotes.  Attempt Vulcan logic.
+				$sentence = preg_replace( $flag_no_digit, $close_quote, $sentence, -1, $count2 );
+				if ( 0 === $count2 ) {
+					// Try looking for a quote followed by a period.
+					$count2 = substr_count( $sentence, "$flag." );
+					if ( $count2 > 0 ) {
+						// Assume the rightmost quote-period match is the end of quotation.
+						$pos = strrpos( $sentence, "$flag." );
+					} else {
+						// When all else fails, make the rightmost candidate a closing quote.
+						// This is most likely to be problematic in the context of bug #18549.
+						$pos = strrpos( $sentence, $flag );
+					}
+					$sentence = substr_replace( $sentence, $close_quote, $pos, strlen( $flag ) );
+				}
+				// Use conventional replacement on any remaining primes and quotes.
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+				$sentence = preg_replace( $flag_after_digit, $prime, $sentence );
+				$sentence = str_replace( $flag, $close_quote, $sentence );
+			} elseif ( 1 == $count ) {
+				// Found only one closing quote candidate, so give it priority over primes.
+				$sentence = str_replace( $flag, $close_quote, $sentence );
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			} else {
+				// No closing quotes found.  Just run primes pattern.
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			}
+		} else {
+			$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			$sentence = preg_replace( $quote_pattern, $close_quote, $sentence );
+		}
+		if ( '"' == $needle && false !== strpos( $sentence, '"' ) ) {
+			$sentence = str_replace( '"', $close_quote, $sentence );
+		}
+	}
+
+	return implode( $open_quote, $sentences );
 }
 
 /**
@@ -313,12 +369,12 @@ function wptexturize($text, $reset = false) {
  * @access private
  *
  * @param string $text Text to check. Must be a tag like `<html>` or `[shortcode]`.
- * @param array $stack List of open tag elements.
- * @param array $disabled_elements The tag names to match against. Spaces are not allowed in tag names.
+ * @param array  $stack List of open tag elements.
+ * @param array  $disabled_elements The tag names to match against. Spaces are not allowed in tag names.
  */
-function _wptexturize_pushpop_element($text, &$stack, $disabled_elements) {
+function _wptexturize_pushpop_element( $text, &$stack, $disabled_elements ) {
 	// Is it an opening tag or closing tag?
-	if ( '/' !== $text[1] ) {
+	if ( isset( $text[1] ) && '/' !== $text[1] ) {
 		$opening_tag = true;
 		$name_offset = 1;
 	} elseif ( 0 == count( $stack ) ) {
@@ -360,24 +416,29 @@ function _wptexturize_pushpop_element($text, &$stack, $disabled_elements) {
  * Replaces double line-breaks with paragraph elements.
  *
  * A group of regex replaces used to identify text formatted with newlines and
- * replace double line-breaks with HTML paragraph tags. The remaining
- * line-breaks after conversion become <<br />> tags, unless $br is set to '0'
- * or 'false'.
+ * replace double line-breaks with HTML paragraph tags. The remaining line-breaks
+ * after conversion become <<br />> tags, unless $br is set to '0' or 'false'.
  *
  * @since 0.71
  *
  * @param string $pee The text which has to be formatted.
- * @param bool $br Optional. If set, this will convert all remaining line-breaks after paragraphing. Default true.
+ * @param bool   $br  Optional. If set, this will convert all remaining line-breaks
+ *                    after paragraphing. Default true.
  * @return string Text which has been converted into correct paragraph tags.
  */
-function wpautop($pee, $br = true) {
+function wpautop( $pee, $br = true ) {
 	$pre_tags = array();
 
 	if ( trim($pee) === '' )
 		return '';
 
-	$pee = $pee . "\n"; // just to make things a little easier, pad the end
+	// Just to make things a little easier, pad the end.
+	$pee = $pee . "\n";
 
+	/*
+	 * Pre tags shouldn't be touched by autop.
+	 * Replace pre tags with placeholders and bring them back after autop.
+	 */
 	if ( strpos($pee, '<pre') !== false ) {
 		$pee_parts = explode( '</pre>', $pee );
 		$last_pee = array_pop($pee_parts);
@@ -402,66 +463,309 @@ function wpautop($pee, $br = true) {
 
 		$pee .= $last_pee;
 	}
+	// Change multiple <br>s into two line breaks, which will turn into paragraphs.
+	$pee = preg_replace('|<br\s*/?>\s*<br\s*/?>|', "\n\n", $pee);
 
-	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
-	// Space things out a little
-	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
-	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
+	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
+
+	// Add a double line break above block-level opening tags.
+	$pee = preg_replace('!(<' . $allblocks . '[\s/>])!', "\n\n$1", $pee);
+
+	// Add a double line break below block-level closing tags.
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
-	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
 
+	// Standardize newline characters to "\n".
+	$pee = str_replace(array("\r\n", "\r"), "\n", $pee);
+
+	// Find newlines in all elements and add placeholders.
+	$pee = wp_replace_in_html_tags( $pee, array( "\n" => " <!-- wpnl --> " ) );
+
+	// Collapse line breaks before and after <option> elements so they don't get autop'd.
 	if ( strpos( $pee, '<option' ) !== false ) {
-		// no P/BR around option
 		$pee = preg_replace( '|\s*<option|', '<option', $pee );
 		$pee = preg_replace( '|</option>\s*|', '</option>', $pee );
 	}
 
+	/*
+	 * Collapse line breaks inside <object> elements, before <param> and <embed> elements
+	 * so they don't get autop'd.
+	 */
 	if ( strpos( $pee, '</object>' ) !== false ) {
-		// no P/BR around param and embed
 		$pee = preg_replace( '|(<object[^>]*>)\s*|', '$1', $pee );
 		$pee = preg_replace( '|\s*</object>|', '</object>', $pee );
 		$pee = preg_replace( '%\s*(</?(?:param|embed)[^>]*>)\s*%', '$1', $pee );
 	}
 
+	/*
+	 * Collapse line breaks inside <audio> and <video> elements,
+	 * before and after <source> and <track> elements.
+	 */
 	if ( strpos( $pee, '<source' ) !== false || strpos( $pee, '<track' ) !== false ) {
-		// no P/BR around source and track
 		$pee = preg_replace( '%([<\[](?:audio|video)[^>\]]*[>\]])\s*%', '$1', $pee );
 		$pee = preg_replace( '%\s*([<\[]/(?:audio|video)[>\]])%', '$1', $pee );
 		$pee = preg_replace( '%\s*(<(?:source|track)[^>]*>)\s*%', '$1', $pee );
 	}
 
-	$pee = preg_replace("/\n\n+/", "\n\n", $pee); // take care of duplicates
-	// make paragraphs, including one at the end
+	// Collapse line breaks before and after <figcaption> elements.
+	if ( strpos( $pee, '<figcaption' ) !== false ) {
+		$pee = preg_replace( '|\s*(<figcaption[^>]*>)|', '$1', $pee );
+		$pee = preg_replace( '|</figcaption>\s*|', '</figcaption>', $pee );
+	}
+
+	// Remove more than two contiguous line breaks.
+	$pee = preg_replace("/\n\n+/", "\n\n", $pee);
+
+	// Split up the contents into an array of strings, separated by double line breaks.
 	$pees = preg_split('/\n\s*\n/', $pee, -1, PREG_SPLIT_NO_EMPTY);
+
+	// Reset $pee prior to rebuilding.
 	$pee = '';
 
+	// Rebuild the content as a string, wrapping every bit with a <p>.
 	foreach ( $pees as $tinkle ) {
 		$pee .= '<p>' . trim($tinkle, "\n") . "</p>\n";
 	}
 
-	$pee = preg_replace('|<p>\s*</p>|', '', $pee); // under certain strange conditions it could create a P of entirely whitespace
+	// Under certain strange conditions it could create a P of entirely whitespace.
+	$pee = preg_replace('|<p>\s*</p>|', '', $pee);
+
+	// Add a closing <p> inside <div>, <address>, or <form> tag if missing.
 	$pee = preg_replace('!<p>([^<]+)</(div|address|form)>!', "<p>$1</p></$2>", $pee);
-	$pee = preg_replace('!<p>\s*(</?' . $allblocks . '[^>]*>)\s*</p>!', "$1", $pee); // don't pee all over a tag
-	$pee = preg_replace("|<p>(<li.+?)</p>|", "$1", $pee); // problem with nested lists
+
+	// If an opening or closing block element tag is wrapped in a <p>, unwrap it.
+	$pee = preg_replace('!<p>\s*(</?' . $allblocks . '[^>]*>)\s*</p>!', "$1", $pee);
+
+	// In some cases <li> may get wrapped in <p>, fix them.
+	$pee = preg_replace("|<p>(<li.+?)</p>|", "$1", $pee);
+
+	// If a <blockquote> is wrapped with a <p>, move it inside the <blockquote>.
 	$pee = preg_replace('|<p><blockquote([^>]*)>|i', "<blockquote$1><p>", $pee);
 	$pee = str_replace('</blockquote></p>', '</p></blockquote>', $pee);
+
+	// If an opening or closing block element tag is preceded by an opening <p> tag, remove it.
 	$pee = preg_replace('!<p>\s*(</?' . $allblocks . '[^>]*>)!', "$1", $pee);
+
+	// If an opening or closing block element tag is followed by a closing <p> tag, remove it.
 	$pee = preg_replace('!(</?' . $allblocks . '[^>]*>)\s*</p>!', "$1", $pee);
 
+	// Optionally insert line breaks.
 	if ( $br ) {
+		// Replace newlines that shouldn't be touched with a placeholder.
 		$pee = preg_replace_callback('/<(script|style).*?<\/\\1>/s', '_autop_newline_preservation_helper', $pee);
-		$pee = preg_replace('|(?<!<br />)\s*\n|', "<br />\n", $pee); // optionally make line breaks
+
+		// Normalize <br>
+		$pee = str_replace( array( '<br>', '<br/>' ), '<br />', $pee );
+
+		// Replace any new line characters that aren't preceded by a <br /> with a <br />.
+		$pee = preg_replace('|(?<!<br />)\s*\n|', "<br />\n", $pee);
+
+		// Replace newline placeholders with newlines.
 		$pee = str_replace('<WPPreserveNewline />', "\n", $pee);
 	}
 
+	// If a <br /> tag is after an opening or closing block tag, remove it.
 	$pee = preg_replace('!(</?' . $allblocks . '[^>]*>)\s*<br />!', "$1", $pee);
+
+	// If a <br /> tag is before a subset of opening or closing block tags, remove it.
 	$pee = preg_replace('!<br />(\s*</?(?:p|li|div|dl|dd|dt|th|pre|td|ul|ol)[^>]*>)!', '$1', $pee);
 	$pee = preg_replace( "|\n</p>$|", '</p>', $pee );
 
+	// Replace placeholder <pre> tags with their original content.
 	if ( !empty($pre_tags) )
 		$pee = str_replace(array_keys($pre_tags), array_values($pre_tags), $pee);
 
+	// Restore newlines in all elements.
+	if ( false !== strpos( $pee, '<!-- wpnl -->' ) ) {
+		$pee = str_replace( array( ' <!-- wpnl --> ', '<!-- wpnl -->' ), "\n", $pee );
+	}
+
 	return $pee;
+}
+
+/**
+ * Separate HTML elements and comments from the text.
+ *
+ * @since 4.2.4
+ *
+ * @param string $input The text which has to be formatted.
+ * @return array The formatted text.
+ */
+function wp_html_split( $input ) {
+	return preg_split( get_html_split_regex(), $input, -1, PREG_SPLIT_DELIM_CAPTURE );
+}
+
+/**
+ * Retrieve the regular expression for an HTML element.
+ *
+ * @since 4.4.0
+ *
+ * @return string The regular expression
+ */
+function get_html_split_regex() {
+	static $regex;
+
+	if ( ! isset( $regex ) ) {
+		$comments =
+			  '!'           // Start of comment, after the <.
+			. '(?:'         // Unroll the loop: Consume everything until --> is found.
+			.     '-(?!->)' // Dash not followed by end of comment.
+			.     '[^\-]*+' // Consume non-dashes.
+			. ')*+'         // Loop possessively.
+			. '(?:-->)?';   // End of comment. If not found, match all input.
+
+		$cdata =
+			  '!\[CDATA\['  // Start of comment, after the <.
+			. '[^\]]*+'     // Consume non-].
+			. '(?:'         // Unroll the loop: Consume everything until ]]> is found.
+			.     '](?!]>)' // One ] not followed by end of comment.
+			.     '[^\]]*+' // Consume non-].
+			. ')*+'         // Loop possessively.
+			. '(?:]]>)?';   // End of comment. If not found, match all input.
+
+		$escaped =
+			  '(?='           // Is the element escaped?
+			.    '!--'
+			. '|'
+			.    '!\[CDATA\['
+			. ')'
+			. '(?(?=!-)'      // If yes, which type?
+			.     $comments
+			. '|'
+			.     $cdata
+			. ')';
+
+		$regex =
+			  '/('              // Capture the entire match.
+			.     '<'           // Find start of element.
+			.     '(?'          // Conditional expression follows.
+			.         $escaped  // Find end of escaped element.
+			.     '|'           // ... else ...
+			.         '[^>]*>?' // Find end of normal element.
+			.     ')'
+			. ')/';
+	}
+
+	return $regex;
+}
+
+/**
+ * Retrieve the combined regular expression for HTML and shortcodes.
+ *
+ * @access private
+ * @ignore
+ * @internal This function will be removed in 4.5.0 per Shortcode API Roadmap.
+ * @since 4.4.0
+ *
+ * @param string $shortcode_regex The result from _get_wptexturize_shortcode_regex().  Optional.
+ * @return string The regular expression
+ */
+function _get_wptexturize_split_regex( $shortcode_regex = '' ) {
+	static $html_regex;
+
+	if ( ! isset( $html_regex ) ) {
+		$comment_regex =
+			  '!'           // Start of comment, after the <.
+			. '(?:'         // Unroll the loop: Consume everything until --> is found.
+			.     '-(?!->)' // Dash not followed by end of comment.
+			.     '[^\-]*+' // Consume non-dashes.
+			. ')*+'         // Loop possessively.
+			. '(?:-->)?';   // End of comment. If not found, match all input.
+
+		$html_regex =			 // Needs replaced with wp_html_split() per Shortcode API Roadmap.
+			  '<'                // Find start of element.
+			. '(?(?=!--)'        // Is this a comment?
+			.     $comment_regex // Find end of comment.
+			. '|'
+			.     '[^>]*>?'      // Find end of element. If not found, match all input.
+			. ')';
+	}
+
+	if ( empty( $shortcode_regex ) ) {
+		$regex = '/(' . $html_regex . ')/';
+	} else {
+		$regex = '/(' . $html_regex . '|' . $shortcode_regex . ')/';
+	}
+
+	return $regex;
+}
+
+/**
+ * Retrieve the regular expression for shortcodes.
+ *
+ * @access private
+ * @ignore
+ * @internal This function will be removed in 4.5.0 per Shortcode API Roadmap.
+ * @since 4.4.0
+ *
+ * @param array $tagnames List of shortcodes to find.
+ * @return string The regular expression
+ */
+function _get_wptexturize_shortcode_regex( $tagnames ) {
+	$tagregexp = join( '|', array_map( 'preg_quote', $tagnames ) );
+	$tagregexp = "(?:$tagregexp)(?=[\\s\\]\\/])"; // Excerpt of get_shortcode_regex().
+	$regex =
+		  '\['              // Find start of shortcode.
+		. '[\/\[]?'         // Shortcodes may begin with [/ or [[
+		. $tagregexp        // Only match registered shortcodes, because performance.
+		. '(?:'
+		.     '[^\[\]<>]+'  // Shortcodes do not contain other shortcodes. Quantifier critical.
+		. '|'
+		.     '<[^\[\]>]*>' // HTML elements permitted. Prevents matching ] before >.
+		. ')*+'             // Possessive critical.
+		. '\]'              // Find end of shortcode.
+		. '\]?';            // Shortcodes may end with ]]
+
+	return $regex;
+}
+
+/**
+ * Replace characters or phrases within HTML elements only.
+ *
+ * @since 4.2.3
+ *
+ * @param string $haystack The text which has to be formatted.
+ * @param array $replace_pairs In the form array('from' => 'to', ...).
+ * @return string The formatted text.
+ */
+function wp_replace_in_html_tags( $haystack, $replace_pairs ) {
+	// Find all elements.
+	$textarr = wp_html_split( $haystack );
+	$changed = false;
+
+	// Optimize when searching for one item.
+	if ( 1 === count( $replace_pairs ) ) {
+		// Extract $needle and $replace.
+		foreach ( $replace_pairs as $needle => $replace );
+
+		// Loop through delimiters (elements) only.
+		for ( $i = 1, $c = count( $textarr ); $i < $c; $i += 2 ) {
+			if ( false !== strpos( $textarr[$i], $needle ) ) {
+				$textarr[$i] = str_replace( $needle, $replace, $textarr[$i] );
+				$changed = true;
+			}
+		}
+	} else {
+		// Extract all $needles.
+		$needles = array_keys( $replace_pairs );
+
+		// Loop through delimiters (elements) only.
+		for ( $i = 1, $c = count( $textarr ); $i < $c; $i += 2 ) {
+			foreach ( $needles as $needle ) {
+				if ( false !== strpos( $textarr[$i], $needle ) ) {
+					$textarr[$i] = strtr( $textarr[$i], $replace_pairs );
+					$changed = true;
+					// After one strtr() break out of the foreach loop and look at next element.
+					break;
+				}
+			}
+		}
+	}
+
+	if ( $changed ) {
+		$haystack = implode( $textarr );
+	}
+
+	return $haystack;
 }
 
 /**
@@ -474,7 +778,7 @@ function wpautop($pee, $br = true) {
  * @return string
  */
 function _autop_newline_preservation_helper( $matches ) {
-	return str_replace("\n", "<WPPreserveNewline />", $matches[0]);
+	return str_replace( "\n", "<WPPreserveNewline />", $matches[0] );
 }
 
 /**
@@ -483,6 +787,8 @@ function _autop_newline_preservation_helper( $matches ) {
  * Ensures that shortcodes are not wrapped in `<p>...</p>`.
  *
  * @since 2.9.0
+ *
+ * @global array $shortcode_tags
  *
  * @param string $pee The content.
  * @return string The filtered content.
@@ -527,7 +833,7 @@ function shortcode_unautop( $pee ) {
 		. ')'
 		. '(?:' . $spaces . ')*+'            // optional trailing whitespace
 		. '<\\/p>'                           // closing paragraph
-		. '/s';
+		. '/';
 
 	return preg_replace( $pattern, '$1', $pee );
 }
@@ -544,20 +850,20 @@ function shortcode_unautop( $pee ) {
  * @param string $str The string to be checked
  * @return bool True if $str fits a UTF-8 model, false otherwise.
  */
-function seems_utf8($str) {
+function seems_utf8( $str ) {
 	mbstring_binary_safe_encoding();
 	$length = strlen($str);
 	reset_mbstring_encoding();
 	for ($i=0; $i < $length; $i++) {
 		$c = ord($str[$i]);
-		if ($c < 0x80) $n = 0; # 0bbbbbbb
-		elseif (($c & 0xE0) == 0xC0) $n=1; # 110bbbbb
-		elseif (($c & 0xF0) == 0xE0) $n=2; # 1110bbbb
-		elseif (($c & 0xF8) == 0xF0) $n=3; # 11110bbb
-		elseif (($c & 0xFC) == 0xF8) $n=4; # 111110bb
-		elseif (($c & 0xFE) == 0xFC) $n=5; # 1111110b
-		else return false; # Does not match any model
-		for ($j=0; $j<$n; $j++) { # n bytes matching 10bbbbbb follow ?
+		if ($c < 0x80) $n = 0; // 0bbbbbbb
+		elseif (($c & 0xE0) == 0xC0) $n=1; // 110bbbbb
+		elseif (($c & 0xF0) == 0xE0) $n=2; // 1110bbbb
+		elseif (($c & 0xF8) == 0xF0) $n=3; // 11110bbb
+		elseif (($c & 0xFC) == 0xF8) $n=4; // 111110bb
+		elseif (($c & 0xFE) == 0xFC) $n=5; // 1111110b
+		else return false; // Does not match any model
+		for ($j=0; $j<$n; $j++) { // n bytes matching 10bbbbbb follow ?
 			if ((++$i == $length) || ((ord($str[$i]) & 0xC0) != 0x80))
 				return false;
 		}
@@ -576,10 +882,16 @@ function seems_utf8($str) {
  * @since 1.2.2
  * @access private
  *
- * @param string $string The text which is to be encoded.
- * @param int $quote_style Optional. Converts double quotes if set to ENT_COMPAT, both single and double if set to ENT_QUOTES or none if set to ENT_NOQUOTES. Also compatible with old values; converting single quotes if set to 'single', double if set to 'double' or both if otherwise set. Default is ENT_NOQUOTES.
- * @param string $charset Optional. The character encoding of the string. Default is false.
- * @param boolean $double_encode Optional. Whether to encode existing html entities. Default is false.
+ * @staticvar string $_charset
+ *
+ * @param string     $string         The text which is to be encoded.
+ * @param int|string $quote_style    Optional. Converts double quotes if set to ENT_COMPAT,
+ *                                   both single and double if set to ENT_QUOTES or none if set to ENT_NOQUOTES.
+ *                                   Also compatible with old values; converting single quotes if set to 'single',
+ *                                   double if set to 'double' or both if otherwise set.
+ *                                   Default is ENT_NOQUOTES.
+ * @param string     $charset        Optional. The character encoding of the string. Default is false.
+ * @param bool       $double_encode  Optional. Whether to encode existing html entities. Default is false.
  * @return string The encoded text with HTML entities.
  */
 function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = false, $double_encode = false ) {
@@ -600,7 +912,7 @@ function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = fals
 
 	// Store the site charset as a static to avoid multiple calls to wp_load_alloptions()
 	if ( ! $charset ) {
-		static $_charset;
+		static $_charset = null;
 		if ( ! isset( $_charset ) ) {
 			$alloptions = wp_load_alloptions();
 			$_charset = isset( $alloptions['blog_charset'] ) ? $alloptions['blog_charset'] : '';
@@ -620,26 +932,15 @@ function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = fals
 		$quote_style = ENT_NOQUOTES;
 	}
 
-	// Handle double encoding ourselves
-	if ( $double_encode ) {
-		$string = @htmlspecialchars( $string, $quote_style, $charset );
-	} else {
-		// Decode &amp; into &
-		$string = wp_specialchars_decode( $string, $_quote_style );
-
-		// Guarantee every &entity; is valid or re-encode the &
+	if ( ! $double_encode ) {
+		// Guarantee every &entity; is valid, convert &garbage; into &amp;garbage;
+		// This is required for PHP < 5.4.0 because ENT_HTML401 flag is unavailable.
 		$string = wp_kses_normalize_entities( $string );
-
-		// Now re-encode everything except &entity;
-		$string = preg_split( '/(&#?x?[0-9a-z]+;)/i', $string, -1, PREG_SPLIT_DELIM_CAPTURE );
-
-		for ( $i = 0; $i < count( $string ); $i += 2 )
-			$string[$i] = @htmlspecialchars( $string[$i], $quote_style, $charset );
-
-		$string = implode( '', $string );
 	}
 
-	// Backwards compatibility
+	$string = @htmlspecialchars( $string, $quote_style, $charset, $double_encode );
+
+	// Back-compat.
 	if ( 'single' === $_quote_style )
 		$string = str_replace( "'", '&#039;', $string );
 
@@ -656,8 +957,14 @@ function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = fals
  *
  * @since 2.8.0
  *
- * @param string $string The text which is to be decoded.
- * @param mixed $quote_style Optional. Converts double quotes if set to ENT_COMPAT, both single and double if set to ENT_QUOTES or none if set to ENT_NOQUOTES. Also compatible with old _wp_specialchars() values; converting single quotes if set to 'single', double if set to 'double' or both if otherwise set. Default is ENT_NOQUOTES.
+ * @param string     $string The text which is to be decoded.
+ * @param string|int $quote_style Optional. Converts double quotes if set to ENT_COMPAT,
+ *                                both single and double if set to ENT_QUOTES or
+ *                                none if set to ENT_NOQUOTES.
+ *                                Also compatible with old _wp_specialchars() values;
+ *                                converting single quotes if set to 'single',
+ *                                double if set to 'double' or both if otherwise set.
+ *                                Default is ENT_NOQUOTES.
  * @return string The decoded text without HTML entities.
  */
 function wp_specialchars_decode( $string, $quote_style = ENT_NOQUOTES ) {
@@ -713,8 +1020,11 @@ function wp_specialchars_decode( $string, $quote_style = ENT_NOQUOTES ) {
  *
  * @since 2.8.0
  *
- * @param string $string The text which is to be checked.
- * @param boolean $strip Optional. Whether to attempt to strip out invalid UTF8. Default is false.
+ * @staticvar bool $is_utf8
+ * @staticvar bool $utf8_pcre
+ *
+ * @param string  $string The text which is to be checked.
+ * @param bool    $strip Optional. Whether to attempt to strip out invalid UTF8. Default is false.
  * @return string The checked text.
  */
 function wp_check_invalid_utf8( $string, $strip = false ) {
@@ -725,17 +1035,17 @@ function wp_check_invalid_utf8( $string, $strip = false ) {
 	}
 
 	// Store the site charset as a static to avoid multiple calls to get_option()
-	static $is_utf8;
-	if ( !isset( $is_utf8 ) ) {
+	static $is_utf8 = null;
+	if ( ! isset( $is_utf8 ) ) {
 		$is_utf8 = in_array( get_option( 'blog_charset' ), array( 'utf8', 'utf-8', 'UTF8', 'UTF-8' ) );
 	}
-	if ( !$is_utf8 ) {
+	if ( ! $is_utf8 ) {
 		return $string;
 	}
 
 	// Check for support for utf8 in the installed PCRE library once and store the result in a static
-	static $utf8_pcre;
-	if ( !isset( $utf8_pcre ) ) {
+	static $utf8_pcre = null;
+	if ( ! isset( $utf8_pcre ) ) {
 		$utf8_pcre = @preg_match( '/^./u', 'a' );
 	}
 	// We can't demand utf8 in the PCRE installation, so just return the string in those cases
@@ -762,7 +1072,7 @@ function wp_check_invalid_utf8( $string, $strip = false ) {
  * @since 1.5.0
  *
  * @param string $utf8_string
- * @param int $length Max length of the string
+ * @param int    $length Max  length of the string
  * @return string String with Unicode encoded for URI.
  */
 function utf8_uri_encode( $utf8_string, $length = 0 ) {
@@ -785,20 +1095,26 @@ function utf8_uri_encode( $utf8_string, $length = 0 ) {
 			$unicode .= chr($value);
 			$unicode_length++;
 		} else {
-			if ( count( $values ) == 0 ) $num_octets = ( $value < 224 ) ? 2 : 3;
+			if ( count( $values ) == 0 ) {
+				if ( $value < 224 ) {
+					$num_octets = 2;
+				} elseif ( $value < 240 ) {
+					$num_octets = 3;
+				} else {
+					$num_octets = 4;
+				}
+			}
 
 			$values[] = $value;
 
 			if ( $length && ( $unicode_length + ($num_octets * 3) ) > $length )
 				break;
 			if ( count( $values ) == $num_octets ) {
-				if ($num_octets == 3) {
-					$unicode .= '%' . dechex($values[0]) . '%' . dechex($values[1]) . '%' . dechex($values[2]);
-					$unicode_length += 9;
-				} else {
-					$unicode .= '%' . dechex($values[0]) . '%' . dechex($values[1]);
-					$unicode_length += 6;
+				for ( $j = 0; $j < $num_octets; $j++ ) {
+					$unicode .= '%' . dechex( $values[ $j ] );
 				}
+
+				$unicode_length += $num_octets * 3;
 
 				$values = array();
 				$num_octets = 1;
@@ -814,230 +1130,612 @@ function utf8_uri_encode( $utf8_string, $length = 0 ) {
  *
  * If there are no accent characters, then the string given is just returned.
  *
+ * **Accent characters converted:**
+ *
+ * Currency signs:
+ *
+ * |   Code   | Glyph | Replacement |     Description     |
+ * | -------- | ----- | ----------- | ------------------- |
+ * | U+00A3   | £     | (empty)     | British Pound sign  |
+ * | U+20AC   | €     | E           | Euro sign           |
+ *
+ * Decompositions for Latin-1 Supplement:
+ *
+ * |  Code   | Glyph | Replacement |               Description              |
+ * | ------- | ----- | ----------- | -------------------------------------- |
+ * | U+00AA  | ª     | a           | Feminine ordinal indicator             |
+ * | U+00BA  | º     | o           | Masculine ordinal indicator            |
+ * | U+00C0  | À     | A           | Latin capital letter A with grave      |
+ * | U+00C1  | Á     | A           | Latin capital letter A with acute      |
+ * | U+00C2  | Â     | A           | Latin capital letter A with circumflex |
+ * | U+00C3  | Ã     | A           | Latin capital letter A with tilde      |
+ * | U+00C4  | Ä     | A           | Latin capital letter A with diaeresis  |
+ * | U+00C5  | Å     | A           | Latin capital letter A with ring above |
+ * | U+00C6  | Æ     | AE          | Latin capital letter AE                |
+ * | U+00C7  | Ç     | C           | Latin capital letter C with cedilla    |
+ * | U+00C8  | È     | E           | Latin capital letter E with grave      |
+ * | U+00C9  | É     | E           | Latin capital letter E with acute      |
+ * | U+00CA  | Ê     | E           | Latin capital letter E with circumflex |
+ * | U+00CB  | Ë     | E           | Latin capital letter E with diaeresis  |
+ * | U+00CC  | Ì     | I           | Latin capital letter I with grave      |
+ * | U+00CD  | Í     | I           | Latin capital letter I with acute      |
+ * | U+00CE  | Î     | I           | Latin capital letter I with circumflex |
+ * | U+00CF  | Ï     | I           | Latin capital letter I with diaeresis  |
+ * | U+00D0  | Ð     | D           | Latin capital letter Eth               |
+ * | U+00D1  | Ñ     | N           | Latin capital letter N with tilde      |
+ * | U+00D2  | Ò     | O           | Latin capital letter O with grave      |
+ * | U+00D3  | Ó     | O           | Latin capital letter O with acute      |
+ * | U+00D4  | Ô     | O           | Latin capital letter O with circumflex |
+ * | U+00D5  | Õ     | O           | Latin capital letter O with tilde      |
+ * | U+00D6  | Ö     | O           | Latin capital letter O with diaeresis  |
+ * | U+00D8  | Ø     | O           | Latin capital letter O with stroke     |
+ * | U+00D9  | Ù     | U           | Latin capital letter U with grave      |
+ * | U+00DA  | Ú     | U           | Latin capital letter U with acute      |
+ * | U+00DB  | Û     | U           | Latin capital letter U with circumflex |
+ * | U+00DC  | Ü     | U           | Latin capital letter U with diaeresis  |
+ * | U+00DD  | Ý     | Y           | Latin capital letter Y with acute      |
+ * | U+00DE  | Þ     | TH          | Latin capital letter Thorn             |
+ * | U+00DF  | ß     | s           | Latin small letter sharp s             |
+ * | U+00E0  | à     | a           | Latin small letter a with grave        |
+ * | U+00E1  | á     | a           | Latin small letter a with acute        |
+ * | U+00E2  | â     | a           | Latin small letter a with circumflex   |
+ * | U+00E3  | ã     | a           | Latin small letter a with tilde        |
+ * | U+00E4  | ä     | a           | Latin small letter a with diaeresis    |
+ * | U+00E5  | å     | a           | Latin small letter a with ring above   |
+ * | U+00E6  | æ     | ae          | Latin small letter ae                  |
+ * | U+00E7  | ç     | c           | Latin small letter c with cedilla      |
+ * | U+00E8  | è     | e           | Latin small letter e with grave        |
+ * | U+00E9  | é     | e           | Latin small letter e with acute        |
+ * | U+00EA  | ê     | e           | Latin small letter e with circumflex   |
+ * | U+00EB  | ë     | e           | Latin small letter e with diaeresis    |
+ * | U+00EC  | ì     | i           | Latin small letter i with grave        |
+ * | U+00ED  | í     | i           | Latin small letter i with acute        |
+ * | U+00EE  | î     | i           | Latin small letter i with circumflex   |
+ * | U+00EF  | ï     | i           | Latin small letter i with diaeresis    |
+ * | U+00F0  | ð     | d           | Latin small letter Eth                 |
+ * | U+00F1  | ñ     | n           | Latin small letter n with tilde        |
+ * | U+00F2  | ò     | o           | Latin small letter o with grave        |
+ * | U+00F3  | ó     | o           | Latin small letter o with acute        |
+ * | U+00F4  | ô     | o           | Latin small letter o with circumflex   |
+ * | U+00F5  | õ     | o           | Latin small letter o with tilde        |
+ * | U+00F6  | ö     | o           | Latin small letter o with diaeresis    |
+ * | U+00F8  | ø     | o           | Latin small letter o with stroke       |
+ * | U+00F9  | ù     | u           | Latin small letter u with grave        |
+ * | U+00FA  | ú     | u           | Latin small letter u with acute        |
+ * | U+00FB  | û     | u           | Latin small letter u with circumflex   |
+ * | U+00FC  | ü     | u           | Latin small letter u with diaeresis    |
+ * | U+00FD  | ý     | y           | Latin small letter y with acute        |
+ * | U+00FE  | þ     | th          | Latin small letter Thorn               |
+ * | U+00FF  | ÿ     | y           | Latin small letter y with diaeresis    |
+ *
+ * Decompositions for Latin Extended-A:
+ *
+ * |  Code   | Glyph | Replacement |                    Description                    |
+ * | ------- | ----- | ----------- | ------------------------------------------------- |
+ * | U+0100  | Ā     | A           | Latin capital letter A with macron                |
+ * | U+0101  | ā     | a           | Latin small letter a with macron                  |
+ * | U+0102  | Ă     | A           | Latin capital letter A with breve                 |
+ * | U+0103  | ă     | a           | Latin small letter a with breve                   |
+ * | U+0104  | Ą     | A           | Latin capital letter A with ogonek                |
+ * | U+0105  | ą     | a           | Latin small letter a with ogonek                  |
+ * | U+01006 | Ć     | C           | Latin capital letter C with acute                 |
+ * | U+0107  | ć     | c           | Latin small letter c with acute                   |
+ * | U+0108  | Ĉ     | C           | Latin capital letter C with circumflex            |
+ * | U+0109  | ĉ     | c           | Latin small letter c with circumflex              |
+ * | U+010A  | Ċ     | C           | Latin capital letter C with dot above             |
+ * | U+010B  | ċ     | c           | Latin small letter c with dot above               |
+ * | U+010C  | Č     | C           | Latin capital letter C with caron                 |
+ * | U+010D  | č     | c           | Latin small letter c with caron                   |
+ * | U+010E  | Ď     | D           | Latin capital letter D with caron                 |
+ * | U+010F  | ď     | d           | Latin small letter d with caron                   |
+ * | U+0110  | Đ     | D           | Latin capital letter D with stroke                |
+ * | U+0111  | đ     | d           | Latin small letter d with stroke                  |
+ * | U+0112  | Ē     | E           | Latin capital letter E with macron                |
+ * | U+0113  | ē     | e           | Latin small letter e with macron                  |
+ * | U+0114  | Ĕ     | E           | Latin capital letter E with breve                 |
+ * | U+0115  | ĕ     | e           | Latin small letter e with breve                   |
+ * | U+0116  | Ė     | E           | Latin capital letter E with dot above             |
+ * | U+0117  | ė     | e           | Latin small letter e with dot above               |
+ * | U+0118  | Ę     | E           | Latin capital letter E with ogonek                |
+ * | U+0119  | ę     | e           | Latin small letter e with ogonek                  |
+ * | U+011A  | Ě     | E           | Latin capital letter E with caron                 |
+ * | U+011B  | ě     | e           | Latin small letter e with caron                   |
+ * | U+011C  | Ĝ     | G           | Latin capital letter G with circumflex            |
+ * | U+011D  | ĝ     | g           | Latin small letter g with circumflex              |
+ * | U+011E  | Ğ     | G           | Latin capital letter G with breve                 |
+ * | U+011F  | ğ     | g           | Latin small letter g with breve                   |
+ * | U+0120  | Ġ     | G           | Latin capital letter G with dot above             |
+ * | U+0121  | ġ     | g           | Latin small letter g with dot above               |
+ * | U+0122  | Ģ     | G           | Latin capital letter G with cedilla               |
+ * | U+0123  | ģ     | g           | Latin small letter g with cedilla                 |
+ * | U+0124  | Ĥ     | H           | Latin capital letter H with circumflex            |
+ * | U+0125  | ĥ     | h           | Latin small letter h with circumflex              |
+ * | U+0126  | Ħ     | H           | Latin capital letter H with stroke                |
+ * | U+0127  | ħ     | h           | Latin small letter h with stroke                  |
+ * | U+0128  | Ĩ     | I           | Latin capital letter I with tilde                 |
+ * | U+0129  | ĩ     | i           | Latin small letter i with tilde                   |
+ * | U+012A  | Ī     | I           | Latin capital letter I with macron                |
+ * | U+012B  | ī     | i           | Latin small letter i with macron                  |
+ * | U+012C  | Ĭ     | I           | Latin capital letter I with breve                 |
+ * | U+012D  | ĭ     | i           | Latin small letter i with breve                   |
+ * | U+012E  | Į     | I           | Latin capital letter I with ogonek                |
+ * | U+012F  | į     | i           | Latin small letter i with ogonek                  |
+ * | U+0130  | İ     | I           | Latin capital letter I with dot above             |
+ * | U+0131  | ı     | i           | Latin small letter dotless i                      |
+ * | U+0132  | Ĳ     | IJ          | Latin capital ligature IJ                         |
+ * | U+0133  | ĳ     | ij          | Latin small ligature ij                           |
+ * | U+0134  | Ĵ     | J           | Latin capital letter J with circumflex            |
+ * | U+0135  | ĵ     | j           | Latin small letter j with circumflex              |
+ * | U+0136  | Ķ     | K           | Latin capital letter K with cedilla               |
+ * | U+0137  | ķ     | k           | Latin small letter k with cedilla                 |
+ * | U+0138  | ĸ     | k           | Latin small letter Kra                            |
+ * | U+0139  | Ĺ     | L           | Latin capital letter L with acute                 |
+ * | U+013A  | ĺ     | l           | Latin small letter l with acute                   |
+ * | U+013B  | Ļ     | L           | Latin capital letter L with cedilla               |
+ * | U+013C  | ļ     | l           | Latin small letter l with cedilla                 |
+ * | U+013D  | Ľ     | L           | Latin capital letter L with caron                 |
+ * | U+013E  | ľ     | l           | Latin small letter l with caron                   |
+ * | U+013F  | Ŀ     | L           | Latin capital letter L with middle dot            |
+ * | U+0140  | ŀ     | l           | Latin small letter l with middle dot              |
+ * | U+0141  | Ł     | L           | Latin capital letter L with stroke                |
+ * | U+0142  | ł     | l           | Latin small letter l with stroke                  |
+ * | U+0143  | Ń     | N           | Latin capital letter N with acute                 |
+ * | U+0144  | ń     | n           | Latin small letter N with acute                   |
+ * | U+0145  | Ņ     | N           | Latin capital letter N with cedilla               |
+ * | U+0146  | ņ     | n           | Latin small letter n with cedilla                 |
+ * | U+0147  | Ň     | N           | Latin capital letter N with caron                 |
+ * | U+0148  | ň     | n           | Latin small letter n with caron                   |
+ * | U+0149  | ŉ     | n           | Latin small letter n preceded by apostrophe       |
+ * | U+014A  | Ŋ     | N           | Latin capital letter Eng                          |
+ * | U+014B  | ŋ     | n           | Latin small letter Eng                            |
+ * | U+014C  | Ō     | O           | Latin capital letter O with macron                |
+ * | U+014D  | ō     | o           | Latin small letter o with macron                  |
+ * | U+014E  | Ŏ     | O           | Latin capital letter O with breve                 |
+ * | U+014F  | ŏ     | o           | Latin small letter o with breve                   |
+ * | U+0150  | Ő     | O           | Latin capital letter O with double acute          |
+ * | U+0151  | ő     | o           | Latin small letter o with double acute            |
+ * | U+0152  | Œ     | OE          | Latin capital ligature OE                         |
+ * | U+0153  | œ     | oe          | Latin small ligature oe                           |
+ * | U+0154  | Ŕ     | R           | Latin capital letter R with acute                 |
+ * | U+0155  | ŕ     | r           | Latin small letter r with acute                   |
+ * | U+0156  | Ŗ     | R           | Latin capital letter R with cedilla               |
+ * | U+0157  | ŗ     | r           | Latin small letter r with cedilla                 |
+ * | U+0158  | Ř     | R           | Latin capital letter R with caron                 |
+ * | U+0159  | ř     | r           | Latin small letter r with caron                   |
+ * | U+015A  | Ś     | S           | Latin capital letter S with acute                 |
+ * | U+015B  | ś     | s           | Latin small letter s with acute                   |
+ * | U+015C  | Ŝ     | S           | Latin capital letter S with circumflex            |
+ * | U+015D  | ŝ     | s           | Latin small letter s with circumflex              |
+ * | U+015E  | Ş     | S           | Latin capital letter S with cedilla               |
+ * | U+015F  | ş     | s           | Latin small letter s with cedilla                 |
+ * | U+0160  | Š     | S           | Latin capital letter S with caron                 |
+ * | U+0161  | š     | s           | Latin small letter s with caron                   |
+ * | U+0162  | Ţ     | T           | Latin capital letter T with cedilla               |
+ * | U+0163  | ţ     | t           | Latin small letter t with cedilla                 |
+ * | U+0164  | Ť     | T           | Latin capital letter T with caron                 |
+ * | U+0165  | ť     | t           | Latin small letter t with caron                   |
+ * | U+0166  | Ŧ     | T           | Latin capital letter T with stroke                |
+ * | U+0167  | ŧ     | t           | Latin small letter t with stroke                  |
+ * | U+0168  | Ũ     | U           | Latin capital letter U with tilde                 |
+ * | U+0169  | ũ     | u           | Latin small letter u with tilde                   |
+ * | U+016A  | Ū     | U           | Latin capital letter U with macron                |
+ * | U+016B  | ū     | u           | Latin small letter u with macron                  |
+ * | U+016C  | Ŭ     | U           | Latin capital letter U with breve                 |
+ * | U+016D  | ŭ     | u           | Latin small letter u with breve                   |
+ * | U+016E  | Ů     | U           | Latin capital letter U with ring above            |
+ * | U+016F  | ů     | u           | Latin small letter u with ring above              |
+ * | U+0170  | Ű     | U           | Latin capital letter U with double acute          |
+ * | U+0171  | ű     | u           | Latin small letter u with double acute            |
+ * | U+0172  | Ų     | U           | Latin capital letter U with ogonek                |
+ * | U+0173  | ų     | u           | Latin small letter u with ogonek                  |
+ * | U+0174  | Ŵ     | W           | Latin capital letter W with circumflex            |
+ * | U+0175  | ŵ     | w           | Latin small letter w with circumflex              |
+ * | U+0176  | Ŷ     | Y           | Latin capital letter Y with circumflex            |
+ * | U+0177  | ŷ     | y           | Latin small letter y with circumflex              |
+ * | U+0178  | Ÿ     | Y           | Latin capital letter Y with diaeresis             |
+ * | U+0179  | Ź     | Z           | Latin capital letter Z with acute                 |
+ * | U+017A  | ź     | z           | Latin small letter z with acute                   |
+ * | U+017B  | Ż     | Z           | Latin capital letter Z with dot above             |
+ * | U+017C  | ż     | z           | Latin small letter z with dot above               |
+ * | U+017D  | Ž     | Z           | Latin capital letter Z with caron                 |
+ * | U+017E  | ž     | z           | Latin small letter z with caron                   |
+ * | U+017F  | ſ     | s           | Latin small letter long s                         |
+ * | U+01A0  | Ơ     | O           | Latin capital letter O with horn                  |
+ * | U+01A1  | ơ     | o           | Latin small letter o with horn                    |
+ * | U+01AF  | Ư     | U           | Latin capital letter U with horn                  |
+ * | U+01B0  | ư     | u           | Latin small letter u with horn                    |
+ * | U+01CD  | Ǎ     | A           | Latin capital letter A with caron                 |
+ * | U+01CE  | ǎ     | a           | Latin small letter a with caron                   |
+ * | U+01CF  | Ǐ     | I           | Latin capital letter I with caron                 |
+ * | U+01D0  | ǐ     | i           | Latin small letter i with caron                   |
+ * | U+01D1  | Ǒ     | O           | Latin capital letter O with caron                 |
+ * | U+01D2  | ǒ     | o           | Latin small letter o with caron                   |
+ * | U+01D3  | Ǔ     | U           | Latin capital letter U with caron                 |
+ * | U+01D4  | ǔ     | u           | Latin small letter u with caron                   |
+ * | U+01D5  | Ǖ     | U           | Latin capital letter U with diaeresis and macron  |
+ * | U+01D6  | ǖ     | u           | Latin small letter u with diaeresis and macron    |
+ * | U+01D7  | Ǘ     | U           | Latin capital letter U with diaeresis and acute   |
+ * | U+01D8  | ǘ     | u           | Latin small letter u with diaeresis and acute     |
+ * | U+01D9  | Ǚ     | U           | Latin capital letter U with diaeresis and caron   |
+ * | U+01DA  | ǚ     | u           | Latin small letter u with diaeresis and caron     |
+ * | U+01DB  | Ǜ     | U           | Latin capital letter U with diaeresis and grave   |
+ * | U+01DC  | ǜ     | u           | Latin small letter u with diaeresis and grave     |
+ *
+ * Decompositions for Latin Extended-B:
+ *
+ * |   Code   | Glyph | Replacement |                Description                |
+ * | -------- | ----- | ----------- | ----------------------------------------- |
+ * | U+0218   | Ș     | S           | Latin capital letter S with comma below   |
+ * | U+0219   | ș     | s           | Latin small letter s with comma below     |
+ * | U+021A   | Ț     | T           | Latin capital letter T with comma below   |
+ * | U+021B   | ț     | t           | Latin small letter t with comma below     |
+ *
+ * Vowels with diacritic (Chinese, Hanyu Pinyin):
+ *
+ * |   Code   | Glyph | Replacement |                      Description                      |
+ * | -------- | ----- | ----------- | ----------------------------------------------------- |
+ * | U+0251   | ɑ     | a           | Latin small letter alpha                              |
+ * | U+1EA0   | Ạ     | A           | Latin capital letter A with dot below                 |
+ * | U+1EA1   | ạ     | a           | Latin small letter a with dot below                   |
+ * | U+1EA2   | Ả     | A           | Latin capital letter A with hook above                |
+ * | U+1EA3   | ả     | a           | Latin small letter a with hook above                  |
+ * | U+1EA4   | Ấ     | A           | Latin capital letter A with circumflex and acute      |
+ * | U+1EA5   | ấ     | a           | Latin small letter a with circumflex and acute        |
+ * | U+1EA6   | Ầ     | A           | Latin capital letter A with circumflex and grave      |
+ * | U+1EA7   | ầ     | a           | Latin small letter a with circumflex and grave        |
+ * | U+1EA8   | Ẩ     | A           | Latin capital letter A with circumflex and hook above |
+ * | U+1EA9   | ẩ     | a           | Latin small letter a with circumflex and hook above   |
+ * | U+1EAA   | Ẫ     | A           | Latin capital letter A with circumflex and tilde      |
+ * | U+1EAB   | ẫ     | a           | Latin small letter a with circumflex and tilde        |
+ * | U+1EA6   | Ậ     | A           | Latin capital letter A with circumflex and dot below  |
+ * | U+1EAD   | ậ     | a           | Latin small letter a with circumflex and dot below    |
+ * | U+1EAE   | Ắ     | A           | Latin capital letter A with breve and acute           |
+ * | U+1EAF   | ắ     | a           | Latin small letter a with breve and acute             |
+ * | U+1EB0   | Ằ     | A           | Latin capital letter A with breve and grave           |
+ * | U+1EB1   | ằ     | a           | Latin small letter a with breve and grave             |
+ * | U+1EB2   | Ẳ     | A           | Latin capital letter A with breve and hook above      |
+ * | U+1EB3   | ẳ     | a           | Latin small letter a with breve and hook above        |
+ * | U+1EB4   | Ẵ     | A           | Latin capital letter A with breve and tilde           |
+ * | U+1EB5   | ẵ     | a           | Latin small letter a with breve and tilde             |
+ * | U+1EB6   | Ặ     | A           | Latin capital letter A with breve and dot below       |
+ * | U+1EB7   | ặ     | a           | Latin small letter a with breve and dot below         |
+ * | U+1EB8   | Ẹ     | E           | Latin capital letter E with dot below                 |
+ * | U+1EB9   | ẹ     | e           | Latin small letter e with dot below                   |
+ * | U+1EBA   | Ẻ     | E           | Latin capital letter E with hook above                |
+ * | U+1EBB   | ẻ     | e           | Latin small letter e with hook above                  |
+ * | U+1EBC   | Ẽ     | E           | Latin capital letter E with tilde                     |
+ * | U+1EBD   | ẽ     | e           | Latin small letter e with tilde                       |
+ * | U+1EBE   | Ế     | E           | Latin capital letter E with circumflex and acute      |
+ * | U+1EBF   | ế     | e           | Latin small letter e with circumflex and acute        |
+ * | U+1EC0   | Ề     | E           | Latin capital letter E with circumflex and grave      |
+ * | U+1EC1   | ề     | e           | Latin small letter e with circumflex and grave        |
+ * | U+1EC2   | Ể     | E           | Latin capital letter E with circumflex and hook above |
+ * | U+1EC3   | ể     | e           | Latin small letter e with circumflex and hook above   |
+ * | U+1EC4   | Ễ     | E           | Latin capital letter E with circumflex and tilde      |
+ * | U+1EC5   | ễ     | e           | Latin small letter e with circumflex and tilde        |
+ * | U+1EC6   | Ệ     | E           | Latin capital letter E with circumflex and dot below  |
+ * | U+1EC7   | ệ     | e           | Latin small letter e with circumflex and dot below    |
+ * | U+1EC8   | Ỉ     | I           | Latin capital letter I with hook above                |
+ * | U+1EC9   | ỉ     | i           | Latin small letter i with hook above                  |
+ * | U+1ECA   | Ị     | I           | Latin capital letter I with dot below                 |
+ * | U+1ECB   | ị     | i           | Latin small letter i with dot below                   |
+ * | U+1ECC   | Ọ     | O           | Latin capital letter O with dot below                 |
+ * | U+1ECD   | ọ     | o           | Latin small letter o with dot below                   |
+ * | U+1ECE   | Ỏ     | O           | Latin capital letter O with hook above                |
+ * | U+1ECF   | ỏ     | o           | Latin small letter o with hook above                  |
+ * | U+1ED0   | Ố     | O           | Latin capital letter O with circumflex and acute      |
+ * | U+1ED1   | ố     | o           | Latin small letter o with circumflex and acute        |
+ * | U+1ED2   | Ồ     | O           | Latin capital letter O with circumflex and grave      |
+ * | U+1ED3   | ồ     | o           | Latin small letter o with circumflex and grave        |
+ * | U+1ED4   | Ổ     | O           | Latin capital letter O with circumflex and hook above |
+ * | U+1ED5   | ổ     | o           | Latin small letter o with circumflex and hook above   |
+ * | U+1ED6   | Ỗ     | O           | Latin capital letter O with circumflex and tilde      |
+ * | U+1ED7   | ỗ     | o           | Latin small letter o with circumflex and tilde        |
+ * | U+1ED8   | Ộ     | O           | Latin capital letter O with circumflex and dot below  |
+ * | U+1ED9   | ộ     | o           | Latin small letter o with circumflex and dot below    |
+ * | U+1EDA   | Ớ     | O           | Latin capital letter O with horn and acute            |
+ * | U+1EDB   | ớ     | o           | Latin small letter o with horn and acute              |
+ * | U+1EDC   | Ờ     | O           | Latin capital letter O with horn and grave            |
+ * | U+1EDD   | ờ     | o           | Latin small letter o with horn and grave              |
+ * | U+1EDE   | Ở     | O           | Latin capital letter O with horn and hook above       |
+ * | U+1EDF   | ở     | o           | Latin small letter o with horn and hook above         |
+ * | U+1EE0   | Ỡ     | O           | Latin capital letter O with horn and tilde            |
+ * | U+1EE1   | ỡ     | o           | Latin small letter o with horn and tilde              |
+ * | U+1EE2   | Ợ     | O           | Latin capital letter O with horn and dot below        |
+ * | U+1EE3   | ợ     | o           | Latin small letter o with horn and dot below          |
+ * | U+1EE4   | Ụ     | U           | Latin capital letter U with dot below                 |
+ * | U+1EE5   | ụ     | u           | Latin small letter u with dot below                   |
+ * | U+1EE6   | Ủ     | U           | Latin capital letter U with hook above                |
+ * | U+1EE7   | ủ     | u           | Latin small letter u with hook above                  |
+ * | U+1EE8   | Ứ     | U           | Latin capital letter U with horn and acute            |
+ * | U+1EE9   | ứ     | u           | Latin small letter u with horn and acute              |
+ * | U+1EEA   | Ừ     | U           | Latin capital letter U with horn and grave            |
+ * | U+1EEB   | ừ     | u           | Latin small letter u with horn and grave              |
+ * | U+1EEC   | Ử     | U           | Latin capital letter U with horn and hook above       |
+ * | U+1EED   | ử     | u           | Latin small letter u with horn and hook above         |
+ * | U+1EEE   | Ữ     | U           | Latin capital letter U with horn and tilde            |
+ * | U+1EEF   | ữ     | u           | Latin small letter u with horn and tilde              |
+ * | U+1EF0   | Ự     | U           | Latin capital letter U with horn and dot below        |
+ * | U+1EF1   | ự     | u           | Latin small letter u with horn and dot below          |
+ * | U+1EF2   | Ỳ     | Y           | Latin capital letter Y with grave                     |
+ * | U+1EF3   | ỳ     | y           | Latin small letter y with grave                       |
+ * | U+1EF4   | Ỵ     | Y           | Latin capital letter Y with dot below                 |
+ * | U+1EF5   | ỵ     | y           | Latin small letter y with dot below                   |
+ * | U+1EF6   | Ỷ     | Y           | Latin capital letter Y with hook above                |
+ * | U+1EF7   | ỷ     | y           | Latin small letter y with hook above                  |
+ * | U+1EF8   | Ỹ     | Y           | Latin capital letter Y with tilde                     |
+ * | U+1EF9   | ỹ     | y           | Latin small letter y with tilde                       |
+ *
+ * German (`de_DE`), German formal (`de_DE_formal`), German (Switzerland) formal (`de_CH`),
+ * and German (Switzerland) informal (`de_CH_informal`) locales:
+ *
+ * |   Code   | Glyph | Replacement |               Description               |
+ * | -------- | ----- | ----------- | --------------------------------------- |
+ * | U+00C4   | Ä     | Ae          | Latin capital letter A with diaeresis   |
+ * | U+00E4   | ä     | ae          | Latin small letter a with diaeresis     |
+ * | U+00D6   | Ö     | Oe          | Latin capital letter O with diaeresis   |
+ * | U+00F6   | ö     | oe          | Latin small letter o with diaeresis     |
+ * | U+00DC   | Ü     | Ue          | Latin capital letter U with diaeresis   |
+ * | U+00FC   | ü     | ue          | Latin small letter u with diaeresis     |
+ * | U+00DF   | ß     | ss          | Latin small letter sharp s              |
+ *
+ * Danish (`da_DK`) locale:
+ *
+ * |   Code   | Glyph | Replacement |               Description               |
+ * | -------- | ----- | ----------- | --------------------------------------- |
+ * | U+00C6   | Æ     | Ae          | Latin capital letter AE                 |
+ * | U+00E6   | æ     | ae          | Latin small letter ae                   |
+ * | U+00D8   | Ø     | Oe          | Latin capital letter O with stroke      |
+ * | U+00F8   | ø     | oe          | Latin small letter o with stroke        |
+ * | U+00C5   | Å     | Aa          | Latin capital letter A with ring above  |
+ * | U+00E5   | å     | aa          | Latin small letter a with ring above    |
+ *
+ * Catalan (`ca`) locale:
+ *
+ * |   Code   | Glyph | Replacement |               Description               |
+ * | -------- | ----- | ----------- | --------------------------------------- |
+ * | U+00B7   | l·l   | ll          | Flown dot (between two Ls)              |
+ *
+ * Serbian (`sr_RS`) locale:
+ *
+ * |   Code   | Glyph | Replacement |               Description               |
+ * | -------- | ----- | ----------- | --------------------------------------- |
+ * | U+0110   | Đ     | DJ          | Latin capital letter D with stroke      |
+ * | U+0111   | đ     | dj          | Latin small letter d with stroke        |
+ *
  * @since 1.2.1
+ * @since 4.6.0 Added locale support for `de_CH`, `de_CH_informal`, and `ca`.
+ * @since 4.7.0 Added locale support for `sr_RS`.
  *
  * @param string $string Text that might have accent characters
  * @return string Filtered string with replaced "nice" characters.
  */
-function remove_accents($string) {
+function remove_accents( $string ) {
 	if ( !preg_match('/[\x80-\xff]/', $string) )
 		return $string;
 
 	if (seems_utf8($string)) {
 		$chars = array(
 		// Decompositions for Latin-1 Supplement
-		chr(194).chr(170) => 'a', chr(194).chr(186) => 'o',
-		chr(195).chr(128) => 'A', chr(195).chr(129) => 'A',
-		chr(195).chr(130) => 'A', chr(195).chr(131) => 'A',
-		chr(195).chr(132) => 'A', chr(195).chr(133) => 'A',
-		chr(195).chr(134) => 'AE',chr(195).chr(135) => 'C',
-		chr(195).chr(136) => 'E', chr(195).chr(137) => 'E',
-		chr(195).chr(138) => 'E', chr(195).chr(139) => 'E',
-		chr(195).chr(140) => 'I', chr(195).chr(141) => 'I',
-		chr(195).chr(142) => 'I', chr(195).chr(143) => 'I',
-		chr(195).chr(144) => 'D', chr(195).chr(145) => 'N',
-		chr(195).chr(146) => 'O', chr(195).chr(147) => 'O',
-		chr(195).chr(148) => 'O', chr(195).chr(149) => 'O',
-		chr(195).chr(150) => 'O', chr(195).chr(153) => 'U',
-		chr(195).chr(154) => 'U', chr(195).chr(155) => 'U',
-		chr(195).chr(156) => 'U', chr(195).chr(157) => 'Y',
-		chr(195).chr(158) => 'TH',chr(195).chr(159) => 's',
-		chr(195).chr(160) => 'a', chr(195).chr(161) => 'a',
-		chr(195).chr(162) => 'a', chr(195).chr(163) => 'a',
-		chr(195).chr(164) => 'a', chr(195).chr(165) => 'a',
-		chr(195).chr(166) => 'ae',chr(195).chr(167) => 'c',
-		chr(195).chr(168) => 'e', chr(195).chr(169) => 'e',
-		chr(195).chr(170) => 'e', chr(195).chr(171) => 'e',
-		chr(195).chr(172) => 'i', chr(195).chr(173) => 'i',
-		chr(195).chr(174) => 'i', chr(195).chr(175) => 'i',
-		chr(195).chr(176) => 'd', chr(195).chr(177) => 'n',
-		chr(195).chr(178) => 'o', chr(195).chr(179) => 'o',
-		chr(195).chr(180) => 'o', chr(195).chr(181) => 'o',
-		chr(195).chr(182) => 'o', chr(195).chr(184) => 'o',
-		chr(195).chr(185) => 'u', chr(195).chr(186) => 'u',
-		chr(195).chr(187) => 'u', chr(195).chr(188) => 'u',
-		chr(195).chr(189) => 'y', chr(195).chr(190) => 'th',
-		chr(195).chr(191) => 'y', chr(195).chr(152) => 'O',
+		'ª' => 'a', 'º' => 'o',
+		'À' => 'A', 'Á' => 'A',
+		'Â' => 'A', 'Ã' => 'A',
+		'Ä' => 'A', 'Å' => 'A',
+		'Æ' => 'AE','Ç' => 'C',
+		'È' => 'E', 'É' => 'E',
+		'Ê' => 'E', 'Ë' => 'E',
+		'Ì' => 'I', 'Í' => 'I',
+		'Î' => 'I', 'Ï' => 'I',
+		'Ð' => 'D', 'Ñ' => 'N',
+		'Ò' => 'O', 'Ó' => 'O',
+		'Ô' => 'O', 'Õ' => 'O',
+		'Ö' => 'O', 'Ù' => 'U',
+		'Ú' => 'U', 'Û' => 'U',
+		'Ü' => 'U', 'Ý' => 'Y',
+		'Þ' => 'TH','ß' => 's',
+		'à' => 'a', 'á' => 'a',
+		'â' => 'a', 'ã' => 'a',
+		'ä' => 'a', 'å' => 'a',
+		'æ' => 'ae','ç' => 'c',
+		'è' => 'e', 'é' => 'e',
+		'ê' => 'e', 'ë' => 'e',
+		'ì' => 'i', 'í' => 'i',
+		'î' => 'i', 'ï' => 'i',
+		'ð' => 'd', 'ñ' => 'n',
+		'ò' => 'o', 'ó' => 'o',
+		'ô' => 'o', 'õ' => 'o',
+		'ö' => 'o', 'ø' => 'o',
+		'ù' => 'u', 'ú' => 'u',
+		'û' => 'u', 'ü' => 'u',
+		'ý' => 'y', 'þ' => 'th',
+		'ÿ' => 'y', 'Ø' => 'O',
 		// Decompositions for Latin Extended-A
-		chr(196).chr(128) => 'A', chr(196).chr(129) => 'a',
-		chr(196).chr(130) => 'A', chr(196).chr(131) => 'a',
-		chr(196).chr(132) => 'A', chr(196).chr(133) => 'a',
-		chr(196).chr(134) => 'C', chr(196).chr(135) => 'c',
-		chr(196).chr(136) => 'C', chr(196).chr(137) => 'c',
-		chr(196).chr(138) => 'C', chr(196).chr(139) => 'c',
-		chr(196).chr(140) => 'C', chr(196).chr(141) => 'c',
-		chr(196).chr(142) => 'D', chr(196).chr(143) => 'd',
-		chr(196).chr(144) => 'D', chr(196).chr(145) => 'd',
-		chr(196).chr(146) => 'E', chr(196).chr(147) => 'e',
-		chr(196).chr(148) => 'E', chr(196).chr(149) => 'e',
-		chr(196).chr(150) => 'E', chr(196).chr(151) => 'e',
-		chr(196).chr(152) => 'E', chr(196).chr(153) => 'e',
-		chr(196).chr(154) => 'E', chr(196).chr(155) => 'e',
-		chr(196).chr(156) => 'G', chr(196).chr(157) => 'g',
-		chr(196).chr(158) => 'G', chr(196).chr(159) => 'g',
-		chr(196).chr(160) => 'G', chr(196).chr(161) => 'g',
-		chr(196).chr(162) => 'G', chr(196).chr(163) => 'g',
-		chr(196).chr(164) => 'H', chr(196).chr(165) => 'h',
-		chr(196).chr(166) => 'H', chr(196).chr(167) => 'h',
-		chr(196).chr(168) => 'I', chr(196).chr(169) => 'i',
-		chr(196).chr(170) => 'I', chr(196).chr(171) => 'i',
-		chr(196).chr(172) => 'I', chr(196).chr(173) => 'i',
-		chr(196).chr(174) => 'I', chr(196).chr(175) => 'i',
-		chr(196).chr(176) => 'I', chr(196).chr(177) => 'i',
-		chr(196).chr(178) => 'IJ',chr(196).chr(179) => 'ij',
-		chr(196).chr(180) => 'J', chr(196).chr(181) => 'j',
-		chr(196).chr(182) => 'K', chr(196).chr(183) => 'k',
-		chr(196).chr(184) => 'k', chr(196).chr(185) => 'L',
-		chr(196).chr(186) => 'l', chr(196).chr(187) => 'L',
-		chr(196).chr(188) => 'l', chr(196).chr(189) => 'L',
-		chr(196).chr(190) => 'l', chr(196).chr(191) => 'L',
-		chr(197).chr(128) => 'l', chr(197).chr(129) => 'L',
-		chr(197).chr(130) => 'l', chr(197).chr(131) => 'N',
-		chr(197).chr(132) => 'n', chr(197).chr(133) => 'N',
-		chr(197).chr(134) => 'n', chr(197).chr(135) => 'N',
-		chr(197).chr(136) => 'n', chr(197).chr(137) => 'N',
-		chr(197).chr(138) => 'n', chr(197).chr(139) => 'N',
-		chr(197).chr(140) => 'O', chr(197).chr(141) => 'o',
-		chr(197).chr(142) => 'O', chr(197).chr(143) => 'o',
-		chr(197).chr(144) => 'O', chr(197).chr(145) => 'o',
-		chr(197).chr(146) => 'OE',chr(197).chr(147) => 'oe',
-		chr(197).chr(148) => 'R',chr(197).chr(149) => 'r',
-		chr(197).chr(150) => 'R',chr(197).chr(151) => 'r',
-		chr(197).chr(152) => 'R',chr(197).chr(153) => 'r',
-		chr(197).chr(154) => 'S',chr(197).chr(155) => 's',
-		chr(197).chr(156) => 'S',chr(197).chr(157) => 's',
-		chr(197).chr(158) => 'S',chr(197).chr(159) => 's',
-		chr(197).chr(160) => 'S', chr(197).chr(161) => 's',
-		chr(197).chr(162) => 'T', chr(197).chr(163) => 't',
-		chr(197).chr(164) => 'T', chr(197).chr(165) => 't',
-		chr(197).chr(166) => 'T', chr(197).chr(167) => 't',
-		chr(197).chr(168) => 'U', chr(197).chr(169) => 'u',
-		chr(197).chr(170) => 'U', chr(197).chr(171) => 'u',
-		chr(197).chr(172) => 'U', chr(197).chr(173) => 'u',
-		chr(197).chr(174) => 'U', chr(197).chr(175) => 'u',
-		chr(197).chr(176) => 'U', chr(197).chr(177) => 'u',
-		chr(197).chr(178) => 'U', chr(197).chr(179) => 'u',
-		chr(197).chr(180) => 'W', chr(197).chr(181) => 'w',
-		chr(197).chr(182) => 'Y', chr(197).chr(183) => 'y',
-		chr(197).chr(184) => 'Y', chr(197).chr(185) => 'Z',
-		chr(197).chr(186) => 'z', chr(197).chr(187) => 'Z',
-		chr(197).chr(188) => 'z', chr(197).chr(189) => 'Z',
-		chr(197).chr(190) => 'z', chr(197).chr(191) => 's',
+		'Ā' => 'A', 'ā' => 'a',
+		'Ă' => 'A', 'ă' => 'a',
+		'Ą' => 'A', 'ą' => 'a',
+		'Ć' => 'C', 'ć' => 'c',
+		'Ĉ' => 'C', 'ĉ' => 'c',
+		'Ċ' => 'C', 'ċ' => 'c',
+		'Č' => 'C', 'č' => 'c',
+		'Ď' => 'D', 'ď' => 'd',
+		'Đ' => 'D', 'đ' => 'd',
+		'Ē' => 'E', 'ē' => 'e',
+		'Ĕ' => 'E', 'ĕ' => 'e',
+		'Ė' => 'E', 'ė' => 'e',
+		'Ę' => 'E', 'ę' => 'e',
+		'Ě' => 'E', 'ě' => 'e',
+		'Ĝ' => 'G', 'ĝ' => 'g',
+		'Ğ' => 'G', 'ğ' => 'g',
+		'Ġ' => 'G', 'ġ' => 'g',
+		'Ģ' => 'G', 'ģ' => 'g',
+		'Ĥ' => 'H', 'ĥ' => 'h',
+		'Ħ' => 'H', 'ħ' => 'h',
+		'Ĩ' => 'I', 'ĩ' => 'i',
+		'Ī' => 'I', 'ī' => 'i',
+		'Ĭ' => 'I', 'ĭ' => 'i',
+		'Į' => 'I', 'į' => 'i',
+		'İ' => 'I', 'ı' => 'i',
+		'Ĳ' => 'IJ','ĳ' => 'ij',
+		'Ĵ' => 'J', 'ĵ' => 'j',
+		'Ķ' => 'K', 'ķ' => 'k',
+		'ĸ' => 'k', 'Ĺ' => 'L',
+		'ĺ' => 'l', 'Ļ' => 'L',
+		'ļ' => 'l', 'Ľ' => 'L',
+		'ľ' => 'l', 'Ŀ' => 'L',
+		'ŀ' => 'l', 'Ł' => 'L',
+		'ł' => 'l', 'Ń' => 'N',
+		'ń' => 'n', 'Ņ' => 'N',
+		'ņ' => 'n', 'Ň' => 'N',
+		'ň' => 'n', 'ŉ' => 'n',
+		'Ŋ' => 'N', 'ŋ' => 'n',
+		'Ō' => 'O', 'ō' => 'o',
+		'Ŏ' => 'O', 'ŏ' => 'o',
+		'Ő' => 'O', 'ő' => 'o',
+		'Œ' => 'OE','œ' => 'oe',
+		'Ŕ' => 'R','ŕ' => 'r',
+		'Ŗ' => 'R','ŗ' => 'r',
+		'Ř' => 'R','ř' => 'r',
+		'Ś' => 'S','ś' => 's',
+		'Ŝ' => 'S','ŝ' => 's',
+		'Ş' => 'S','ş' => 's',
+		'Š' => 'S', 'š' => 's',
+		'Ţ' => 'T', 'ţ' => 't',
+		'Ť' => 'T', 'ť' => 't',
+		'Ŧ' => 'T', 'ŧ' => 't',
+		'Ũ' => 'U', 'ũ' => 'u',
+		'Ū' => 'U', 'ū' => 'u',
+		'Ŭ' => 'U', 'ŭ' => 'u',
+		'Ů' => 'U', 'ů' => 'u',
+		'Ű' => 'U', 'ű' => 'u',
+		'Ų' => 'U', 'ų' => 'u',
+		'Ŵ' => 'W', 'ŵ' => 'w',
+		'Ŷ' => 'Y', 'ŷ' => 'y',
+		'Ÿ' => 'Y', 'Ź' => 'Z',
+		'ź' => 'z', 'Ż' => 'Z',
+		'ż' => 'z', 'Ž' => 'Z',
+		'ž' => 'z', 'ſ' => 's',
 		// Decompositions for Latin Extended-B
-		chr(200).chr(152) => 'S', chr(200).chr(153) => 's',
-		chr(200).chr(154) => 'T', chr(200).chr(155) => 't',
+		'Ș' => 'S', 'ș' => 's',
+		'Ț' => 'T', 'ț' => 't',
 		// Euro Sign
-		chr(226).chr(130).chr(172) => 'E',
+		'€' => 'E',
 		// GBP (Pound) Sign
-		chr(194).chr(163) => '',
+		'£' => '',
 		// Vowels with diacritic (Vietnamese)
 		// unmarked
-		chr(198).chr(160) => 'O', chr(198).chr(161) => 'o',
-		chr(198).chr(175) => 'U', chr(198).chr(176) => 'u',
+		'Ơ' => 'O', 'ơ' => 'o',
+		'Ư' => 'U', 'ư' => 'u',
 		// grave accent
-		chr(225).chr(186).chr(166) => 'A', chr(225).chr(186).chr(167) => 'a',
-		chr(225).chr(186).chr(176) => 'A', chr(225).chr(186).chr(177) => 'a',
-		chr(225).chr(187).chr(128) => 'E', chr(225).chr(187).chr(129) => 'e',
-		chr(225).chr(187).chr(146) => 'O', chr(225).chr(187).chr(147) => 'o',
-		chr(225).chr(187).chr(156) => 'O', chr(225).chr(187).chr(157) => 'o',
-		chr(225).chr(187).chr(170) => 'U', chr(225).chr(187).chr(171) => 'u',
-		chr(225).chr(187).chr(178) => 'Y', chr(225).chr(187).chr(179) => 'y',
+		'Ầ' => 'A', 'ầ' => 'a',
+		'Ằ' => 'A', 'ằ' => 'a',
+		'Ề' => 'E', 'ề' => 'e',
+		'Ồ' => 'O', 'ồ' => 'o',
+		'Ờ' => 'O', 'ờ' => 'o',
+		'Ừ' => 'U', 'ừ' => 'u',
+		'Ỳ' => 'Y', 'ỳ' => 'y',
 		// hook
-		chr(225).chr(186).chr(162) => 'A', chr(225).chr(186).chr(163) => 'a',
-		chr(225).chr(186).chr(168) => 'A', chr(225).chr(186).chr(169) => 'a',
-		chr(225).chr(186).chr(178) => 'A', chr(225).chr(186).chr(179) => 'a',
-		chr(225).chr(186).chr(186) => 'E', chr(225).chr(186).chr(187) => 'e',
-		chr(225).chr(187).chr(130) => 'E', chr(225).chr(187).chr(131) => 'e',
-		chr(225).chr(187).chr(136) => 'I', chr(225).chr(187).chr(137) => 'i',
-		chr(225).chr(187).chr(142) => 'O', chr(225).chr(187).chr(143) => 'o',
-		chr(225).chr(187).chr(148) => 'O', chr(225).chr(187).chr(149) => 'o',
-		chr(225).chr(187).chr(158) => 'O', chr(225).chr(187).chr(159) => 'o',
-		chr(225).chr(187).chr(166) => 'U', chr(225).chr(187).chr(167) => 'u',
-		chr(225).chr(187).chr(172) => 'U', chr(225).chr(187).chr(173) => 'u',
-		chr(225).chr(187).chr(182) => 'Y', chr(225).chr(187).chr(183) => 'y',
+		'Ả' => 'A', 'ả' => 'a',
+		'Ẩ' => 'A', 'ẩ' => 'a',
+		'Ẳ' => 'A', 'ẳ' => 'a',
+		'Ẻ' => 'E', 'ẻ' => 'e',
+		'Ể' => 'E', 'ể' => 'e',
+		'Ỉ' => 'I', 'ỉ' => 'i',
+		'Ỏ' => 'O', 'ỏ' => 'o',
+		'Ổ' => 'O', 'ổ' => 'o',
+		'Ở' => 'O', 'ở' => 'o',
+		'Ủ' => 'U', 'ủ' => 'u',
+		'Ử' => 'U', 'ử' => 'u',
+		'Ỷ' => 'Y', 'ỷ' => 'y',
 		// tilde
-		chr(225).chr(186).chr(170) => 'A', chr(225).chr(186).chr(171) => 'a',
-		chr(225).chr(186).chr(180) => 'A', chr(225).chr(186).chr(181) => 'a',
-		chr(225).chr(186).chr(188) => 'E', chr(225).chr(186).chr(189) => 'e',
-		chr(225).chr(187).chr(132) => 'E', chr(225).chr(187).chr(133) => 'e',
-		chr(225).chr(187).chr(150) => 'O', chr(225).chr(187).chr(151) => 'o',
-		chr(225).chr(187).chr(160) => 'O', chr(225).chr(187).chr(161) => 'o',
-		chr(225).chr(187).chr(174) => 'U', chr(225).chr(187).chr(175) => 'u',
-		chr(225).chr(187).chr(184) => 'Y', chr(225).chr(187).chr(185) => 'y',
+		'Ẫ' => 'A', 'ẫ' => 'a',
+		'Ẵ' => 'A', 'ẵ' => 'a',
+		'Ẽ' => 'E', 'ẽ' => 'e',
+		'Ễ' => 'E', 'ễ' => 'e',
+		'Ỗ' => 'O', 'ỗ' => 'o',
+		'Ỡ' => 'O', 'ỡ' => 'o',
+		'Ữ' => 'U', 'ữ' => 'u',
+		'Ỹ' => 'Y', 'ỹ' => 'y',
 		// acute accent
-		chr(225).chr(186).chr(164) => 'A', chr(225).chr(186).chr(165) => 'a',
-		chr(225).chr(186).chr(174) => 'A', chr(225).chr(186).chr(175) => 'a',
-		chr(225).chr(186).chr(190) => 'E', chr(225).chr(186).chr(191) => 'e',
-		chr(225).chr(187).chr(144) => 'O', chr(225).chr(187).chr(145) => 'o',
-		chr(225).chr(187).chr(154) => 'O', chr(225).chr(187).chr(155) => 'o',
-		chr(225).chr(187).chr(168) => 'U', chr(225).chr(187).chr(169) => 'u',
+		'Ấ' => 'A', 'ấ' => 'a',
+		'Ắ' => 'A', 'ắ' => 'a',
+		'Ế' => 'E', 'ế' => 'e',
+		'Ố' => 'O', 'ố' => 'o',
+		'Ớ' => 'O', 'ớ' => 'o',
+		'Ứ' => 'U', 'ứ' => 'u',
 		// dot below
-		chr(225).chr(186).chr(160) => 'A', chr(225).chr(186).chr(161) => 'a',
-		chr(225).chr(186).chr(172) => 'A', chr(225).chr(186).chr(173) => 'a',
-		chr(225).chr(186).chr(182) => 'A', chr(225).chr(186).chr(183) => 'a',
-		chr(225).chr(186).chr(184) => 'E', chr(225).chr(186).chr(185) => 'e',
-		chr(225).chr(187).chr(134) => 'E', chr(225).chr(187).chr(135) => 'e',
-		chr(225).chr(187).chr(138) => 'I', chr(225).chr(187).chr(139) => 'i',
-		chr(225).chr(187).chr(140) => 'O', chr(225).chr(187).chr(141) => 'o',
-		chr(225).chr(187).chr(152) => 'O', chr(225).chr(187).chr(153) => 'o',
-		chr(225).chr(187).chr(162) => 'O', chr(225).chr(187).chr(163) => 'o',
-		chr(225).chr(187).chr(164) => 'U', chr(225).chr(187).chr(165) => 'u',
-		chr(225).chr(187).chr(176) => 'U', chr(225).chr(187).chr(177) => 'u',
-		chr(225).chr(187).chr(180) => 'Y', chr(225).chr(187).chr(181) => 'y',
+		'Ạ' => 'A', 'ạ' => 'a',
+		'Ậ' => 'A', 'ậ' => 'a',
+		'Ặ' => 'A', 'ặ' => 'a',
+		'Ẹ' => 'E', 'ẹ' => 'e',
+		'Ệ' => 'E', 'ệ' => 'e',
+		'Ị' => 'I', 'ị' => 'i',
+		'Ọ' => 'O', 'ọ' => 'o',
+		'Ộ' => 'O', 'ộ' => 'o',
+		'Ợ' => 'O', 'ợ' => 'o',
+		'Ụ' => 'U', 'ụ' => 'u',
+		'Ự' => 'U', 'ự' => 'u',
+		'Ỵ' => 'Y', 'ỵ' => 'y',
 		// Vowels with diacritic (Chinese, Hanyu Pinyin)
-		chr(201).chr(145) => 'a',
+		'ɑ' => 'a',
 		// macron
-		chr(199).chr(149) => 'U', chr(199).chr(150) => 'u',
+		'Ǖ' => 'U', 'ǖ' => 'u',
 		// acute accent
-		chr(199).chr(151) => 'U', chr(199).chr(152) => 'u',
+		'Ǘ' => 'U', 'ǘ' => 'u',
 		// caron
-		chr(199).chr(141) => 'A', chr(199).chr(142) => 'a',
-		chr(199).chr(143) => 'I', chr(199).chr(144) => 'i',
-		chr(199).chr(145) => 'O', chr(199).chr(146) => 'o',
-		chr(199).chr(147) => 'U', chr(199).chr(148) => 'u',
-		chr(199).chr(153) => 'U', chr(199).chr(154) => 'u',
+		'Ǎ' => 'A', 'ǎ' => 'a',
+		'Ǐ' => 'I', 'ǐ' => 'i',
+		'Ǒ' => 'O', 'ǒ' => 'o',
+		'Ǔ' => 'U', 'ǔ' => 'u',
+		'Ǚ' => 'U', 'ǚ' => 'u',
 		// grave accent
-		chr(199).chr(155) => 'U', chr(199).chr(156) => 'u',
+		'Ǜ' => 'U', 'ǜ' => 'u',
 		);
 
 		// Used for locale-specific rules
 		$locale = get_locale();
 
-		if ( 'de_DE' == $locale ) {
-			$chars[ chr(195).chr(132) ] = 'Ae';
-			$chars[ chr(195).chr(164) ] = 'ae';
-			$chars[ chr(195).chr(150) ] = 'Oe';
-			$chars[ chr(195).chr(182) ] = 'oe';
-			$chars[ chr(195).chr(156) ] = 'Ue';
-			$chars[ chr(195).chr(188) ] = 'ue';
-			$chars[ chr(195).chr(159) ] = 'ss';
+		if ( 'de_DE' == $locale || 'de_DE_formal' == $locale || 'de_CH' == $locale || 'de_CH_informal' == $locale ) {
+			$chars[ 'Ä' ] = 'Ae';
+			$chars[ 'ä' ] = 'ae';
+			$chars[ 'Ö' ] = 'Oe';
+			$chars[ 'ö' ] = 'oe';
+			$chars[ 'Ü' ] = 'Ue';
+			$chars[ 'ü' ] = 'ue';
+			$chars[ 'ß' ] = 'ss';
 		} elseif ( 'da_DK' === $locale ) {
-			$chars[ chr(195).chr(134) ] = 'Ae';
- 			$chars[ chr(195).chr(166) ] = 'ae';
-			$chars[ chr(195).chr(152) ] = 'Oe';
-			$chars[ chr(195).chr(184) ] = 'oe';
-			$chars[ chr(195).chr(133) ] = 'Aa';
-			$chars[ chr(195).chr(165) ] = 'aa';
+			$chars[ 'Æ' ] = 'Ae';
+ 			$chars[ 'æ' ] = 'ae';
+			$chars[ 'Ø' ] = 'Oe';
+			$chars[ 'ø' ] = 'oe';
+			$chars[ 'Å' ] = 'Aa';
+			$chars[ 'å' ] = 'aa';
+		} elseif ( 'ca' === $locale ) {
+			$chars[ 'l·l' ] = 'll';
+		} elseif ( 'sr_RS' === $locale ) {
+			$chars[ 'Đ' ] = 'DJ';
+			$chars[ 'đ' ] = 'dj';
 		}
 
 		$string = strtr($string, $chars);
 	} else {
+		$chars = array();
 		// Assume ISO-8859-1 if not UTF-8
-		$chars['in'] = chr(128).chr(131).chr(138).chr(142).chr(154).chr(158)
-			.chr(159).chr(162).chr(165).chr(181).chr(192).chr(193).chr(194)
-			.chr(195).chr(196).chr(197).chr(199).chr(200).chr(201).chr(202)
-			.chr(203).chr(204).chr(205).chr(206).chr(207).chr(209).chr(210)
-			.chr(211).chr(212).chr(213).chr(214).chr(216).chr(217).chr(218)
-			.chr(219).chr(220).chr(221).chr(224).chr(225).chr(226).chr(227)
-			.chr(228).chr(229).chr(231).chr(232).chr(233).chr(234).chr(235)
-			.chr(236).chr(237).chr(238).chr(239).chr(241).chr(242).chr(243)
-			.chr(244).chr(245).chr(246).chr(248).chr(249).chr(250).chr(251)
-			.chr(252).chr(253).chr(255);
+		$chars['in'] = "\x80\x83\x8a\x8e\x9a\x9e"
+			."\x9f\xa2\xa5\xb5\xc0\xc1\xc2"
+			."\xc3\xc4\xc5\xc7\xc8\xc9\xca"
+			."\xcb\xcc\xcd\xce\xcf\xd1\xd2"
+			."\xd3\xd4\xd5\xd6\xd8\xd9\xda"
+			."\xdb\xdc\xdd\xe0\xe1\xe2\xe3"
+			."\xe4\xe5\xe7\xe8\xe9\xea\xeb"
+			."\xec\xed\xee\xef\xf1\xf2\xf3"
+			."\xf4\xf5\xf6\xf8\xf9\xfa\xfb"
+			."\xfc\xfd\xff";
 
 		$chars['out'] = "EfSZszYcYuAAAAAACEEEEIIIINOOOOOOUUUUYaaaaaaceeeeiiiinoooooouuuuyy";
 
 		$string = strtr($string, $chars['in'], $chars['out']);
-		$double_chars['in'] = array(chr(140), chr(156), chr(198), chr(208), chr(222), chr(223), chr(230), chr(240), chr(254));
+		$double_chars = array();
+		$double_chars['in'] = array("\x8c", "\x9c", "\xc6", "\xd0", "\xde", "\xdf", "\xe6", "\xf0", "\xfe");
 		$double_chars['out'] = array('OE', 'oe', 'AE', 'DH', 'TH', 'ss', 'ae', 'dh', 'th');
 		$string = str_replace($double_chars['in'], $double_chars['out'], $string);
 	}
@@ -1052,7 +1750,8 @@ function remove_accents($string) {
  * operating systems and special characters requiring special escaping
  * to manipulate at the command line. Replaces spaces and consecutive
  * dashes with a single dash. Trims period, dash and underscore from beginning
- * and end of filename.
+ * and end of filename. It is not guaranteed that this function will return a
+ * filename that is allowed to be uploaded.
  *
  * @since 2.1.0
  *
@@ -1061,9 +1760,9 @@ function remove_accents($string) {
  */
 function sanitize_file_name( $filename ) {
 	$filename_raw = $filename;
-	$special_chars = array("?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}", chr(0));
+	$special_chars = array("?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}", "%", "+", chr(0));
 	/**
-	 * Filter the list of characters to remove from a filename.
+	 * Filters the list of characters to remove from a filename.
 	 *
 	 * @since 2.8.0
 	 *
@@ -1077,13 +1776,21 @@ function sanitize_file_name( $filename ) {
 	$filename = preg_replace( '/[\r\n\t -]+/', '-', $filename );
 	$filename = trim( $filename, '.-_' );
 
+	if ( false === strpos( $filename, '.' ) ) {
+		$mime_types = wp_get_mime_types();
+		$filetype = wp_check_filetype( 'test.' . $filename, $mime_types );
+		if ( $filetype['ext'] === $filename ) {
+			$filename = 'unnamed-file.' . $filetype['ext'];
+		}
+	}
+
 	// Split the filename into a base and extension[s]
 	$parts = explode('.', $filename);
 
 	// Return if only one extension
 	if ( count( $parts ) <= 2 ) {
 		/**
-		 * Filter a sanitized filename string.
+		 * Filters a sanitized filename string.
 		 *
 		 * @since 2.8.0
 		 *
@@ -1129,12 +1836,12 @@ function sanitize_file_name( $filename ) {
  * Removes tags, octets, entities, and if strict is enabled, will only keep
  * alphanumeric, _, space, ., -, @. After sanitizing, it passes the username,
  * raw username (the username in the parameter), and the value of $strict as
- * parameters for the 'sanitize_user' filter.
+ * parameters for the {@see 'sanitize_user'} filter.
  *
  * @since 2.0.0
  *
  * @param string $username The username to be sanitized.
- * @param bool $strict If set limits $username to specific characters. Default false.
+ * @param bool   $strict   If set limits $username to specific characters. Default false.
  * @return string The sanitized username, after passing through filters.
  */
 function sanitize_user( $username, $strict = false ) {
@@ -1154,7 +1861,7 @@ function sanitize_user( $username, $strict = false ) {
 	$username = preg_replace( '|\s+|', ' ', $username );
 
 	/**
-	 * Filter a sanitized username string.
+	 * Filters a sanitized username string.
 	 *
 	 * @since 2.0.1
 	 *
@@ -1181,7 +1888,7 @@ function sanitize_key( $key ) {
 	$key = preg_replace( '/[^a-z0-9_\-]/', '', $key );
 
 	/**
-	 * Filter a sanitized key string.
+	 * Filters a sanitized key string.
 	 *
 	 * @since 3.0.0
 	 *
@@ -1200,9 +1907,9 @@ function sanitize_key( $key ) {
  *
  * @since 1.0.0
  *
- * @param string $title The string to be sanitized.
+ * @param string $title          The string to be sanitized.
  * @param string $fallback_title Optional. A title to use if $title is empty.
- * @param string $context Optional. The operation for which the string is sanitized
+ * @param string $context        Optional. The operation for which the string is sanitized
  * @return string The sanitized string.
  */
 function sanitize_title( $title, $fallback_title = '', $context = 'save' ) {
@@ -1212,7 +1919,7 @@ function sanitize_title( $title, $fallback_title = '', $context = 'save' ) {
 		$title = remove_accents($title);
 
 	/**
-	 * Filter a sanitized title string.
+	 * Filters a sanitized title string.
 	 *
 	 * @since 1.2.0
 	 *
@@ -1250,9 +1957,9 @@ function sanitize_title_for_query( $title ) {
  *
  * @since 1.2.0
  *
- * @param string $title The title to be sanitized.
+ * @param string $title     The title to be sanitized.
  * @param string $raw_title Optional. Not used.
- * @param string $context Optional. The operation for which the string is sanitized.
+ * @param string $context   Optional. The operation for which the string is sanitized.
  * @return string The sanitized title.
  */
 function sanitize_title_with_dashes( $title, $raw_title = '', $context = 'display' ) {
@@ -1272,12 +1979,12 @@ function sanitize_title_with_dashes( $title, $raw_title = '', $context = 'displa
 	}
 
 	$title = strtolower($title);
-	$title = preg_replace('/&.+?;/', '', $title); // kill entities
-	$title = str_replace('.', '-', $title);
 
 	if ( 'save' == $context ) {
 		// Convert nbsp, ndash and mdash to hyphens
 		$title = str_replace( array( '%c2%a0', '%e2%80%93', '%e2%80%94' ), '-', $title );
+		// Convert nbsp, ndash and mdash HTML entities to hyphens
+		$title = str_replace( array( '&nbsp;', '&#160;', '&ndash;', '&#8211;', '&mdash;', '&#8212;' ), '-', $title );
 
 		// Strip these characters entirely
 		$title = str_replace( array(
@@ -1300,6 +2007,9 @@ function sanitize_title_with_dashes( $title, $raw_title = '', $context = 'displa
 		$title = str_replace( '%c3%97', 'x', $title );
 	}
 
+	$title = preg_replace('/&.+?;/', '', $title); // kill entities
+	$title = str_replace('.', '-', $title);
+
 	$title = preg_replace('/[^%a-z0-9 _-]/', '', $title);
 	$title = preg_replace('/\s+/', '-', $title);
 	$title = preg_replace('|-+|', '-', $title);
@@ -1309,21 +2019,23 @@ function sanitize_title_with_dashes( $title, $raw_title = '', $context = 'displa
 }
 
 /**
- * Ensures a string is a valid SQL order by clause.
+ * Ensures a string is a valid SQL 'order by' clause.
  *
- * Accepts one or more columns, with or without ASC/DESC, and also accepts
- * RAND().
+ * Accepts one or more columns, with or without a sort order (ASC / DESC).
+ * e.g. 'column_1', 'column_1, column_2', 'column_1 ASC, column_2 DESC' etc.
+ *
+ * Also accepts 'RAND()'.
  *
  * @since 2.5.1
  *
- * @param string $orderby Order by string to be checked.
- * @return false|string Returns the order by clause if it is a match, false otherwise.
+ * @param string $orderby Order by clause to be validated.
+ * @return string|false Returns $orderby if valid, false otherwise.
  */
-function sanitize_sql_orderby( $orderby ){
-	preg_match('/^\s*([a-z0-9_]+(\s+(ASC|DESC))?(\s*,\s*|\s*$))+|^\s*RAND\(\s*\)\s*$/i', $orderby, $obmatches);
-	if ( !$obmatches )
-		return false;
-	return $orderby;
+function sanitize_sql_orderby( $orderby ) {
+	if ( preg_match( '/^\s*(([a-z0-9_]+|`[a-z0-9_]+`)(\s+(ASC|DESC))?\s*(,\s*(?=[a-z0-9_`])|$))+$/i', $orderby ) || preg_match( '/^\s*RAND\(\s*\)\s*$/i', $orderby ) ) {
+		return $orderby;
+	}
+	return false;
 }
 
 /**
@@ -1336,7 +2048,7 @@ function sanitize_sql_orderby( $orderby ){
  *
  * @since 2.8.0
  *
- * @param string $class The classname to be sanitized
+ * @param string $class    The classname to be sanitized
  * @param string $fallback Optional. The value to return if the sanitization ends up as an empty string.
  * 	Defaults to an empty string.
  * @return string The sanitized value
@@ -1348,11 +2060,11 @@ function sanitize_html_class( $class, $fallback = '' ) {
 	//Limit to A-Z,a-z,0-9,_,-
 	$sanitized = preg_replace( '/[^A-Za-z0-9_-]/', '', $sanitized );
 
-	if ( '' == $sanitized )
-		$sanitized = $fallback;
-
+	if ( '' == $sanitized && $fallback ) {
+		return sanitize_html_class( $fallback );
+	}
 	/**
-	 * Filter a sanitized HTML class string.
+	 * Filters a sanitized HTML class string.
 	 *
 	 * @since 2.8.0
 	 *
@@ -1364,71 +2076,73 @@ function sanitize_html_class( $class, $fallback = '' ) {
 }
 
 /**
- * Converts a number of characters from a string.
- *
- * Metadata tags `<title>` and `<category>` are removed, `<br>` and `<hr>` are
- * converted into correct XHTML and Unicode characters are converted to the
- * valid range.
+ * Converts lone & characters into `&#038;` (a.k.a. `&amp;`)
  *
  * @since 0.71
  *
- * @param string $content String of characters to be converted.
+ * @param string $content    String of characters to be converted.
  * @param string $deprecated Not used.
  * @return string Converted string.
  */
-function convert_chars($content, $deprecated = '') {
-	if ( !empty( $deprecated ) )
+function convert_chars( $content, $deprecated = '' ) {
+	if ( ! empty( $deprecated ) ) {
 		_deprecated_argument( __FUNCTION__, '0.71' );
+	}
 
-	// Translation of invalid Unicode references range to valid range
+	if ( strpos( $content, '&' ) !== false ) {
+		$content = preg_replace( '/&([^#])(?![a-z1-4]{1,8};)/i', '&#038;$1', $content );
+	}
+
+	return $content;
+}
+
+/**
+ * Converts invalid Unicode references range to valid range.
+ *
+ * @since 4.3.0
+ *
+ * @param string $content String with entities that need converting.
+ * @return string Converted string.
+ */
+function convert_invalid_entities( $content ) {
 	$wp_htmltranswinuni = array(
-	'&#128;' => '&#8364;', // the Euro sign
-	'&#129;' => '',
-	'&#130;' => '&#8218;', // these are Windows CP1252 specific characters
-	'&#131;' => '&#402;',  // they would look weird on non-Windows browsers
-	'&#132;' => '&#8222;',
-	'&#133;' => '&#8230;',
-	'&#134;' => '&#8224;',
-	'&#135;' => '&#8225;',
-	'&#136;' => '&#710;',
-	'&#137;' => '&#8240;',
-	'&#138;' => '&#352;',
-	'&#139;' => '&#8249;',
-	'&#140;' => '&#338;',
-	'&#141;' => '',
-	'&#142;' => '&#381;',
-	'&#143;' => '',
-	'&#144;' => '',
-	'&#145;' => '&#8216;',
-	'&#146;' => '&#8217;',
-	'&#147;' => '&#8220;',
-	'&#148;' => '&#8221;',
-	'&#149;' => '&#8226;',
-	'&#150;' => '&#8211;',
-	'&#151;' => '&#8212;',
-	'&#152;' => '&#732;',
-	'&#153;' => '&#8482;',
-	'&#154;' => '&#353;',
-	'&#155;' => '&#8250;',
-	'&#156;' => '&#339;',
-	'&#157;' => '',
-	'&#158;' => '&#382;',
-	'&#159;' => '&#376;'
+		'&#128;' => '&#8364;', // the Euro sign
+		'&#129;' => '',
+		'&#130;' => '&#8218;', // these are Windows CP1252 specific characters
+		'&#131;' => '&#402;',  // they would look weird on non-Windows browsers
+		'&#132;' => '&#8222;',
+		'&#133;' => '&#8230;',
+		'&#134;' => '&#8224;',
+		'&#135;' => '&#8225;',
+		'&#136;' => '&#710;',
+		'&#137;' => '&#8240;',
+		'&#138;' => '&#352;',
+		'&#139;' => '&#8249;',
+		'&#140;' => '&#338;',
+		'&#141;' => '',
+		'&#142;' => '&#381;',
+		'&#143;' => '',
+		'&#144;' => '',
+		'&#145;' => '&#8216;',
+		'&#146;' => '&#8217;',
+		'&#147;' => '&#8220;',
+		'&#148;' => '&#8221;',
+		'&#149;' => '&#8226;',
+		'&#150;' => '&#8211;',
+		'&#151;' => '&#8212;',
+		'&#152;' => '&#732;',
+		'&#153;' => '&#8482;',
+		'&#154;' => '&#353;',
+		'&#155;' => '&#8250;',
+		'&#156;' => '&#339;',
+		'&#157;' => '',
+		'&#158;' => '&#382;',
+		'&#159;' => '&#376;'
 	);
 
-	// Remove metadata tags
-	$content = preg_replace('/<title>(.+?)<\/title>/','',$content);
-	$content = preg_replace('/<category>(.+?)<\/category>/','',$content);
-
-	// Converts lone & characters into &#38; (a.k.a. &amp;)
-	$content = preg_replace('/&([^#])(?![a-z1-4]{1,8};)/i', '&#038;$1', $content);
-
-	// Fix Word pasting
-	$content = strtr($content, $wp_htmltranswinuni);
-
-	// Just a little XHTML help
-	$content = str_replace('<br>', '<br />', $content);
-	$content = str_replace('<hr>', '<hr />', $content);
+	if ( strpos( $content, '&#1' ) !== false ) {
+		$content = strtr( $content, $wp_htmltranswinuni );
+	}
 
 	return $content;
 }
@@ -1438,8 +2152,8 @@ function convert_chars($content, $deprecated = '') {
  *
  * @since 0.71
  *
- * @param string $text Text to be balanced
- * @param bool $force If true, forces balancing, ignoring the value of the option. Default false.
+ * @param string $text  Text to be balanced
+ * @param bool   $force If true, forces balancing, ignoring the value of the option. Default false.
  * @return string Balanced text
  */
 function balanceTags( $text, $force = false ) {
@@ -1495,12 +2209,12 @@ function force_balance_tags( $text ) {
 		if ( isset($regex[1][0]) && '/' == $regex[1][0] ) { // End Tag
 			$tag = strtolower(substr($regex[1],1));
 			// if too many closing tags
-			if( $stacksize <= 0 ) {
+			if ( $stacksize <= 0 ) {
 				$tag = '';
 				// or close to be safe $tag = '/' . $tag;
 			}
 			// if stacktop value = tag close value then pop
-			else if ( $tagstack[$stacksize - 1] == $tag ) { // found closing tag
+			elseif ( $tagstack[$stacksize - 1] == $tag ) { // found closing tag
 				$tag = '</' . $tag . '>'; // Close Tag
 				// Pop
 				array_pop( $tagstack );
@@ -1550,7 +2264,7 @@ function force_balance_tags( $text ) {
 
 			// Attributes
 			$attributes = $regex[2];
-			if( ! empty( $attributes ) && $attributes[0] != '>' )
+			if ( ! empty( $attributes ) && $attributes[0] != '>' )
 				$attributes = ' ' . $attributes;
 
 			$tag = '<' . $tag . $attributes . '>';
@@ -1585,25 +2299,28 @@ function force_balance_tags( $text ) {
  * Acts on text which is about to be edited.
  *
  * The $content is run through esc_textarea(), which uses htmlspecialchars()
- * to convert special characters to HTML entities. If $richedit is set to true,
- * it is simply a holder for the 'format_to_edit' filter.
+ * to convert special characters to HTML entities. If `$richedit` is set to true,
+ * it is simply a holder for the {@see 'format_to_edit'} filter.
  *
  * @since 0.71
+ * @since 4.4.0 The `$richedit` parameter was renamed to `$rich_text` for clarity.
  *
- * @param string $content The text about to be edited.
- * @param bool $richedit Whether the $content should not pass through htmlspecialchars(). Default false (meaning it will be passed).
+ * @param string $content   The text about to be edited.
+ * @param bool   $rich_text Optional. Whether `$content` should be considered rich text,
+ *                          in which case it would not be passed through esc_textarea().
+ *                          Default false.
  * @return string The text after the filter (and possibly htmlspecialchars()) has been run.
  */
-function format_to_edit( $content, $richedit = false ) {
+function format_to_edit( $content, $rich_text = false ) {
 	/**
-	 * Filter the text to be formatted for editing.
+	 * Filters the text to be formatted for editing.
 	 *
 	 * @since 1.2.0
 	 *
 	 * @param string $content The text, prior to formatting for editing.
 	 */
 	$content = apply_filters( 'format_to_edit', $content );
-	if ( ! $richedit )
+	if ( ! $rich_text )
 		$content = esc_textarea( $content );
 	return $content;
 }
@@ -1621,12 +2338,12 @@ function format_to_edit( $content, $richedit = false ) {
  *
  * @since 0.71
  *
- * @param mixed $number Number to append zeros to if not greater than threshold.
- * @param int $threshold Digit places number needs to be to not have zeros added.
+ * @param int $number     Number to append zeros to if not greater than threshold.
+ * @param int $threshold  Digit places number needs to be to not have zeros added.
  * @return string Adds leading zeros to number if needed.
  */
-function zeroise($number, $threshold) {
-	return sprintf('%0'.$threshold.'s', $number);
+function zeroise( $number, $threshold ) {
+	return sprintf( '%0' . $threshold . 's', $number );
 }
 
 /**
@@ -1637,7 +2354,7 @@ function zeroise($number, $threshold) {
  * @param string $string Value to which backslashes will be added.
  * @return string String with backslashes inserted.
  */
-function backslashit($string) {
+function backslashit( $string ) {
 	if ( isset( $string[0] ) && $string[0] >= '0' && $string[0] <= '9' )
 		$string = '\\\\' . $string;
 	return addcslashes( $string, 'A..Za..z' );
@@ -1680,7 +2397,7 @@ function untrailingslashit( $string ) {
  * Adds slashes to escape strings.
  *
  * Slashes will first be removed if magic_quotes_gpc is set, see {@link
- * http://www.php.net/magic_quotes} for more details.
+ * https://secure.php.net/magic_quotes} for more details.
  *
  * @since 0.71
  *
@@ -1695,55 +2412,63 @@ function addslashes_gpc($gpc) {
 }
 
 /**
- * Navigates through an array and removes slashes from the values.
- *
- * If an array is passed, the array_map() function causes a callback to pass the
- * value back to the function. The slashes from this value will removed.
+ * Navigates through an array, object, or scalar, and removes slashes from the values.
  *
  * @since 2.0.0
  *
  * @param mixed $value The value to be stripped.
  * @return mixed Stripped value.
  */
-function stripslashes_deep($value) {
-	if ( is_array($value) ) {
-		$value = array_map('stripslashes_deep', $value);
-	} elseif ( is_object($value) ) {
-		$vars = get_object_vars( $value );
-		foreach ($vars as $key=>$data) {
-			$value->{$key} = stripslashes_deep( $data );
-		}
-	} elseif ( is_string( $value ) ) {
-		$value = stripslashes($value);
-	}
-
-	return $value;
+function stripslashes_deep( $value ) {
+	return map_deep( $value, 'stripslashes_from_strings_only' );
 }
 
 /**
- * Navigates through an array and encodes the values to be used in a URL.
+ * Callback function for `stripslashes_deep()` which strips slashes from strings.
  *
+ * @since 4.4.0
+ *
+ * @param mixed $value The array or string to be stripped.
+ * @return mixed $value The stripped value.
+ */
+function stripslashes_from_strings_only( $value ) {
+	return is_string( $value ) ? stripslashes( $value ) : $value;
+}
+
+/**
+ * Navigates through an array, object, or scalar, and encodes the values to be used in a URL.
  *
  * @since 2.2.0
  *
- * @param array|string $value The array or string to be encoded.
- * @return array|string $value The encoded array (or string from the callback).
+ * @param mixed $value The array or string to be encoded.
+ * @return mixed $value The encoded value.
  */
-function urlencode_deep($value) {
-	$value = is_array($value) ? array_map('urlencode_deep', $value) : urlencode($value);
-	return $value;
+function urlencode_deep( $value ) {
+	return map_deep( $value, 'urlencode' );
 }
 
 /**
- * Navigates through an array and raw encodes the values to be used in a URL.
+ * Navigates through an array, object, or scalar, and raw-encodes the values to be used in a URL.
  *
  * @since 3.4.0
  *
- * @param array|string $value The array or string to be encoded.
- * @return array|string $value The encoded array (or string from the callback).
+ * @param mixed $value The array or string to be encoded.
+ * @return mixed $value The encoded value.
  */
 function rawurlencode_deep( $value ) {
-	return is_array( $value ) ? array_map( 'rawurlencode_deep', $value ) : rawurlencode( $value );
+	return map_deep( $value, 'rawurlencode' );
+}
+
+/**
+ * Navigates through an array, object, or scalar, and decodes URL-encoded values
+ *
+ * @since 4.4.0
+ *
+ * @param mixed $value The array or string to be decoded.
+ * @return mixed $value The decoded value.
+ */
+function urldecode_deep( $value ) {
+	return map_deep( $value, 'urldecode' );
 }
 
 /**
@@ -1752,12 +2477,12 @@ function rawurlencode_deep( $value ) {
  * @since 0.71
  *
  * @param string $email_address Email address.
- * @param int $hex_encoding Optional. Set to 1 to enable hex encoding.
+ * @param int    $hex_encoding  Optional. Set to 1 to enable hex encoding.
  * @return string Converted email address.
  */
 function antispambot( $email_address, $hex_encoding = 0 ) {
 	$email_no_spam_address = '';
-	for ( $i = 0; $i < strlen( $email_address ); $i++ ) {
+	for ( $i = 0, $len = strlen( $email_address ); $i < $len; $i++ ) {
 		$j = rand( 0, 1 + $hex_encoding );
 		if ( $j == 0 ) {
 			$email_no_spam_address .= '&#' . ord( $email_address[$i] ) . ';';
@@ -1768,16 +2493,13 @@ function antispambot( $email_address, $hex_encoding = 0 ) {
 		}
 	}
 
-	$email_no_spam_address = str_replace( '@', '&#64;', $email_no_spam_address );
-
-	return $email_no_spam_address;
+	return str_replace( '@', '&#64;', $email_no_spam_address );
 }
 
 /**
  * Callback to convert URI match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -1785,7 +2507,7 @@ function antispambot( $email_address, $hex_encoding = 0 ) {
  * @param array $matches Single Regex Match.
  * @return string HTML A element with URI address.
  */
-function _make_url_clickable_cb($matches) {
+function _make_url_clickable_cb( $matches ) {
 	$url = $matches[2];
 
 	if ( ')' == $matches[3] && strpos( $url, '(' ) ) {
@@ -1813,8 +2535,7 @@ function _make_url_clickable_cb($matches) {
 /**
  * Callback to convert URL match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -1822,27 +2543,28 @@ function _make_url_clickable_cb($matches) {
  * @param array $matches Single Regex Match.
  * @return string HTML A element with URL address.
  */
-function _make_web_ftp_clickable_cb($matches) {
+function _make_web_ftp_clickable_cb( $matches ) {
 	$ret = '';
 	$dest = $matches[2];
 	$dest = 'http://' . $dest;
-	$dest = esc_url($dest);
-	if ( empty($dest) )
-		return $matches[0];
 
 	// removed trailing [.,;:)] from URL
 	if ( in_array( substr($dest, -1), array('.', ',', ';', ':', ')') ) === true ) {
 		$ret = substr($dest, -1);
 		$dest = substr($dest, 0, strlen($dest)-1);
 	}
+
+	$dest = esc_url($dest);
+	if ( empty($dest) )
+		return $matches[0];
+
 	return $matches[1] . "<a href=\"$dest\" rel=\"nofollow\">$dest</a>$ret";
 }
 
 /**
  * Callback to convert email address match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -1850,7 +2572,7 @@ function _make_web_ftp_clickable_cb($matches) {
  * @param array $matches Single Regex Match.
  * @return string HTML A element with email address.
  */
-function _make_email_clickable_cb($matches) {
+function _make_email_clickable_cb( $matches ) {
 	$email = $matches[2] . '@' . $matches[3];
 	return $matches[1] . "<a href=\"mailto:$email\">$email</a>";
 }
@@ -1872,9 +2594,9 @@ function make_clickable( $text ) {
 	$nested_code_pre = 0; // Keep track of how many levels link is nested inside <pre> or <code>
 	foreach ( $textarr as $piece ) {
 
-		if ( preg_match( '|^<code[\s>]|i', $piece ) || preg_match( '|^<pre[\s>]|i', $piece ) )
+		if ( preg_match( '|^<code[\s>]|i', $piece ) || preg_match( '|^<pre[\s>]|i', $piece ) || preg_match( '|^<script[\s>]|i', $piece ) || preg_match( '|^<style[\s>]|i', $piece ) )
 			$nested_code_pre++;
-		elseif ( ( '</code>' === strtolower( $piece ) || '</pre>' === strtolower( $piece ) ) && $nested_code_pre )
+		elseif ( $nested_code_pre && ( '</code>' === strtolower( $piece ) || '</pre>' === strtolower( $piece ) || '</script>' === strtolower( $piece ) || '</style>' === strtolower( $piece ) ) )
 			$nested_code_pre--;
 
 		if ( $nested_code_pre || empty( $piece ) || ( $piece[0] === '<' && ! preg_match( '|^<\s*[\w]{1,20}+://|', $piece ) ) ) {
@@ -1921,8 +2643,7 @@ function make_clickable( $text ) {
 	}
 
 	// Cleanup of accidental links within links
-	$r = preg_replace( '#(<a([ \r\n\t]+[^>]+?>|>))<a [^>]+?>([^>]+?)</a></a>#i', "$1$3</a>", $r );
-	return $r;
+	return preg_replace( '#(<a([ \r\n\t]+[^>]+?>|>))<a [^>]+?>([^>]+?)</a></a>#i', "$1$3</a>", $r );
 }
 
 /**
@@ -1951,7 +2672,7 @@ function make_clickable( $text ) {
  * @access private
  *
  * @param string $string The string to split.
- * @param int $goal The desired chunk length.
+ * @param int    $goal   The desired chunk length.
  * @return array Numeric array of chunks.
  */
 function _split_str_by_whitespace( $string, $goal ) {
@@ -1993,8 +2714,7 @@ function wp_rel_nofollow( $text ) {
 	// This is a pre save filter, so text is already escaped.
 	$text = stripslashes($text);
 	$text = preg_replace_callback('|<a (.+?)>|i', 'wp_rel_nofollow_callback', $text);
-	$text = wp_slash($text);
-	return $text;
+	return wp_slash( $text );
 }
 
 /**
@@ -2010,19 +2730,43 @@ function wp_rel_nofollow( $text ) {
  */
 function wp_rel_nofollow_callback( $matches ) {
 	$text = $matches[1];
-	$text = str_replace(array(' rel="nofollow"', " rel='nofollow'"), '', $text);
-	return "<a $text rel=\"nofollow\">";
+	$atts = shortcode_parse_atts( $matches[1] );
+	$rel  = 'nofollow';
+
+	if ( preg_match( '%href=["\'](' . preg_quote( set_url_scheme( home_url(), 'http' ) ) . ')%i', $text ) ||
+	     preg_match( '%href=["\'](' . preg_quote( set_url_scheme( home_url(), 'https' ) ) . ')%i', $text )
+	) {
+		return "<a $text>";
+	}
+
+	if ( ! empty( $atts['rel'] ) ) {
+		$parts = array_map( 'trim', explode( ' ', $atts['rel'] ) );
+		if ( false === array_search( 'nofollow', $parts ) ) {
+			$parts[] = 'nofollow';
+		}
+		$rel = implode( ' ', $parts );
+		unset( $atts['rel'] );
+
+		$html = '';
+		foreach ( $atts as $name => $value ) {
+			$html .= "{$name}=\"$value\" ";
+		}
+		$text = trim( $html );
+	}
+	return "<a $text rel=\"$rel\">";
 }
 
 /**
  * Convert one smiley code to the icon graphic file equivalent.
  *
- * Callback handler for {@link convert_smilies()}.
+ * Callback handler for convert_smilies().
+ *
  * Looks up one smiley code in the $wpsmiliestrans global array and returns an
  * `<img>` string for that smiley.
  *
- * @global array $wpsmiliestrans
  * @since 2.8.0
+ *
+ * @global array $wpsmiliestrans
  *
  * @param array $matches Single match. Smiley code to convert to image.
  * @return string Image string for smiley.
@@ -2036,8 +2780,17 @@ function translate_smiley( $matches ) {
 	$smiley = trim( reset( $matches ) );
 	$img = $wpsmiliestrans[ $smiley ];
 
+	$matches = array();
+	$ext = preg_match( '/\.([^.]+)$/', $img, $matches ) ? strtolower( $matches[1] ) : false;
+	$image_exts = array( 'jpg', 'jpeg', 'jpe', 'gif', 'png' );
+
+	// Don't convert smilies that aren't images - they're probably emoji.
+	if ( ! in_array( $ext, $image_exts ) ) {
+		return $img;
+	}
+
 	/**
-	 * Filter the Smiley image URL before it's used in the image element.
+	 * Filters the Smiley image URL before it's used in the image element.
 	 *
 	 * @since 2.9.0
 	 *
@@ -2047,7 +2800,7 @@ function translate_smiley( $matches ) {
 	 */
 	$src_url = apply_filters( 'smilies_src', includes_url( "images/smilies/$img" ), $img, site_url() );
 
-	return sprintf( '<img src="%s" alt="%s" class="wp-smiley" />', esc_url( $src_url ), esc_attr( $smiley ) );
+	return sprintf( '<img src="%s" alt="%s" class="wp-smiley" style="height: 1em; max-height: 1em;" />', esc_url( $src_url ), esc_attr( $smiley ) );
 }
 
 /**
@@ -2057,7 +2810,8 @@ function translate_smiley( $matches ) {
  * used in the function isn't empty.
  *
  * @since 0.71
- * @uses $wp_smiliessearch
+ *
+ * @global string|array $wp_smiliessearch
  *
  * @param string $text Content to convert smilies from text.
  * @return string Converted content with text smilies replaced with images.
@@ -2108,18 +2862,18 @@ function convert_smilies( $text ) {
  *
  * @since 0.71
  *
- * @param string $email Email address to verify.
- * @param boolean $deprecated Deprecated.
+ * @param string $email      Email address to verify.
+ * @param bool   $deprecated Deprecated.
  * @return string|bool Either false or the valid email address.
  */
 function is_email( $email, $deprecated = false ) {
 	if ( ! empty( $deprecated ) )
-		_deprecated_argument( __FUNCTION__, '3.0' );
+		_deprecated_argument( __FUNCTION__, '3.0.0' );
 
 	// Test for the minimum length the email can be
 	if ( strlen( $email ) < 3 ) {
 		/**
-		 * Filter whether an email address is valid.
+		 * Filters whether an email address is valid.
 		 *
 		 * This filter is evaluated under several different contexts, such as 'email_too_short',
 		 * 'email_no_at', 'local_invalid_chars', 'domain_period_sequence', 'domain_period_limits',
@@ -2129,7 +2883,6 @@ function is_email( $email, $deprecated = false ) {
 		 *
 		 * @param bool   $is_email Whether the email address has passed the is_email() checks. Default false.
 		 * @param string $email    The email address being checked.
-		 * @param string $message  An explanatory message to the user.
 		 * @param string $context  Context under which the email was tested.
 		 */
 		return apply_filters( 'is_email', false, $email, 'email_too_short' );
@@ -2201,14 +2954,13 @@ function is_email( $email, $deprecated = false ) {
  * @param string $string Subject line
  * @return string Converted string to ASCII
  */
-function wp_iso_descrambler($string) {
+function wp_iso_descrambler( $string ) {
 	/* this may only work with iso-8859-1, I'm afraid */
 	if (!preg_match('#\=\?(.+)\?Q\?(.+)\?\=#i', $string, $matches)) {
 		return $string;
 	} else {
 		$subject = str_replace('_', ' ', $matches[2]);
-		$subject = preg_replace_callback('#\=([0-9a-f]{2})#i', '_wp_iso_convert', $subject);
-		return $subject;
+		return preg_replace_callback( '#\=([0-9a-f]{2})#i', '_wp_iso_convert', $subject );
 	}
 }
 
@@ -2243,13 +2995,19 @@ function get_gmt_from_date( $string, $format = 'Y-m-d H:i:s' ) {
 	$tz = get_option( 'timezone_string' );
 	if ( $tz ) {
 		$datetime = date_create( $string, new DateTimeZone( $tz ) );
-		if ( ! $datetime )
+		if ( ! $datetime ) {
 			return gmdate( $format, 0 );
+		}
 		$datetime->setTimezone( new DateTimeZone( 'UTC' ) );
 		$string_gmt = $datetime->format( $format );
 	} else {
-		if ( ! preg_match( '#([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2}) ([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})#', $string, $matches ) )
-			return gmdate( $format, 0 );
+		if ( ! preg_match( '#([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2}) ([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})#', $string, $matches ) ) {
+			$datetime = strtotime( $string );
+			if ( false === $datetime ) {
+				return gmdate( $format, 0 );
+			}
+			return gmdate( $format, $datetime );
+		}
 		$string_time = gmmktime( $matches[4], $matches[5], $matches[6], $matches[2], $matches[3], $matches[1] );
 		$string_gmt = gmdate( $format, $string_time - get_option( 'gmt_offset' ) * HOUR_IN_SECONDS );
 	}
@@ -2295,7 +3053,7 @@ function get_date_from_gmt( $string, $format = 'Y-m-d H:i:s' ) {
  * @param string $timezone Either 'Z' for 0 offset or '±hhmm'.
  * @return int|float The offset in seconds.
  */
-function iso8601_timezone_to_offset($timezone) {
+function iso8601_timezone_to_offset( $timezone ) {
 	// $timezone is either 'Z' or '[+|-]hhmm'
 	if ($timezone == 'Z') {
 		$offset = 0;
@@ -2313,11 +3071,11 @@ function iso8601_timezone_to_offset($timezone) {
  *
  * @since 1.5.0
  *
- * @param string $date_string Date and time in ISO 8601 format {@link http://en.wikipedia.org/wiki/ISO_8601}.
- * @param string $timezone Optional. If set to GMT returns the time minus gmt_offset. Default is 'user'.
+ * @param string $date_string Date and time in ISO 8601 format {@link https://en.wikipedia.org/wiki/ISO_8601}.
+ * @param string $timezone    Optional. If set to GMT returns the time minus gmt_offset. Default is 'user'.
  * @return string The date and time in MySQL DateTime format - Y-m-d H:i:s.
  */
-function iso8601_to_datetime($date_string, $timezone = 'user') {
+function iso8601_to_datetime( $date_string, $timezone = 'user' ) {
 	$timezone = strtolower($timezone);
 
 	if ($timezone == 'gmt') {
@@ -2335,26 +3093,9 @@ function iso8601_to_datetime($date_string, $timezone = 'user') {
 
 		return gmdate('Y-m-d H:i:s', $timestamp);
 
-	} else if ($timezone == 'user') {
+	} elseif ($timezone == 'user') {
 		return preg_replace('#([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(Z|[\+|\-][0-9]{2,4}){0,1}#', '$1-$2-$3 $4:$5:$6', $date_string);
 	}
-}
-
-/**
- * Adds a element attributes to open links in new windows.
- *
- * Comment text in popup windows should be filtered through this. Right now it's
- * a moderately dumb function, ideally it would detect whether a target or rel
- * attribute was already there and adjust its actions accordingly.
- *
- * @since 0.71
- *
- * @param string $text Content to replace links to open in a new window.
- * @return string Content that has filtered links.
- */
-function popuplinks($text) {
-	$text = preg_replace('/<a (.+?)>/i', "<a $1 target='_blank' rel='external'>", $text);
-	return $text;
 }
 
 /**
@@ -2369,7 +3110,7 @@ function sanitize_email( $email ) {
 	// Test for the minimum length the email can be
 	if ( strlen( $email ) < 3 ) {
 		/**
-		 * Filter a sanitized email address.
+		 * Filters a sanitized email address.
 		 *
 		 * This filter is evaluated under several contexts, including 'email_too_short',
 		 * 'email_no_at', 'local_invalid_chars', 'domain_period_sequence', 'domain_period_limits',
@@ -2468,7 +3209,7 @@ function sanitize_email( $email ) {
  * @since 1.5.0
  *
  * @param int $from Unix timestamp from which the difference begins.
- * @param int $to Optional. Unix timestamp to end the time difference. Default becomes time() if not set.
+ * @param int $to   Optional. Unix timestamp to end the time difference. Default becomes time() if not set.
  * @return string Human readable time difference.
  */
 function human_time_diff( $from, $to = '' ) {
@@ -2482,37 +3223,42 @@ function human_time_diff( $from, $to = '' ) {
 		$mins = round( $diff / MINUTE_IN_SECONDS );
 		if ( $mins <= 1 )
 			$mins = 1;
-		/* translators: min=minute */
+		/* translators: Time difference between two dates, in minutes (min=minute). 1: Number of minutes */
 		$since = sprintf( _n( '%s min', '%s mins', $mins ), $mins );
 	} elseif ( $diff < DAY_IN_SECONDS && $diff >= HOUR_IN_SECONDS ) {
 		$hours = round( $diff / HOUR_IN_SECONDS );
 		if ( $hours <= 1 )
 			$hours = 1;
+		/* translators: Time difference between two dates, in hours. 1: Number of hours */
 		$since = sprintf( _n( '%s hour', '%s hours', $hours ), $hours );
 	} elseif ( $diff < WEEK_IN_SECONDS && $diff >= DAY_IN_SECONDS ) {
 		$days = round( $diff / DAY_IN_SECONDS );
 		if ( $days <= 1 )
 			$days = 1;
+		/* translators: Time difference between two dates, in days. 1: Number of days */
 		$since = sprintf( _n( '%s day', '%s days', $days ), $days );
-	} elseif ( $diff < 30 * DAY_IN_SECONDS && $diff >= WEEK_IN_SECONDS ) {
+	} elseif ( $diff < MONTH_IN_SECONDS && $diff >= WEEK_IN_SECONDS ) {
 		$weeks = round( $diff / WEEK_IN_SECONDS );
 		if ( $weeks <= 1 )
 			$weeks = 1;
+		/* translators: Time difference between two dates, in weeks. 1: Number of weeks */
 		$since = sprintf( _n( '%s week', '%s weeks', $weeks ), $weeks );
-	} elseif ( $diff < YEAR_IN_SECONDS && $diff >= 30 * DAY_IN_SECONDS ) {
-		$months = round( $diff / ( 30 * DAY_IN_SECONDS ) );
+	} elseif ( $diff < YEAR_IN_SECONDS && $diff >= MONTH_IN_SECONDS ) {
+		$months = round( $diff / MONTH_IN_SECONDS );
 		if ( $months <= 1 )
 			$months = 1;
+		/* translators: Time difference between two dates, in months. 1: Number of months */
 		$since = sprintf( _n( '%s month', '%s months', $months ), $months );
 	} elseif ( $diff >= YEAR_IN_SECONDS ) {
 		$years = round( $diff / YEAR_IN_SECONDS );
 		if ( $years <= 1 )
 			$years = 1;
+		/* translators: Time difference between two dates, in years. 1: Number of years */
 		$since = sprintf( _n( '%s year', '%s years', $years ), $years );
 	}
 
 	/**
-	 * Filter the human readable difference between two timestamps.
+	 * Filters the human readable difference between two timestamps.
 	 *
 	 * @since 4.0.0
 	 *
@@ -2531,15 +3277,15 @@ function human_time_diff( $from, $to = '' ) {
  * that, then the string ' [&hellip;]' will be appended to the excerpt. If the string
  * is less than 55 words, then the content will be returned as is.
  *
- * The 55 word limit can be modified by plugins/themes using the excerpt_length filter
- * The ' [&hellip;]' string can be modified by plugins/themes using the excerpt_more filter
+ * The 55 word limit can be modified by plugins/themes using the {@see 'excerpt_length'} filter
+ * The ' [&hellip;]' string can be modified by plugins/themes using the {@see 'excerpt_more'} filter
  *
  * @since 1.5.0
  *
  * @param string $text Optional. The excerpt. If set to empty, an excerpt is generated.
  * @return string The excerpt.
  */
-function wp_trim_excerpt($text = '') {
+function wp_trim_excerpt( $text = '' ) {
 	$raw_excerpt = $text;
 	if ( '' == $text ) {
 		$text = get_the_content('');
@@ -2551,7 +3297,7 @@ function wp_trim_excerpt($text = '') {
 		$text = str_replace(']]>', ']]&gt;', $text);
 
 		/**
-		 * Filter the number of words in an excerpt.
+		 * Filters the number of words in an excerpt.
 		 *
 		 * @since 2.7.0
 		 *
@@ -2559,7 +3305,7 @@ function wp_trim_excerpt($text = '') {
 		 */
 		$excerpt_length = apply_filters( 'excerpt_length', 55 );
 		/**
-		 * Filter the string in the "more" link displayed after a trimmed excerpt.
+		 * Filters the string in the "more" link displayed after a trimmed excerpt.
 		 *
 		 * @since 2.9.0
 		 *
@@ -2569,7 +3315,7 @@ function wp_trim_excerpt($text = '') {
 		$text = wp_trim_words( $text, $excerpt_length, $excerpt_more );
 	}
 	/**
-	 * Filter the trimmed excerpt string.
+	 * Filters the trimmed excerpt string.
 	 *
 	 * @since 2.8.0
 	 *
@@ -2588,19 +3334,25 @@ function wp_trim_excerpt($text = '') {
  *
  * @since 3.3.0
  *
- * @param string $text Text to trim.
- * @param int $num_words Number of words. Default 55.
- * @param string $more Optional. What to append if $text needs to be trimmed. Default '&hellip;'.
+ * @param string $text      Text to trim.
+ * @param int    $num_words Number of words. Default 55.
+ * @param string $more      Optional. What to append if $text needs to be trimmed. Default '&hellip;'.
  * @return string Trimmed text.
  */
 function wp_trim_words( $text, $num_words = 55, $more = null ) {
-	if ( null === $more )
+	if ( null === $more ) {
 		$more = __( '&hellip;' );
+	}
+
 	$original_text = $text;
 	$text = wp_strip_all_tags( $text );
-	/* translators: If your word count is based on single characters (East Asian characters),
-	   enter 'characters'. Otherwise, enter 'words'. Do not translate into your own language. */
-	if ( 'characters' == _x( 'words', 'word count: words or characters?' ) && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) {
+
+	/*
+	 * translators: If your word count is based on single characters (e.g. East Asian characters),
+	 * enter 'characters_excluding_spaces' or 'characters_including_spaces'. Otherwise, enter 'words'.
+	 * Do not translate into your own language.
+	 */
+	if ( strpos( _x( 'words', 'Word count type. Do not translate!' ), 'characters' ) === 0 && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) {
 		$text = trim( preg_replace( "/[\n\r\t ]+/", ' ', $text ), ' ' );
 		preg_match_all( '/./u', $text, $words_array );
 		$words_array = array_slice( $words_array[0], 0, $num_words + 1 );
@@ -2609,6 +3361,7 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 		$words_array = preg_split( "/[\n\r\t ]+/", $text, $num_words + 1, PREG_SPLIT_NO_EMPTY );
 		$sep = ' ';
 	}
+
 	if ( count( $words_array ) > $num_words ) {
 		array_pop( $words_array );
 		$text = implode( $sep, $words_array );
@@ -2616,8 +3369,9 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 	} else {
 		$text = implode( $sep, $words_array );
 	}
+
 	/**
-	 * Filter the text content after words have been trimmed.
+	 * Filters the text content after words have been trimmed.
 	 *
 	 * @since 3.3.0
 	 *
@@ -2637,10 +3391,10 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
  * @param string $text The text within which entities will be converted.
  * @return string Text with converted entities.
  */
-function ent2ncr($text) {
+function ent2ncr( $text ) {
 
 	/**
-	 * Filter text before named entities are converted into numbered entities.
+	 * Filters text before named entities are converted into numbered entities.
 	 *
 	 * A non-null string must be returned for the filter to be evaluated.
 	 *
@@ -2650,7 +3404,7 @@ function ent2ncr($text) {
 	 * @param string $text           The text prior to entity conversion.
 	 */
 	$filtered = apply_filters( 'pre_ent2ncr', null, $text );
-	if( null !== $filtered )
+	if ( null !== $filtered )
 		return $filtered;
 
 	$to_ncr = array(
@@ -2916,66 +3670,38 @@ function ent2ncr($text) {
 }
 
 /**
- * Formats text for the rich text editor.
+ * Formats text for the editor.
  *
- * The filter 'richedit_pre' is applied here. If $text is empty the filter will
- * be applied to an empty string.
+ * Generally the browsers treat everything inside a textarea as text, but
+ * it is still a good idea to HTML entity encode `<`, `>` and `&` in the content.
  *
- * @since 2.0.0
+ * The filter {@see 'format_for_editor'} is applied here. If `$text` is empty the
+ * filter will be applied to an empty string.
  *
- * @param string $text The text to be formatted.
+ * @since 4.3.0
+ *
+ * @see _WP_Editors::editor()
+ *
+ * @param string $text           The text to be formatted.
+ * @param string $default_editor The default editor for the current user.
+ *                               It is usually either 'html' or 'tinymce'.
  * @return string The formatted text after filter is applied.
  */
-function wp_richedit_pre($text) {
-	if ( empty( $text ) ) {
-		/**
-		 * Filter text returned for the rich text editor.
-		 *
-		 * This filter is first evaluated, and the value returned, if an empty string
-		 * is passed to wp_richedit_pre(). If an empty string is passed, it results
-		 * in a break tag and line feed.
-		 *
-		 * If a non-empty string is passed, the filter is evaluated on the wp_richedit_pre()
-		 * return after being formatted.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $output Text for the rich text editor.
-		 */
-		return apply_filters( 'richedit_pre', '' );
+function format_for_editor( $text, $default_editor = null ) {
+	if ( $text ) {
+		$text = htmlspecialchars( $text, ENT_NOQUOTES, get_option( 'blog_charset' ) );
 	}
 
-	$output = convert_chars($text);
-	$output = wpautop($output);
-	$output = htmlspecialchars($output, ENT_NOQUOTES, get_option( 'blog_charset' ) );
-
-	/** This filter is documented in wp-includes/formatting.php */
-	return apply_filters( 'richedit_pre', $output );
-}
-
-/**
- * Formats text for the HTML editor.
- *
- * Unless $output is empty it will pass through htmlspecialchars before the
- * 'htmledit_pre' filter is applied.
- *
- * @since 2.5.0
- *
- * @param string $output The text to be formatted.
- * @return string Formatted text after filter applied.
- */
-function wp_htmledit_pre($output) {
-	if ( !empty($output) )
-		$output = htmlspecialchars($output, ENT_NOQUOTES, get_option( 'blog_charset' ) ); // convert only < > &
-
 	/**
-	 * Filter the text before it is formatted for the HTML editor.
+	 * Filters the text after it is formatted for the editor.
 	 *
-	 * @since 2.5.0
+	 * @since 4.3.0
 	 *
-	 * @param string $output The HTML-formatted text.
+	 * @param string $text           The formatted text.
+	 * @param string $default_editor The default editor for the current user.
+	 *                               It is usually either 'html' or 'tinymce'.
 	 */
-	return apply_filters( 'htmledit_pre', $output );
+	return apply_filters( 'format_for_editor', $text, $default_editor );
 }
 
 /**
@@ -2988,8 +3714,9 @@ function wp_htmledit_pre($output) {
  * @since 2.8.1
  * @access private
  *
- * @param string|array $search The value being searched for, otherwise known as the needle. An array may be used to designate multiple needles.
- * @param string $subject The string being searched and replaced on, otherwise known as the haystack.
+ * @param string|array $search  The value being searched for, otherwise known as the needle.
+ *                              An array may be used to designate multiple needles.
+ * @param string       $subject The string being searched and replaced on, otherwise known as the haystack.
  * @return string The string with the replaced svalues.
  */
 function _deep_replace( $search, $subject ) {
@@ -3011,6 +3738,9 @@ function _deep_replace( $search, $subject ) {
  * is preparing an array for use in an IN clause.
  *
  * @since 2.8.0
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
  * @param string|array $data Unescaped data
  * @return string|array Escaped data
  */
@@ -3023,28 +3753,38 @@ function esc_sql( $data ) {
  * Checks and cleans a URL.
  *
  * A number of characters are removed from the URL. If the URL is for displaying
- * (the default behaviour) ampersands are also replaced. The 'clean_url' filter
+ * (the default behaviour) ampersands are also replaced. The {@see 'clean_url'} filter
  * is applied to the returned cleaned URL.
  *
  * @since 2.8.0
  *
- * @param string $url The URL to be cleaned.
- * @param array $protocols Optional. An array of acceptable protocols.
- *		Defaults to 'http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc', 'gopher', 'nntp', 'feed', 'telnet', 'mms', 'rtsp', 'svn' if not set.
- * @param string $_context Private. Use esc_url_raw() for database usage.
- * @return string The cleaned $url after the 'clean_url' filter is applied.
+ * @param string $url       The URL to be cleaned.
+ * @param array  $protocols Optional. An array of acceptable protocols.
+ *		                    Defaults to return value of wp_allowed_protocols()
+ * @param string $_context  Private. Use esc_url_raw() for database usage.
+ * @return string The cleaned $url after the {@see 'clean_url'} filter is applied.
  */
 function esc_url( $url, $protocols = null, $_context = 'display' ) {
 	$original_url = $url;
 
 	if ( '' == $url )
 		return $url;
-	$url = preg_replace('|[^a-z0-9-~+_.?#=!&;,/:%@$\|*\'()\\x80-\\xff]|i', '', $url);
-	$strip = array('%0d', '%0a', '%0D', '%0A');
-	$url = _deep_replace($strip, $url);
+
+	$url = str_replace( ' ', '%20', $url );
+	$url = preg_replace('|[^a-z0-9-~+_.?#=!&;,/:%@$\|*\'()\[\]\\x80-\\xff]|i', '', $url);
+
+	if ( '' === $url ) {
+		return $url;
+	}
+
+	if ( 0 !== stripos( $url, 'mailto:' ) ) {
+		$strip = array('%0d', '%0a', '%0D', '%0A');
+		$url = _deep_replace($strip, $url);
+	}
+
 	$url = str_replace(';//', '://', $url);
 	/* If the URL doesn't appear to contain a scheme, we
-	 * presume it needs http:// appended (unless a relative
+	 * presume it needs http:// prepended (unless a relative
 	 * link starting with /, # or ? or a php file).
 	 */
 	if ( strpos($url, ':') === false && ! in_array( $url[0], array( '/', '#', '?' ) ) &&
@@ -3058,6 +3798,43 @@ function esc_url( $url, $protocols = null, $_context = 'display' ) {
 		$url = str_replace( "'", '&#039;', $url );
 	}
 
+	if ( ( false !== strpos( $url, '[' ) ) || ( false !== strpos( $url, ']' ) ) ) {
+
+		$parsed = wp_parse_url( $url );
+		$front  = '';
+
+		if ( isset( $parsed['scheme'] ) ) {
+			$front .= $parsed['scheme'] . '://';
+		} elseif ( '/' === $url[0] ) {
+			$front .= '//';
+		}
+
+		if ( isset( $parsed['user'] ) ) {
+			$front .= $parsed['user'];
+		}
+
+		if ( isset( $parsed['pass'] ) ) {
+			$front .= ':' . $parsed['pass'];
+		}
+
+		if ( isset( $parsed['user'] ) || isset( $parsed['pass'] ) ) {
+			$front .= '@';
+		}
+
+		if ( isset( $parsed['host'] ) ) {
+			$front .= $parsed['host'];
+		}
+
+		if ( isset( $parsed['port'] ) ) {
+			$front .= ':' . $parsed['port'];
+		}
+
+		$end_dirty = str_replace( $front, '', $url );
+		$end_clean = str_replace( array( '[', ']' ), array( '%5B', '%5D' ), $end_dirty );
+		$url       = str_replace( $end_dirty, $end_clean, $url );
+
+	}
+
 	if ( '/' === $url[0] ) {
 		$good_protocol_url = $url;
 	} else {
@@ -3069,7 +3846,7 @@ function esc_url( $url, $protocols = null, $_context = 'display' ) {
 	}
 
 	/**
-	 * Filter a string cleaned and escaped for output as a URL.
+	 * Filters a string cleaned and escaped for output as a URL.
 	 *
 	 * @since 2.3.0
 	 *
@@ -3085,8 +3862,8 @@ function esc_url( $url, $protocols = null, $_context = 'display' ) {
  *
  * @since 2.8.0
  *
- * @param string $url The URL to be cleaned.
- * @param array $protocols An array of acceptable protocols.
+ * @param string $url       The URL to be cleaned.
+ * @param array  $protocols An array of acceptable protocols.
  * @return string The cleaned URL.
  */
 function esc_url_raw( $url, $protocols = null ) {
@@ -3096,14 +3873,14 @@ function esc_url_raw( $url, $protocols = null ) {
 /**
  * Convert entities, while preserving already-encoded entities.
  *
- * @link http://www.php.net/htmlentities Borrowed from the PHP Manual user notes.
+ * @link https://secure.php.net/htmlentities Borrowed from the PHP Manual user notes.
  *
  * @since 1.2.2
  *
  * @param string $myHTML The text to be converted.
  * @return string Converted text.
  */
-function htmlentities2($myHTML) {
+function htmlentities2( $myHTML ) {
 	$translation_table = get_html_translation_table( HTML_ENTITIES, ENT_QUOTES );
 	$translation_table[chr(38)] = '&';
 	return preg_replace( "/&(?![A-Za-z]{0,4}\w{2,3};|#[0-9]{2,3};)/", "&amp;", strtr($myHTML, $translation_table) );
@@ -3114,7 +3891,7 @@ function htmlentities2($myHTML) {
  *
  * Escapes text strings for echoing in JS. It is intended to be used for inline JS
  * (in a tag attribute, for example onclick="..."). Note that the strings have to
- * be in single quotes. The filter 'js_escape' is also applied here.
+ * be in single quotes. The {@see 'js_escape'} filter is also applied here.
  *
  * @since 2.8.0
  *
@@ -3128,7 +3905,7 @@ function esc_js( $text ) {
 	$safe_text = str_replace( "\r", '', $safe_text );
 	$safe_text = str_replace( "\n", '\\n', addslashes( $safe_text ) );
 	/**
-	 * Filter a string cleaned and escaped for output in JavaScript.
+	 * Filters a string cleaned and escaped for output in JavaScript.
 	 *
 	 * Text passed to esc_js() is stripped of invalid or special characters,
 	 * and properly slashed for output.
@@ -3153,7 +3930,7 @@ function esc_html( $text ) {
 	$safe_text = wp_check_invalid_utf8( $text );
 	$safe_text = _wp_specialchars( $safe_text, ENT_QUOTES );
 	/**
-	 * Filter a string cleaned and escaped for output in HTML.
+	 * Filters a string cleaned and escaped for output in HTML.
 	 *
 	 * Text passed to esc_html() is stripped of invalid or special characters
 	 * before output.
@@ -3178,7 +3955,7 @@ function esc_attr( $text ) {
 	$safe_text = wp_check_invalid_utf8( $text );
 	$safe_text = _wp_specialchars( $safe_text, ENT_QUOTES );
 	/**
-	 * Filter a string cleaned and escaped for output in an HTML attribute.
+	 * Filters a string cleaned and escaped for output in an HTML attribute.
 	 *
 	 * Text passed to esc_attr() is stripped of invalid or special characters
 	 * before output.
@@ -3202,7 +3979,7 @@ function esc_attr( $text ) {
 function esc_textarea( $text ) {
 	$safe_text = htmlspecialchars( $text, ENT_QUOTES, get_option( 'blog_charset' ) );
 	/**
-	 * Filter a string cleaned and escaped for output in a textarea element.
+	 * Filters a string cleaned and escaped for output in a textarea element.
 	 *
 	 * @since 3.1.0
 	 *
@@ -3220,10 +3997,10 @@ function esc_textarea( $text ) {
  * @param string $tag_name
  * @return string
  */
-function tag_escape($tag_name) {
+function tag_escape( $tag_name ) {
 	$safe_tag = strtolower( preg_replace('/[^a-zA-Z0-9_:]/', '', $tag_name) );
 	/**
-	 * Filter a string cleaned and escaped for output as an HTML tag.
+	 * Filters a string cleaned and escaped for output as an HTML tag.
 	 *
 	 * @since 2.8.0
 	 *
@@ -3246,7 +4023,7 @@ function tag_escape($tag_name) {
  * @return string Absolute path.
  */
 function wp_make_link_relative( $link ) {
-	return preg_replace( '|^(https?:)?//[^/]+(/.*)|i', '$2', $link );
+	return preg_replace( '|^(https?:)?//[^/]+(/?.*)|i', '$2', $link );
 }
 
 /**
@@ -3257,20 +4034,29 @@ function wp_make_link_relative( $link ) {
  *
  * @since 2.0.5
  *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
  * @param string $option The name of the option.
- * @param string $value The unsanitised value.
+ * @param string $value  The unsanitised value.
  * @return string Sanitized value.
  */
-function sanitize_option($option, $value) {
+function sanitize_option( $option, $value ) {
+	global $wpdb;
+
+	$original_value = $value;
+	$error = '';
 
 	switch ( $option ) {
 		case 'admin_email' :
 		case 'new_admin_email' :
-			$value = sanitize_email( $value );
-			if ( ! is_email( $value ) ) {
-				$value = get_option( $option ); // Resets option to stored value in the case of failed sanitization
-				if ( function_exists( 'add_settings_error' ) )
-					add_settings_error( $option, 'invalid_admin_email', __( 'The email address entered did not appear to be a valid email address. Please enter a valid email address.' ) );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				$value = sanitize_email( $value );
+				if ( ! is_email( $value ) ) {
+					$error = __( 'The email address entered did not appear to be a valid email address. Please enter a valid email address.' );
+				}
 			}
 			break;
 
@@ -3278,6 +4064,8 @@ function sanitize_option($option, $value) {
 		case 'thumbnail_size_h':
 		case 'medium_size_w':
 		case 'medium_size_h':
+		case 'medium_large_size_w':
+		case 'medium_large_size_h':
 		case 'large_size_w':
 		case 'large_size_h':
 		case 'mailserver_port':
@@ -3293,6 +4081,7 @@ function sanitize_option($option, $value) {
 		case 'thread_comments_depth':
 		case 'users_can_register':
 		case 'start_of_week':
+		case 'site_icon':
 			$value = absint( $value );
 			break;
 
@@ -3314,8 +4103,16 @@ function sanitize_option($option, $value) {
 
 		case 'blogdescription':
 		case 'blogname':
-			$value = wp_kses_post( $value );
-			$value = esc_html( $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( $value !== $original_value ) {
+				$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', wp_encode_emoji( $original_value ) );
+			}
+
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				$value = esc_html( $value );
+			}
 			break;
 
 		case 'blog_charset':
@@ -3336,8 +4133,13 @@ function sanitize_option($option, $value) {
 		case 'mailserver_login':
 		case 'mailserver_pass':
 		case 'upload_path':
-			$value = strip_tags( $value );
-			$value = wp_kses_data( $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				$value = strip_tags( $value );
+				$value = wp_kses_data( $value );
+			}
 			break;
 
 		case 'ping_sites':
@@ -3352,22 +4154,28 @@ function sanitize_option($option, $value) {
 			break;
 
 		case 'siteurl':
-			if ( (bool)preg_match( '#http(s?)://(.+)#i', $value) ) {
-				$value = esc_url_raw($value);
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
 			} else {
-				$value = get_option( $option ); // Resets option to stored value in the case of failed sanitization
-				if ( function_exists('add_settings_error') )
-					add_settings_error('siteurl', 'invalid_siteurl', __('The WordPress address you entered did not appear to be a valid URL. Please enter a valid URL.'));
+				if ( preg_match( '#http(s?)://(.+)#i', $value ) ) {
+					$value = esc_url_raw( $value );
+				} else {
+					$error = __( 'The WordPress address you entered did not appear to be a valid URL. Please enter a valid URL.' );
+				}
 			}
 			break;
 
 		case 'home':
-			if ( (bool)preg_match( '#http(s?)://(.+)#i', $value) ) {
-				$value = esc_url_raw($value);
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
 			} else {
-				$value = get_option( $option ); // Resets option to stored value in the case of failed sanitization
-				if ( function_exists('add_settings_error') )
-					add_settings_error('home', 'invalid_home', __('The Site address you entered did not appear to be a valid URL. Please enter a valid URL.'));
+				if ( preg_match( '#http(s?)://(.+)#i', $value ) ) {
+					$value = esc_url_raw( $value );
+				} else {
+					$error = __( 'The Site address you entered did not appear to be a valid URL. Please enter a valid URL.' );
+				}
 			}
 			break;
 
@@ -3382,45 +4190,67 @@ function sanitize_option($option, $value) {
 			break;
 
 		case 'illegal_names':
-			if ( ! is_array( $value ) )
-				$value = explode( ' ', $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				if ( ! is_array( $value ) )
+					$value = explode( ' ', $value );
 
-			$value = array_values( array_filter( array_map( 'trim', $value ) ) );
+				$value = array_values( array_filter( array_map( 'trim', $value ) ) );
 
-			if ( ! $value )
-				$value = '';
+				if ( ! $value )
+					$value = '';
+			}
 			break;
 
 		case 'limited_email_domains':
 		case 'banned_email_domains':
-			if ( ! is_array( $value ) )
-				$value = explode( "\n", $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				if ( ! is_array( $value ) )
+					$value = explode( "\n", $value );
 
-			$domains = array_values( array_filter( array_map( 'trim', $value ) ) );
-			$value = array();
+				$domains = array_values( array_filter( array_map( 'trim', $value ) ) );
+				$value = array();
 
-			foreach ( $domains as $domain ) {
-				if ( ! preg_match( '/(--|\.\.)/', $domain ) && preg_match( '|^([a-zA-Z0-9-\.])+$|', $domain ) )
-					$value[] = $domain;
+				foreach ( $domains as $domain ) {
+					if ( ! preg_match( '/(--|\.\.)/', $domain ) && preg_match( '|^([a-zA-Z0-9-\.])+$|', $domain ) ) {
+						$value[] = $domain;
+					}
+				}
+				if ( ! $value )
+					$value = '';
 			}
-			if ( ! $value )
-				$value = '';
 			break;
 
 		case 'timezone_string':
 			$allowed_zones = timezone_identifiers_list();
 			if ( ! in_array( $value, $allowed_zones ) && ! empty( $value ) ) {
-				$value = get_option( $option ); // Resets option to stored value in the case of failed sanitization
-				if ( function_exists('add_settings_error') )
-					add_settings_error('timezone_string', 'invalid_timezone_string', __('The timezone you have entered is not valid. Please select a valid timezone.') );
+				$error = __( 'The timezone you have entered is not valid. Please select a valid timezone.' );
 			}
 			break;
 
 		case 'permalink_structure':
 		case 'category_base':
 		case 'tag_base':
-			$value = esc_url_raw( $value );
-			$value = str_replace( 'http://', '', $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				$value = esc_url_raw( $value );
+				$value = str_replace( 'http://', '', $value );
+			}
+
+			if ( 'permalink_structure' === $option && '' !== $value && ! preg_match( '/%[^\/%]+%/', $value ) ) {
+				$error = sprintf(
+					/* translators: %s: Codex URL */
+					__( 'A structure tag is required when using custom permalinks. <a href="%s">Learn more</a>' ),
+					__( 'https://codex.wordpress.org/Using_Permalinks#Choosing_your_permalink_structure' )
+				);
+			}
 			break;
 
 		case 'default_role' :
@@ -3430,22 +4260,62 @@ function sanitize_option($option, $value) {
 
 		case 'moderation_keys':
 		case 'blacklist_keys':
-			$value = explode( "\n", $value );
-			$value = array_filter( array_map( 'trim', $value ) );
-			$value = array_unique( $value );
-			$value = implode( "\n", $value );
+			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( is_wp_error( $value ) ) {
+				$error = $value->get_error_message();
+			} else {
+				$value = explode( "\n", $value );
+				$value = array_filter( array_map( 'trim', $value ) );
+				$value = array_unique( $value );
+				$value = implode( "\n", $value );
+			}
 			break;
 	}
 
+	if ( ! empty( $error ) ) {
+		$value = get_option( $option );
+		if ( function_exists( 'add_settings_error' ) ) {
+			add_settings_error( $option, "invalid_{$option}", $error );
+		}
+	}
+
 	/**
-	 * Filter an option value following sanitization.
+	 * Filters an option value following sanitization.
 	 *
 	 * @since 2.3.0
+	 * @since 4.3.0 Added the `$original_value` parameter.
 	 *
-	 * @param string $value  The sanitized option value.
-	 * @param string $option The option name.
+	 * @param string $value          The sanitized option value.
+	 * @param string $option         The option name.
+	 * @param string $original_value The original value passed to the function.
 	 */
-	$value = apply_filters( "sanitize_option_{$option}", $value, $option );
+	return apply_filters( "sanitize_option_{$option}", $value, $option, $original_value );
+}
+
+/**
+ * Maps a function to all non-iterable elements of an array or an object.
+ *
+ * This is similar to `array_walk_recursive()` but acts upon objects too.
+ *
+ * @since 4.4.0
+ *
+ * @param mixed    $value    The array, object, or scalar.
+ * @param callable $callback The function to map onto $value.
+ * @return mixed The value with the callback applied to all non-arrays and non-objects inside it.
+ */
+function map_deep( $value, $callback ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $index => $item ) {
+			$value[ $index ] = map_deep( $item, $callback );
+		}
+	} elseif ( is_object( $value ) ) {
+		$object_vars = get_object_vars( $value );
+		foreach ( $object_vars as $property_name => $property_value ) {
+			$value->$property_name = map_deep( $property_value, $callback );
+		}
+	} else {
+		$value = call_user_func( $callback, $value );
+	}
 
 	return $value;
 }
@@ -3453,20 +4323,20 @@ function sanitize_option($option, $value) {
 /**
  * Parses a string into variables to be stored in an array.
  *
- * Uses {@link http://www.php.net/parse_str parse_str()} and stripslashes if
- * {@link http://www.php.net/magic_quotes magic_quotes_gpc} is on.
+ * Uses {@link https://secure.php.net/parse_str parse_str()} and stripslashes if
+ * {@link https://secure.php.net/magic_quotes magic_quotes_gpc} is on.
  *
  * @since 2.2.1
  *
  * @param string $string The string to be parsed.
- * @param array $array Variables will be stored in this array.
+ * @param array  $array  Variables will be stored in this array.
  */
 function wp_parse_str( $string, &$array ) {
 	parse_str( $string, $array );
 	if ( get_magic_quotes_gpc() )
 		$array = stripslashes_deep( $array );
 	/**
-	 * Filter the array of variables derived from a parsed string.
+	 * Filters the array of variables derived from a parsed string.
 	 *
 	 * @since 2.3.0
 	 *
@@ -3507,10 +4377,10 @@ function wp_pre_kses_less_than_callback( $matches ) {
  * WordPress implementation of PHP sprintf() with filters.
  *
  * @since 2.5.0
- * @link http://www.php.net/sprintf
+ * @link https://secure.php.net/sprintf
  *
- * @param string $pattern The string which formatted args are inserted.
- * @param mixed $args,... Arguments to be formatted into the $pattern string.
+ * @param string $pattern   The string which formatted args are inserted.
+ * @param mixed  $args ,... Arguments to be formatted into the $pattern string.
  * @return string The formatted string.
  */
 function wp_sprintf( $pattern ) {
@@ -3551,7 +4421,7 @@ function wp_sprintf( $pattern ) {
 			}
 
 			/**
-			 * Filter a fragment from the pattern passed to wp_sprintf().
+			 * Filters a fragment from the pattern passed to wp_sprintf().
 			 *
 			 * If the fragment is unchanged, then sprintf() will be run on the fragment.
 			 *
@@ -3584,10 +4454,10 @@ function wp_sprintf( $pattern ) {
  * @since 2.5.0
  *
  * @param string $pattern Content containing '%l' at the beginning.
- * @param array $args List items to prepend to the content and replace '%l'.
+ * @param array  $args    List items to prepend to the content and replace '%l'.
  * @return string Localized list items and rest of the content.
  */
-function wp_sprintf_l($pattern, $args) {
+function wp_sprintf_l( $pattern, $args ) {
 	// Not a match
 	if ( substr($pattern, 0, 2) != '%l' )
 		return $pattern;
@@ -3597,7 +4467,7 @@ function wp_sprintf_l($pattern, $args) {
 		return '';
 
 	/**
-	 * Filter the translated delimiters used by wp_sprintf_l().
+	 * Filters the translated delimiters used by wp_sprintf_l().
 	 * Placeholders (%s) are included to assist translators and then
 	 * removed before the array of strings reaches the filter.
 	 *
@@ -3642,9 +4512,9 @@ function wp_sprintf_l($pattern, $args) {
  *
  * @since 2.5.0
  *
- * @param string $str String to get the excerpt from.
- * @param integer $count Maximum number of characters to take.
- * @param string $more Optional. What to append if $str needs to be trimmed. Defaults to empty string.
+ * @param string $str   String to get the excerpt from.
+ * @param int    $count Maximum number of characters to take.
+ * @param string $more  Optional. What to append if $str needs to be trimmed. Defaults to empty string.
  * @return string The excerpt.
  */
 function wp_html_excerpt( $str, $count, $more = null ) {
@@ -3667,9 +4537,11 @@ function wp_html_excerpt( $str, $count, $more = null ) {
  *
  * @since 2.7.0
  *
+ * @global string $_links_add_base
+ *
  * @param string $content String to search for links in.
- * @param string $base The base URL to prefix to links.
- * @param array $attrs The attributes which should be processed.
+ * @param string $base    The base URL to prefix to links.
+ * @param array  $attrs   The attributes which should be processed.
  * @return string The processed content.
  */
 function links_add_base_url( $content, $base, $attrs = array('src', 'href') ) {
@@ -3685,16 +4557,18 @@ function links_add_base_url( $content, $base, $attrs = array('src', 'href') ) {
  * @since 2.7.0
  * @access private
  *
+ * @global string $_links_add_base
+ *
  * @param string $m The matched link.
  * @return string The processed link.
  */
-function _links_add_base($m) {
+function _links_add_base( $m ) {
 	global $_links_add_base;
 	//1 = attribute name  2 = quotation mark  3 = URL
 	return $m[1] . '=' . $m[2] .
 		( preg_match( '#^(\w{1,20}):#', $m[3], $protocol ) && in_array( $protocol[1], wp_allowed_protocols() ) ?
 			$m[3] :
-			WP_HTTP::make_absolute_url( $m[3], $_links_add_base )
+			WP_Http::make_absolute_url( $m[3], $_links_add_base )
 		)
 		. $m[2];
 }
@@ -3709,9 +4583,11 @@ function _links_add_base($m) {
  *
  * @since 2.7.0
  *
+ * @global string $_links_add_target
+ *
  * @param string $content String to search for links in.
- * @param string $target The Target to add to the links.
- * @param array $tags An array of tags to apply to.
+ * @param string $target  The Target to add to the links.
+ * @param array  $tags    An array of tags to apply to.
  * @return string The processed content.
  */
 function links_add_target( $content, $target = '_blank', $tags = array('a') ) {
@@ -3726,6 +4602,8 @@ function links_add_target( $content, $target = '_blank', $tags = array('a') ) {
  *
  * @since 2.7.0
  * @access private
+ *
+ * @global string $_links_add_target
  *
  * @param string $m The matched link.
  * @return string The processed link.
@@ -3761,8 +4639,8 @@ function normalize_whitespace( $str ) {
  *
  * @since 2.9.0
  *
- * @param string $string String containing HTML tags
- * @param bool $remove_breaks optional Whether to remove left over line breaks and white space chars
+ * @param string $string        String containing HTML tags
+ * @param bool   $remove_breaks Optional. Whether to remove left over line breaks and white space chars
  * @return string The processed string.
  */
 function wp_strip_all_tags($string, $remove_breaks = false) {
@@ -3776,29 +4654,92 @@ function wp_strip_all_tags($string, $remove_breaks = false) {
 }
 
 /**
- * Sanitize a string from user input or from the db
+ * Sanitizes a string from user input or from the database.
  *
- * check for invalid UTF-8,
- * Convert single < characters to entity,
- * strip all tags,
- * remove line breaks, tabs and extra white space,
- * strip octets.
+ * - Checks for invalid UTF-8,
+ * - Converts single `<` characters to entities
+ * - Strips all tags
+ * - Removes line breaks, tabs, and extra whitespace
+ * - Strips octets
  *
  * @since 2.9.0
  *
- * @param string $str
- * @return string
+ * @see sanitize_textarea_field()
+ * @see wp_check_invalid_utf8()
+ * @see wp_strip_all_tags()
+ *
+ * @param string $str String to sanitize.
+ * @return string Sanitized string.
  */
-function sanitize_text_field($str) {
+function sanitize_text_field( $str ) {
+	$filtered = _sanitize_text_fields( $str, false );
+
+	/**
+	 * Filters a sanitized text field string.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string $filtered The sanitized string.
+	 * @param string $str      The string prior to being sanitized.
+	 */
+	return apply_filters( 'sanitize_text_field', $filtered, $str );
+}
+
+/**
+ * Sanitizes a multiline string from user input or from the database.
+ *
+ * The function is like sanitize_text_field(), but preserves
+ * new lines (\n) and other whitespace, which are legitimate
+ * input in textarea elements.
+ *
+ * @see sanitize_text_field()
+ *
+ * @since 4.7.0
+ *
+ * @param string $str String to sanitize.
+ * @return string Sanitized string.
+ */
+function sanitize_textarea_field( $str ) {
+	$filtered = _sanitize_text_fields( $str, true );
+
+	/**
+	 * Filters a sanitized textarea field string.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param string $filtered The sanitized string.
+	 * @param string $str      The string prior to being sanitized.
+	 */
+	return apply_filters( 'sanitize_textarea_field', $filtered, $str );
+}
+
+/**
+ * Internal helper function to sanitize a string from user input or from the db
+ *
+ * @since 4.7.0
+ * @access private
+ *
+ * @param string $str String to sanitize.
+ * @param bool $keep_newlines optional Whether to keep newlines. Default: false.
+ * @return string Sanitized string.
+ */
+function _sanitize_text_fields( $str, $keep_newlines = false ) {
 	$filtered = wp_check_invalid_utf8( $str );
 
 	if ( strpos($filtered, '<') !== false ) {
 		$filtered = wp_pre_kses_less_than( $filtered );
 		// This will strip extra whitespace for us.
-		$filtered = wp_strip_all_tags( $filtered, true );
-	} else {
-		$filtered = trim( preg_replace('/[\r\n\t ]+/', ' ', $filtered) );
+		$filtered = wp_strip_all_tags( $filtered, false );
+
+		// Use html entities in a special case to make sure no later
+		// newline stripping stage could lead to a functional tag
+		$filtered = str_replace("<\n", "&lt;\n", $filtered);
 	}
+
+	if ( ! $keep_newlines ) {
+		$filtered = preg_replace( '/[\r\n\t ]+/', ' ', $filtered );
+	}
+	$filtered = trim( $filtered );
 
 	$found = false;
 	while ( preg_match('/%[a-f0-9]{2}/i', $filtered, $match) ) {
@@ -3811,15 +4752,7 @@ function sanitize_text_field($str) {
 		$filtered = trim( preg_replace('/ +/', ' ', $filtered) );
 	}
 
-	/**
-	 * Filter a sanitized text field string.
-	 *
-	 * @since 2.9.0
-	 *
-	 * @param string $filtered The sanitized string.
-	 * @param string $str      The string prior to being sanitized.
-	 */
-	return apply_filters( 'sanitize_text_field', $filtered, $str );
+	return $filtered;
 }
 
 /**
@@ -3827,7 +4760,7 @@ function sanitize_text_field($str) {
  *
  * @since 3.1.0
  *
- * @param string $path A path.
+ * @param string $path   A path.
  * @param string $suffix If the filename ends in suffix this will also be cut off.
  * @return string
  */
@@ -3841,6 +4774,11 @@ function wp_basename( $path, $suffix = '' ) {
  * Violating our coding standards for a good function name.
  *
  * @since 3.0.0
+ *
+ * @staticvar string|false $dblq
+ *
+ * @param string $text The text to be modified.
+ * @return string The modified text.
  */
 function capital_P_dangit( $text ) {
 	// Simple replacement for titles
@@ -3849,13 +4787,13 @@ function capital_P_dangit( $text ) {
 		return str_replace( 'Wordpress', 'WordPress', $text );
 	// Still here? Use the more judicious replacement
 	static $dblq = false;
-	if ( false === $dblq )
+	if ( false === $dblq ) {
 		$dblq = _x( '&#8220;', 'opening curly double quote' );
+	}
 	return str_replace(
 		array( ' Wordpress', '&#8216;Wordpress', $dblq . 'Wordpress', '>Wordpress', '(Wordpress' ),
 		array( ' WordPress', '&#8216;WordPress', $dblq . 'WordPress', '>WordPress', '(WordPress' ),
 	$text );
-
 }
 
 /**
@@ -3869,7 +4807,7 @@ function capital_P_dangit( $text ) {
 function sanitize_mime_type( $mime_type ) {
 	$sani_mime_type = preg_replace( '/[^-+*.a-zA-Z0-9\/]/', '', $mime_type );
 	/**
-	 * Filter a mime type following sanitization.
+	 * Filters a mime type following sanitization.
 	 *
 	 * @since 3.1.3
 	 *
@@ -3896,7 +4834,7 @@ function sanitize_trackback_urls( $to_ping ) {
 	$urls_to_ping = array_map( 'esc_url_raw', $urls_to_ping );
 	$urls_to_ping = implode( "\n", $urls_to_ping );
 	/**
-	 * Filter a list of trackback URLs following sanitization.
+	 * Filters a list of trackback URLs following sanitization.
 	 *
 	 * The string returned here consists of a space or carriage return-delimited list
 	 * of trackback URLs.
@@ -3957,7 +4895,7 @@ function wp_unslash( $value ) {
  * @since 3.6.0
  *
  * @param string $content A string which might contain a URL.
- * @return string The found URL.
+ * @return string|false The found URL.
  */
 function get_url_in_content( $content ) {
 	if ( empty( $content ) ) {
@@ -3980,14 +4918,16 @@ function get_url_in_content( $content ) {
  *
  * @since 4.0.0
  *
+ * @staticvar string $spaces
+ *
  * @return string The spaces regexp.
  */
 function wp_spaces_regexp() {
-	static $spaces;
+	static $spaces = '';
 
 	if ( empty( $spaces ) ) {
 		/**
-		 * Filter the regexp for common whitespace characters.
+		 * Filters the regexp for common whitespace characters.
 		 *
 		 * This string is substituted for the \s sequence as needed in regular
 		 * expressions. For websites not written in English, different characters
@@ -4002,4 +4942,423 @@ function wp_spaces_regexp() {
 	}
 
 	return $spaces;
+}
+
+/**
+ * Print the important emoji-related styles.
+ *
+ * @since 4.2.0
+ *
+ * @staticvar bool $printed
+ */
+function print_emoji_styles() {
+	static $printed = false;
+
+	if ( $printed ) {
+		return;
+	}
+
+	$printed = true;
+?>
+<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<?php
+}
+
+/**
+ * Print the inline Emoji detection script if it is not already printed.
+ *
+ * @since 4.2.0
+ * @staticvar bool $printed
+ */
+function print_emoji_detection_script() {
+	static $printed = false;
+
+	if ( $printed ) {
+		return;
+	}
+
+	$printed = true;
+
+	_print_emoji_detection_script();
+}
+
+/**
+ * Prints inline Emoji dection script
+ *
+ * @ignore
+ * @since 4.6.0
+ * @access private
+ */
+function _print_emoji_detection_script() {
+	$settings = array(
+		/**
+		 * Filters the URL where emoji png images are hosted.
+		 *
+		 * @since 4.2.0
+		 *
+		 * @param string The emoji base URL for png images.
+		 */
+		'baseUrl' => apply_filters( 'emoji_url', 'https://s.w.org/images/core/emoji/2.2.1/72x72/' ),
+
+		/**
+		 * Filters the extension of the emoji png files.
+		 *
+		 * @since 4.2.0
+		 *
+		 * @param string The emoji extension for png files. Default .png.
+		 */
+		'ext' => apply_filters( 'emoji_ext', '.png' ),
+
+		/**
+		 * Filters the URL where emoji SVG images are hosted.
+		 *
+		 * @since 4.6.0
+		 *
+		 * @param string The emoji base URL for svg images.
+		 */
+		'svgUrl' => apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/2.2.1/svg/' ),
+
+		/**
+		 * Filters the extension of the emoji SVG files.
+		 *
+		 * @since 4.6.0
+		 *
+		 * @param string The emoji extension for svg files. Default .svg.
+		 */
+		'svgExt' => apply_filters( 'emoji_svg_ext', '.svg' ),
+	);
+
+	$version = 'ver=' . get_bloginfo( 'version' );
+
+	if ( SCRIPT_DEBUG ) {
+		$settings['source'] = array(
+			/** This filter is documented in wp-includes/class.wp-scripts.php */
+			'wpemoji' => apply_filters( 'script_loader_src', includes_url( "js/wp-emoji.js?$version" ), 'wpemoji' ),
+			/** This filter is documented in wp-includes/class.wp-scripts.php */
+			'twemoji' => apply_filters( 'script_loader_src', includes_url( "js/twemoji.js?$version" ), 'twemoji' ),
+		);
+
+		?>
+		<script type="text/javascript">
+			window._wpemojiSettings = <?php echo wp_json_encode( $settings ); ?>;
+			<?php readfile( ABSPATH . WPINC . "/js/wp-emoji-loader.js" ); ?>
+		</script>
+		<?php
+	} else {
+		$settings['source'] = array(
+			/** This filter is documented in wp-includes/class.wp-scripts.php */
+			'concatemoji' => apply_filters( 'script_loader_src', includes_url( "js/wp-emoji-release.min.js?$version" ), 'concatemoji' ),
+		);
+
+		/*
+		 * If you're looking at a src version of this file, you'll see an "include"
+		 * statement below. This is used by the `grunt build` process to directly
+		 * include a minified version of wp-emoji-loader.js, instead of using the
+		 * readfile() method from above.
+		 *
+		 * If you're looking at a build version of this file, you'll see a string of
+		 * minified JavaScript. If you need to debug it, please turn on SCRIPT_DEBUG
+		 * and edit wp-emoji-loader.js directly.
+		 */
+		?>
+		<script type="text/javascript">
+			window._wpemojiSettings = <?php echo wp_json_encode( $settings ); ?>;
+			!function(a,b,c){function d(a){var b,c,d,e,f=String.fromCharCode;if(!k||!k.fillText)return!1;switch(k.clearRect(0,0,j.width,j.height),k.textBaseline="top",k.font="600 32px Arial",a){case"flag":return k.fillText(f(55356,56826,55356,56819),0,0),!(j.toDataURL().length<3e3)&&(k.clearRect(0,0,j.width,j.height),k.fillText(f(55356,57331,65039,8205,55356,57096),0,0),b=j.toDataURL(),k.clearRect(0,0,j.width,j.height),k.fillText(f(55356,57331,55356,57096),0,0),c=j.toDataURL(),b!==c);case"emoji4":return k.fillText(f(55357,56425,55356,57341,8205,55357,56507),0,0),d=j.toDataURL(),k.clearRect(0,0,j.width,j.height),k.fillText(f(55357,56425,55356,57341,55357,56507),0,0),e=j.toDataURL(),d!==e}return!1}function e(a){var c=b.createElement("script");c.src=a,c.defer=c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g,h,i,j=b.createElement("canvas"),k=j.getContext&&j.getContext("2d");for(i=Array("flag","emoji4"),c.supports={everything:!0,everythingExceptFlag:!0},h=0;h<i.length;h++)c.supports[i[h]]=d(i[h]),c.supports.everything=c.supports.everything&&c.supports[i[h]],"flag"!==i[h]&&(c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&c.supports[i[h]]);c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&!c.supports.flag,c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.everything||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script>
+		<?php
+	}
+}
+
+/**
+ * Convert any 4 byte emoji in a string to their equivalent HTML entity.
+ *
+ * Currently, only Unicode 7 emoji are supported. Skin tone modifiers are allowed,
+ * all other Unicode 8 emoji will be added when the spec is finalised.
+ *
+ * This allows us to store emoji in a DB using the utf8 character set.
+ *
+ * @since 4.2.0
+ *
+ * @param string $content The content to encode.
+ * @return string The encoded content.
+ */
+function wp_encode_emoji( $content ) {
+	if ( function_exists( 'mb_convert_encoding' ) ) {
+		$regex = '/(
+		     \x23\xE2\x83\xA3               # Digits
+		     [\x30-\x39]\xE2\x83\xA3
+		   | \xF0\x9F[\x85-\x88][\xA6-\xBF] # Enclosed characters
+		   | \xF0\x9F[\x8C-\x97][\x80-\xBF] # Misc
+		   | \xF0\x9F\x98[\x80-\xBF]        # Smilies
+		   | \xF0\x9F\x99[\x80-\x8F]
+		   | \xF0\x9F\x9A[\x80-\xBF]        # Transport and map symbols
+		)/x';
+
+		$matches = array();
+		if ( preg_match_all( $regex, $content, $matches ) ) {
+			if ( ! empty( $matches[1] ) ) {
+				foreach ( $matches[1] as $emoji ) {
+					/*
+					 * UTF-32's hex encoding is the same as HTML's hex encoding.
+					 * So, by converting the emoji from UTF-8 to UTF-32, we magically
+					 * get the correct hex encoding.
+					 */
+					$unpacked = unpack( 'H*', mb_convert_encoding( $emoji, 'UTF-32', 'UTF-8' ) );
+					if ( isset( $unpacked[1] ) ) {
+						$entity = '&#x' . ltrim( $unpacked[1], '0' ) . ';';
+						$content = str_replace( $emoji, $entity, $content );
+					}
+				}
+			}
+		}
+	}
+
+	return $content;
+}
+
+/**
+ * Convert emoji to a static img element.
+ *
+ * @since 4.2.0
+ *
+ * @param string $text The content to encode.
+ * @return string The encoded content.
+ */
+function wp_staticize_emoji( $text ) {
+	$text = wp_encode_emoji( $text );
+
+	/** This filter is documented in wp-includes/formatting.php */
+	$cdn_url = apply_filters( 'emoji_url', 'https://s.w.org/images/core/emoji/2.2.1/72x72/' );
+
+	/** This filter is documented in wp-includes/formatting.php */
+	$ext = apply_filters( 'emoji_ext', '.png' );
+
+	$output = '';
+	/*
+	 * HTML loop taken from smiley function, which was taken from texturize function.
+	 * It'll never be consolidated.
+	 *
+	 * First, capture the tags as well as in between.
+	 */
+	$textarr = preg_split( '/(<.*>)/U', $text, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$stop = count( $textarr );
+
+	// Ignore processing of specific tags.
+	$tags_to_ignore = 'code|pre|style|script|textarea';
+	$ignore_block_element = '';
+
+	for ( $i = 0; $i < $stop; $i++ ) {
+		$content = $textarr[$i];
+
+		// If we're in an ignore block, wait until we find its closing tag.
+		if ( '' == $ignore_block_element && preg_match( '/^<(' . $tags_to_ignore . ')>/', $content, $matches ) )  {
+			$ignore_block_element = $matches[1];
+		}
+
+		// If it's not a tag and not in ignore block.
+		if ( '' ==  $ignore_block_element && strlen( $content ) > 0 && '<' != $content[0] ) {
+			$matches = array();
+			if ( preg_match_all( '/(&#x1f1(e[6-9a-f]|f[0-9a-f]);){2}/', $content, $matches ) ) {
+				if ( ! empty( $matches[0] ) ) {
+					foreach ( $matches[0] as $flag ) {
+						$chars = str_replace( array( '&#x', ';'), '', $flag );
+
+						list( $char1, $char2 ) = str_split( $chars, 5 );
+						$entity = sprintf( '<img src="%s" alt="%s" class="wp-smiley" style="height: 1em; max-height: 1em;" />', $cdn_url . $char1 . '-' . $char2 . $ext, html_entity_decode( $flag ) );
+
+						$content = str_replace( $flag, $entity, $content );
+					}
+				}
+			}
+
+			// Loosely match the Emoji Unicode range.
+			$regex = '/(&#x[2-3][0-9a-f]{3};|&#x1f[1-6][0-9a-f]{2};)/';
+
+			$matches = array();
+			if ( preg_match_all( $regex, $content, $matches ) ) {
+				if ( ! empty( $matches[1] ) ) {
+					foreach ( $matches[1] as $emoji ) {
+						$char = str_replace( array( '&#x', ';'), '', $emoji );
+						$entity = sprintf( '<img src="%s" alt="%s" class="wp-smiley" style="height: 1em; max-height: 1em;" />', $cdn_url . $char . $ext, html_entity_decode( $emoji ) );
+
+						$content = str_replace( $emoji, $entity, $content );
+					}
+				}
+			}
+		}
+
+		// Did we exit ignore block.
+		if ( '' != $ignore_block_element && '</' . $ignore_block_element . '>' == $content )  {
+			$ignore_block_element = '';
+		}
+
+		$output .= $content;
+	}
+
+	return $output;
+}
+
+/**
+ * Convert emoji in emails into static images.
+ *
+ * @since 4.2.0
+ *
+ * @param array $mail The email data array.
+ * @return array The email data array, with emoji in the message staticized.
+ */
+function wp_staticize_emoji_for_email( $mail ) {
+	if ( ! isset( $mail['message'] ) ) {
+		return $mail;
+	}
+
+	/*
+	 * We can only transform the emoji into images if it's a text/html email.
+	 * To do that, here's a cut down version of the same process that happens
+	 * in wp_mail() - get the Content-Type from the headers, if there is one,
+	 * then pass it through the wp_mail_content_type filter, in case a plugin
+	 * is handling changing the Content-Type.
+	 */
+	$headers = array();
+	if ( isset( $mail['headers'] ) ) {
+		if ( is_array( $mail['headers'] ) ) {
+			$headers = $mail['headers'];
+		} else {
+			$headers = explode( "\n", str_replace( "\r\n", "\n", $mail['headers'] ) );
+		}
+	}
+
+	foreach ( $headers as $header ) {
+		if ( strpos($header, ':') === false ) {
+			continue;
+		}
+
+		// Explode them out.
+		list( $name, $content ) = explode( ':', trim( $header ), 2 );
+
+		// Cleanup crew.
+		$name    = trim( $name    );
+		$content = trim( $content );
+
+		if ( 'content-type' === strtolower( $name ) ) {
+			if ( strpos( $content, ';' ) !== false ) {
+				list( $type, $charset ) = explode( ';', $content );
+				$content_type = trim( $type );
+			} else {
+				$content_type = trim( $content );
+			}
+			break;
+		}
+	}
+
+	// Set Content-Type if we don't have a content-type from the input headers.
+	if ( ! isset( $content_type ) ) {
+		$content_type = 'text/plain';
+	}
+
+	/** This filter is documented in wp-includes/pluggable.php */
+	$content_type = apply_filters( 'wp_mail_content_type', $content_type );
+
+	if ( 'text/html' === $content_type ) {
+		$mail['message'] = wp_staticize_emoji( $mail['message'] );
+	}
+
+	return $mail;
+}
+
+/**
+ * Shorten a URL, to be used as link text.
+ *
+ * @since 1.2.0
+ * @since 4.4.0 Moved to wp-includes/formatting.php from wp-admin/includes/misc.php and added $length param.
+ *
+ * @param string $url    URL to shorten.
+ * @param int    $length Optional. Maximum length of the shortened URL. Default 35 characters.
+ * @return string Shortened URL.
+ */
+function url_shorten( $url, $length = 35 ) {
+	$stripped = str_replace( array( 'https://', 'http://', 'www.' ), '', $url );
+	$short_url = untrailingslashit( $stripped );
+
+	if ( strlen( $short_url ) > $length ) {
+		$short_url = substr( $short_url, 0, $length - 3 ) . '&hellip;';
+	}
+	return $short_url;
+}
+
+/**
+ * Sanitizes a hex color.
+ *
+ * Returns either '', a 3 or 6 digit hex color (with #), or nothing.
+ * For sanitizing values without a #, see sanitize_hex_color_no_hash().
+ *
+ * @since 3.4.0
+ *
+ * @param string $color
+ * @return string|void
+ */
+function sanitize_hex_color( $color ) {
+	if ( '' === $color ) {
+		return '';
+	}
+
+	// 3 or 6 hex digits, or the empty string.
+	if ( preg_match('|^#([A-Fa-f0-9]{3}){1,2}$|', $color ) ) {
+		return $color;
+	}
+}
+
+/**
+ * Sanitizes a hex color without a hash. Use sanitize_hex_color() when possible.
+ *
+ * Saving hex colors without a hash puts the burden of adding the hash on the
+ * UI, which makes it difficult to use or upgrade to other color types such as
+ * rgba, hsl, rgb, and html color names.
+ *
+ * Returns either '', a 3 or 6 digit hex color (without a #), or null.
+ *
+ * @since 3.4.0
+ *
+ * @param string $color
+ * @return string|null
+ */
+function sanitize_hex_color_no_hash( $color ) {
+	$color = ltrim( $color, '#' );
+
+	if ( '' === $color ) {
+		return '';
+	}
+
+	return sanitize_hex_color( '#' . $color ) ? $color : null;
+}
+
+/**
+ * Ensures that any hex color is properly hashed.
+ * Otherwise, returns value untouched.
+ *
+ * This method should only be necessary if using sanitize_hex_color_no_hash().
+ *
+ * @since 3.4.0
+ *
+ * @param string $color
+ * @return string
+ */
+function maybe_hash_hex_color( $color ) {
+	if ( $unhashed = sanitize_hex_color_no_hash( $color ) ) {
+		return '#' . $unhashed;
+	}
+
+	return $color;
 }

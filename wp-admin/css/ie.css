@@ -50,19 +50,6 @@
 	width: 35%;
 }
 
-.wp-fullscreen-title {
-	width: 97%;
-}
-
-#wp_mce_fullscreen_ifr {
-	background-color: #f9f9f9;
-}
-
-#wp-fullscreen-tagline {
-	color: #888;
-	font-size: 14px;
-}
-
 #adminmenuback {
 	left: 0;
 	background-image: none;
@@ -234,8 +221,7 @@ table.fixed td {
 }
 
 #wpbody-content input.button,
-#wpbody-content input.button-primary,
-#wpbody-content input.button-secondary {
+#wpbody-content input.button-primary {
 	overflow: visible;
 }
 
@@ -257,7 +243,7 @@ table.fixed td {
 }
 
 #wpbody-content .postbox {
-	border: 1px solid #dfdfdf;
+	border: 1px solid #ddd;
 }
 
 #wpbody-content .postbox .hndle {
@@ -409,13 +395,8 @@ p.search-box {
 	margin: -3px 0 4px;
 }
 
-#widget-list .widget,
-.feature-filter .feature-group li {
+#widget-list .widget {
 	display: inline;
-}
-
-.feature-filter .feature-group li input {
-	vertical-align: middle;
 }
 
 #editorcontainer #content {
@@ -460,13 +441,17 @@ div#dashboard-widgets {
 	padding-right: 1px;
 }
 
-.tagchecklist span, .tagchecklist span a {
+.tagchecklist > span, .tagchecklist .ntdelbutton {
 	display: inline-block;
 	display: block;
 }
 
-.tablenav .button-secondary,
-.nav .button-secondary {
+.tagchecklist .ntdelbutton:focus .remove-tag-icon:before {
+	outline: 1px solid #5b9dd9;
+}
+
+.tablenav .button,
+.nav .button {
 	padding-top: 2px;
 	padding-bottom: 2px;
 }
@@ -497,12 +482,16 @@ table.ie-fixed {
 }
 
 .widefat tr,
-.widefat th {
+.widefat th,
+.widefat thead td,
+.widefat tfoot td {
 	margin-bottom: 0;
 	border-spacing: 0;
 }
 
-.widefat th input {
+.widefat th input,
+.widefat thead td input,
+.widefat tfoot td input {
 	margin: 0 0 0 5px;
 }
 
@@ -521,7 +510,7 @@ table.ie-fixed {
 	border-collapse: collapse;
 }
 
-.tablenav a.button-secondary {
+.tablenav a.button {
 	display: inline-block;
 	padding: 2px 5px;
 }
@@ -652,7 +641,7 @@ input[type="password"],
 .mce-close {
 	font-family: 'tinymce', Arial;
 	font-style: normal;
-	font-weight: normal;
+	font-weight: 400;
 	font-variant: normal;
 	font-size: 16px;
 	margin-left: 0;
@@ -670,7 +659,7 @@ input[type="password"],
 }
 
 .mce-btn i.mce-i-wp_adv {
-	background-color: #aaa;
+	background-color: #a0a5aa;
 }
 
 .mce-btn i.mce-i-help,
@@ -701,11 +690,7 @@ input[type="password"],
 * html .stuffbox,
 * html .stuffbox input,
 * html .stuffbox textarea {
-	border: 1px solid #DFDFDF;
-}
-
-* html .feature-filter .feature-group li {
-	width: 145px;
+	border: 1px solid #ddd;
 }
 
 * html div.widget-liquid-left {
@@ -739,7 +724,7 @@ input[type="password"],
 }
 
 * html input {
-	border: 1px solid #dfdfdf;
+	border: 1px solid #ddd;
 }
 
 * html .edit-box {

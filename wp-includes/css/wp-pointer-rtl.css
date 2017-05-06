@@ -3,7 +3,7 @@
 	position: relative;
 	font-size: 13px;
 	background: #fff;
-	border: 1px solid #dfdfdf;
+	border: 1px solid #ddd;
 	-webkit-box-shadow: 0 3px 6px rgba(0,0,0,0.075);
 	box-shadow: 0 3px 6px rgba(0,0,0,0.075);
 }
@@ -17,16 +17,16 @@
 	line-height: 1.4em;
 	font-size: 14px;
 	color: #fff;
-	background: #2ea2cc;
+	background: #00a0d2;
 }
 
 .wp-pointer-content h3:before {
 	background: #fff;
 	-webkit-border-radius: 50%;
 	border-radius: 50%;
-	color: #2ea2cc;
-	content: '\f227';
-	font: normal 20px/1.6 'dashicons';
+	color: #00a0d2;
+	content: "\f227";
+	font: normal 20px/1.6 dashicons;
 	position: absolute;
 	top: 8px;
 	right: 15px;
@@ -61,10 +61,10 @@
 
 .wp-pointer-buttons a.close:before {
 	background: none;
-	color: #bbb;
-	content: '\f153';
+	color: #b4b9be;
+	content: "\f153";
 	display: block !important;
-	font: normal 13px/1 'dashicons';
+	font: normal 16px/1 dashicons;
 	speak: none;
 	margin: 1px 0;
 	text-align: center;
@@ -72,7 +72,7 @@
 	width: 10px;
 	height: 100%;
 	position: absolute;
-	right: -12px;
+	right: -15px;
 	top: 1px;
 }
 
@@ -110,11 +110,11 @@
 	padding-bottom: 13px;
 }
 
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-left {
 	padding-left: 13px;
 }
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-right {
 	margin-left: -13px;
 	padding-right: 13px;
@@ -147,9 +147,9 @@
 	margin-right: -13px;
 	margin-top: -13px;
 	border: 13px solid transparent;
-	border-bottom-color: #2ea2cc;
+	border-bottom-color: #00a0d2;
 	display: block;
-	content: ' ';
+	content: " ";
 }
 
 .wp-pointer-bottom .wp-pointer-arrow {
@@ -165,17 +165,17 @@
 	border: 13px solid transparent;
 	border-top-color: #fff;
 	display: block;
-	content: ' ';
+	content: " ";
 }
 
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-left .wp-pointer-arrow {
 	left: 0;
 	border-width: 13px 13px 13px 0;
 	border-right-color: #ccc;
 }
 
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-left .wp-pointer-arrow-inner {
 	left: 1px;
 	margin-left: -13px;
@@ -183,17 +183,17 @@
 	border: 13px solid transparent;
 	border-right-color: #fff;
 	display: block;
-	content: ' ';
+	content: " ";
 }
 
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-right .wp-pointer-arrow {
 	right: 0;
 	border-width: 13px 0 13px 13px;
 	border-left-color: #ccc;
 }
 
-/* @noflip */
+/* rtl:ignore */
 .wp-pointer-right .wp-pointer-arrow-inner {
 	right: 1px;
 	margin-right: -13px;
@@ -201,7 +201,7 @@
 	border: 13px solid transparent;
 	border-left-color: #fff;
 	display: block;
-	content: ' ';
+	content: " ";
 }
 
 /* Disable pointers at responsive sizes */

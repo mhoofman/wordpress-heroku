@@ -55,11 +55,11 @@ function twentyfifteen_setup() {
 
 	/*
 	 * Make theme available for translation.
-	 * Translations can be filed in the /languages/ directory.
+	 * Translations can be filed at WordPress.org. See: https://translate.wordpress.org/projects/wp-themes/twentyfifteen
 	 * If you're building a theme based on twentyfifteen, use a find and replace
 	 * to change 'twentyfifteen' to the name of your theme in all the template files
 	 */
-	load_theme_textdomain( 'twentyfifteen', get_template_directory() . '/languages' );
+	load_theme_textdomain( 'twentyfifteen' );
 
 	// Add default posts and comments RSS feed links to head.
 	add_theme_support( 'automatic-feed-links' );
@@ -103,10 +103,34 @@ function twentyfifteen_setup() {
 		'aside', 'image', 'video', 'quote', 'link', 'gallery', 'status', 'audio', 'chat'
 	) );
 
+	/*
+	 * Enable support for custom logo.
+	 *
+	 * @since Twenty Fifteen 1.5
+	 */
+	add_theme_support( 'custom-logo', array(
+		'height'      => 248,
+		'width'       => 248,
+		'flex-height' => true,
+	) );
+
 	$color_scheme  = twentyfifteen_get_color_scheme();
 	$default_color = trim( $color_scheme[0], '#' );
 
 	// Setup the WordPress core custom background feature.
+
+	/**
+	 * Filter Twenty Fifteen custom-header support arguments.
+	 *
+	 * @since Twenty Fifteen 1.0
+	 *
+	 * @param array $args {
+	 *     An array of custom-header support arguments.
+	 *
+	 *     @type string $default-color     		Default color of the header.
+	 *     @type string $default-attachment     Default attachment of the header.
+	 * }
+	 */
 	add_theme_support( 'custom-background', apply_filters( 'twentyfifteen_custom_background_args', array(
 		'default-color'      => $default_color,
 		'default-attachment' => 'fixed',
@@ -117,6 +141,9 @@ function twentyfifteen_setup() {
 	 * specifically font, colors, icons, and column width.
 	 */
 	add_editor_style( array( 'css/editor-style.css', 'genericons/genericons.css', twentyfifteen_fonts_url() ) );
+
+	// Indicate widget sidebars can use selective refresh in the Customizer.
+	add_theme_support( 'customize-selective-refresh-widgets' );
 }
 endif; // twentyfifteen_setup
 add_action( 'after_setup_theme', 'twentyfifteen_setup' );
@@ -154,22 +181,34 @@ function twentyfifteen_fonts_url() {
 	$fonts     = array();
 	$subsets   = 'latin,latin-ext';
 
-	/* translators: If there are characters in your language that are not supported by Noto Sans, translate this to 'off'. Do not translate into your own language. */
+	/*
+	 * Translators: If there are characters in your language that are not supported
+	 * by Noto Sans, translate this to 'off'. Do not translate into your own language.
+	 */
 	if ( 'off' !== _x( 'on', 'Noto Sans font: on or off', 'twentyfifteen' ) ) {
 		$fonts[] = 'Noto Sans:400italic,700italic,400,700';
 	}
 
-	/* translators: If there are characters in your language that are not supported by Noto Serif, translate this to 'off'. Do not translate into your own language. */
+	/*
+	 * Translators: If there are characters in your language that are not supported
+	 * by Noto Serif, translate this to 'off'. Do not translate into your own language.
+	 */
 	if ( 'off' !== _x( 'on', 'Noto Serif font: on or off', 'twentyfifteen' ) ) {
 		$fonts[] = 'Noto Serif:400italic,700italic,400,700';
 	}
 
-	/* translators: If there are characters in your language that are not supported by Inconsolata, translate this to 'off'. Do not translate into your own language. */
+	/*
+	 * Translators: If there are characters in your language that are not supported
+	 * by Inconsolata, translate this to 'off'. Do not translate into your own language.
+	 */
 	if ( 'off' !== _x( 'on', 'Inconsolata font: on or off', 'twentyfifteen' ) ) {
 		$fonts[] = 'Inconsolata:400,700';
 	}
 
-	/* translators: To add an additional character subset specific to your language, translate this to 'greek', 'cyrillic', 'devanagari' or 'vietnamese'. Do not translate into your own language. */
+	/*
+	 * Translators: To add an additional character subset specific to your language,
+	 * translate this to 'greek', 'cyrillic', 'devanagari' or 'vietnamese'. Do not translate into your own language.
+	 */
 	$subset = _x( 'no-subset', 'Add new subset (greek, cyrillic, devanagari, vietnamese)', 'twentyfifteen' );
 
 	if ( 'cyrillic' == $subset ) {
@@ -186,12 +225,24 @@ function twentyfifteen_fonts_url() {
 		$fonts_url = add_query_arg( array(
 			'family' => urlencode( implode( '|', $fonts ) ),
 			'subset' => urlencode( $subsets ),
-		), '//fonts.googleapis.com/css' );
+		), 'https://fonts.googleapis.com/css' );
 	}
 
 	return $fonts_url;
 }
 endif;
+
+/**
+ * JavaScript Detection.
+ *
+ * Adds a `js` class to the root `<html>` element when JavaScript is detected.
+ *
+ * @since Twenty Fifteen 1.1
+ */
+function twentyfifteen_javascript_detection() {
+	echo "<script>(function(html){html.className = html.className.replace(/\bno-js\b/,'js')})(document.documentElement);</script>\n";
+}
+add_action( 'wp_head', 'twentyfifteen_javascript_detection', 0 );
 
 /**
  * Enqueue scripts and styles.
@@ -226,13 +277,38 @@ function twentyfifteen_scripts() {
 		wp_enqueue_script( 'twentyfifteen-keyboard-image-navigation', get_template_directory_uri() . '/js/keyboard-image-navigation.js', array( 'jquery' ), '20141010' );
 	}
 
-	wp_enqueue_script( 'twentyfifteen-script', get_template_directory_uri() . '/js/functions.js', array( 'jquery' ), '20141212', true );
+	wp_enqueue_script( 'twentyfifteen-script', get_template_directory_uri() . '/js/functions.js', array( 'jquery' ), '20150330', true );
 	wp_localize_script( 'twentyfifteen-script', 'screenReaderText', array(
 		'expand'   => '<span class="screen-reader-text">' . __( 'expand child menu', 'twentyfifteen' ) . '</span>',
 		'collapse' => '<span class="screen-reader-text">' . __( 'collapse child menu', 'twentyfifteen' ) . '</span>',
 	) );
 }
 add_action( 'wp_enqueue_scripts', 'twentyfifteen_scripts' );
+
+/**
+ * Add preconnect for Google Fonts.
+ *
+ * @since Twenty Fifteen 1.7
+ *
+ * @param array   $urls          URLs to print for resource hints.
+ * @param string  $relation_type The relation type the URLs are printed.
+ * @return array URLs to print for resource hints.
+ */
+function twentyfifteen_resource_hints( $urls, $relation_type ) {
+	if ( wp_style_is( 'twentyfifteen-fonts', 'queue' ) && 'preconnect' === $relation_type ) {
+		if ( version_compare( $GLOBALS['wp_version'], '4.7-alpha', '>=' ) ) {
+			$urls[] = array(
+				'href' => 'https://fonts.gstatic.com',
+				'crossorigin',
+			);
+		} else {
+			$urls[] = 'https://fonts.gstatic.com';
+		}
+	}
+
+	return $urls;
+}
+add_filter( 'wp_resource_hints', 'twentyfifteen_resource_hints', 10, 2 );
 
 /**
  * Add featured image as background image to post navigation elements.
@@ -266,7 +342,7 @@ function twentyfifteen_post_nav_background() {
 	if ( $next && has_post_thumbnail( $next->ID ) ) {
 		$nextthumb = wp_get_attachment_image_src( get_post_thumbnail_id( $next->ID ), 'post-thumbnail' );
 		$css .= '
-			.post-navigation .nav-next { background-image: url(' . esc_url( $nextthumb[0] ) . '); }
+			.post-navigation .nav-next { background-image: url(' . esc_url( $nextthumb[0] ) . '); border-top: 0; }
 			.post-navigation .nav-next .post-title, .post-navigation .nav-next a:hover .post-title, .post-navigation .nav-next .meta-nav { color: #fff; }
 			.post-navigation .nav-next a:before { background-color: rgba(0, 0, 0, 0.4); }
 		';

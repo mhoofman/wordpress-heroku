@@ -6,13 +6,15 @@ class WP_Importer {
 	/**
 	 * Class Constructor
 	 *
-	 * @return void
 	 */
 	public function __construct() {}
 
 	/**
 	 * Returns array with imported permalinks from WordPress database
 	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 *
+	 * @param string $importer_name
 	 * @param string $bid
 	 * @return array
 	 */
@@ -50,6 +52,9 @@ class WP_Importer {
 	/**
 	 * Return count of imported permalinks from WordPress database
 	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 *
+	 * @param string $importer_name
 	 * @param string $bid
 	 * @return int
 	 */
@@ -75,6 +80,8 @@ class WP_Importer {
 
 	/**
 	 * Set array with imported comments from WordPress database
+	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
 	 *
 	 * @param string $bid
 	 * @return array
@@ -115,6 +122,11 @@ class WP_Importer {
 		return $hashtable;
 	}
 
+	/**
+	 *
+	 * @param int $blog_id
+	 * @return int|void
+	 */
 	public function set_blog( $blog_id ) {
 		if ( is_numeric( $blog_id ) ) {
 			$blog_id = (int) $blog_id;
@@ -124,13 +136,15 @@ class WP_Importer {
 				fwrite( STDERR, "Error: can not determine blog_id from $blog_id\n" );
 				exit();
 			}
-			if ( empty( $parsed['path'] ) )
+			if ( empty( $parsed['path'] ) ) {
 				$parsed['path'] = '/';
-			$blog = get_blog_details( array( 'domain' => $parsed['host'], 'path' => $parsed['path'] ) );
-			if ( !$blog ) {
+			}
+			$blogs = get_sites( array( 'domain' => $parsed['host'], 'number' => 1, 'path' => $parsed['path'] ) );
+			if ( ! $blogs ) {
 				fwrite( STDERR, "Error: Could not find blog\n" );
 				exit();
 			}
+			$blog = array_shift( $blogs );
 			$blog_id = (int) $blog->blog_id;
 		}
 
@@ -142,6 +156,11 @@ class WP_Importer {
 		return $blog_id;
 	}
 
+	/**
+	 *
+	 * @param int $user_id
+	 * @return int|void
+	 */
 	public function set_user( $user_id ) {
 		if ( is_numeric( $user_id ) ) {
 			$user_id = (int) $user_id;
@@ -174,7 +193,7 @@ class WP_Importer {
 	 * @param string $url
 	 * @param string $username
 	 * @param string $password
-	 * @param bool $head
+	 * @param bool   $head
 	 * @return array
 	 */
 	public function get_page( $url, $username = '', $password = '', $head = false ) {
@@ -210,8 +229,7 @@ class WP_Importer {
 	 */
 	public function is_user_over_quota() {
 		if ( function_exists( 'upload_is_user_over_quota' ) ) {
-			if ( upload_is_user_over_quota( 1 ) ) {
-				echo "Sorry, you have used your upload quota.\n";
+			if ( upload_is_user_over_quota() ) {
 				return true;
 			}
 		}
@@ -232,7 +250,8 @@ class WP_Importer {
 	/**
 	 * Reset global variables that grow out of control during imports
 	 *
-	 * @return void
+	 * @global wpdb  $wpdb
+	 * @global array $wp_actions
 	 */
 	public function stop_the_insanity() {
 		global $wpdb, $wp_actions;
@@ -248,7 +267,7 @@ class WP_Importer {
  * Exits when a required param is not set.
  *
  * @param string $param
- * @param bool $required
+ * @param bool   $required
  * @return mixed
  */
 function get_cli_args( $param, $required = false ) {
@@ -273,14 +292,14 @@ function get_cli_args( $param, $required = false ) {
 			}
 
 			$last_arg = $key;
-		} else if ( (bool) preg_match( "/^-([a-zA-Z0-9]+)/", $args[$i], $match ) ) {
+		} elseif ( (bool) preg_match( "/^-([a-zA-Z0-9]+)/", $args[$i], $match ) ) {
 			for ( $j = 0, $jl = strlen( $match[1] ); $j < $jl; $j++ ) {
 				$key = $match[1]{$j};
 				$out[$key] = true;
 			}
 
 			$last_arg = $key;
-		} else if ( $last_arg !== null ) {
+		} elseif ( $last_arg !== null ) {
 			$out[$last_arg] = $args[$i];
 		}
 	}

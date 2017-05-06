@@ -3,14 +3,14 @@
 #adminmenu,
 #adminmenu .wp-submenu {
 	width: 160px;
-	background-color: #222;
+	background-color: #23282d;
 }
 
 #adminmenuback {
-	position: absolute;
+	position: fixed;
 	top: 0;
-	bottom: 0;
-	z-index: -1;
+	bottom: -120px;
+	z-index: 1; /* positive z-index to avoid elastic scrolling woes in Safari */
 }
 
 #adminmenu {
@@ -38,8 +38,8 @@
 /* New Menu icons */
 
 .icon16:before {
-	color: #999;
-	font: normal 20px/1 'dashicons';
+	color: #82878c; /* same as new icons */
+	font: normal 20px/1 dashicons;
 	speak: none;
 	padding: 6px 0;
 	height: 34px;
@@ -52,56 +52,56 @@
 }
 
 .icon16.icon-dashboard:before {
-	content: '\f226';
+	content: "\f226";
 }
 
 .icon16.icon-post:before {
-	content: '\f109';
+	content: "\f109";
 }
 
 .icon16.icon-media:before {
-	content: '\f104';
+	content: "\f104";
 }
 
 .icon16.icon-links:before {
-	content: '\f103';
+	content: "\f103";
 }
 
 .icon16.icon-page:before {
-	content: '\f105';
+	content: "\f105";
 }
 
 .icon16.icon-comments:before {
-	content: '\f101';
+	content: "\f101";
 	margin-top: 1px;
 }
 
 .icon16.icon-appearance:before {
-	content: '\f100';
+	content: "\f100";
 }
 
 .icon16.icon-plugins:before {
-	content: '\f106';
+	content: "\f106";
 }
 
 .icon16.icon-users:before {
-	content: '\f110';
+	content: "\f110";
 }
 
 .icon16.icon-tools:before {
-	content: '\f107';
+	content: "\f107";
 }
 
 .icon16.icon-settings:before {
-	content: '\f108';
+	content: "\f108";
 }
 
 .icon16.icon-site:before {
-	content: '\f112'
+	content: "\f541";
 }
 
 .icon16.icon-generic:before {
-	content: '\f111';
+	content: "\f111";
 }
 
 /* hide background-image for icons above */
@@ -166,7 +166,8 @@
 }
 
 #adminmenu .wp-submenu a {
-	color: #bbb;
+	color: #b4b9be;
+	color: rgba(240,245,250,0.7);
 }
 
 #adminmenu .wp-submenu a:hover,
@@ -178,7 +179,7 @@
 #adminmenu li.menu-top > a:focus,
 #adminmenu .wp-submenu a:hover,
 #adminmenu .wp-submenu a:focus {
-	color: #45bbe6;
+	color: #00b9eb;
 }
 
 #adminmenu li.menu-top {
@@ -201,7 +202,7 @@
 .folded #adminmenu .wp-has-current-submenu .wp-submenu {
 	padding: 7px 0 8px;
 	z-index: 9999;
-	background-color: #333;
+	background-color: #32373c;
 	-webkit-box-shadow: 0 3px 5px rgba(0,0,0,0.2);
 	box-shadow: 0 3px 5px rgba(0,0,0,0.2);
 }
@@ -228,7 +229,7 @@
 	margin-top: 0;
 	-webkit-box-shadow: none;
 	box-shadow: none;
-	background-color: #333;
+	background-color: #32373c;
 }
 
 /* ensure that wp-submenu's box shadow doesn't appear on top of the focused menu item's background. */
@@ -236,7 +237,8 @@
 #adminmenu li.opensub > a.menu-top,
 #adminmenu li > a.menu-top:focus {
 	position: relative;
-	background-color: #111;
+	background-color: #191e23;
+	color: #00b9eb;
 }
 
 .folded #adminmenu li.menu-top:hover,
@@ -252,7 +254,7 @@
 #adminmenu .wp-menu-arrow,
 #adminmenu .wp-has-current-submenu .wp-submenu .wp-submenu-head,
 #adminmenu .wp-menu-arrow div {
-	background: #0074a2;
+	background: #0073aa;
 	color: #fff;
 }
 
@@ -262,7 +264,7 @@
 .folded #adminmenu .wp-has-current-submenu.opensub .wp-submenu,
 .folded #adminmenu a.menu-top:focus + .wp-submenu,
 .folded #adminmenu .wp-has-current-submenu a.menu-top:focus + .wp-submenu,
-.no-js.folded #adminmenu .wp-has-submenu:hover .wp-submenu  {
+.no-js.folded #adminmenu .wp-has-submenu:hover .wp-submenu {
 	top: 0;
 	left: 36px;
 }
@@ -316,9 +318,13 @@
 	padding: 0;
 }
 
-#adminmenu .wp-submenu-head,
-.folded #adminmenu .wp-menu-name {
+#adminmenu .wp-submenu-head {
 	display: none;
+}
+
+.folded #adminmenu .wp-menu-name {
+	position: absolute;
+	left: -999px;
 }
 
 .folded #adminmenu .wp-submenu-head {
@@ -357,26 +363,37 @@
 }
 
 div.wp-menu-image:before {
-	color: #999;
+	color: #a0a5aa;
+	color: rgba(240,245,250,0.6);
 	padding: 7px 0;
 	-webkit-transition: all .1s ease-in-out;
 	transition: all .1s ease-in-out;
 }
 
 #adminmenu div.wp-menu-image:before {
-	color: #999;
+	color: #a0a5aa;
+	color: rgba(240,245,250,0.6);
 }
 
 #adminmenu li.wp-has-current-submenu:hover div.wp-menu-image:before,
 #adminmenu .wp-has-current-submenu div.wp-menu-image:before,
 #adminmenu .current div.wp-menu-image:before,
 #adminmenu a.wp-has-current-submenu:hover div.wp-menu-image:before,
-#adminmenu a.current:hover div.wp-menu-image:before {
+#adminmenu a.current:hover div.wp-menu-image:before,
+#adminmenu li.wp-has-current-submenu a:focus div.wp-menu-image:before,
+#adminmenu li.wp-has-current-submenu.opensub div.wp-menu-image:before {
 	color: #fff;
 }
 
-#adminmenu li:hover div.wp-menu-image:before {
-	color: #45bbe6;
+#adminmenu li:hover div.wp-menu-image:before,
+#adminmenu li a:focus div.wp-menu-image:before,
+#adminmenu li.opensub div.wp-menu-image:before {
+	color: #00b9eb;
+}
+
+/* IE8 doesn't redraw the pseudo elements unless you make a change to the content, this restore the initial color after hover */
+.ie8 #adminmenu li.opensub div.wp-menu-image:before {
+	color: #a0a5aa;
 }
 
 .folded #adminmenu div.wp-menu-image {
@@ -464,7 +481,7 @@ ul#adminmenu > li.current > a.current:after {
 }
 
 #adminmenu li.wp-has-submenu.wp-not-current-submenu.opensub:hover:after {
-	border-right-color: #333;
+	border-right-color: #32373c;
 }
 
 #adminmenu li.menu-top:hover .wp-menu-image img,
@@ -500,8 +517,7 @@ ul#adminmenu > li.current > a.current:after {
 }
 
 #adminmenu .awaiting-mod,
-#adminmenu .update-plugins,
-#sidemenu li a span.update-plugins {
+#adminmenu .update-plugins {
 	display: inline-block;
 	background-color: #d54e21;
 	color: #fff;
@@ -516,91 +532,95 @@ ul#adminmenu > li.current > a.current:after {
 }
 
 #adminmenu li .awaiting-mod span,
-#adminmenu li span.update-plugins span,
-#sidemenu li a span.update-plugins span {
+#adminmenu li span.update-plugins span {
 	display: block;
 	padding: 0 6px;
 }
 
 #adminmenu li.current a .awaiting-mod,
 #adminmenu	li a.wp-has-current-submenu .update-plugins {
-	background-color: #45bbe6;
+	background-color: #00b9eb;
 	color: #fff;
 }
 
-#adminmenu li span.count-0,
-#sidemenu li a .count-0 {
+#adminmenu li span.count-0 {
 	display: none;
-}
-
-#collapse-menu {
-	font-size: 13px;
-	line-height: 34px;
-	margin-top: 10px;
-	color: #aaa;
-	-webkit-transition: all .1s ease-in-out;
-	transition: all .1s ease-in-out;
-}
-
-#collapse-menu:hover,
-#collapse-menu:hover #collapse-button div:after {
-	color: #45bbe6;
-}
-
-.folded #collapse-menu span {
-	display: none;
-}
-
-#collapse-button,
-#collapse-button div {
-	width: 15px;
-	height: 15px;
 }
 
 #collapse-button {
-	float: left;
-	height: 15px;
-	margin: 10px 8px 10px 11px;
-	width: 15px;
-	-webkit-border-radius: 10px;
-	border-radius: 10px;
-}
-
-#wpwrap #collapse-button div {
-	padding: 0;
-}
-
-#collapse-button div:after {
-	content: '\f148';
 	display: block;
-	line-height: 15px;
-	left: -3px;
-	top: -3px;
-	color: #aaa;
-	font: normal 20px/1 'dashicons' !important;
-	speak: none;
-	margin: 0 auto;
-	padding: 0 !important;
+	width: 100%;
+	height: 34px;
+	margin: 0;
+	border: none;
+	padding: 0;
 	position: relative;
+	overflow: visible;
+	line-height: 34px;
+	background: none;
+	color: #aaa;
+	cursor: pointer;
+	outline: 0;
+}
+
+#collapse-button:hover,
+#collapse-button:focus {
+	color: #00b9eb;
+}
+
+#collapse-button .collapse-button-icon,
+#collapse-button .collapse-button-label {
+	/* absolutely positioned to avoid 1px shift in IE when button is pressed */
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+	line-height: 34px;
+}
+
+#collapse-button .collapse-button-icon {
+	width: 36px;
+	height: 34px;
+}
+
+#collapse-button .collapse-button-label {
+	padding: 0 0 0 36px;
+}
+
+.folded #collapse-button .collapse-button-label {
+	display: none;
+}
+
+#collapse-button .collapse-button-icon:after {
+	content: "\f148";
+	display: block;
+	position: relative;
+	top: 7px;
 	text-align: center;
-	width: 20px;
-	-webkit-transition: all .1s ease-in-out;
-	transition: all .1s ease-in-out;
+	font: normal 20px/1 dashicons !important;
+	speak: none;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
-.folded #collapse-button div:after,
-.rtl #collapse-button div:after {
+/* rtl:ignore */
+.folded #collapse-button .collapse-button-icon:after,
+.rtl #collapse-button .collapse-button-icon:after {
 	-webkit-transform: rotate(180deg);
 	-ms-transform: rotate(180deg);
 	transform: rotate(180deg);
 }
 
-.rtl.folded #collapse-button div:after {
+.rtl.folded #collapse-button .collapse-button-icon:after {
 	-webkit-transform: none;
 	-ms-transform: none;
 	transform: none;
+}
+
+#collapse-button .collapse-button-icon:after,
+#collapse-button .collapse-button-label {
+	-webkit-transition: all .1s ease-in-out;
+	transition: all .1s ease-in-out;
 }
 
 /**
@@ -635,7 +655,7 @@ li#wp-admin-bar-menu-toggle {
 	.auto-fold #adminmenu .wp-has-current-submenu .wp-submenu.sub-open,
 	.auto-fold #adminmenu .wp-has-current-submenu.opensub .wp-submenu,
 	.auto-fold #adminmenu a.menu-top:focus + .wp-submenu,
-	.auto-fold #adminmenu .wp-has-current-submenu a.menu-top:focus + .wp-submenu  {
+	.auto-fold #adminmenu .wp-has-current-submenu a.menu-top:focus + .wp-submenu {
 		top: 0px;
 		left: 36px;
 	}
@@ -665,7 +685,8 @@ li#wp-admin-bar-menu-toggle {
 	}
 
 	.auto-fold #adminmenu .wp-menu-name {
-		display: none;
+		position: absolute;
+		left: -999px;
 	}
 
 	.auto-fold #adminmenu .wp-submenu-head {
@@ -713,21 +734,18 @@ li#wp-admin-bar-menu-toggle {
 		z-index: 10000;
 	}
 
-	.auto-fold #collapse-menu span {
+	.auto-fold #collapse-menu .collapse-button-label {
 		display: none;
 	}
 
-	.auto-fold #collapse-button div {
-		background: none;
-	}
-
-	.auto-fold #collapse-button div:after {
+	/* rtl:ignore */
+	.auto-fold #collapse-button .collapse-button-icon:after {
 		-webkit-transform: rotate(180deg);
 		-ms-transform: rotate(180deg);
 		transform: rotate(180deg);
 	}
 
-	.rtl.auto-fold #collapse-button div:after {
+	.rtl.auto-fold #collapse-button .collapse-button-icon:after {
 		-webkit-transform: none;
 		-ms-transform: none;
 		transform: none;
@@ -783,7 +801,7 @@ li#wp-admin-bar-menu-toggle {
 
 	/* Restore the menu names */
 	.auto-fold #adminmenu .wp-menu-name {
-		display: block;
+		position: static;
 		margin-left: 35px;
 	}
 
@@ -870,7 +888,7 @@ li#wp-admin-bar-menu-toggle {
 	}
 
 	.wp-responsive-open #wpadminbar #wp-admin-bar-menu-toggle a {
-		background: #333;
+		background: #32373c;
 	}
 
 	li#wp-admin-bar-menu-toggle {
@@ -882,10 +900,10 @@ li#wp-admin-bar-menu-toggle {
 	}
 
 	#wpadminbar #wp-admin-bar-menu-toggle .ab-icon:before {
-		content: '\f228';
+		content: "\f228";
 		display: inline-block;
 		float: left;
-		font: normal 40px/45px 'Dashicons';
+		font: normal 40px/45px dashicons;
 		vertical-align: middle;
 		outline: none;
 		margin: 0;
@@ -900,6 +918,10 @@ li#wp-admin-bar-menu-toggle {
 		-webkit-box-sizing: border-box;
 		-moz-box-sizing: border-box;
 		box-sizing: border-box;
+	}
+
+	.wp-responsive-open #wpadminbar #wp-admin-bar-menu-toggle .ab-icon:before {
+		color: #00b9eb;
 	}
 }
 
@@ -919,4 +941,3 @@ li#wp-admin-bar-menu-toggle {
 		top: 46px;
 	}
 }
-

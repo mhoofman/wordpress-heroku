@@ -1,15 +1,8 @@
 jQuery( function ( $ ) {
-	$( 'a.activate-option' ).click( function(){
-		var link = $( this );
-		if ( link.hasClass( 'clicked' ) ) {
-			link.removeClass( 'clicked' );
-		}
-		else {
-			link.addClass( 'clicked' );
-		}
-		$( '.toggle-have-key' ).slideToggle( 'slow', function() {});
-		return false;
-	});
+	var mshotRemovalTimer = null;
+	var mshotSecondTryTimer = null
+	var mshotThirdTryTimer = null
+	
 	$('.akismet-status').each(function () {
 		var thisId = $(this).attr('commentid');
 		$(this).prependTo('#comment-' + thisId + ' .column-comment');
@@ -18,21 +11,31 @@ jQuery( function ( $ ) {
 		var thisId = $(this).attr('commentid');
 		$(this).insertAfter('#comment-' + thisId + ' .author strong:first').show();
 	});
-	$('#the-comment-list').find('tr.comment, tr[id ^= "comment-"]').find('.column-author a[title ^= "http://"], .column-author a[title ^= "https://"]').each(function () {
-		var thisTitle = $(this).attr('title');
-			thisCommentId = $(this).parents('tr:first').attr('id').split("-");
+	$('#the-comment-list')
+		.find('tr.comment, tr[id ^= "comment-"]')
+		.find('.column-author a[href^="http"]:first') // Ignore mailto: links, which would be the comment author's email.
+		.each(function () {
+		var linkHref = $(this).attr( 'href' );
+		
+		// Ignore any links to the current domain, which are diagnostic tools, like the IP address link
+		// or any other links another plugin might add.
+		var currentHostParts = document.location.href.split( '/' );
+		var currentHost = currentHostParts[0] + '//' + currentHostParts[2] + '/';
+		
+		if ( linkHref.indexOf( currentHost ) != 0 ) {
+			var thisCommentId = $(this).parents('tr:first').attr('id').split("-");
 
-		$(this).attr("id", "author_comment_url_"+ thisCommentId[1]);
-
-		if (thisTitle) {
-			$(this).after(
-				$( '<a href="#" class="remove_url">x</a>' )
-					.attr( 'commentid', thisCommentId[1] )
-					.attr( 'title', WPAkismet.strings['Remove this URL'] )
-			);
+			$(this)
+				.attr("id", "author_comment_url_"+ thisCommentId[1])
+				.after(
+					$( '<a href="#" class="remove_url">x</a>' )
+						.attr( 'commentid', thisCommentId[1] )
+						.attr( 'title', WPAkismet.strings['Remove this URL'] )
+				);
 		}
 	});
-	$('.remove_url').live('click', function () {
+	
+	$( '#the-comment-list' ).on( 'click', '.remove_url', function () {
 		var thisId = $(this).attr('commentid');
 		var data = {
 			action: 'comment_author_deurl',
@@ -69,8 +72,7 @@ jQuery( function ( $ ) {
 		});
 
 		return false;
-	});
-	$('.akismet_undo_link_removal').live('click', function () {
+	}).on( 'click', '.akismet_undo_link_removal', function () {
 		var thisId = $(this).attr('cid');
 		var thisUrl = $(this).attr('href');
 		var data = {
@@ -99,38 +101,74 @@ jQuery( function ( $ ) {
 
 		return false;
 	});
-	$('a[id^="author_comment_url"], tr.pingback td.column-author a:first-of-type').mouseover(function () {
-		var wpcomProtocol = ( 'https:' === location.protocol ) ? 'https://' : 'http://';
-		// Need to determine size of author column
-		var thisParentWidth = $(this).parent().width();
-		// It changes based on if there is a gravatar present
-		thisParentWidth = ($(this).parent().find('.grav-hijack').length) ? thisParentWidth - 42 + 'px' : thisParentWidth + 'px';
-		if ($(this).find('.mShot').length == 0 && !$(this).hasClass('akismet_undo_link_removal')) {
-			var self = $( this );
-			$('.widefat td').css('overflow', 'visible');
-			$(this).css('position', 'relative');
-			var thisHref = $.URLEncode( $(this).attr('href') );
-			$(this).append('<div class="mShot mshot-container" style="left: '+thisParentWidth+'"><div class="mshot-arrow"></div><img src="//s0.wordpress.com/mshots/v1/'+thisHref+'?w=450" width="450" class="mshot-image" style="margin: 0;" /></div>');
-			setTimeout(function () {
-				self.find( '.mshot-image' ).attr('src', '//s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=2');
-			}, 6000);
-			setTimeout(function () {
-				self.find( '.mshot-image' ).attr('src', '//s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=3');
-			}, 12000);
-		} else {
-			$(this).find('.mShot').css('left', thisParentWidth).show();
+
+	// Show a preview image of the hovered URL. Applies to author URLs and URLs inside the comments.
+	$( 'a[id^="author_comment_url"], tr.pingback td.column-author a:first-of-type, table.comments td.comment p a' ).mouseover( function () {
+		clearTimeout( mshotRemovalTimer );
+
+		if ( $( '.akismet-mshot' ).length > 0 ) {
+			if ( $( '.akismet-mshot:first' ).data( 'link' ) == this ) {
+				// The preview is already showing for this link.
+				return;
+			}
+			else {
+				// A new link is being hovered, so remove the old preview.
+				$( '.akismet-mshot' ).remove();
+			}
 		}
-	}).mouseout(function () {
-		$(this).find('.mShot').hide();
-	});
+
+		clearTimeout( mshotSecondTryTimer );
+		clearTimeout( mshotThirdTryTimer );
+
+		var thisHref = $.URLEncode( $( this ).attr( 'href' ) );
+
+		var mShot = $( '<div class="akismet-mshot mshot-container"><div class="mshot-arrow"></div><img src="//s0.wordpress.com/mshots/v1/' + thisHref + '?w=450" width="450" height="338" class="mshot-image" /></div>' );
+		mShot.data( 'link', this );
+
+		var offset = $( this ).offset();
+
+		mShot.offset( {
+			left : Math.min( $( window ).width() - 475, offset.left + $( this ).width() + 10 ), // Keep it on the screen if the link is near the edge of the window.
+			top: offset.top + ( $( this ).height() / 2 ) - 101 // 101 = top offset of the arrow plus the top border thickness
+		} );
+
+		mshotSecondTryTimer = setTimeout( function () {
+			mShot.find( '.mshot-image' ).attr( 'src', '//s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=2' );
+		}, 6000 );
+
+		mshotThirdTryTimer = setTimeout( function () {
+			mShot.find( '.mshot-image' ).attr( 'src', '//s0.wordpress.com/mshots/v1/'+thisHref+'?w=450&r=3' );
+		}, 12000 );
+
+		$( 'body' ).append( mShot );
+	} ).mouseout( function () {
+		mshotRemovalTimer = setTimeout( function () {
+			clearTimeout( mshotSecondTryTimer );
+			clearTimeout( mshotThirdTryTimer );
+
+			$( '.akismet-mshot' ).remove();
+		}, 200 );
+	} );
+
 	$('.checkforspam:not(.button-disabled)').click( function(e) {
-		$('.checkforspam:not(.button-disabled)').addClass('button-disabled');
-		$('.checkforspam-spinner').addClass( 'spinner' );
-		akismet_check_for_spam(0, 100);
 		e.preventDefault();
+
+		$('.checkforspam:not(.button-disabled)').addClass('button-disabled');
+		$('.checkforspam-spinner').addClass( 'spinner' ).addClass( 'is-active' );
+
+		// Update the label on the "Check for Spam" button to use the active "Checking for Spam" language.
+		$( '.checkforspam .akismet-label' ).text( $( '.checkforspam' ).data( 'active-label' ) );
+
+		akismet_check_for_spam(0, 100);
 	});
 
+	var spam_count = 0;
+	var recheck_count = 0;
+
 	function akismet_check_for_spam(offset, limit) {
+		// Update the progress counter on the "Check for Spam" button.
+		$( '.checkforspam-progress' ).text( $( '.checkforspam' ).data( 'progress-label-format' ).replace( '%1$s', offset ) );
+
 		$.post(
 			ajaxurl,
 			{
@@ -139,14 +177,22 @@ jQuery( function ( $ ) {
 				'limit': limit
 			},
 			function(result) {
-				if (result.processed < limit) {
-					window.location.reload();
+				recheck_count += result.counts.processed;
+				spam_count += result.counts.spam;
+				
+				if (result.counts.processed < limit) {
+					window.location.href = $( '.checkforspam' ).data( 'success-url' ).replace( '__recheck_count__', recheck_count ).replace( '__spam_count__', spam_count );
 				}
 				else {
-					akismet_check_for_spam(offset + limit, limit);
+					// Account for comments that were caught as spam and moved out of the queue.
+					akismet_check_for_spam(offset + limit - result.counts.spam, limit);
 				}
 			}
 		);
+	}
+	
+	if ( "start_recheck" in WPAkismet && WPAkismet.start_recheck ) {
+		$( '.checkforspam' ).click();
 	}
 });
 // URL encode plugin

@@ -110,7 +110,7 @@ var wpCookies = {
 		if ( typeof( expires ) === 'object' && expires.toGMTString ) {
 			expires = expires.toGMTString();
 		} else if ( parseInt( expires, 10 ) ) {
-			d.setTime( d.getTime() + ( parseInt( expires, 10 ) * 1000 ) ); // time must be in miliseconds
+			d.setTime( d.getTime() + ( parseInt( expires, 10 ) * 1000 ) ); // time must be in milliseconds
 			expires = d.toGMTString();
 		} else {
 			expires = '';
@@ -161,12 +161,12 @@ function setUserSetting( name, value, _del ) {
 		path = userSettings.url,
 		secure = !! userSettings.secure;
 
-	name = name.toString().replace( /[^A-Za-z0-9_]/, '' );
+	name = name.toString().replace( /[^A-Za-z0-9_-]/g, '' );
 
 	if ( typeof value === 'number' ) {
 		value = parseInt( value, 10 );
 	} else {
-		value = value.toString().replace( /[^A-Za-z0-9_]/, '' );
+		value = value.toString().replace( /[^A-Za-z0-9_-]/g, '' );
 	}
 
 	settings = settings || {};

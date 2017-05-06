@@ -82,7 +82,7 @@ if ( is_single() || is_page() )
 	$tb_id = $posts[0]->ID;
 
 if ( !isset($tb_id) || !intval( $tb_id ) )
-	trackback_response(1, 'I really need an ID for this to work.');
+	trackback_response( 1, __( 'I really need an ID for this to work.' ) );
 
 if (empty($title) && empty($tb_url) && empty($blog_name)) {
 	// If it doesn't look like a trackback at all.
@@ -91,10 +91,24 @@ if (empty($title) && empty($tb_url) && empty($blog_name)) {
 }
 
 if ( !empty($tb_url) && !empty($title) ) {
+	/**
+	* Fires before the trackback is added to a post.
+	*
+	* @since 4.7.0
+	*
+	* @param int    $tb_id     Post ID related to the trackback.
+	* @param string $tb_url    Trackback URL.
+	* @param string $charset   Character Set.
+	* @param string $title     Trackback Title.
+	* @param string $excerpt   Trackback Excerpt.
+	* @param string $blog_name Blog Name.
+	*/
+	do_action( 'pre_trackback_post', $tb_id, $tb_url, $charset, $title, $excerpt, $blog_name );
+
 	header('Content-Type: text/xml; charset=' . get_option('blog_charset') );
 
 	if ( !pings_open($tb_id) )
-		trackback_response(1, 'Sorry, trackbacks are closed for this item.');
+		trackback_response( 1, __( 'Sorry, trackbacks are closed for this item.' ) );
 
 	$title =  wp_html_excerpt( $title, 250, '&#8230;' );
 	$excerpt = wp_html_excerpt( $excerpt, 252, '&#8230;' );
@@ -108,7 +122,7 @@ if ( !empty($tb_url) && !empty($title) ) {
 
 	$dupe = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->comments WHERE comment_post_ID = %d AND comment_author_url = %s", $comment_post_ID, $comment_author_url) );
 	if ( $dupe )
-		trackback_response(1, 'We already have a ping from that URL for this post.');
+		trackback_response( 1, __( 'We already have a ping from that URL for this post.' ) );
 
 	$commentdata = compact('comment_post_ID', 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_content', 'comment_type');
 

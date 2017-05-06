@@ -1,13 +1,13 @@
 /*
 Theme Name: Twenty Fifteen
-Theme URI: https://wordpress.org/themes/twentyfifteen
+Theme URI: https://wordpress.org/themes/twentyfifteen/
 Author: the WordPress team
 Author URI: https://wordpress.org/
 Description: Our 2015 default theme is clean, blog-focused, and designed for clarity. Twenty Fifteen's simple, straightforward typography is readable on a wide variety of screen sizes, and suitable for multiple languages. We designed it using a mobile-first approach, meaning your content takes center-stage, regardless of whether your visitors arrive by smartphone, tablet, laptop, or desktop computer.
-Version: 1.0
+Version: 1.7
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Tags: black, blue, gray, pink, purple, white, yellow, dark, light, two-columns, left-sidebar, fixed-layout, responsive-layout, accessibility-ready, custom-background, custom-colors, custom-header, custom-menu, editor-style, featured-images, microformats, post-formats, rtl-language-support, sticky-post, threaded-comments, translation-ready
+Tags: blog, two-columns, left-sidebar, accessibility-ready, custom-background, custom-colors, custom-header, custom-logo, custom-menu, editor-style, featured-images, microformats, post-formats, rtl-language-support, sticky-post, threaded-comments, translation-ready
 Text Domain: twentyfifteen
 
 This theme, like WordPress, is licensed under the GPL.
@@ -39,24 +39,24 @@ Use it to make something cool, have fun, and share what you've learned with othe
  * 14.0 - Media
  *    14.1 - Captions
  *    14.2 - Galleries
- * 15.0 - Media Queries
- *    15.1 - Mobile Large
- *    15.2 - Tablet Small
- *    15.3 - Tablet Large
- *    15.4 - Desktop Small
- *    15.5 - Desktop Medium
- *    15.6 - Desktop Large
- *    15.7 - Desktop X-Large
+ * 15.0 - Multisite
+ * 16.0 - Media Queries
+ *    16.1 - Mobile Large
+ *    16.2 - Tablet Small
+ *    16.3 - Tablet Large
+ *    16.4 - Desktop Small
+ *    16.5 - Desktop Medium
+ *    16.6 - Desktop Large
+ *    16.7 - Desktop X-Large
+ * 17.0 - Print
  */
 
 
 /**
  * 1.0 - Reset
  *
- * Resetting and rebuilding styles have been helped along thanks to the fine work of
- * Eric Meyer http://meyerweb.com/eric/tools/css/reset/index.html
- * along with Nicolas Gallagher and Jonathan Neal http://necolas.github.com/normalize.css/
- * and Blueprint http://www.blueprintcss.org/
+ * Resetting and rebuilding styles have been helped along thanks to the fine
+ * work of Eric Meyer, Nicolas Gallagher, Jonathan Neal, and Blueprint.
  */
 
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, font, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td {
@@ -121,6 +121,10 @@ th,
 td {
 	font-weight: normal;
 	text-align: left;
+}
+
+fieldset {
+	min-width: inherit;
 }
 
 blockquote:before,
@@ -490,6 +494,10 @@ textarea {
 
 button,
 input {
+	-webkit-hyphens: none;
+	-moz-hyphens: none;
+	-ms-hyphens: none;
+	hyphens: none;
 	line-height: normal;
 }
 
@@ -680,9 +688,8 @@ a:focus {
 	position: relative;
 }
 
-.main-navigation .current_page_item > a,
 .main-navigation .current-menu-item > a,
-.main-navigation .current_page_ancestor > a {
+.main-navigation .current-menu-ancestor > a {
 	font-weight: 700;
 }
 
@@ -691,7 +698,6 @@ a:focus {
 	border-top: 0;
 }
 
-.main-navigation .page_item_has_children > a,
 .main-navigation .menu-item-has-children > a {
 	padding-right: 48px;
 }
@@ -779,10 +785,6 @@ a:focus {
 	position: absolute;
 	top: 0;
 	left: 0;
-}
-
-.social-navigation a[href$="/feed/"]:before {
-	content: "\f413";
 }
 
 .social-navigation a[href*="codepen.io"]:before {
@@ -880,6 +882,18 @@ a:focus {
 
 .social-navigation a[href*="twitch.tv"]:before {
 	content: "\f516";
+}
+
+.social-navigation a[href$="/feed/"]:before {
+	content: "\f413";
+}
+
+.social-navigation a[href*="path.com"]:before {
+	content: "\f219";
+}
+
+.social-navigation a[href*="skype.com"]:before {
+	content: "\f220";
 }
 
 .secondary-toggle {
@@ -1300,6 +1314,15 @@ img.aligncenter {
 	font-weight: 700;
 	line-height: 1.3636;
 	margin-bottom: 0;
+}
+
+.custom-logo {
+	max-height: 84px;
+	width: auto;
+}
+
+.wp-custom-logo .site-title {
+	margin-top: 0.545454545em;
 }
 
 .site-description {
@@ -2562,7 +2585,100 @@ p > video {
 
 
 /**
- * 15.0 Media Queries
+ * 15.0 Multisite
+ */
+
+.widecolumn {
+	background-color: #fff;
+	padding: 7.6923%;
+}
+
+.widecolumn .mu_register {
+	width: auto;
+}
+
+.widecolumn .mu_alert {
+	margin-bottom: 1.6em;
+}
+
+.widecolumn form,
+.widecolumn .mu_register form {
+	margin-top: 0;
+}
+
+.widecolumn h2 {
+	font-size: 26px;
+	font-size: 2.6rem;
+	line-height: 1.1538;
+	margin-bottom: 0.9231em;
+}
+
+.widecolumn p {
+	margin: 1.6em 0;
+}
+
+.widecolumn p + h2 {
+	margin-top: 1.8462em;
+}
+
+.widecolumn label,
+.widecolumn .mu_register label {
+	color: #707070;
+	color: rgba(51, 51, 51, 0.7);
+	font-family: "Noto Sans", sans-serif;
+	font-size: 12px;
+	font-size: 1.2rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	line-height: 1.5;
+	text-transform: uppercase;
+}
+
+.widecolumn .mu_register label {
+	margin: 2em 0 0;
+}
+
+.widecolumn #key,
+.widecolumn .mu_register #blog_title,
+.widecolumn .mu_register #user_email,
+.widecolumn .mu_register #blogname,
+.widecolumn .mu_register #user_name {
+	font-size: 16px;
+	font-size: 1.6rem;
+	width: 100%;
+}
+
+.widecolumn .mu_register #blogname {
+	margin: 0;
+}
+
+.widecolumn .mu_register #blog_title,
+.widecolumn .mu_register #user_email,
+.widecolumn .mu_register #user_name {
+	margin: 0 0 0.375em;
+}
+
+.widecolumn #submit,
+.widecolumn .mu_register input[type="submit"] {
+	font-size: 12px;
+	font-size: 1.2rem;
+	margin: 0;
+	width: 100%;
+}
+
+.widecolumn .mu_register .prefix_address,
+.widecolumn .mu_register .suffix_address {
+	font-size: inherit;
+}
+
+.widecolumn .mu_register > :last-child,
+.widecolumn form > :last-child {
+	margin-bottom: 0;
+}
+
+
+/**
+ * 16.0 Media Queries
  */
 
 /*
@@ -2580,7 +2696,7 @@ p > video {
 }
 
 /**
- * 15.1 Mobile Large 620px
+ * 16.1 Mobile Large 620px
  */
 
 @media screen and (min-width: 38.75em) {
@@ -2619,6 +2735,7 @@ p > video {
 	}
 
 	.secondary {
+		box-shadow: 0 0 1px rgba(0, 0, 0, 0.15);
 		margin: 7.6923% 7.6923% 0;
 		padding: 7.6923% 7.6923% 0;
 	}
@@ -2764,11 +2881,16 @@ p > video {
 	.comment-content blockquote > ol {
 		margin-left: 1.3333em;
 	}
+
+	.widecolumn {
+		box-shadow: 0 0 1px rgba(0, 0, 0, 0.15);
+		margin: 7.6923%;
+	}
 }
 
 
 /**
- * 15.2 Tablet Small 740px
+ * 16.2 Tablet Small 740px
  */
 
 @media screen and (min-width: 46.25em) {
@@ -2827,7 +2949,9 @@ p > video {
 	input[type="button"],
 	input[type="reset"],
 	input[type="submit"],
-	.post-password-form input[type="submit"] {
+	.post-password-form input[type="submit"],
+	.widecolumn #submit,
+	.widecolumn .mu_register input[type="submit"] {
 		font-size: 14px;
 		font-size: 1.4rem;
 		padding: 0.8214em 1.6429em;
@@ -2854,11 +2978,6 @@ p > video {
 
 	.main-navigation ul ul {
 		margin-left: 1em;
-	}
-
-	.main-navigation .page_item_has_children > a,
-	.main-navigation .main-navigation .menu-item-has-children > a {
-		padding-right: 54px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -2906,7 +3025,9 @@ p > video {
 	.site-info,
 	.wp-caption-text,
 	.gallery-caption,
-	.entry-caption {
+	.entry-caption,
+	.widecolumn label,
+	.widecolumn .mu_register label {
 		font-size: 14px;
 		font-size: 1.4rem;
 	}
@@ -2975,6 +3096,14 @@ p > video {
 		font-size: 29px;
 		font-size: 2.9rem;
 		line-height: 1.2069;
+	}
+
+	.custom-logo {
+		max-height: 105px;
+	}
+
+	.wp-custom-logo .site-title {
+		margin-top: 0.482758621em;
 	}
 
 	.site-description {
@@ -3133,7 +3262,8 @@ p > video {
 		margin-bottom: 3em;
 	}
 
-	.entry-title {
+	.entry-title,
+	.widecolumn h2 {
 		font-size: 35px;
 		font-size: 3.5rem;
 		line-height: 1.2;
@@ -3361,11 +3491,39 @@ p > video {
 	.gallery {
 		margin-bottom: 1.6471em;
 	}
+
+	.widecolumn .mu_alert {
+		margin-bottom: 1.6471em;
+	}
+
+	.widecolumn p {
+		margin: 1.6471em 0;
+	}
+
+	.widecolumn p + h2 {
+		margin-top: 1.6em;
+	}
+
+	.widecolumn #key,
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #blogname,
+	.widecolumn .mu_register #user_name {
+		font-size: 17px;
+		font-size: 1.7rem;
+		line-height: normal;
+	}
+
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #user_name {
+		margin: 0 0 0.4117em;
+	}
 }
 
 
 /**
- * 15.3 Tablet Large 880px
+ * 16.3 Tablet Large 880px
  */
 
 @media screen and (min-width: 55em) {
@@ -3424,7 +3582,9 @@ p > video {
 	input[type="button"],
 	input[type="reset"],
 	input[type="submit"],
-	.post-password-form input[type="submit"] {
+	.post-password-form input[type="submit"],
+	.widecolumn #submit,
+	.widecolumn .mu_register input[type="submit"] {
 		font-size: 16px;
 		font-size: 1.6rem;
 		padding: 0.8125em 1.625em;
@@ -3447,11 +3607,6 @@ p > video {
 
 	.main-navigation a {
 		padding: 0.75em 0;
-	}
-
-	.main-navigation .page_item_has_children > a,
-	.main-navigation .main-navigation .menu-item-has-children > a {
-		padding-right: 53px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -3499,7 +3654,9 @@ p > video {
 	.site-info,
 	.wp-caption-text,
 	.gallery-caption,
-	.entry-caption {
+	.entry-caption,
+	.widecolumn label,
+	.widecolumn .mu_register label {
 		font-size: 16px;
 		font-size: 1.6rem;
 	}
@@ -3569,6 +3726,14 @@ p > video {
 		font-size: 32px;
 		font-size: 3.2rem;
 		line-height: 1.25;
+	}
+
+	.custom-logo {
+		max-height: 104px;
+	}
+
+	.wp-custom-logo .site-title {
+		margin-top: 0.5em;
 	}
 
 	.site-description {
@@ -3669,7 +3834,8 @@ p > video {
 		margin-bottom: 2.9474em;
 	}
 
-	.entry-title {
+	.entry-title,
+	.widecolumn h2 {
 		font-size: 39px;
 		font-size: 3.9rem;
 		line-height: 1.2308;
@@ -3882,11 +4048,38 @@ p > video {
 	.gallery {
 		margin-bottom: 1.6842em;
 	}
+
+	.widecolumn .mu_alert {
+		margin-bottom: 1.6842em;
+	}
+
+	.widecolumn p {
+		margin: 1.6842em 0;
+	}
+
+	.widecolumn p + h2 {
+		margin-top: 1.641em;
+	}
+
+	.widecolumn #key,
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #blogname,
+	.widecolumn .mu_register #user_name {
+		font-size: 19px;
+		font-size: 1.9rem;
+	}
+
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #user_name {
+		margin: 0 0 0.421em;
+	}
 }
 
 
 /**
- * 15.4 Desktop Small 955px
+ * 16.4 Desktop Small 955px
  */
 
 @media screen and (min-width: 59.6875em) {
@@ -3919,6 +4112,7 @@ p > video {
 
 	.secondary {
 		background-color: transparent;
+		box-shadow: none;
 		display: block;
 		margin: 0;
 		padding: 0;
@@ -3991,7 +4185,9 @@ p > video {
 	input[type="button"],
 	input[type="reset"],
 	input[type="submit"],
-	.post-password-form input[type="submit"] {
+	.post-password-form input[type="submit"],
+	.widecolumn #submit,
+	.widecolumn .mu_register input[type="submit"] {
 		font-size: 12px;
 		font-size: 1.2rem;
 		padding: 0.7917em 1.5833em;
@@ -4016,9 +4212,8 @@ p > video {
 		padding: 0.5em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 35px;
+		padding-right: 30px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -4078,7 +4273,9 @@ p > video {
 	.site-info,
 	.wp-caption-text,
 	.gallery-caption,
-	.entry-caption {
+	.entry-caption,
+	.widecolumn label,
+	.widecolumn .mu_register label {
 		font-size: 12px;
 		font-size: 1.2rem;
 	}
@@ -4172,6 +4369,14 @@ p > video {
 		font-size: 22px;
 		font-size: 2.2rem;
 		line-height: 1.3636;
+	}
+
+	.custom-logo {
+		max-height: none;
+	}
+
+	.wp-custom-logo .site-title {
+		margin-top: 0.545454545em;
 	}
 
 	.site-description {
@@ -4295,7 +4500,8 @@ p > video {
 		padding: 0 10%;
 	}
 
-	.entry-title {
+	.entry-title,
+	.widecolumn h2 {
 		font-size: 31px;
 		font-size: 3.1rem;
 		line-height: 1.1613;
@@ -4552,11 +4758,43 @@ p > video {
 	.gallery {
 		margin-bottom: 1.6em;
 	}
+
+	.widecolumn {
+		margin: 8.3333%;
+		padding: 8.3333%;
+	}
+
+	.widecolumn .mu_alert {
+		margin-bottom: 1.6em;
+	}
+
+	.widecolumn p {
+		margin: 1.6em 0;
+	}
+
+	.widecolumn p + h2 {
+		margin-top: 1.5484em;
+	}
+
+	.widecolumn #key,
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #blogname,
+	.widecolumn .mu_register #user_name {
+		font-size: 16px;
+		font-size: 1.6rem;
+	}
+
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #user_name {
+		margin: 0 0 0.375em;
+	}
 }
 
 
 /**
- * 15.5 Desktop Medium 1100px
+ * 16.5 Desktop Medium 1100px
  */
 
 @media screen and (min-width: 68.75em) {
@@ -4615,7 +4853,9 @@ p > video {
 	input[type="button"],
 	input[type="reset"],
 	input[type="submit"],
-	.post-password-form input[type="submit"] {
+	.post-password-form input[type="submit"],
+	.widecolumn #submit,
+	.widecolumn .mu_register input[type="submit"] {
 		font-size: 14px;
 		font-size: 1.4rem;
 		padding: 0.8214em 1.5714em;
@@ -4639,9 +4879,8 @@ p > video {
 		padding: 0.4643em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 33px;
+		padding-right: 34px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -4691,7 +4930,9 @@ p > video {
 	.site-info,
 	.wp-caption-text,
 	.gallery-caption,
-	.entry-caption {
+	.entry-caption,
+	.widecolumn label,
+	.widecolumn .mu_register label {
 		font-size: 14px;
 		font-size: 1.4rem;
 	}
@@ -4755,6 +4996,10 @@ p > video {
 		font-size: 24px;
 		font-size: 2.4rem;
 		line-height: 1.1667;
+	}
+
+	.wp-custom-logo .site-title {
+		margin-top: 0.583333333em;
 	}
 
 	.site-description {
@@ -4841,7 +5086,8 @@ p > video {
 		margin-bottom: 2.4706em;
 	}
 
-	.entry-title {
+	.entry-title,
+	.widecolumn h2 {
 		font-size: 35px;
 		font-size: 3.5rem;
 		line-height: 1.2;
@@ -5059,11 +5305,38 @@ p > video {
 	.gallery {
 		margin-bottom: 1.6471em;
 	}
+
+	.widecolumn .mu_alert {
+		margin-bottom: 1.6471em;
+	}
+
+	.widecolumn p {
+		margin: 1.6471em 0;
+	}
+
+	.widecolumn p + h2 {
+		margin-top: 1.6em;
+	}
+
+	.widecolumn #key,
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #blogname,
+	.widecolumn .mu_register #user_name {
+		font-size: 17px;
+		font-size: 1.7rem;
+	}
+
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #user_name {
+		margin: 0 0 0.4117em;
+	}
 }
 
 
 /**
- * 15.6 Desktop Large 1240px
+ * 16.6 Desktop Large 1240px
  */
 
 @media screen and (min-width: 77.5em) {
@@ -5122,7 +5395,9 @@ p > video {
 	input[type="button"],
 	input[type="reset"],
 	input[type="submit"],
-	.post-password-form input[type="submit"] {
+	.post-password-form input[type="submit"],
+	.widecolumn #submit,
+	.widecolumn .mu_register input[type="submit"] {
 		font-size: 16px;
 		font-size: 1.6rem;
 		padding: 0.8125em 1.625em;
@@ -5146,9 +5421,8 @@ p > video {
 		padding: 0.5em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 32px;
+		padding-right: 38px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -5197,7 +5471,9 @@ p > video {
 	.site-info,
 	.wp-caption-text,
 	.gallery-caption,
-	.entry-caption {
+	.entry-caption,
+	.widecolumn label,
+	.widecolumn .mu_register label {
 		font-size: 16px;
 		font-size: 1.6rem;
 	}
@@ -5262,6 +5538,10 @@ p > video {
 		font-size: 27px;
 		font-size: 2.7rem;
 		line-height: 1.1852;
+	}
+
+	.wp-custom-logo .site-title {
+		margin-top: 0.592592593em;
 	}
 
 	.site-description {
@@ -5359,7 +5639,8 @@ p > video {
 		margin-bottom: 2.9474em;
 	}
 
-	.entry-title {
+	.entry-title,
+	.widecolumn h2 {
 		font-size: 39px;
 		font-size: 3.9rem;
 		line-height: 1.2308;
@@ -5568,11 +5849,38 @@ p > video {
 	.gallery {
 		margin-bottom: 1.6842em;
 	}
+
+	.widecolumn .mu_alert {
+		margin-bottom: 1.6842em;
+	}
+
+	.widecolumn p {
+		margin: 1.6842em 0;
+	}
+
+	.widecolumn p + h2 {
+		margin-top: 1.641em;
+	}
+
+	.widecolumn #key,
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #blogname,
+	.widecolumn .mu_register #user_name {
+		font-size: 19px;
+		font-size: 1.9rem;
+	}
+
+	.widecolumn .mu_register #blog_title,
+	.widecolumn .mu_register #user_email,
+	.widecolumn .mu_register #user_name {
+		margin: 0 0 0.421em;
+	}
 }
 
 
 /**
- * 15.7 Desktop X-Large 1403px
+ * 16.7 Desktop X-Large 1403px
  */
 
 @media screen and (min-width: 87.6875em) {
@@ -5584,7 +5892,7 @@ p > video {
 
 
 /**
- * 16.0 Print
+ * 17.0 Print
  */
 
 @media print {
@@ -5604,7 +5912,9 @@ p > video {
 	button,
 	input,
 	textarea,
-	select {
+	select,
+	.widecolumn form,
+	.widecolumn .mu_register form {
 		display: none;
 	}
 
@@ -5614,7 +5924,8 @@ p > video {
 	.entry-footer,
 	.page-header,
 	.page-content,
-	.comments-area {
+	.comments-area,
+	.widecolumn {
 		background: none !important; /* Make sure color schemes dont't affect to print */
 	}
 
@@ -5666,6 +5977,10 @@ p > video {
 
 	.site {
 		margin: 0 7.6923%;
+	}
+
+	.sidebar {
+		position: relative !important; /* Make sure sticky sidebar doesn't affect to print */
 	}
 
 	.site-branding {
@@ -5727,5 +6042,10 @@ p > video {
 	.site-footer {
 		margin-top: 7.6923%;
 		padding: 3.84615% 0;
+	}
+
+	.widecolumn {
+		margin: 7.6923% 0 0;
+		padding: 0;
 	}
 }

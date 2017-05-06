@@ -5,12 +5,8 @@ html {
 }
 
 html.ios {
-	height: 100%;
-}
-
-.ios body#tinymce {
-	height: 200%;
-	max-width: none;
+	width: 100px;
+    min-width: 100%;
 }
 
 body {
@@ -21,13 +17,16 @@ body {
 	margin: 9px 10px;
 	max-width: 100%;
 	-webkit-font-smoothing: antialiased !important;
+	overflow-wrap: break-word;
+	word-wrap: break-word; /* Old syntax */
 }
 
 body.rtl {
 	font-family: Tahoma, "Times New Roman", "Bitstream Charter", Times, serif;
 }
 
-body.locale-he-il {
+body.locale-he-il,
+body.locale-vi {
 	font-family: Arial, "Times New Roman", "Bitstream Charter", Times, serif;
 }
 
@@ -57,56 +56,41 @@ th {
 	font-size: inherit;
 }
 
-/* DFW mode */
-html.wp-fullscreen,
-html.wp-fullscreen body#tinymce {
-	width: auto;
-	max-width: none;
-	min-height: 0;
-	overflow: hidden;
-	color: #333;
-	background: transparent;
-}
-
-.aligncenter,
-dl.aligncenter,
-.html5-captions .wp-caption.aligncenter {
-	display: block;
-	margin-left: auto;
-	margin-right: auto;
-}
-
-.alignleft {
-	float: left;
-}
-
-.alignright {
-	float: right;
-}
-
-.wp-caption {
-	border: 1px solid #ddd;
-	text-align: center;
-	background-color: #f3f3f3;
-	padding-top: 4px;
-	margin: 10px 0;
-}
-
-.html5-captions .wp-caption {
-	border: none;
-	background-color: transparent;
-	margin: 0;
-	padding: 0;
+/* For emoji replacement images */
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+	-webkit-box-shadow: none !important;
+	box-shadow: none !important;
 }
 
 .mceIEcenter {
 	text-align: center;
 }
 
+img {
+	height: auto;
+	max-width: 100%;
+}
+
+.wp-caption {
+	margin: 0; /* browser reset */
+	max-width: 100%;
+}
+
+/* iOS does not obey max-width if width is set. */
+.ios .wp-caption {
+	width: auto !important;
+}
+
 .wp-caption img {
-	margin: 0;
-	padding: 0;
-	border: 0 none;
+	display: block;
 }
 
 div.mceTemp {
@@ -119,14 +103,29 @@ dl.wp-caption * {
 }
 
 .wp-caption-dd {
-	font-size: 11px;
-	line-height: 17px;
-	padding: 0 4px 5px;
-	margin: 0;
+	font-size: 14px;
+	padding-top: 0.5em;
+	margin: 0; /* browser reset */
+}
+
+.aligncenter {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.alignleft {
+	float: left;
+	margin: 0.5em 1em 0.5em 0;
+}
+
+.alignright {
+	float: right;
+	margin: 0.5em 0 0.5em 1em;
 }
 
 /* Remove blue highlighting of selected images in WebKit */
-img::selection {
+img[data-mce-selected]::selection {
 	background-color: transparent;
 }
 
@@ -148,7 +147,7 @@ img::selection {
 	cursor: default;
 }
 
-.mce-content-body img[data-wp-more][data-mce-selected] {
+.mce-content-body img[data-mce-placeholder][data-mce-selected] {
 	outline: 1px dotted #888;
 }
 
@@ -174,12 +173,12 @@ img::selection {
 
 .mce-content-body img.wp-media:hover {
 	background-color: #ededed;
-	border-color: #777;
+	border-color: #72777c;
 }
 
 .mce-content-body img.wp-media.wp-media-selected {
 	background-color: #d8d8d8;
-	border-color: #777;
+	border-color: #72777c;
 }
 
 .mce-content-body img.wp-media.wp-gallery {
@@ -188,13 +187,13 @@ img::selection {
 
 /* Image resize handles */
 .mce-content-body div.mce-resizehandle {
-	border-color: #777;
+	border-color: #72777c;
 	width: 7px;
 	height: 7px;
 }
 
 .mce-content-body img[data-mce-selected] {
-	outline: 1px solid #777;
+	outline: 1px solid #72777c;
 }
 
 .mce-content-body img[data-mce-resize="false"] {
@@ -212,102 +211,43 @@ audio {
 	visibility: hidden;
 }
 
+/* Fix for proprietary Mozilla display attribute, see #38757 */
+[_moz_abspos] {
+	outline: none;
+}
+
+a[data-wplink-url-error],
+a[data-wplink-url-error]:hover,
+a[data-wplink-url-error]:focus {
+	outline: 2px dotted #dc3232;
+	position: relative;
+}
+
+a[data-wplink-url-error]:before {
+	content: '';
+	display: block;
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	bottom: -2px;
+	left: -2px;
+	outline: 2px dotted #fff;
+	z-index: -1;
+}
+
 /**
  * WP Views
  */
 
-.wpview-wrap {
+.wpview {
 	width: 99.99%; /* All IE need hasLayout, incl. 11 (ugh, not again!!) */
 	position: relative;
 	clear: both;
-}
-
-/* delegate the handling of the selection to the wpview tinymce plugin */
-.wpview-wrap,
-.wpview-wrap * {
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
-
-/* hide the shortcode content, but allow the content to still be selected */
-.wpview-wrap .wpview-clipboard,
-.wpview-wrap > p {
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: -1;
-	clip: rect(1px 1px 1px 1px); /* IE7 */
-	clip: rect(1px, 1px, 1px, 1px);
-	overflow: hidden;
-	outline: 0;
-	padding: 0;
-	border: 0;
-	width: 1px;
-	height: 1px;
-}
-
-/* An ugly box will appear when this is focussed in IE, so we'll move it outside the window. */
-.wpview-wrap.wpview-selection-before > p,
-.wpview-wrap.wpview-selection-after > p {
-	left: -10000px;
-}
-
-.wpview-wrap .wpview-clipboard,
-.wpview-wrap .wpview-clipboard *,
-.wpview-wrap > p {
-	-moz-user-select: text;
-	-webkit-user-select: text;
-	-ms-user-select: text;
-	user-select: text;
-}
-
-.has-focus .wpview-wrap.wpview-selection-before:before,
-.has-focus .wpview-wrap.wpview-selection-after:before {
-	content: '';
-	margin: 0;
-	padding: 0;
-	position: absolute;
-	top: -2px;
-	left: -3px;
-	bottom: -2px;
-	width: 1px;
-	background-color: black;
-	background-color: currentcolor;
-	opacity: 1;
-}
-
-.has-focus .wpview-wrap.wpview-selection-after:before {
-	left: auto;
-	right: -3px;
-}
-
-.has-focus .wpview-wrap.wpview-cursor-hide:before {
-	opacity: 0;
-}
-
-/**
- * Media previews
- */
-.wpview-wrap {
-    position: relative;
-    margin-bottom: 16px;
+	margin-bottom: 16px;
 	border: 1px solid transparent;
 }
 
-.wpview-wrap[data-mce-selected] {
-	background-color: rgba(0,0,0,0.1);
-	border-color: rgba(0,0,0,0.3);
-}
-
-.ie8 .wpview-wrap[data-mce-selected],
-.ie7 .wpview-wrap[data-mce-selected] {
-	background-color: #e5e5e5;
-	border-color: #777;
-}
-
-.wpview-overlay {
+.mce-shim {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -315,106 +255,21 @@ audio {
 	left: 0;
 }
 
-.wpview-wrap[data-mce-selected] .wpview-overlay {
+.wpview[data-mce-selected="2"] .mce-shim {
 	display: none;
 }
 
-.wpview-wrap .toolbar {
-	position: absolute;
-	top: -43px;
-	left: 45%;
-	left: calc(50% - 32px);
-	display: none;
-	z-index: 100;
-	background-color: #f5f5f5;
-	border: 1px solid #aaa;
-	padding: 1px;
-	cursor: default;
-	-webkit-border-radius: 2px;
-	border-radius: 2px;
-	-webkit-box-shadow: 0 1px 4px rgba( 0, 0, 0, 0.2 );
-	box-shadow: 0 1px 4px rgba( 0, 0, 0, 0.2 );
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-	margin-bottom: 8px;
-}
-
-.wpview-wrap[data-mce-selected] .toolbar {
-	display: block;
-}
-
-.wpview-wrap .toolbar:before,
-.wpview-wrap .toolbar:after {
-	position: absolute;
-	left: 50%;
-	display: block;
-	width: 0;
-	height: 0;
-	border-style: solid;
-	border-color: transparent;
-	border-width: 9px;
-	margin-left: -9px;
-	content: '';
-}
-
-.wpview-wrap .toolbar:after {
-	border-width: 8px;
-	margin-left: -8px;
-}
-
-.wpview-wrap .toolbar.mce-arrow-down:before {
-	bottom: -18px;
-	border-top-color: #aaa;
-}
-
-.wpview-wrap .toolbar.mce-arrow-down:after {
-	bottom: -16px;
-	border-top-color: #f5f5f5;
-}
-
-.wpview-wrap .toolbar.mce-arrow-up:before {
-	top: -18px;
-	border-bottom-color: #aaa;
-}
-
-.wpview-wrap .toolbar.mce-arrow-up:after {
-	top: -16px;
-	border-bottom-color: #f5f5f5;
-}
-
-.wpview-wrap .toolbar div {
-	margin: 2px;
-	padding: 2px 3px;
-	width: 20px;
-	height: 20px;
-	color: #777;
-	cursor: pointer;
-	font-size: 20px;
-	border: 1px solid transparent;
-	border-radius: 2px;
-}
-
-.wpview-wrap .toolbar div:hover {
-	background-color: #fafafa;
-	border-color: #999;
-	color: #222;
-	-webkit-box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgba( 0, 0, 0, 0.08 );
-	box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgba( 0, 0, 0, 0.08 );
-	outline: none;
-}
-
-.wpview-wrap .loading-placeholder {
+.wpview .loading-placeholder {
 	border: 1px dashed #ccc;
 	padding: 10px;
 }
 
-.wpview-wrap[data-mce-selected] .loading-placeholder {
+.wpview[data-mce-selected] .loading-placeholder {
 	border-color: transparent;
 }
 
 /* A little "loading" animation, not showing in IE < 10 */
-.wpview-wrap .wpview-loading {
+.wpview .wpview-loading {
 	width: 60px;
 	height: 5px;
 	overflow: hidden;
@@ -422,14 +277,14 @@ audio {
 	margin: 10px auto 0;
 }
 
-.wpview-wrap .wpview-loading ins {
+.wpview .wpview-loading ins {
 	background-color: #333;
 	margin: 0 0 0 -60px;
-	width: 60px;
+	width: 36px;
 	height: 5px;
 	display: block;
-	-webkit-animation: wpview-loading 1.3s infinite 1s linear;
-	animation: wpview-loading 1.3s infinite 1s linear;
+	-webkit-animation: wpview-loading 1.3s infinite 1s steps(36);
+	animation: wpview-loading 1.3s infinite 1s steps(36);
 }
 
 @-webkit-keyframes wpview-loading {
@@ -450,35 +305,19 @@ audio {
 	}
 }
 
-.wpview-wrap .wpview-content > iframe {
+.wpview .wpview-content > iframe {
 	max-width: 100%;
 	background: transparent;
 }
 
-.ie8 .wpview-wrap .toolbar div,
-.ie7 .wpview-wrap .toolbar div {
-	display: inline;
-	padding: 4px;
-}
-
-.ie8 .dashicons-edit,
-.ie7 .dashicons-edit {
-	background-image: url(images/dashicon-edit.png);
-}
-
-.ie8 .dashicons-no,
-.ie7 .dashicons-no {
-	background-image: url(images/dashicon-no.png);
-}
-
 .wpview-error {
-	border: 1px solid #dedede;
+	border: 1px solid #ddd;
 	padding: 1em 0;
 	margin: 0;
 	word-wrap: break-word;
 }
 
-.wpview-wrap[data-mce-selected] .wpview-error {
+.wpview[data-mce-selected] .wpview-error {
 	border-color: transparent;
 }
 
@@ -494,20 +333,7 @@ audio {
 .wpview-error p {
 	margin: 0;
 	text-align: center;
-	font-family: 'Open Sans', sans-serif;
-}
-
-.wont-play {
-	padding: 4px 0;
-}
-
-.wont-play p {
-	font-size: 13px;
-	line-height: 1.3;
-	display: block;
-	width: 70%;
-	margin: 0 15%;
-	text-align: center;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 .wpview-type-gallery:after {
@@ -535,7 +361,6 @@ audio {
 .ie8 .gallery {
 	margin: auto;
 }
-
 
 .gallery .gallery-item {
 	float: left;

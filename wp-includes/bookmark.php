@@ -14,9 +14,10 @@
  * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param int|stdClass $bookmark
- * @param string $output Optional. Either OBJECT, ARRAY_N, or ARRAY_A constant
+ * @param string $output Optional. The required return type. One of OBJECT, ARRAY_A, or ARRAY_N, which correspond to
+ *                       an stdClass object, an associative array, or a numeric array, respectively. Default OBJECT.
  * @param string $filter Optional, default is 'raw'.
- * @return array|object Type returned depends on $output value.
+ * @return array|object|null Type returned depends on $output value.
  */
 function get_bookmark($bookmark, $output = OBJECT, $filter = 'raw') {
 	global $wpdb;
@@ -65,7 +66,7 @@ function get_bookmark($bookmark, $output = OBJECT, $filter = 'raw') {
  * @param string $field The name of the data field to return
  * @param int $bookmark The bookmark ID to get field
  * @param string $context Optional. The context of how the field will be used.
- * @return string
+ * @return string|WP_Error
  */
 function get_bookmark_field( $field, $bookmark, $context = 'display' ) {
 	$bookmark = (int) $bookmark;
@@ -128,11 +129,12 @@ function get_bookmarks( $args = '' ) {
 	$r = wp_parse_args( $args, $defaults );
 
 	$key = md5( serialize( $r ) );
-	if ( $cache = wp_cache_get( 'get_bookmarks', 'bookmark' ) ) {
+	$cache = false;
+	if ( 'rand' !== $r['orderby'] && $cache = wp_cache_get( 'get_bookmarks', 'bookmark' ) ) {
 		if ( is_array( $cache ) && isset( $cache[ $key ] ) ) {
 			$bookmarks = $cache[ $key ];
 			/**
-			 * Filter the returned list of bookmarks.
+			 * Filters the returned list of bookmarks.
 			 *
 			 * The first time the hook is evaluated in this file, it returns the cached
 			 * bookmarks list. The second evaluation returns a cached bookmarks list if the
@@ -285,8 +287,10 @@ function get_bookmarks( $args = '' ) {
 
 	$results = $wpdb->get_results( $query );
 
-	$cache[ $key ] = $results;
-	wp_cache_set( 'get_bookmarks', $cache, 'bookmark' );
+	if ( 'rand()' !== $orderby ) {
+		$cache[ $key ] = $results;
+		wp_cache_set( 'get_bookmarks', $cache, 'bookmark' );
+	}
 
 	/** This filter is documented in wp-includes/bookmark.php */
 	return apply_filters( 'get_bookmarks', $results, $r );
@@ -297,10 +301,10 @@ function get_bookmarks( $args = '' ) {
  *
  * @since 2.3.0
  *
- * @param object|array $bookmark Bookmark row
+ * @param stdClass|array $bookmark Bookmark row
  * @param string $context Optional, default is 'display'. How to filter the
  *		fields
- * @return object|array Same type as $bookmark but with fields sanitized.
+ * @return stdClass|array Same type as $bookmark but with fields sanitized.
  */
 function sanitize_bookmark($bookmark, $context = 'display') {
 	$fields = array('link_id', 'link_url', 'link_name', 'link_image', 'link_target', 'link_category',
@@ -329,30 +333,30 @@ function sanitize_bookmark($bookmark, $context = 'display') {
 }
 
 /**
- * Sanitizes a bookmark field
+ * Sanitizes a bookmark field.
  *
  * Sanitizes the bookmark fields based on what the field name is. If the field
  * has a strict value set, then it will be tested for that, else a more generic
- * filtering is applied. After the more strict filter is applied, if the
- * $context is 'raw' then the value is immediately return.
+ * filtering is applied. After the more strict filter is applied, if the `$context`
+ * is 'raw' then the value is immediately return.
  *
- * Hooks exist for the more generic cases. With the 'edit' context, the
- * 'edit_$field' filter will be called and passed the $value and $bookmark_id
- * respectively. With the 'db' context, the 'pre_$field' filter is called and
- * passed the value. The 'display' context is the final context and has the
- * $field has the filter name and is passed the $value, $bookmark_id, and
- * $context respectively.
+ * Hooks exist for the more generic cases. With the 'edit' context, the {@see 'edit_$field'}
+ * filter will be called and passed the `$value` and `$bookmark_id` respectively.
+ *
+ * With the 'db' context, the {@see 'pre_$field'} filter is called and passed the value.
+ * The 'display' context is the final context and has the `$field` has the filter name
+ * and is passed the `$value`, `$bookmark_id`, and `$context`, respectively.
  *
  * @since 2.3.0
  *
- * @param string $field The bookmark field
- * @param mixed $value The bookmark field value
- * @param int $bookmark_id Bookmark ID
- * @param string $context How to filter the field value. Either 'raw', 'edit',
- *		'attribute', 'js', 'db', or 'display'
- * @return mixed The filtered value
+ * @param string $field       The bookmark field.
+ * @param mixed  $value       The bookmark field value.
+ * @param int    $bookmark_id Bookmark ID.
+ * @param string $context     How to filter the field value. Accepts 'raw', 'edit', 'attribute',
+ *                            'js', 'db', or 'display'
+ * @return mixed The filtered value.
  */
-function sanitize_bookmark_field($field, $value, $bookmark_id, $context) {
+function sanitize_bookmark_field( $field, $value, $bookmark_id, $context ) {
 	switch ( $field ) {
 	case 'link_id' : // ints
 	case 'link_rating' :
@@ -386,26 +390,29 @@ function sanitize_bookmark_field($field, $value, $bookmark_id, $context) {
 		} else {
 			$value = esc_attr($value);
 		}
-	} else if ( 'db' == $context ) {
+	} elseif ( 'db' == $context ) {
 		/** This filter is documented in wp-includes/post.php */
 		$value = apply_filters( "pre_$field", $value );
 	} else {
 		/** This filter is documented in wp-includes/post.php */
 		$value = apply_filters( $field, $value, $bookmark_id, $context );
 
-		if ( 'attribute' == $context )
-			$value = esc_attr($value);
-		else if ( 'js' == $context )
-			$value = esc_js($value);
+		if ( 'attribute' == $context ) {
+			$value = esc_attr( $value );
+		} elseif ( 'js' == $context ) {
+			$value = esc_js( $value );
+		}
 	}
 
 	return $value;
 }
 
 /**
- * Deletes bookmark cache
+ * Deletes the bookmark cache.
  *
  * @since 2.7.0
+ *
+ * @param int $bookmark_id Bookmark ID.
  */
 function clean_bookmark_cache( $bookmark_id ) {
 	wp_cache_delete( $bookmark_id, 'bookmark' );

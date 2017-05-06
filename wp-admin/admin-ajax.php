@@ -1,15 +1,15 @@
 <?php
 /**
- * WordPress AJAX Process Execution.
+ * WordPress Ajax Process Execution
  *
  * @package WordPress
  * @subpackage Administration
  *
- * @link http://codex.wordpress.org/AJAX_in_Plugins
+ * @link https://codex.wordpress.org/AJAX_in_Plugins
  */
 
 /**
- * Executing AJAX process.
+ * Executing Ajax process.
  *
  * @since 2.1.0
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'WP_ADMIN' ) ) {
 /** Load WordPress Bootstrap */
 require_once( dirname( dirname( __FILE__ ) ) . '/wp-load.php' );
 
-/** Allow for cross-domain requests (from the frontend). */
+/** Allow for cross-domain requests (from the front end). */
 send_origin_headers();
 
 // Require an action parameter
@@ -56,13 +56,19 @@ $core_actions_post = array(
 	'hidden-columns', 'update-welcome-panel', 'menu-get-metabox', 'wp-link-ajax',
 	'menu-locations-save', 'menu-quick-search', 'meta-box-order', 'get-permalink',
 	'sample-permalink', 'inline-save', 'inline-save-tax', 'find_posts', 'widgets-order',
-	'save-widget', 'set-post-thumbnail', 'date_format', 'time_format', 'wp-fullscreen-save-post',
+	'save-widget', 'delete-inactive-widgets', 'set-post-thumbnail', 'date_format', 'time_format',
 	'wp-remove-post-lock', 'dismiss-wp-pointer', 'upload-attachment', 'get-attachment',
 	'query-attachments', 'save-attachment', 'save-attachment-compat', 'send-link-to-editor',
 	'send-attachment-to-editor', 'save-attachment-order', 'heartbeat', 'get-revision-diffs',
 	'save-user-color-scheme', 'update-widget', 'query-themes', 'parse-embed', 'set-attachment-thumbnail',
-	'parse-media-shortcode', 'destroy-sessions'
+	'parse-media-shortcode', 'destroy-sessions', 'install-plugin', 'update-plugin', 'press-this-save-post',
+	'press-this-add-category', 'crop-image', 'generate-password', 'save-wporg-username', 'delete-plugin',
+	'search-plugins', 'search-install-plugins', 'activate-plugin', 'update-theme', 'delete-theme',
+	'install-theme', 'get-post-thumbnail-html',
 );
+
+// Deprecated
+$core_actions_post[] = 'wp-fullscreen-save-post';
 
 // Register core Ajax calls.
 if ( ! empty( $_GET['action'] ) && in_array( $_GET['action'], $core_actions_get ) )
@@ -75,20 +81,20 @@ add_action( 'wp_ajax_nopriv_heartbeat', 'wp_ajax_nopriv_heartbeat', 1 );
 
 if ( is_user_logged_in() ) {
 	/**
-	 * Fires authenticated AJAX actions for logged-in users.
+	 * Fires authenticated Ajax actions for logged-in users.
 	 *
 	 * The dynamic portion of the hook name, `$_REQUEST['action']`,
-	 * refers to the name of the AJAX action callback being fired.
+	 * refers to the name of the Ajax action callback being fired.
 	 *
 	 * @since 2.1.0
 	 */
 	do_action( 'wp_ajax_' . $_REQUEST['action'] );
 } else {
 	/**
-	 * Fires non-authenticated AJAX actions for logged-out users.
+	 * Fires non-authenticated Ajax actions for logged-out users.
 	 *
 	 * The dynamic portion of the hook name, `$_REQUEST['action']`,
-	 * refers to the name of the AJAX action callback being fired.
+	 * refers to the name of the Ajax action callback being fired.
 	 *
 	 * @since 2.8.0
 	 */

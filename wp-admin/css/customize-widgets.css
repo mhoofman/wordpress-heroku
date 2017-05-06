@@ -14,22 +14,40 @@
 	display: none;
 }
 
+.control-section.control-section-sidebar .accordion-section-content.ui-sortable {
+	overflow: visible;
+}
+
 .customize-control-widget_form .widget-top {
+	background: #fff;
 	-webkit-transition: opacity 0.5s;
 	transition: opacity 0.5s;
+}
+
+.customize-control .widget-action {
+	color: #72777c;
+}
+
+.customize-control .widget-top:hover .widget-action,
+.customize-control .widget-action:focus {
+	color: #23282d;
 }
 
 .customize-control-widget_form:not(.widget-rendered) .widget-top {
 	opacity: 0.5;
 }
 
-.customize-control-widget_form .widget-control-save,
-.customize-control-widget_form .spinner {
+.customize-control-widget_form .widget-control-save {
 	display: none;
 }
 
+.customize-control-widget_form .spinner {
+	visibility: hidden;
+	margin-top: 0;
+}
+
 .customize-control-widget_form.previewer-loading .spinner {
-	display: inline;
+	visibility: visible;
 }
 
 .customize-control-widget_form.widget-form-disabled .widget-content {
@@ -71,10 +89,6 @@
 	line-height: 16px;
 }
 
-.widget-top {
-	cursor: move;
-}
-
 .customize-control-widget_form.expanded a.widget-action:after {
 	content: "\f142";
 }
@@ -91,6 +105,7 @@
 	cursor: pointer;
 }
 
+.widget-top,
 .customize-control-widget_form .widget .customize-control-title {
 	cursor: move;
 }
@@ -109,39 +124,8 @@
 }
 
 /**
-* Widget reordering styles
-**/
-
-.reorder-toggle {
-	float: right;
-	padding: 5px 8px;
-	text-decoration: none;
-	cursor: pointer;
-	outline: none;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-}
-.reorder-toggle:focus {
-	outline: 1px dotted;
-}
-
-.reorder-done,
-.reordering .reorder {
-	display: none;
-}
-
-.reordering .reorder-done {
-	display: block;
-	color: #aa0000;
-}
-
-#customize-theme-controls .reordering .add-new-widget {
-	opacity: 0.2;
-	pointer-events: none;
-	cursor: not-allowed;
-}
+ * Widget reordering styles
+ */
 
 #customize-theme-controls .widget-reorder-nav {
 	display: none;
@@ -149,61 +133,14 @@
 	background-color: #fafafa;
 }
 
-.widget-reorder-nav span {
-	position: relative;
-	overflow: hidden;
-	float: left;
-	display: block;
-	width: 33px; /* was 42px for mobile */
-	height: 43px;
-	color: #888;
-	text-indent: -9999px;
-	cursor: pointer;
-	outline: none;
-}
-
-.widget-reorder-nav span:before {
-	display: inline-block;
-	position: absolute;
-	top: 0;
-	right: 0;
-	width: 100%;
-	height: 100%;
-	font: normal 20px/43px 'dashicons';
-	text-align: center;
-	text-indent: 0;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-.widget-reorder-nav span:hover,
-.widget-reorder-nav span:focus {
-	color: #444;
-	background: #eee;
-}
-
 .move-widget:before {
-	content: '\f504';
+	content: "\f504";
 }
 
-.move-widget-down:before {
-	content: '\f347';
-}
-
-.move-widget-up:before {
-	content: '\f343';
-}
-
-#customize-theme-controls .first-widget .move-widget-up,
-#customize-theme-controls .last-widget .move-widget-down {
-	color: #d5d5d5;
-	cursor: default;
-}
-
-#customize-theme-controls  .move-widget-area {
+#customize-theme-controls .move-widget-area {
 	display: none;
 	background: #fff;
-	border: 1px solid #dedede;
+	border: 1px solid #ddd;
 	border-top: none;
 	cursor: auto;
 }
@@ -239,11 +176,11 @@
 
 #customize-theme-controls .widget-area-select li:before {
 	display: none;
-	content: '\f147';
+	content: "\f147";
 	position: absolute;
 	top: 12px;
 	left: 10px;
-	font: normal 20px/1 'dashicons';
+	font: normal 20px/1 dashicons;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
@@ -255,7 +192,7 @@
 #customize-theme-controls .widget-area-select .selected {
 	color: #fff;
 	text-shadow: 0 -1px 0 rgba(0,0,0,.4);
-	background: #2ea2cc;
+	background: #00a0d2;
 }
 
 #customize-theme-controls .widget-area-select .selected:before {
@@ -275,123 +212,41 @@
 	display: block;
 }
 
-
 /**
  * Styles for new widget addition panel
  */
-.wp-full-overlay-main {
-	right: auto; /* this overrides a right: 0; which causes the preview to resize, I'd rather have it go off screen at the normal size. */
-	width: 100%;
-}
 
-#customize-theme-controls .add-new-widget {
-	cursor: pointer;
-	float: right;
-	margin-left: 10px;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	outline: none;
-}
-
-.add-new-widget:before {
-	content: "\f132";
-	display: inline-block;
-	position: relative;
-	left: -2px;
-	top: -1px;
-	font: normal 20px/1 'dashicons';
-	vertical-align: middle;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-body.adding-widget .add-new-widget,
-body.adding-widget .add-new-widget:hover {
-	background: #eee;
-	border-color: #999;
-	color: #333;
-	-webkit-box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
-	box-shadow: inset 0 2px 5px -3px rgba(0, 0, 0, 0.5);
-}
-body.adding-widget .add-new-widget:before {
-	-webkit-transform: rotate(45deg);
-	-ms-transform: rotate(45deg);
-	transform: rotate(45deg);
-}
-
-#available-widgets .widget {
-	position: static;
-}
-
-/* override widgets admin page rules in wp-admin/css/wp-admin.css */
+/* override widgets admin page rules in wp-admin/css/widgets.css */
 #widgets-left #available-widgets .widget {
 	float: none !important;
 	width: auto !important;
 }
 
-#available-widgets {
-	position: absolute;
-	overflow: auto;
-	top: 0;
-	bottom: 0;
-	left: -301px;
-	width: 300px;
-	margin: 0;
-	z-index: 1;
-	background: #fff;
-	-webkit-transition: all 0.2s;
-	transition: all 0.2s;
-	border-right: 1px solid #dddddd;
-}
-
-#available-widgets-filter {
-	padding: 8px 17px 7px 13px;
-	border-bottom: 1px solid #e4e4e4;
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-}
-
-#available-widgets-filter input {
-	padding: 5px 10px 2px 10px;
-	width: 100%;
-}
-
-#available-widgets .widget-tpl {
-	position: relative;
-	padding: 20px 15px 20px 60px;
-	border-bottom: 1px solid #e4e4e4;
-	cursor: pointer;
-	display: none;
+.ios #available-widgets {
+	-webkit-transition: left 0s;
+	transition: left 0s;
 }
 
 #available-widgets .widget-tpl:hover,
 #available-widgets .widget-tpl.selected {
-	background: #fafafa;
+	background: #f3f3f5;
+	border-bottom-color: #ccc;
+	color: #0073aa;
+	border-left: 4px solid #0073aa;
 }
 
-#available-widgets .widget-top,
-#available-widgets .widget-top:hover {
-	border: none;
-	background: transparent;
-	-webkit-box-shadow: none;
-	box-shadow: none;
+#customize-controls .widget-title h3 {
+	font-size: 1em;
 }
 
-#available-widgets .widget-title h4 {
+#available-widgets .widget-title h3 {
 	padding: 0 0 5px;
 	font-size: 14px;
 }
 
 #available-widgets .widget .widget-description {
 	padding: 0;
-	color: #777;
+	color: #72777c;
 }
 
 #customize-preview {
@@ -401,6 +256,7 @@ body.adding-widget .add-new-widget:before {
 
 body.adding-widget #available-widgets {
 	left: 0;
+	visibility: visible;
 }
 
 body.adding-widget .wp-full-overlay-main {
@@ -416,7 +272,8 @@ body.adding-widget #customize-preview {
  * Widget Icon styling
  * No plurals in naming.
  * Ordered from lowest to highest specificity.
- **/
+ */
+
 #available-widgets .widget-title {
 	position: relative;
 }
@@ -429,8 +286,8 @@ body.adding-widget #customize-preview {
 	margin-right: 20px;
 	width: 20px;
 	height: 20px;
-	color: #333;
-	font: normal 20px/1 'dashicons';
+	color: #32373c;
+	font: normal 20px/1 dashicons;
 	text-align: center;
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -565,9 +422,8 @@ body.adding-widget #customize-preview {
 #available-widgets [class*="tweet"] .widget-title:before,
 #available-widgets [class*="twitter"] .widget-title:before { content: "\f301"; }
 
-
 @media screen and (max-height: 700px) and (min-width: 981px) {
-	.customize-control {
+	.customize-control-widget {
 		margin-bottom: 0;
 	}
 	.widget-top {
@@ -582,11 +438,8 @@ body.adding-widget #customize-preview {
 	.last-widget {
 		margin-bottom: 15px;
 	}
-	.widget-title h4 {
+	.widget-title h3 {
 		padding: 13px 15px;
-	}
-	.widget-top a.widget-action:after {
-		padding-top: 9px;
 	}
 	.widget-reorder-nav span {
 		height: 39px;

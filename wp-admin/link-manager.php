@@ -9,7 +9,7 @@
 /** Load WordPress Administration Bootstrap */
 require_once( dirname( __FILE__ ) . '/admin.php' );
 if ( ! current_user_can( 'manage_links' ) )
-	wp_die( __( 'You do not have sufficient permissions to edit the links for this site.' ) );
+	wp_die( __( 'Sorry, you are not allowed to edit the links for this site.' ) );
 
 $wp_list_table = _get_list_table('WP_Links_List_Table');
 
@@ -19,17 +19,23 @@ $doaction = $wp_list_table->current_action();
 if ( $doaction && isset( $_REQUEST['linkcheck'] ) ) {
 	check_admin_referer( 'bulk-bookmarks' );
 
+	$redirect_to = admin_url( 'link-manager.php' );
+	$bulklinks = (array) $_REQUEST['linkcheck'];
+
 	if ( 'delete' == $doaction ) {
-		$bulklinks = (array) $_REQUEST['linkcheck'];
 		foreach ( $bulklinks as $link_id ) {
 			$link_id = (int) $link_id;
 
 			wp_delete_link( $link_id );
 		}
 
-		wp_redirect( add_query_arg('deleted', count( $bulklinks ), admin_url( 'link-manager.php' ) ) );
-		exit;
+		$redirect_to = add_query_arg( 'deleted', count( $bulklinks ), $redirect_to );
+	} else {
+		/** This action is documented in wp-admin/edit-comments.php */
+		$redirect_to = apply_filters( 'handle_bulk_actions-' . get_current_screen()->id, $redirect_to, $doaction, $bulklinks );
 	}
+	wp_redirect( $redirect_to );
+	exit;
 } elseif ( ! empty( $_GET['_wp_http_referer'] ) ) {
 	 wp_redirect( remove_query_arg( array( '_wp_http_referer', '_wpnonce' ), wp_unslash( $_SERVER['REQUEST_URI'] ) ) );
 	 exit;
@@ -57,26 +63,33 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Links_Screen" target="_blank">Documentation on Managing Links</a>') . '</p>' .
-	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://codex.wordpress.org/Links_Screen">Documentation on Managing Links</a>') . '</p>' .
+	'<p>' . __('<a href="https://wordpress.org/support/">Support Forums</a>') . '</p>'
 );
+
+get_current_screen()->set_screen_reader_content( array(
+	'heading_list' => __( 'Links list' ),
+) );
 
 include_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 if ( ! current_user_can('manage_links') )
-	wp_die(__("You do not have sufficient permissions to edit the links for this site."));
+	wp_die(__('Sorry, you are not allowed to edit the links for this site.'));
 
 ?>
 
 <div class="wrap nosubsub">
-<h2><?php echo esc_html( $title ); ?> <a href="link-add.php" class="add-new-h2"><?php echo esc_html_x('Add New', 'link'); ?></a> <?php
-if ( !empty($_REQUEST['s']) )
-	printf( '<span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', esc_html( wp_unslash($_REQUEST['s']) ) ); ?>
-</h2>
+<h1><?php echo esc_html( $title ); ?> <a href="link-add.php" class="page-title-action"><?php echo esc_html_x('Add New', 'link'); ?></a> <?php
+if ( isset( $_REQUEST['s'] ) && strlen( $_REQUEST['s'] ) ) {
+	/* translators: %s: search keywords */
+	printf( '<span class="subtitle">' . __( 'Search results for &#8220;%s&#8221;' ) . '</span>', esc_html( wp_unslash( $_REQUEST['s'] ) ) );
+}
+?>
+</h1>
 
 <?php
 if ( isset($_REQUEST['deleted']) ) {
-	echo '<div id="message" class="updated"><p>';
+	echo '<div id="message" class="updated notice is-dismissible"><p>';
 	$deleted = (int) $_REQUEST['deleted'];
 	printf(_n('%s link deleted.', '%s links deleted', $deleted), $deleted);
 	echo '</p></div>';
@@ -84,7 +97,7 @@ if ( isset($_REQUEST['deleted']) ) {
 }
 ?>
 
-<form id="posts-filter" action="" method="get">
+<form id="posts-filter" method="get">
 
 <?php $wp_list_table->search_box( __( 'Search Links' ), 'link' ); ?>
 

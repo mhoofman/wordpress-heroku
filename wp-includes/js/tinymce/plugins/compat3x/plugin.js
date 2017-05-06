@@ -1,8 +1,8 @@
 /**
  * plugin.js
  *
- * Copyright, Moxiecode Systems AB
  * Released under LGPL License.
+ * Copyright (c) 1999-2015 Ephox Corp. All rights reserved
  *
  * License: http://www.tinymce.com/license
  * Contributing: http://www.tinymce.com/contributing
@@ -105,6 +105,15 @@
 	};
 
 	function patchEditor(editor) {
+
+		function translate(str) {
+			var prefix = editor.settings.language || "en";
+			var prefixedStr = [prefix, str].join('.');
+			var translatedStr = tinymce.i18n.translate(prefixedStr);
+
+			return prefixedStr !== translatedStr ? translatedStr : tinymce.i18n.translate(str);
+		}
+
 		function patchEditorEvents(oldEventNames, argsMap) {
 			tinymce.each(oldEventNames.split(" "), function(oldName) {
 				editor["on" + oldName] = new Dispatcher(editor, oldName, argsMap);
@@ -209,13 +218,13 @@
 
 		var originalAddButton = editor.addButton;
 		editor.addButton = function(name, settings) {
-			var originalOnPostRender, string, translated;
+			var originalOnPostRender;
 
 			function patchedPostRender() {
 				editor.controlManager.buttons[name] = this;
 
 				if (originalOnPostRender) {
-					return originalOnPostRender.call(this);
+					return originalOnPostRender.apply(this, arguments);
 				}
 			}
 
@@ -230,15 +239,8 @@
 				settings.onPostRender = patchedPostRender;
 			}
 
-			if ( settings.title ) {
-				// WP
-				string = (editor.settings.language || "en") + "." + settings.title;
-				translated = tinymce.i18n.translate(string);
-
-				if ( string !== translated ) {
-					settings.title = translated;
-				}
-				// WP end
+			if (settings.title) {
+				settings.title = translate(settings.title);
 			}
 
 			return originalAddButton.call(this, name, settings);
@@ -278,7 +280,7 @@
 	tinymce.addI18n = function(prefix, o) {
 		var I18n = tinymce.util.I18n, each = tinymce.each;
 
-		if (typeof(prefix) == "string" && prefix.indexOf('.') === -1) {
+		if (typeof prefix == "string" && prefix.indexOf('.') === -1) {
 			I18n.add(prefix, o);
 			return;
 		}
