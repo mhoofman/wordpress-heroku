@@ -56,23 +56,44 @@ function translations_api( $type, $args = null ) {
 		$request = wp_remote_post( $url, $options );
 
 		if ( $ssl && is_wp_error( $request ) ) {
-			trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ), headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+			trigger_error(
+				sprintf(
+					/* translators: %s: support forums URL */
+					__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+					__( 'https://wordpress.org/support/' )
+				) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ),
+				headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE
+			);
 
 			$request = wp_remote_post( $http_url, $options );
 		}
 
 		if ( is_wp_error( $request ) ) {
-			$res = new WP_Error( 'translations_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ), $request->get_error_message() );
+			$res = new WP_Error( 'translations_api_failed',
+				sprintf(
+					/* translators: %s: support forums URL */
+					__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+					__( 'https://wordpress.org/support/' )
+				),
+				$request->get_error_message()
+			);
 		} else {
 			$res = json_decode( wp_remote_retrieve_body( $request ), true );
 			if ( ! is_object( $res ) && ! is_array( $res ) ) {
-				$res = new WP_Error( 'translations_api_failed', __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ), wp_remote_retrieve_body( $request ) );
+				$res = new WP_Error( 'translations_api_failed',
+					sprintf(
+						/* translators: %s: support forums URL */
+						__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+						__( 'https://wordpress.org/support/' )
+					),
+					wp_remote_retrieve_body( $request )
+				);
 			}
 		}
 	}
 
 	/**
-	 * Filter the Translation Install API response results.
+	 * Filters the Translation Install API response results.
 	 *
 	 * @since 4.0.0
 	 *
@@ -94,7 +115,7 @@ function translations_api( $type, $args = null ) {
  *               in an error, an empty array will be returned.
  */
 function wp_get_available_translations() {
-	if ( ! defined( 'WP_INSTALLING' ) && false !== ( $translations = get_site_transient( 'available_translations' ) ) ) {
+	if ( ! wp_installing() && false !== ( $translations = get_site_transient( 'available_translations' ) ) ) {
 		return $translations;
 	}
 
@@ -124,6 +145,8 @@ function wp_get_available_translations() {
  *
  * @since 4.0.0
  *
+ * @global string $wp_local_package
+ *
  * @param array $languages Array of available languages (populated via the Translation API).
  */
 function wp_install_language_form( $languages ) {
@@ -141,7 +164,7 @@ function wp_install_language_form( $languages ) {
 			$language = $languages[ $wp_local_package ];
 			printf( '<option value="%s" lang="%s" data-continue="%s"%s>%s</option>' . "\n",
 				esc_attr( $language['language'] ),
-				esc_attr( $language['iso'][1] ),
+				esc_attr( current( $language['iso'] ) ),
 				esc_attr( $language['strings']['continue'] ),
 				in_array( $language['language'], $installed_languages ) ? ' data-installed="1"' : '',
 				esc_html( $language['native_name'] ) );
@@ -153,7 +176,7 @@ function wp_install_language_form( $languages ) {
 	foreach ( $languages as $language ) {
 		printf( '<option value="%s" lang="%s" data-continue="%s"%s>%s</option>' . "\n",
 			esc_attr( $language['language'] ),
-			esc_attr( $language['iso'][1] ),
+			esc_attr( current( $language['iso'] ) ),
 			esc_attr( $language['strings']['continue'] ),
 			in_array( $language['language'], $installed_languages ) ? ' data-installed="1"' : '',
 			esc_html( $language['native_name'] ) );
@@ -229,6 +252,7 @@ function wp_can_install_language_pack() {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 	$skin = new Automatic_Upgrader_Skin;
 	$upgrader = new Language_Pack_Upgrader( $skin );
+	$upgrader->init();
 
 	$check = $upgrader->fs_connect( array( WP_CONTENT_DIR, WP_LANG_DIR ) );
 

@@ -57,23 +57,23 @@ get_current_screen()->add_help_tab( array(
 	'content' =>
 	'<p>' . __( 'You can add or edit links on this screen by entering information in each of the boxes. Only the link&#8217;s web address and name (the text you want to display on your site as the link) are required fields.' ) . '</p>' .
 	'<p>' . __( 'The boxes for link name, web address, and description have fixed positions, while the others may be repositioned using drag and drop. You can also hide boxes you don&#8217;t use in the Screen Options tab, or minimize boxes by clicking on the title bar of the box.' ) . '</p>' .
-	'<p>' . __( 'XFN stands for <a href="http://gmpg.org/xfn/" target="_blank">XHTML Friends Network</a>, which is optional. WordPress allows the generation of XFN attributes to show how you are related to the authors/owners of the site to which you are linking.' ) . '</p>'
+	'<p>' . __( 'XFN stands for <a href="http://gmpg.org/xfn/">XHTML Friends Network</a>, which is optional. WordPress allows the generation of XFN attributes to show how you are related to the authors/owners of the site to which you are linking.' ) . '</p>'
 ) );
 
 get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
-	'<p>' . __( '<a href="http://codex.wordpress.org/Links_Add_New_Screen" target="_blank">Documentation on Creating Links</a>' ) . '</p>' .
-	'<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
+	'<p>' . __( '<a href="https://codex.wordpress.org/Links_Add_New_Screen">Documentation on Creating Links</a>' ) . '</p>' .
+	'<p>' . __( '<a href="https://wordpress.org/support/">Support Forums</a>' ) . '</p>'
 );
 
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 
 <div class="wrap">
-<h2><?php echo esc_html( $title ); ?>  <a href="link-add.php" class="add-new-h2"><?php echo esc_html_x('Add New', 'link'); ?></a></h2>
+<h1><?php echo esc_html( $title ); ?>  <a href="link-add.php" class="page-title-action"><?php echo esc_html_x('Add New', 'link'); ?></a></h1>
 
 <?php if ( isset( $_GET['added'] ) ) : ?>
-<div id="message" class="updated"><p><?php _e('Link added.'); ?></p></div>
+<div id="message" class="updated notice is-dismissible"><p><?php _e('Link added.'); ?></p></div>
 <?php endif; ?>
 
 <form name="<?php echo esc_attr( $form_name ); ?>" id="<?php echo esc_attr( $form_name ); ?>" method="post" action="link.php">
@@ -91,7 +91,7 @@ wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false ); ?>
 <div id="post-body" class="metabox-holder columns-<?php echo 1 == get_current_screen()->get_columns() ? '1' : '2'; ?>">
 <div id="post-body-content">
 <div id="namediv" class="stuffbox">
-<h3><label for="link_name"><?php _ex('Name', 'link name') ?></label></h3>
+<h2><label for="link_name"><?php _ex( 'Name', 'link name' ) ?></label></h2>
 <div class="inside">
 	<input type="text" name="link_name" size="30" maxlength="255" value="<?php echo esc_attr($link->link_name); ?>" id="link_name" />
 	<p><?php _e('Example: Nifty blogging software'); ?></p>
@@ -99,7 +99,7 @@ wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false ); ?>
 </div>
 
 <div id="addressdiv" class="stuffbox">
-<h3><label for="link_url"><?php _e('Web Address') ?></label></h3>
+<h2><label for="link_url"><?php _e( 'Web Address' ) ?></label></h2>
 <div class="inside">
 	<input type="text" name="link_url" size="30" maxlength="255" class="code" value="<?php echo esc_attr($link->link_url); ?>" id="link_url" />
 	<p><?php _e('Example: <code>http://wordpress.org/</code> &#8212; don&#8217;t forget the <code>http://</code>'); ?></p>
@@ -107,7 +107,7 @@ wp_nonce_field( 'meta-box-order', 'meta-box-order-nonce', false ); ?>
 </div>
 
 <div id="descriptiondiv" class="stuffbox">
-<h3><label for="link_description"><?php _e('Description') ?></label></h3>
+<h2><label for="link_description"><?php _e( 'Description' ) ?></label></h2>
 <div class="inside">
 	<input type="text" name="link_description" size="30" maxlength="255" value="<?php echo isset($link->link_description) ? esc_attr($link->link_description) : ''; ?>" id="link_description" />
 	<p><?php _e('This will be shown when someone hovers over the link in the blogroll, or optionally below the link.'); ?></p>

@@ -29,7 +29,7 @@ function category_exists( $cat_name, $parent = null ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get category object for given ID and 'edit' filter context.
  *
  * @since 2.0.0
  *
@@ -43,7 +43,7 @@ function get_category_to_edit( $id ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Add a new category to the database if it does not already exist.
  *
  * @since 2.0.0
  *
@@ -65,16 +65,16 @@ function wp_create_category( $cat_name, $parent = 0 ) {
  *
  * @param array $categories List of categories to create.
  * @param int   $post_id    Optional. The post ID. Default empty.
- * @return List of categories to create for the given post.
+ * @return array List of categories to create for the given post.
  */
 function wp_create_categories( $categories, $post_id = '' ) {
 	$cat_ids = array ();
-	foreach ($categories as $category) {
-		if ($id = category_exists($category))
+	foreach ( $categories as $category ) {
+		if ( $id = category_exists( $category ) ) {
 			$cat_ids[] = $id;
-		else
-			if ($id = wp_create_category($category))
-				$cat_ids[] = $id;
+		} elseif ( $id = wp_create_category( $category ) ) {
+			$cat_ids[] = $id;
+		}
 	}
 
 	if ( $post_id )
@@ -93,10 +93,10 @@ function wp_create_categories( $categories, $post_id = '' ) {
  * @param array $catarr {
  *     Array of arguments for inserting a new category.
  *
- *     @type int        $cat_ID               Categoriy ID. A non-zero value updates an existing category.
+ *     @type int        $cat_ID               Category ID. A non-zero value updates an existing category.
  *                                            Default 0.
- *     @type string     $taxonomy             Taxonomy slug. Defualt 'category'.
- *     @type string     $cat_nam              Category name. Default empty.
+ *     @type string     $taxonomy             Taxonomy slug. Default 'category'.
+ *     @type string     $cat_name             Category name. Default empty.
  *     @type string     $category_description Category description. Default empty.
  *     @type string     $category_nicename    Category nice (display) name. Default empty.
  *     @type int|string $category_parent      Category parent ID. Default empty.
@@ -189,7 +189,7 @@ function wp_update_category($catarr) {
 //
 
 /**
- * {@internal Missing Short Description}}
+ * Check whether a post tag with a given name exists.
  *
  * @since 2.3.0
  *
@@ -201,7 +201,7 @@ function tag_exists($tag_name) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Add a new tag to the database if it does not already exist.
  *
  * @since 2.3.0
  *
@@ -213,11 +213,12 @@ function wp_create_tag($tag_name) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get comma-separated list of tags available to edit.
  *
  * @since 2.3.0
  *
- * @param int $post_id
+ * @param int    $post_id
+ * @param string $taxonomy Optional. The taxonomy for which to retrieve terms. Default 'post_tag'.
  * @return string|bool|WP_Error
  */
 function get_tags_to_edit( $post_id, $taxonomy = 'post_tag' ) {
@@ -225,11 +226,12 @@ function get_tags_to_edit( $post_id, $taxonomy = 'post_tag' ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get comma-separated list of terms available to edit for the given post ID.
  *
  * @since 2.8.0
  *
- * @param int $post_id
+ * @param int    $post_id
+ * @param string $taxonomy Optional. The taxonomy for which to retrieve terms. Default 'post_tag'.
  * @return string|bool|WP_Error
  */
 function get_terms_to_edit( $post_id, $taxonomy = 'post_tag' ) {
@@ -240,7 +242,7 @@ function get_terms_to_edit( $post_id, $taxonomy = 'post_tag' ) {
 	$terms = get_object_term_cache( $post_id, $taxonomy );
 	if ( false === $terms ) {
 		$terms = wp_get_object_terms( $post_id, $taxonomy );
-		wp_cache_add( $post_id, $terms, $taxonomy . '_relationships' );
+		wp_cache_add( $post_id, wp_list_pluck( $terms, 'term_id' ), $taxonomy . '_relationships' );
 	}
 
 	if ( ! $terms ) {
@@ -257,7 +259,7 @@ function get_terms_to_edit( $post_id, $taxonomy = 'post_tag' ) {
 	$terms_to_edit = esc_attr( join( ',', $term_names ) );
 
 	/**
-	 * Filter the comma-separated list of terms available to edit.
+	 * Filters the comma-separated list of terms available to edit.
 	 *
 	 * @since 2.8.0
 	 *
@@ -272,11 +274,12 @@ function get_terms_to_edit( $post_id, $taxonomy = 'post_tag' ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Add a new term to the database if it does not already exist.
  *
  * @since 2.8.0
  *
  * @param int|string $tag_name
+ * @param string $taxonomy Optional. The taxonomy for which to retrieve terms. Default 'post_tag'.
  * @return array|WP_Error
  */
 function wp_create_term($tag_name, $taxonomy = 'post_tag') {

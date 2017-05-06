@@ -13,17 +13,31 @@
  * @since 3.0.0
  */
 
+add_action( 'init', 'ms_subdomain_constants' );
+
+// Functions
+add_action( 'update_option_blog_public', 'update_blog_public', 10, 2 );
+add_filter( 'option_users_can_register', 'users_can_register_signup_filter' );
+add_filter( 'site_option_welcome_user_email', 'welcome_user_msg_filter' );
+
 // Users
 add_filter( 'wpmu_validate_user_signup', 'signup_nonce_check' );
 add_action( 'init', 'maybe_add_existing_user_to_blog' );
 add_action( 'wpmu_new_user', 'newuser_notify_siteadmin' );
 add_action( 'wpmu_activate_user', 'add_new_user_to_blog', 10, 3 );
+add_action( 'wpmu_activate_user', 'wpmu_welcome_user_notification', 10, 3 );
+add_action( 'after_signup_user', 'wpmu_signup_user_notification', 10, 4 );
+add_action( 'network_site_new_created_user',   'wp_send_new_user_notifications' );
+add_action( 'network_site_users_created_user', 'wp_send_new_user_notifications' );
+add_action( 'network_user_new_created_user',   'wp_send_new_user_notifications' );
 add_filter( 'sanitize_user', 'strtolower' );
 
 // Blogs
 add_filter( 'wpmu_validate_blog_signup', 'signup_nonce_check' );
 add_action( 'wpmu_new_blog', 'wpmu_log_new_registrations', 10, 2 );
 add_action( 'wpmu_new_blog', 'newblog_notify_siteadmin', 10, 2 );
+add_action( 'wpmu_activate_blog', 'wpmu_welcome_notification', 10, 5 );
+add_action( 'after_signup_site', 'wpmu_signup_blog_notification', 10, 7 );
 
 // Register Nonce
 add_action( 'signup_hidden_fields', 'signup_nonce_fields' );
@@ -70,10 +84,11 @@ add_filter( 'force_filtered_html_on_import', '__return_true' );
 remove_filter( 'option_siteurl', '_config_wp_siteurl' );
 remove_filter( 'option_home',    '_config_wp_home'    );
 
-// Some options changes should trigger blog details refresh.
-add_action( 'update_option_blogname',   'refresh_blog_details', 10, 0 );
-add_action( 'update_option_siteurl',    'refresh_blog_details', 10, 0 );
-add_action( 'update_option_post_count', 'refresh_blog_details', 10, 0 );
+// Some options changes should trigger site details refresh.
+add_action( 'update_option_blogname',   'clean_site_details_cache', 10, 0 );
+add_action( 'update_option_siteurl',    'clean_site_details_cache', 10, 0 );
+add_action( 'update_option_post_count', 'clean_site_details_cache', 10, 0 );
+add_action( 'update_option_home',       'clean_site_details_cache', 10, 0 );
 
 // If the network upgrade hasn't run yet, assume ms-files.php rewriting is used.
 add_filter( 'default_site_option_ms_files_rewriting', '__return_true' );

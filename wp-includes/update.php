@@ -14,18 +14,21 @@
  * isn't installing.
  *
  * @since 2.3.0
- * @uses $wp_version Used to check against the newest WordPress version.
+ * @global string $wp_version Used to check against the newest WordPress version.
+ * @global wpdb   $wpdb
+ * @global string $wp_local_package
  *
  * @param array $extra_stats Extra statistics to report to the WordPress.org API.
- * @param bool $force_check Whether to bypass the transient cache and force a fresh update check. Defaults to false, true if $extra_stats is set.
- * @return null|false Returns null if update is unsupported. Returns false if check is too soon.
+ * @param bool  $force_check Whether to bypass the transient cache and force a fresh update check. Defaults to false, true if $extra_stats is set.
  */
 function wp_version_check( $extra_stats = array(), $force_check = false ) {
-	if ( defined('WP_INSTALLING') )
+	if ( wp_installing() ) {
 		return;
+	}
 
 	global $wpdb, $wp_local_package;
-	include( ABSPATH . WPINC . '/version.php' ); // include an unmodified $wp_version
+	// include an unmodified $wp_version
+	include( ABSPATH . WPINC . '/version.php' );
 	$php_version = phpversion();
 
 	$current = get_site_transient( 'update_core' );
@@ -47,18 +50,18 @@ function wp_version_check( $extra_stats = array(), $force_check = false ) {
 	// Wait 60 seconds between multiple version check requests
 	$timeout = 60;
 	$time_not_changed = isset( $current->last_checked ) && $timeout > ( time() - $current->last_checked );
-	if ( ! $force_check && $time_not_changed )
-		return false;
+	if ( ! $force_check && $time_not_changed ) {
+		return;
+	}
 
-	$locale = get_locale();
 	/**
-	 * Filter the locale requested for WordPress core translations.
+	 * Filters the locale requested for WordPress core translations.
 	 *
 	 * @since 2.8.0
 	 *
 	 * @param string $locale Current locale.
 	 */
-	$locale = apply_filters( 'core_version_check_locale', $locale );
+	$locale = apply_filters( 'core_version_check_locale', get_locale() );
 
 	// Update last_checked for current to prevent multiple blocking requests if request hangs
 	$current->last_checked = time();
@@ -83,14 +86,15 @@ function wp_version_check( $extra_stats = array(), $force_check = false ) {
 	}
 
 	$query = array(
-		'version'           => $wp_version,
-		'php'               => $php_version,
-		'locale'            => $locale,
-		'mysql'             => $mysql_version,
-		'local_package'     => isset( $wp_local_package ) ? $wp_local_package : '',
-		'blogs'             => $num_blogs,
-		'users'             => $user_count,
-		'multisite_enabled' => $multisite_enabled,
+		'version'            => $wp_version,
+		'php'                => $php_version,
+		'locale'             => $locale,
+		'mysql'              => $mysql_version,
+		'local_package'      => isset( $wp_local_package ) ? $wp_local_package : '',
+		'blogs'              => $num_blogs,
+		'users'              => $user_count,
+		'multisite_enabled'  => $multisite_enabled,
+		'initial_db_version' => get_site_option( 'initial_db_version' ),
 	);
 
 	$post_body = array(
@@ -116,18 +120,27 @@ function wp_version_check( $extra_stats = array(), $force_check = false ) {
 
 	$response = wp_remote_post( $url, $options );
 	if ( $ssl && is_wp_error( $response ) ) {
-		trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ), headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+		trigger_error(
+			sprintf(
+				/* translators: %s: support forums URL */
+				__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+				__( 'https://wordpress.org/support/' )
+			) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ),
+			headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE
+		);
 		$response = wp_remote_post( $http_url, $options );
 	}
 
-	if ( is_wp_error( $response ) || 200 != wp_remote_retrieve_response_code( $response ) )
-		return false;
+	if ( is_wp_error( $response ) || 200 != wp_remote_retrieve_response_code( $response ) ) {
+		return;
+	}
 
 	$body = trim( wp_remote_retrieve_body( $response ) );
 	$body = json_decode( $body, true );
 
-	if ( ! is_array( $body ) || ! isset( $body['offers'] ) )
-		return false;
+	if ( ! is_array( $body ) || ! isset( $body['offers'] ) ) {
+		return;
+	}
 
 	$offers = $body['offers'];
 
@@ -163,7 +176,7 @@ function wp_version_check( $extra_stats = array(), $force_check = false ) {
 		}
 	}
 
-	// Trigger a background updates check if running non-interactively, and we weren't called from the update handler.
+	// Trigger background updates if running non-interactively, and we weren't called from the update handler.
 	if ( defined( 'DOING_CRON' ) && DOING_CRON && ! doing_action( 'wp_maybe_auto_update' ) ) {
 		do_action( 'wp_maybe_auto_update' );
 	}
@@ -177,16 +190,17 @@ function wp_version_check( $extra_stats = array(), $force_check = false ) {
  * api.wordpress.org. Will only check if WordPress isn't installing.
  *
  * @since 2.3.0
- * @uses $wp_version Used to notify the WordPress version.
+ * @global string $wp_version Used to notify the WordPress version.
  *
  * @param array $extra_stats Extra statistics to report to the WordPress.org API.
- * @return false|null Returns null if update is unsupported. Returns false if check is too soon.
  */
 function wp_update_plugins( $extra_stats = array() ) {
-	include( ABSPATH . WPINC . '/version.php' ); // include an unmodified $wp_version
+	if ( wp_installing() ) {
+		return;
+	}
 
-	if ( defined('WP_INSTALLING') )
-		return false;
+	// include an unmodified $wp_version
+	include( ABSPATH . WPINC . '/version.php' );
 
 	// If running blog-side, bail unless we've not checked in the last 12 hours
 	if ( !function_exists( 'get_plugins' ) )
@@ -244,8 +258,9 @@ function wp_update_plugins( $extra_stats = array() ) {
 		}
 
 		// Bail if we've checked recently and if nothing has changed
-		if ( ! $plugin_changed )
-			return false;
+		if ( ! $plugin_changed ) {
+			return;
+		}
 	}
 
 	// Update last_checked for current to prevent multiple blocking requests if request hangs
@@ -254,15 +269,18 @@ function wp_update_plugins( $extra_stats = array() ) {
 
 	$to_send = compact( 'plugins', 'active' );
 
-	$locales = array( get_locale() );
+	$locales = array_values( get_available_languages() );
+
 	/**
-	 * Filter the locales requested for plugin translations.
+	 * Filters the locales requested for plugin translations.
 	 *
 	 * @since 3.7.0
+	 * @since 4.5.0 The default value of the `$locales` parameter changed to include all locales.
 	 *
-	 * @param array $locales Plugin locale. Default is current locale of the site.
+	 * @param array $locales Plugin locales. Default is all available locales of the site.
 	 */
 	$locales = apply_filters( 'plugins_update_check_locales', $locales );
+	$locales = array_unique( $locales );
 
 	if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
 		$timeout = 30;
@@ -292,18 +310,32 @@ function wp_update_plugins( $extra_stats = array() ) {
 
 	$raw_response = wp_remote_post( $url, $options );
 	if ( $ssl && is_wp_error( $raw_response ) ) {
-		trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ), headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+		trigger_error(
+			sprintf(
+				/* translators: %s: support forums URL */
+				__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+				__( 'https://wordpress.org/support/' )
+			) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ),
+			headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE
+		);
 		$raw_response = wp_remote_post( $http_url, $options );
 	}
 
-	if ( is_wp_error( $raw_response ) || 200 != wp_remote_retrieve_response_code( $raw_response ) )
-		return false;
+	if ( is_wp_error( $raw_response ) || 200 != wp_remote_retrieve_response_code( $raw_response ) ) {
+		return;
+	}
 
 	$response = json_decode( wp_remote_retrieve_body( $raw_response ), true );
 	foreach ( $response['plugins'] as &$plugin ) {
 		$plugin = (object) $plugin;
+		if ( isset( $plugin->compatibility ) ) {
+			$plugin->compatibility = (object) $plugin->compatibility;
+			foreach ( $plugin->compatibility as &$data ) {
+				$data = (object) $data;
+			}
+		}
 	}
-	unset( $plugin );
+	unset( $plugin, $data );
 	foreach ( $response['no_update'] as &$plugin ) {
 		$plugin = (object) $plugin;
 	}
@@ -331,16 +363,16 @@ function wp_update_plugins( $extra_stats = array() ) {
  * installing.
  *
  * @since 2.7.0
- * @uses $wp_version Used to notify the WordPress version.
  *
  * @param array $extra_stats Extra statistics to report to the WordPress.org API.
- * @return false|null Returns null if update is unsupported. Returns false if check is too soon.
  */
 function wp_update_themes( $extra_stats = array() ) {
-	include( ABSPATH . WPINC . '/version.php' ); // include an unmodified $wp_version
+	if ( wp_installing() ) {
+		return;
+	}
 
-	if ( defined( 'WP_INSTALLING' ) )
-		return false;
+	// include an unmodified $wp_version
+	include( ABSPATH . WPINC . '/version.php' );
 
 	$installed_themes = wp_get_themes();
 	$translations = wp_get_installed_translations( 'themes' );
@@ -407,8 +439,9 @@ function wp_update_themes( $extra_stats = array() ) {
 		}
 
 		// Bail if we've checked recently and if nothing has changed
-		if ( ! $theme_changed )
-			return false;
+		if ( ! $theme_changed ) {
+			return;
+		}
 	}
 
 	// Update last_checked for current to prevent multiple blocking requests if request hangs
@@ -417,15 +450,18 @@ function wp_update_themes( $extra_stats = array() ) {
 
 	$request['themes'] = $themes;
 
-	$locales = array( get_locale() );
+	$locales = array_values( get_available_languages() );
+
 	/**
-	 * Filter the locales requested for theme translations.
+	 * Filters the locales requested for theme translations.
 	 *
 	 * @since 3.7.0
+	 * @since 4.5.0 The default value of the `$locales` parameter changed to include all locales.
 	 *
-	 * @param array $locales Theme locale. Default is current locale of the site.
+	 * @param array $locales Theme locales. Default is all available locales of the site.
 	 */
 	$locales = apply_filters( 'themes_update_check_locales', $locales );
+	$locales = array_unique( $locales );
 
 	if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
 		$timeout = 30;
@@ -454,12 +490,20 @@ function wp_update_themes( $extra_stats = array() ) {
 
 	$raw_response = wp_remote_post( $url, $options );
 	if ( $ssl && is_wp_error( $raw_response ) ) {
-		trigger_error( __( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="https://wordpress.org/support/">support forums</a>.' ) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ), headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE );
+		trigger_error(
+			sprintf(
+				/* translators: %s: support forums URL */
+				__( 'An unexpected error occurred. Something may be wrong with WordPress.org or this server&#8217;s configuration. If you continue to have problems, please try the <a href="%s">support forums</a>.' ),
+				__( 'https://wordpress.org/support/' )
+			) . ' ' . __( '(WordPress could not establish a secure connection to WordPress.org. Please contact your server administrator.)' ),
+			headers_sent() || WP_DEBUG ? E_USER_WARNING : E_USER_NOTICE
+		);
 		$raw_response = wp_remote_post( $http_url, $options );
 	}
 
-	if ( is_wp_error( $raw_response ) || 200 != wp_remote_retrieve_response_code( $raw_response ) )
-		return false;
+	if ( is_wp_error( $raw_response ) || 200 != wp_remote_retrieve_response_code( $raw_response ) ) {
+		return;
+	}
 
 	$new_update = new stdClass;
 	$new_update->last_checked = time();
@@ -492,12 +536,13 @@ function wp_maybe_auto_update() {
  * Retrieves a list of all language updates available.
  *
  * @since 3.7.0
+ *
+ * @return array
  */
 function wp_get_translation_updates() {
 	$updates = array();
 	$transients = array( 'update_core' => 'core', 'update_plugins' => 'plugin', 'update_themes' => 'theme' );
 	foreach ( $transients as $transient => $type ) {
-
 		$transient = get_site_transient( $transient );
 		if ( empty( $transient->translations ) )
 			continue;
@@ -506,7 +551,6 @@ function wp_get_translation_updates() {
 			$updates[] = (object) $translation;
 		}
 	}
-
 	return $updates;
 }
 
@@ -543,20 +587,27 @@ function wp_get_update_data() {
 
 	$counts['total'] = $counts['plugins'] + $counts['themes'] + $counts['wordpress'] + $counts['translations'];
 	$titles = array();
-	if ( $counts['wordpress'] )
+	if ( $counts['wordpress'] ) {
+		/* translators: 1: Number of updates available to WordPress */
 		$titles['wordpress'] = sprintf( __( '%d WordPress Update'), $counts['wordpress'] );
-	if ( $counts['plugins'] )
+	}
+	if ( $counts['plugins'] ) {
+		/* translators: 1: Number of updates available to plugins */
 		$titles['plugins'] = sprintf( _n( '%d Plugin Update', '%d Plugin Updates', $counts['plugins'] ), $counts['plugins'] );
-	if ( $counts['themes'] )
+	}
+	if ( $counts['themes'] ) {
+		/* translators: 1: Number of updates available to themes */
 		$titles['themes'] = sprintf( _n( '%d Theme Update', '%d Theme Updates', $counts['themes'] ), $counts['themes'] );
-	if ( $counts['translations'] )
+	}
+	if ( $counts['translations'] ) {
 		$titles['translations'] = __( 'Translation Updates' );
+	}
 
 	$update_title = $titles ? esc_attr( implode( ', ', $titles ) ) : '';
 
 	$update_data = array( 'counts' => $counts, 'title' => $update_title );
 	/**
-	 * Filter the returned array of update data for plugins, themes, and WordPress core.
+	 * Filters the returned array of update data for plugins, themes, and WordPress core.
 	 *
 	 * @since 3.5.0
 	 *
@@ -571,17 +622,24 @@ function wp_get_update_data() {
 	return apply_filters( 'wp_get_update_data', $update_data, $titles );
 }
 
+/**
+ * Determines whether core should be updated.
+ *
+ * @since 2.8.0
+ *
+ * @global string $wp_version
+ */
 function _maybe_update_core() {
-	include( ABSPATH . WPINC . '/version.php' ); // include an unmodified $wp_version
+	// include an unmodified $wp_version
+	include( ABSPATH . WPINC . '/version.php' );
 
 	$current = get_site_transient( 'update_core' );
 
-	if ( isset( $current->last_checked ) &&
+	if ( isset( $current->last_checked, $current->version_checked ) &&
 		12 * HOUR_IN_SECONDS > ( time() - $current->last_checked ) &&
-		isset( $current->version_checked ) &&
-		$current->version_checked == $wp_version )
+		$current->version_checked == $wp_version ) {
 		return;
-
+	}
 	wp_version_check();
 }
 /**
@@ -614,7 +672,6 @@ function _maybe_update_themes() {
 	$current = get_site_transient( 'update_themes' );
 	if ( isset( $current->last_checked ) && 12 * HOUR_IN_SECONDS > ( time() - $current->last_checked ) )
 		return;
-
 	wp_update_themes();
 }
 
@@ -624,28 +681,14 @@ function _maybe_update_themes() {
  * @since 3.1.0
  */
 function wp_schedule_update_checks() {
-	if ( !wp_next_scheduled('wp_version_check') && !defined('WP_INSTALLING') )
+	if ( ! wp_next_scheduled( 'wp_version_check' ) && ! wp_installing() )
 		wp_schedule_event(time(), 'twicedaily', 'wp_version_check');
 
-	if ( !wp_next_scheduled('wp_update_plugins') && !defined('WP_INSTALLING') )
+	if ( ! wp_next_scheduled( 'wp_update_plugins' ) && ! wp_installing() )
 		wp_schedule_event(time(), 'twicedaily', 'wp_update_plugins');
 
-	if ( !wp_next_scheduled('wp_update_themes') && !defined('WP_INSTALLING') )
+	if ( ! wp_next_scheduled( 'wp_update_themes' ) && ! wp_installing() )
 		wp_schedule_event(time(), 'twicedaily', 'wp_update_themes');
-
-	if ( ! wp_next_scheduled( 'wp_maybe_auto_update' ) && ! defined( 'WP_INSTALLING' ) ) {
-		// Schedule auto updates for 7 a.m. and 7 p.m. in the timezone of the site.
-		$next = strtotime( 'today 7am' );
-		$now = time();
-		// Find the next instance of 7 a.m. or 7 p.m., but skip it if it is within 3 hours from now.
-		while ( ( $now + 3 * HOUR_IN_SECONDS ) > $next ) {
-			$next += 12 * HOUR_IN_SECONDS;
-		}
-		$next = $next - get_option( 'gmt_offset' ) * HOUR_IN_SECONDS;
-		// Add a random number of minutes, so we don't have all sites trying to update exactly on the hour
-		$next = $next + rand( 0, 59 ) * MINUTE_IN_SECONDS;
-		wp_schedule_event( $next, 'twicedaily', 'wp_maybe_auto_update' );
-	}
 }
 
 /**
@@ -659,35 +702,31 @@ function wp_clean_update_cache() {
 	} else {
 		delete_site_transient( 'update_plugins' );
 	}
-	wp_clean_plugins_cache();
 	wp_clean_themes_cache();
 	delete_site_transient( 'update_core' );
 }
 
-if ( ( ! is_main_site() && ! is_network_admin() ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+if ( ( ! is_main_site() && ! is_network_admin() ) || wp_doing_ajax() ) {
 	return;
 }
 
 add_action( 'admin_init', '_maybe_update_core' );
 add_action( 'wp_version_check', 'wp_version_check' );
-add_action( 'upgrader_process_complete', 'wp_version_check', 10, 0 );
 
 add_action( 'load-plugins.php', 'wp_update_plugins' );
 add_action( 'load-update.php', 'wp_update_plugins' );
 add_action( 'load-update-core.php', 'wp_update_plugins' );
 add_action( 'admin_init', '_maybe_update_plugins' );
 add_action( 'wp_update_plugins', 'wp_update_plugins' );
-add_action( 'upgrader_process_complete', 'wp_update_plugins', 10, 0 );
 
 add_action( 'load-themes.php', 'wp_update_themes' );
 add_action( 'load-update.php', 'wp_update_themes' );
 add_action( 'load-update-core.php', 'wp_update_themes' );
 add_action( 'admin_init', '_maybe_update_themes' );
 add_action( 'wp_update_themes', 'wp_update_themes' );
-add_action( 'upgrader_process_complete', 'wp_update_themes', 10, 0 );
 
 add_action( 'update_option_WPLANG', 'wp_clean_update_cache' , 10, 0 );
 
 add_action( 'wp_maybe_auto_update', 'wp_maybe_auto_update' );
 
-add_action('init', 'wp_schedule_update_checks');
+add_action( 'init', 'wp_schedule_update_checks' );

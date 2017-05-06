@@ -18,16 +18,21 @@ function add_link() {
 }
 
 /**
- * Update or insert a link using values provided in $_POST.
+ * Updates or inserts a link using values provided in $_POST.
  *
  * @since 2.0.0
  *
- * @param int $link_id Optional. ID of the link to edit.
+ * @param int $link_id Optional. ID of the link to edit. Default 0.
  * @return int|WP_Error Value 0 or WP_Error on failure. The link ID on success.
  */
 function edit_link( $link_id = 0 ) {
-	if ( !current_user_can( 'manage_links' ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+	if ( ! current_user_can( 'manage_links' ) ) {
+		wp_die(
+			'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+			'<p>' . __( 'Sorry, you are not allowed to edit the links for this site.' ) . '</p>',
+			403
+		);
+	}
 
 	$_POST['link_url'] = esc_html( $_POST['link_url'] );
 	$_POST['link_url'] = esc_url($_POST['link_url']);
@@ -46,11 +51,11 @@ function edit_link( $link_id = 0 ) {
 }
 
 /**
- * Retrieve the default link for editing.
+ * Retrieves the default link for editing.
  *
  * @since 2.0.0
  *
- * @return stdClass Default link
+ * @return stdClass Default link object.
  */
 function get_default_link_to_edit() {
 	$link = new stdClass;
@@ -70,12 +75,14 @@ function get_default_link_to_edit() {
 }
 
 /**
- * Delete link specified from database.
+ * Deletes a specified link from the database.
  *
  * @since 2.0.0
  *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
  * @param int $link_id ID of the link to delete
- * @return bool True
+ * @return true Always true.
  */
 function wp_delete_link( $link_id ) {
 	global $wpdb;
@@ -91,6 +98,7 @@ function wp_delete_link( $link_id ) {
 	wp_delete_object_term_relationships( $link_id, 'link_category' );
 
 	$wpdb->delete( $wpdb->links, array( 'link_id' => $link_id ) );
+
 	/**
 	 * Fires after a link has been deleted.
 	 *
@@ -114,31 +122,31 @@ function wp_delete_link( $link_id ) {
  * @return array The requested link's categories
  */
 function wp_get_link_cats( $link_id = 0 ) {
-
 	$cats = wp_get_object_terms( $link_id, 'link_category', array('fields' => 'ids') );
-
 	return array_unique( $cats );
 }
 
 /**
- * Retrieve link data based on ID.
+ * Retrieves link data based on its ID.
  *
  * @since 2.0.0
  *
- * @param int $link_id ID of link to retrieve
- * @return object Link for editing
+ * @param int|stdClass $link Link ID or object to retrieve.
+ * @return object Link object for editing.
  */
-function get_link_to_edit( $link_id ) {
-	return get_bookmark( $link_id, OBJECT, 'edit' );
+function get_link_to_edit( $link ) {
+	return get_bookmark( $link, OBJECT, 'edit' );
 }
 
 /**
- * This function inserts/updates links into/in the database.
+ * Inserts/updates links into/in the database.
  *
  * @since 2.0.0
  *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
  * @param array $linkdata Elements that make up the link to insert.
- * @param bool $wp_error Optional. If true return WP_Error object on failure.
+ * @param bool  $wp_error Optional. Whether to return a WP_Error object on failure. Default false.
  * @return int|WP_Error Value 0 or WP_Error on failure. The link ID on success.
  */
 function wp_insert_link( $linkdata, $wp_error = false ) {
@@ -181,7 +189,7 @@ function wp_insert_link( $linkdata, $wp_error = false ) {
 	$link_rel         = ( ! empty( $r['link_rel'] ) ) ? $r['link_rel'] : '';
 	$link_category    = ( ! empty( $r['link_category'] ) ) ? $r['link_category'] : array();
 
-	// Make sure we set a valid category
+	// Make sure we set a valid category.
 	if ( ! is_array( $link_category ) || 0 == count( $link_category ) ) {
 		$link_category = array( get_option( 'default_link_category' ) );
 	}
@@ -236,8 +244,8 @@ function wp_insert_link( $linkdata, $wp_error = false ) {
  *
  * @since 2.1.0
  *
- * @param int $link_id ID of link to update
- * @param array $link_categories Array of categories to
+ * @param int   $link_id         ID of the link to update.
+ * @param array $link_categories Array of link categories to add the link to.
  */
 function wp_set_link_cats( $link_id = 0, $link_categories = array() ) {
 	// If $link_categories isn't already an array, make it one:
@@ -253,7 +261,7 @@ function wp_set_link_cats( $link_id = 0, $link_categories = array() ) {
 }
 
 /**
- * Update a link in the database.
+ * Updates a link in the database.
  *
  * @since 2.0.0
  *
@@ -283,8 +291,12 @@ function wp_update_link( $linkdata ) {
 }
 
 /**
+ * Outputs the 'disabled' message for the WordPress Link Manager.
+ *
  * @since 3.5.0
  * @access private
+ *
+ * @global string $pagenow
  */
 function wp_link_manager_disabled_message() {
 	global $pagenow;
@@ -300,6 +312,5 @@ function wp_link_manager_disabled_message() {
 		wp_die( sprintf( __( 'If you are looking to use the link manager, please install the <a href="%s">Link Manager</a> plugin.' ), $link ) );
 	}
 
-	wp_die( __( 'You do not have sufficient permissions to edit the links for this site.' ) );
+	wp_die( __( 'Sorry, you are not allowed to edit the links for this site.' ) );
 }
-add_action( 'admin_page_access_denied', 'wp_link_manager_disabled_message' );

@@ -1,8 +1,8 @@
 /**
  * plugin.js
  *
- * Copyright, Moxiecode Systems AB
  * Released under LGPL License.
+ * Copyright (c) 1999-2015 Ephox Corp. All rights reserved
  *
  * License: http://www.tinymce.com/license
  * Contributing: http://www.tinymce.com/contributing
@@ -12,7 +12,7 @@
 
 tinymce.PluginManager.add('fullscreen', function(editor) {
 	var fullscreenState = false, DOM = tinymce.DOM, iframeWidth, iframeHeight, resizeHandler;
-	var containerWidth, containerHeight;
+	var containerWidth, containerHeight, scrollPos;
 
 	if (editor.settings.inline) {
 		return;
@@ -37,6 +37,19 @@ tinymce.PluginManager.add('fullscreen', function(editor) {
 		return {w: w, h: h};
 	}
 
+	function getScrollPos() {
+		var vp = tinymce.DOM.getViewPort();
+
+		return {
+			x: vp.x,
+			y: vp.y
+		};
+	}
+
+	function setScrollPos(pos) {
+		scrollTo(pos.x, pos.y);
+	}
+
 	function toggleFullscreen() {
 		var body = document.body, documentElement = document.documentElement, editorContainerStyle;
 		var editorContainer, iframe, iframeStyle;
@@ -53,6 +66,7 @@ tinymce.PluginManager.add('fullscreen', function(editor) {
 		iframeStyle = iframe.style;
 
 		if (fullscreenState) {
+			scrollPos = getScrollPos();
 			iframeWidth = iframeStyle.width;
 			iframeHeight = iframeStyle.height;
 			iframeStyle.width = iframeStyle.height = '100%';
@@ -83,13 +97,14 @@ tinymce.PluginManager.add('fullscreen', function(editor) {
 			DOM.removeClass(documentElement, 'mce-fullscreen');
 			DOM.removeClass(editorContainer, 'mce-fullscreen');
 			DOM.unbind(window, 'resize', resizeHandler);
+			setScrollPos(scrollPos);
 		}
 
 		editor.fire('FullscreenStateChanged', {state: fullscreenState});
 	}
 
 	editor.on('init', function() {
-		editor.addShortcut('Ctrl+Alt+F', '', toggleFullscreen);
+		editor.addShortcut('Ctrl+Shift+F', '', toggleFullscreen);
 	});
 
 	editor.on('remove', function() {
@@ -102,9 +117,12 @@ tinymce.PluginManager.add('fullscreen', function(editor) {
 
 	editor.addMenuItem('fullscreen', {
 		text: 'Fullscreen',
-		shortcut: 'Ctrl+Alt+F',
+		shortcut: 'Ctrl+Shift+F',
 		selectable: true,
-		onClick: toggleFullscreen,
+		onClick: function() {
+			toggleFullscreen();
+			editor.focus();
+		},
 		onPostRender: function() {
 			var self = this;
 
@@ -117,7 +135,7 @@ tinymce.PluginManager.add('fullscreen', function(editor) {
 
 	editor.addButton('fullscreen', {
 		tooltip: 'Fullscreen',
-		shortcut: 'Ctrl+Alt+F',
+		shortcut: 'Ctrl+Shift+F',
 		onClick: toggleFullscreen,
 		onPostRender: function() {
 			var self = this;

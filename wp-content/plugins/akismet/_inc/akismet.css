@@ -1,3 +1,6 @@
+.wp-admin.jetpack_page_akismet-key-config, .wp-admin.settings_page_akismet-key-config {
+	background-color:#f3f6f8;
+}
 
 #submitted-on {
     position: relative;
@@ -33,13 +36,14 @@
     color: #AAA;
     font-style: italic;
 }
-span.comment-link a {
+table.comments td.comment p a {
     text-decoration: underline;
 }
-span.comment-link:after {
-    content: " "attr(title) " ";
+table.comments td.comment p a:after {
+    content: attr(href);
     color: #aaa;
-    text-decoration: none;
+    display: inline-block; /* Show the URL without the link's underline extending under it. */
+    padding: 0 1ex; /* Because it's inline block, we can't just use spaces in the content: attribute to separate it from the link text. */
 }
 .mshot-arrow {
     width: 0;
@@ -63,136 +67,46 @@ span.comment-link:after {
     border-radius: 6px;
     -webkit-border-radius: 6px;
 }
-h2.ak-header {
-    padding: 30px;
-    background: #649316 url('img/logo-full-2x.png') no-repeat 20px center;
-    background-size: 185px 33px;
-    height: 33px;
-    text-indent: -9999em;
-    margin-right: 10px;
+.akismet-mshot {
+    position: absolute;
+    z-index: 100;
+}
+.akismet-mshot .mshot-image {
+    margin: 0;
+    height: 338px;
+    width: 450px;
 }
 .checkforspam {
     display: inline-block !important;
 }
+.checkforspam-progress {
+	padding-left: 1ex;
+	display: none;
+}
+.checkforspam.button-disabled .checkforspam-progress {
+	display: inline;
+}
+
 .checkforspam-spinner {
     display: inline-block;
     margin-top: 7px;
 }
 
-.config-wrap {
-	margin-top: 2em;
-    max-width: 700px;
-}
-
-.activate-option {
-    background: #e3e3e3;
-    border-radius: 3px;
-    margin-bottom: 30px;
-    overflow: hidden;
-    padding: 20px;
-}
-.activate-option.clicked {
-	background: #649316;
-	color: #fff;
-}
-.activate-option.clicked:hover {
-	background: #68802E;
-	color: #fff;
-}
-
-.activate-option .button.button-secondary {
-	margin: 15px 0;
-}
-
-.activate-option p {
-	margin: 10px 0 10px;
-}
-
-.activate-highlight {
-	background: #fff;
-	padding: 30px;
-	margin-right: 10px;
-}
-
-.activate-highlight.secondary {
-	background: #ddd;
-	padding: 20px 30px;
-}
-
-.activate-highlight h3 {
-	margin: 0 0 0.3em;
-}
-.activate-highlight p {
-	color: #777;
-}
-.activate-highlight .button-primary {
-	margin-top: 15px;
-}
-
-#akismet-enter-api-key .regular-text {
-	width: 18em;
-	margin-top: 15px;
-}
-
-.right {
+.akismet-right {
 	float: right;
 }
 
-.alert-text {
-	color: #dd3d36;
-}
-.success {
-	color: #649316;
-}
-.option-description {
-    float: left;
-    font-size: 16px;
-}
-.option-description span {
-    color: #666;
-    display: block;
-    font-size: 14px;
-    margin-top: 5px;
-}
-.option-action {
-    float: right;
-}
-.key-config-link {
-    font-size: 14px;
-    margin-left: 20px;
-}
-.jetpack-account {
-    float: left;
-    font-size: 18px;
-    margin-right: 40px;
-}
-.small-heading {
-    color: #777;
-    display: block;
-    font-size: 12px;
-    font-weight: bold;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-}
-.inline-label {
-    background: #ddd;
-    border-radius: 3px;
-    font-size: 11px;
-    padding: 3px 8px;
-    text-transform: uppercase;
-}
-.inline-label.alert {
-    background: #e54747;
-    color: #fff;
-}
-.jetpack-account .inline-label {
-    margin-left: 5px;
-}
-.option-action .manual-key {
-    margin-top: 7px;
+.akismet-card .akismet-right {
+	margin: 1em 0;
 }
 
-.alert {
+.akismet-alert-text {
+	color: #dd3d36;
+	font-weight: bold;
+	font-size: 120%;
+	margin-top: .5rem;
+}
+.akismet-alert {
 	border: 1px solid #e5e5e5;
 	padding: 0.4em 1em 1.4em 1em;
     border-radius: 3px;
@@ -201,49 +115,45 @@ h2.ak-header {
     border-style: solid;
 }
 
-.alert h3.key-status {
+.akismet-alert h3.akismet-key-status {
 	color: #fff;
 	margin: 1em 0 0.5em 0;
 }
 
-.alert.critical {
+.akismet-alert.akismet-critical {
 	background-color: #993300;
 }
 
-.alert.active {
+.akismet-alert.akismet-active {
 	background-color: #649316;
 }
 
-.alert p.key-status {
+.akismet-alert p.akismet-key-status {
 	font-size: 24px;
 }
 
-.alert p.description {
+.akismet-alert p.akismet-description {
 	color:#fff;
 	font-size: 14px;
     margin: 0 0;
 	font-style: normal;
 }
 
-.alert p.description a,
-.alert p.description a,
-.alert p.description a,
-.alert p.description a {
+.akismet-alert p.akismet-description a,
+.akismet-alert p.akismet-description a,
+.akismet-alert p.akismet-description a,
+.akismet-alert p.akismet-description a {
 	color: #fff;
 }
 
-.new-snapshot {
+.akismet-new-snapshot {
 	margin-top: 1em;
 	padding: 1em;
 	text-align: center;
-}
-
-.new-snapshot.stats {
 	background: #fff;
-	border: 1px solid #e5e5e5;
 }
 
-.new-snapshot h3 {
+.akismet-new-snapshot h3 {
     background: #f5f5f5;
 	color: #888;
 	font-size: 11px;
@@ -256,7 +166,7 @@ h2.ak-header {
 	width: 100%;
 }
 
-.new-snapshot ul li {
+.akismet-new-snapshot ul li {
     color: #999;
 	float: left;
     font-size: 11px;
@@ -269,16 +179,12 @@ h2.ak-header {
 	-ms-box-sizing: border-box;
 }
 
-.new-snapshot.stats ul li:first-child,
-.new-snapshot.stats ul li:nth-child(2) {
+.akismet-new-snapshot ul li:first-child,
+.akismet-new-snapshot ul li:nth-child(2) {
 	border-right:1px dotted #ccc;
 }
 
-.new-snapshot.account ul li:nth-child(2) {
-	border-right: none;
-}
-
-.new-snapshot ul li span {
+.akismet-new-snapshot ul li span {
     color: #52accc;
 	display: block;
 	font-size: 32px;
@@ -286,76 +192,395 @@ h2.ak-header {
 	line-height: 1.5em;
 }
 
-.new-snapshot.stats {
-}
-
-.new-snapshot.account,
-.new-snapshot.settings {
-	float: left;
-	padding: 0;
-	text-align: left;
-	width: 50%;
-	box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	-webkit-box-sizing: border-box;
-	-ms-box-sizing: border-box;
-}
-
-.account-container {
-	background: #fff;
-	border: 1px solid #e5e5e5;
-	margin-right: 0.5em;
-}
-
-.settings-container {
-	background: #fff;
-	border: 1px solid #e5e5e5;
-	margin-left: 0.5em;
-}
-
-.new-snapshot.account ul li {
-	width:100%
-}
-
-.new-snapshot.account ul li span {
-	font-size: 14px;
-	font-weight: normal;
-}
-
-
-.new-snapshot.settings ul li {
-	border: none;
-	display: block;
-	width:100%
-}
-
-.new-snapshot.settings ul li span {
-	display: block;
-	font-size: 14px;
-	font-weight: normal;
-}
-
-.new-snapshot.settings p.submit {
-	margin: 0;
-	text-align: center;
-}
-
-.akismet-settings th.strictness {
+.akismet-settings th:first-child {
 	vertical-align: top;
 	padding-top: 15px;
+}
+
+.akismet-settings th.akismet-api-key {
+	vertical-align: middle;
+	padding-top: 0;
 }
 
 .akismet-settings input[type=text] {
 	width: 75%;
 }
 
-.akismet-settings span.note{
+.akismet-settings span.akismet-note{
 	float: left;
 	padding-left: 23px;
 	font-size: 75%;
 	margin-top: -10px;
 }
 
-.clearfix {
-	clear:both;
+/**
+ * For the activation notice on the plugins page.
+ */
+.akismet_activate {
+	min-width: 825px;
+	border: 1px solid #4F800D;
+	padding: 5px;
+	margin: 15px 0;
+	background: #83AF24;
+	background-image: -webkit-gradient(linear, 0% 0, 80% 100%, from(#83AF24), to(#4F800D));
+	background-image: -moz-linear-gradient(80% 100% 120deg, #4F800D, #83AF24);
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+	-webkit-border-radius: 3px;
+	position: relative;
+	overflow: hidden;
+}
+
+.akismet_activate .aa_a {
+	position: absolute;
+	top: -5px;
+	right: 10px;
+	font-size: 140px;
+	color: #769F33;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	z-index: 1;
+}
+
+.akismet_activate .aa_button {
+	font-weight: bold;
+	border: 1px solid #029DD6;
+	border-top: 1px solid #06B9FD;
+	font-size: 15px;
+	text-align: center;
+	padding: 9px 0 8px 0;
+	color: #FFF;
+	background: #029DD6;
+	background-image: -webkit-gradient(linear, 0% 0, 0% 100%, from(#029DD6), to(#0079B1));
+	background-image: -moz-linear-gradient(0% 100% 90deg, #0079B1, #029DD6);
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	-webkit-border-radius: 2px;
+	width: 100%;
+	cursor: pointer;
+	margin: 0;
+}
+
+.akismet_activate .aa_button:hover {
+	text-decoration: none !important;
+	border: 1px solid #029DD6;
+	border-bottom: 1px solid #00A8EF;
+	font-size: 15px;
+	text-align: center;
+	padding: 9px 0 8px 0;
+	color: #F0F8FB;
+	background: #0079B1;
+	background-image: -webkit-gradient(linear, 0% 0, 0% 100%, from(#0079B1), to(#0092BF));
+	background-image: -moz-linear-gradient(0% 100% 90deg, #0092BF, #0079B1);
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	-webkit-border-radius: 2px;
+}
+
+.akismet_activate .aa_button_border {
+	border: 1px solid #006699;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	-webkit-border-radius: 2px;
+	background: #029DD6;
+	background-image: -webkit-gradient(linear, 0% 0, 0% 100%, from(#029DD6), to(#0079B1));
+	background-image: -moz-linear-gradient(0% 100% 90deg, #0079B1, #029DD6);
+}
+
+.akismet_activate .aa_button_container {
+	display: inline-block;
+	background: #DEF1B8;
+	padding: 5px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	-webkit-border-radius: 2px;
+	width: 266px;
+}
+
+.akismet_activate .aa_description {
+	position: absolute;
+	top: 22px;
+	left: 285px;
+	margin-left: 25px;
+	color: #E5F2B1;
+	font-size: 15px;
+	z-index: 1000;
+}
+
+.akismet_activate .aa_description strong {
+	color: #FFF;
+	font-weight: normal;
+}
+
+.jetpack_page_akismet-key-config #wpcontent, .settings_page_akismet-key-config #wpcontent {
+	padding-left: 0;
+}
+
+.akismet-masthead {
+	background-color:#fff;
+	text-align:center;
+	box-shadow:0 1px 0 rgba(200,215,225,0.5),0 1px 2px #e9eff3
+}
+@media (max-width: 45rem) {
+	.akismet-masthead {
+		padding:0 1.25rem
+	}
+}
+
+.akismet-masthead__inside-container {
+	padding:.375rem 0;
+	margin:0 auto;
+	width:100%;
+	max-width:45rem;
+	text-align: left;
+}
+.akismet-masthead__logo-container {
+	padding:.3125rem 0 0
+}
+.akismet-masthead__logo {
+	width:10.375rem;
+	height:1.8125rem;
+}
+.akismet-masthead__logo-link {
+	display:inline-block;
+	outline:none;
+	vertical-align:middle
+}
+.akismet-masthead__logo-link:focus {
+	line-height:0;
+	box-shadow:0 0 0 2px #78dcfa
+}
+.akismet-masthead__logo-link+code {
+	margin:0 10px;
+	padding:5px 9px;
+	border-radius:2px;
+	background:#e6ecf1;
+	color:#647a88
+}
+.akismet-masthead__links {
+	display:-ms-flexbox;
+	display:flex;
+	-ms-flex-flow:row wrap;
+	flex-flow:row wrap;
+	-ms-flex:2 50%;
+	flex:2 50%;
+	-ms-flex-pack:end;
+	justify-content:flex-end;
+	margin:0
+}
+@media (max-width: 480px) {
+	.akismet-masthead__links {
+		padding-right:.625rem
+	}
+}
+.akismet-masthead__link-li {
+	margin:0;
+	padding:0
+}
+.akismet-masthead__link {
+	font-style:normal;
+	color:#0087be;
+	padding:.625rem;
+	display:inline-block
+}
+.akismet-masthead__link:visited {
+	color:#0087be
+}
+.akismet-masthead__link:active,.akismet-masthead__link:hover {
+	color:#00aadc
+}
+.akismet-masthead__link:hover {
+	text-decoration:underline
+}
+.akismet-masthead__link .dashicons {
+	display:none
+}
+@media (max-width: 480px) {
+	.akismet-masthead__link:hover,.akismet-masthead__link:active {
+		text-decoration:none
+	}
+	.akismet-masthead__link .dashicons {
+		display:block;
+		font-size:1.75rem
+	}
+	.akismet-masthead__link span+span {
+		display:none
+	}
+}
+.akismet-masthead__link-li:last-of-type .akismet-masthead__link {
+	padding-right:0
+}
+
+.akismet-lower {
+	margin: 0 auto;
+	text-align: left;
+	max-width: 45rem;
+	padding: 1.5rem;
+}
+
+.akismet-card {
+	margin-top: 1rem;
+	margin-bottom: 0;
+	position: relative;
+	margin: 0 auto 0.625rem auto;
+	box-sizing: border-box;
+	background: white;
+	box-shadow: 0 0 0 1px rgba(200, 215, 225, 0.5), 0 1px 2px #e9eff3;
+}
+
+.akismet-card:after, .akismet-card .inside:after, .akismet-masthead__logo-container:after {
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+
+.akismet-card .inside {
+	padding: 1.5rem;
+	padding-top: 1rem;
+}
+
+.akismet-card .akismet-card-actions {
+	margin-top: 1rem;
+}
+
+.jetpack_page_akismet-key-config .update-nag, .settings_page_akismet-key-config .update-nag {
+    display: none;
+}
+
+.akismet-masthead .akismet-right {
+	line-height: 2.125rem;
+	font-size: 0.9rem;
+}
+
+.akismet-box {
+	box-sizing: border-box;
+	background: white;
+	border: 1px solid rgba(200, 215, 225, 0.5);
+}
+
+.akismet-box h2, .akismet-box h3 {
+	padding: 1.5rem 1.5rem .5rem 1.5rem;
+	margin: 0;
+}
+
+.akismet-box p {
+	padding: 0 1.5rem 1.5rem 1.5rem;
+	margin: 0;
+}
+
+.akismet-jetpack-email {
+	font-style: oblique;
+}
+
+.akismet-jetpack-gravatar {
+	padding: 0 0 0 1.5rem;
+	float: left;
+	margin-right: 1rem;
+	width: 54px;
+	height: 54px;
+}
+	
+.akismet-box p:after {
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+
+.akismet-box .akismet-right {
+	padding-right: 1.5rem;
+}
+
+.akismet-boxes .akismet-box {
+	margin-bottom: 0;
+	padding: 0;
+	margin-top: -1px;
+}
+
+.akismet-boxes .akismet-box:last-child {
+	margin-bottom: 1.5rem;
+}
+
+.akismet-boxes .akismet-box:first-child {
+	margin-top: 1.5rem;
+}
+
+.akismet-button, .akismet-button:hover, .akismet-button:visited {
+	background: white;
+	border-color: #c8d7e1;
+	border-style: solid;
+	border-width: 1px 1px 2px;
+	color: #2e4453;
+	cursor: pointer;
+	display: inline-block;
+	margin: 0;
+	outline: 0;
+	overflow: hidden;
+	font-size: 14px;
+	font-weight: 500;
+	text-overflow: ellipsis;
+	text-decoration: none;
+	vertical-align: top;
+	box-sizing: border-box;
+	font-size: 14px;
+	line-height: 21px;
+	border-radius: 4px;
+	padding: 7px 14px 9px;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+
+.akismet-button:hover {
+	border-color: #a8bece;
+}
+
+.akismet-button:active {
+	border-width: 2px 1px 1px;
+}
+
+.akismet-is-primary, .akismet-is-primary:hover, .akismet-is-primary:visited {
+	background: #00aadc;
+	border-color: #0087be;
+	color: white;
+}
+
+.akismet-is-primary:hover, .akismet-is-primary:focus {
+    border-color: #005082;
+}
+
+.akismet-is-primary:hover {
+	border-color: #005082;
+}
+
+.akismet-section-header {
+	position: relative;
+	margin: 0 auto 0.625rem auto;
+	padding: 1rem;
+	box-sizing: border-box;
+	box-shadow: 0 0 0 1px rgba(200, 215, 225, 0.5), 0 1px 2px #e9eff3;
+	background: #ffffff;
+	width: 100%;
+	padding-top: 0.6875rem;
+	padding-bottom: 0.6875rem;
+	display: flex;
+}
+
+.akismet-section-header__label {
+	display: -ms-flexbox;
+	display: flex;
+	-ms-flex-align: center;
+	align-items: center;
+	-ms-flex-positive: 1;
+	flex-grow: 1;
+	line-height: 1.75rem;
+	position: relative;
+	font-size: 0.875rem;
+	color: #4f748e;
+}
+
+.akismet-section-header__actions {
+	line-height: 1.75rem;
 }

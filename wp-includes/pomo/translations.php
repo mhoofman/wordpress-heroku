@@ -2,14 +2,14 @@
 /**
  * Class for a set of entries for translation and their associated headers
  *
- * @version $Id: translations.php 718 2012-10-31 00:32:02Z nbachiyski $
+ * @version $Id: translations.php 1157 2015-11-20 04:30:11Z dd32 $
  * @package pomo
  * @subpackage translations
  */
 
 require_once dirname(__FILE__) . '/entry.php';
 
-if ( !class_exists( 'Translations' ) ):
+if ( ! class_exists( 'Translations', false ) ):
 class Translations {
 	var $entries = array();
 	var $headers = array();
@@ -102,7 +102,7 @@ class Translations {
 	 * Here, in the base Translations class, the common logic for English is implemented:
 	 * 	0 if there is one element, 1 otherwise
 	 *
-	 * This function should be overrided by the sub-classes. For example MO/PO can derive the logic
+	 * This function should be overridden by the sub-classes. For example MO/PO can derive the logic
 	 * from their headers.
 	 *
 	 * @param integer $count number of items
@@ -111,6 +111,9 @@ class Translations {
 		return 1 == $count? 0 : 1;
 	}
 
+	/**
+	 * @return int
+	 */
 	function get_plural_forms_count() {
 		return 2;
 	}
@@ -146,6 +149,9 @@ class Translations {
 		}
 	}
 
+	/**
+	 * @param object $other
+	 */
 	function merge_originals_with(&$other) {
 		foreach( $other->entries as $entry ) {
 			if ( !isset( $this->entries[$entry->key()] ) )
@@ -266,7 +272,7 @@ class Gettext_Translations extends Translations {
 }
 endif;
 
-if ( !class_exists( 'NOOP_Translations' ) ):
+if ( ! class_exists( 'NOOP_Translations', false ) ):
 /**
  * Provides the same interface as Translations, but doesn't do anything
  */
@@ -278,16 +284,33 @@ class NOOP_Translations {
 		return true;
 	}
 
+	/**
+	 *
+	 * @param string $header
+	 * @param string $value
+	 */
 	function set_header($header, $value) {
 	}
 
+	/**
+	 *
+	 * @param array $headers
+	 */
 	function set_headers($headers) {
 	}
 
+	/**
+	 * @param string $header
+	 * @return false
+	 */
 	function get_header($header) {
 		return false;
 	}
 
+	/**
+	 * @param Translation_Entry $entry
+	 * @return false
+	 */
 	function translate_entry(&$entry) {
 		return false;
 	}
@@ -300,10 +323,18 @@ class NOOP_Translations {
 		return $singular;
 	}
 
+	/**
+	 *
+	 * @param int $count
+	 * @return bool
+	 */
 	function select_plural_form($count) {
 		return 1 == $count? 0 : 1;
 	}
 
+	/**
+	 * @return int
+	 */
 	function get_plural_forms_count() {
 		return 2;
 	}
@@ -318,6 +349,9 @@ class NOOP_Translations {
 			return 1 == $count? $singular : $plural;
 	}
 
+	/**
+	 * @param object $other
+	 */
 	function merge_with(&$other) {
 	}
 }

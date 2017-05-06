@@ -10,7 +10,11 @@
 require_once( dirname( __FILE__ ) . '/admin.php' );
 
 if ( ! $typenow )
-	wp_die( __( 'Invalid post type' ) );
+	wp_die( __( 'Invalid post type.' ) );
+
+if ( ! in_array( $typenow, get_post_types( array( 'show_ui' => true ) ) ) ) {
+	wp_die( __( 'Sorry, you are not allowed to edit posts in this post type.' ) );
+}
 
 if ( 'attachment' === $typenow ) {
 	if ( wp_redirect( admin_url( 'upload.php' ) ) ) {
@@ -18,14 +22,25 @@ if ( 'attachment' === $typenow ) {
 	}
 }
 
+/**
+ * @global string       $post_type
+ * @global WP_Post_Type $post_type_object
+ */
+global $post_type, $post_type_object;
+
 $post_type = $typenow;
 $post_type_object = get_post_type_object( $post_type );
 
 if ( ! $post_type_object )
-	wp_die( __( 'Invalid post type' ) );
+	wp_die( __( 'Invalid post type.' ) );
 
-if ( ! current_user_can( $post_type_object->cap->edit_posts ) )
-	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+if ( ! current_user_can( $post_type_object->cap->edit_posts ) ) {
+	wp_die(
+		'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+		'<p>' . __( 'Sorry, you are not allowed to edit posts in this post type.' ) . '</p>',
+		403
+	);
+}
 
 $wp_list_table = _get_list_table('WP_Posts_List_Table');
 $pagenum = $wp_list_table->get_pagenum();
@@ -86,9 +101,9 @@ if ( $doaction ) {
 		case 'trash':
 			$trashed = $locked = 0;
 
-			foreach( (array) $post_ids as $post_id ) {
+			foreach ( (array) $post_ids as $post_id ) {
 				if ( !current_user_can( 'delete_post', $post_id) )
-					wp_die( __('You are not allowed to move this item to the Trash.') );
+					wp_die( __('Sorry, you are not allowed to move this item to the Trash.') );
 
 				if ( wp_check_post_lock( $post_id ) ) {
 					$locked++;
@@ -105,9 +120,9 @@ if ( $doaction ) {
 			break;
 		case 'untrash':
 			$untrashed = 0;
-			foreach( (array) $post_ids as $post_id ) {
+			foreach ( (array) $post_ids as $post_id ) {
 				if ( !current_user_can( 'delete_post', $post_id) )
-					wp_die( __('You are not allowed to restore this item from the Trash.') );
+					wp_die( __('Sorry, you are not allowed to restore this item from the Trash.') );
 
 				if ( !wp_untrash_post($post_id) )
 					wp_die( __('Error in restoring from Trash.') );
@@ -118,11 +133,11 @@ if ( $doaction ) {
 			break;
 		case 'delete':
 			$deleted = 0;
-			foreach( (array) $post_ids as $post_id ) {
+			foreach ( (array) $post_ids as $post_id ) {
 				$post_del = get_post($post_id);
 
 				if ( !current_user_can( 'delete_post', $post_id ) )
-					wp_die( __('You are not allowed to delete this item.') );
+					wp_die( __('Sorry, you are not allowed to delete this item.') );
 
 				if ( $post_del->post_type == 'attachment' ) {
 					if ( ! wp_delete_attachment($post_id) )
@@ -146,6 +161,10 @@ if ( $doaction ) {
 					$sendback = add_query_arg( $done, $sendback );
 				}
 			}
+			break;
+		default:
+			/** This action is documented in wp-admin/edit-comments.php */
+			$sendback = apply_filters( 'handle_bulk_actions-' . get_current_screen()->id, $sendback, $doaction, $post_ids );
 			break;
 	}
 
@@ -179,8 +198,8 @@ if ( 'post' == $post_type ) {
 		'<p>' . __('You can customize the display of this screen&#8217;s contents in a number of ways:') . '</p>' .
 		'<ul>' .
 			'<li>' . __('You can hide/display columns based on your needs and decide how many posts to list per screen using the Screen Options tab.') . '</li>' .
-			'<li>' . __('You can filter the list of posts by post status using the text links in the upper left to show All, Published, Draft, or Trashed posts. The default view is to show all posts.') . '</li>' .
-			'<li>' . __('You can view posts in a simple title list or with an excerpt. Choose the view you prefer by clicking on the icons at the top of the list on the right.') . '</li>' .
+			'<li>' . __( 'You can filter the list of posts by post status using the text links above the posts list to only show posts with that status. The default view is to show all posts.' ) . '</li>' .
+			'<li>' . __('You can view posts in a simple title list or with an excerpt using the Screen Options tab.') . '</li>' .
 			'<li>' . __('You can refine the list to show only posts in a specific category or from a specific month by using the dropdown menus above the posts list. Click the Filter button after making your selection. You also can refine the list by clicking on the post author, category or tag in the posts list.') . '</li>' .
 		'</ul>'
 	) );
@@ -206,8 +225,8 @@ if ( 'post' == $post_type ) {
 
 	get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Posts_Screen" target="_blank">Documentation on Managing Posts</a>') . '</p>' .
-	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://codex.wordpress.org/Posts_Screen">Documentation on Managing Posts</a>') . '</p>' .
+	'<p>' . __('<a href="https://wordpress.org/support/">Support Forums</a>') . '</p>'
 	);
 
 } elseif ( 'page' == $post_type ) {
@@ -227,12 +246,19 @@ if ( 'post' == $post_type ) {
 
 	get_current_screen()->set_help_sidebar(
 	'<p><strong>' . __('For more information:') . '</strong></p>' .
-	'<p>' . __('<a href="http://codex.wordpress.org/Pages_Screen" target="_blank">Documentation on Managing Pages</a>') . '</p>' .
-	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
+	'<p>' . __('<a href="https://codex.wordpress.org/Pages_Screen">Documentation on Managing Pages</a>') . '</p>' .
+	'<p>' . __('<a href="https://wordpress.org/support/">Support Forums</a>') . '</p>'
 	);
+
 }
 
-add_screen_option( 'per_page', array( 'label' => $title, 'default' => 20, 'option' => 'edit_' . $post_type . '_per_page' ) );
+get_current_screen()->set_screen_reader_content( array(
+	'heading_views'      => $post_type_object->labels->filter_items_list,
+	'heading_pagination' => $post_type_object->labels->items_list_navigation,
+	'heading_list'       => $post_type_object->labels->items_list,
+) );
+
+add_screen_option( 'per_page', array( 'default' => 20, 'option' => 'edit_' . $post_type . '_per_page' ) );
 
 $bulk_counts = array(
 	'updated'   => isset( $_REQUEST['updated'] )   ? absint( $_REQUEST['updated'] )   : 0,
@@ -245,21 +271,23 @@ $bulk_counts = array(
 $bulk_messages = array();
 $bulk_messages['post'] = array(
 	'updated'   => _n( '%s post updated.', '%s posts updated.', $bulk_counts['updated'] ),
-	'locked'    => _n( '%s post not updated, somebody is editing it.', '%s posts not updated, somebody is editing them.', $bulk_counts['locked'] ),
+	'locked'    => ( 1 == $bulk_counts['locked'] ) ? __( '1 post not updated, somebody is editing it.' ) :
+	                   _n( '%s post not updated, somebody is editing it.', '%s posts not updated, somebody is editing them.', $bulk_counts['locked'] ),
 	'deleted'   => _n( '%s post permanently deleted.', '%s posts permanently deleted.', $bulk_counts['deleted'] ),
 	'trashed'   => _n( '%s post moved to the Trash.', '%s posts moved to the Trash.', $bulk_counts['trashed'] ),
 	'untrashed' => _n( '%s post restored from the Trash.', '%s posts restored from the Trash.', $bulk_counts['untrashed'] ),
 );
 $bulk_messages['page'] = array(
 	'updated'   => _n( '%s page updated.', '%s pages updated.', $bulk_counts['updated'] ),
-	'locked'    => _n( '%s page not updated, somebody is editing it.', '%s pages not updated, somebody is editing them.', $bulk_counts['locked'] ),
+	'locked'    => ( 1 == $bulk_counts['locked'] ) ? __( '1 page not updated, somebody is editing it.' ) :
+	                   _n( '%s page not updated, somebody is editing it.', '%s pages not updated, somebody is editing them.', $bulk_counts['locked'] ),
 	'deleted'   => _n( '%s page permanently deleted.', '%s pages permanently deleted.', $bulk_counts['deleted'] ),
 	'trashed'   => _n( '%s page moved to the Trash.', '%s pages moved to the Trash.', $bulk_counts['trashed'] ),
 	'untrashed' => _n( '%s page restored from the Trash.', '%s pages restored from the Trash.', $bulk_counts['untrashed'] ),
 );
 
 /**
- * Filter the bulk action updated messages.
+ * Filters the bulk action updated messages.
  *
  * By default, custom post types use the messages for the 'post' post type.
  *
@@ -275,13 +303,22 @@ $bulk_counts = array_filter( $bulk_counts );
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
 ?>
 <div class="wrap">
-<h2><?php
+<h1 class="wp-heading-inline"><?php
 echo esc_html( $post_type_object->labels->name );
-if ( current_user_can( $post_type_object->cap->create_posts ) )
-	echo ' <a href="' . esc_url( admin_url( $post_new_file ) ) . '" class="add-new-h2">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
-if ( ! empty( $_REQUEST['s'] ) )
-	printf( ' <span class="subtitle">' . __('Search results for &#8220;%s&#8221;') . '</span>', get_search_query() );
-?></h2>
+?></h1>
+
+<?php
+if ( current_user_can( $post_type_object->cap->create_posts ) ) {
+	echo ' <a href="' . esc_url( admin_url( $post_new_file ) ) . '" class="page-title-action">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
+}
+
+if ( isset( $_REQUEST['s'] ) && strlen( $_REQUEST['s'] ) ) {
+	/* translators: %s: search keywords */
+	printf( ' <span class="subtitle">' . __( 'Search results for &#8220;%s&#8221;' ) . '</span>', get_search_query() );
+}
+?>
+
+<hr class="wp-header-end">
 
 <?php
 // If we have a bulk message to issue:
@@ -299,7 +336,7 @@ foreach ( $bulk_counts as $message => $count ) {
 }
 
 if ( $messages )
-	echo '<div id="message" class="updated"><p>' . join( ' ', $messages ) . '</p></div>';
+	echo '<div id="message" class="updated notice is-dismissible"><p>' . join( ' ', $messages ) . '</p></div>';
 unset( $messages );
 
 $_SERVER['REQUEST_URI'] = remove_query_arg( array( 'locked', 'skipped', 'updated', 'deleted', 'trashed', 'untrashed' ), $_SERVER['REQUEST_URI'] );
@@ -307,7 +344,7 @@ $_SERVER['REQUEST_URI'] = remove_query_arg( array( 'locked', 'skipped', 'updated
 
 <?php $wp_list_table->views(); ?>
 
-<form id="posts-filter" action="" method="get">
+<form id="posts-filter" method="get">
 
 <?php $wp_list_table->search_box( $post_type_object->labels->search_items, 'post' ); ?>
 

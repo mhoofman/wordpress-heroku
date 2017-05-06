@@ -15,7 +15,8 @@
 			$visualEditor = $(),
 			$textTop = $( '#ed_toolbar' ),
 			$textEditor = $( '#content' ),
-			$textEditorClone = $( '<div id="content-textarea-clone"></div>' ),
+			textEditor = $textEditor[0],
+			oldTextLength = 0,
 			$bottom = $( '#post-status-info' ),
 			$menuBar = $(),
 			$statusBar = $(),
@@ -52,15 +53,46 @@
 				sideSortablesHeight: 0
 			};
 
-		$textEditorClone.insertAfter( $textEditor );
+		var shrinkTextarea = window._.throttle( function() {
+			var x = window.scrollX || document.documentElement.scrollLeft;
+			var y = window.scrollY || document.documentElement.scrollTop;
+			var height = parseInt( textEditor.style.height, 10 );
 
-		$textEditorClone.css( {
-			'font-family': $textEditor.css( 'font-family' ),
-			'font-size': $textEditor.css( 'font-size' ),
-			'line-height': $textEditor.css( 'line-height' ),
-			'white-space': 'pre-wrap',
-			'word-wrap': 'break-word'
-		} );
+			textEditor.style.height = autoresizeMinHeight + 'px';
+
+			if ( textEditor.scrollHeight > autoresizeMinHeight ) {
+				textEditor.style.height = textEditor.scrollHeight + 'px';
+			}
+
+			if ( typeof x !== 'undefined' ) {
+				window.scrollTo( x, y );
+			}
+
+			if ( textEditor.scrollHeight < height ) {
+				adjust();
+			}
+		}, 300 );
+
+		function textEditorResize() {
+			var length = textEditor.value.length;
+
+			if ( mceEditor && ! mceEditor.isHidden() ) {
+				return;
+			}
+
+			if ( ! mceEditor && initialMode === 'tinymce' ) {
+				return;
+			}
+
+			if ( length < oldTextLength ) {
+				shrinkTextarea();
+			} else if ( parseInt( textEditor.style.height, 10 ) < textEditor.scrollHeight ) {
+				textEditor.style.height = Math.ceil( textEditor.scrollHeight ) + 'px';
+				adjust();
+			}
+
+			oldTextLength = length;
+		}
 
 		function getHeights() {
 			var windowWidth = $window.width();
@@ -82,70 +114,6 @@
 			if ( heights.menuBarHeight < 3 ) {
 				heights.menuBarHeight = 0;
 			}
-		}
-
-		function textEditorKeyup( event ) {
-			var VK = jQuery.ui.keyCode,
-				key = event.keyCode,
-				range = document.createRange(),
-				selStart = $textEditor[0].selectionStart,
-				selEnd = $textEditor[0].selectionEnd,
-				textNode = $textEditorClone[0].firstChild,
-				buffer = 10,
-				offset, cursorTop, cursorBottom, editorTop, editorBottom;
-
-			if ( selStart && selEnd && selStart !== selEnd ) {
-				return;
-			}
-
-			// These are not TinyMCE ranges.
-			try {
-				range.setStart( textNode, selStart );
-				range.setEnd( textNode, selEnd + 1 );
-			} catch ( ex ) {}
-
-			offset = range.getBoundingClientRect();
-
-			if ( ! offset.height ) {
-				return;
-			}
-
-			cursorTop = offset.top - buffer;
-			cursorBottom = cursorTop + offset.height + buffer;
-			editorTop = heights.adminBarHeight + heights.toolsHeight + heights.textTopHeight;
-			editorBottom = heights.windowHeight - heights.bottomHeight;
-
-			if ( cursorTop < editorTop && ( key === VK.UP || key === VK.LEFT || key === VK.BACKSPACE ) ) {
-				window.scrollTo( window.pageXOffset, cursorTop + window.pageYOffset - editorTop );
-			} else if ( cursorBottom > editorBottom ) {
-				window.scrollTo( window.pageXOffset, cursorBottom + window.pageYOffset - editorBottom );
-			}
-		}
-
-		function textEditorResize() {
-			if ( ( mceEditor && ! mceEditor.isHidden() ) || ( ! mceEditor && initialMode === 'tinymce' ) ) {
-				return;
-			}
-
-			var textEditorHeight = $textEditor.height(),
-				hiddenHeight;
-
-			$textEditorClone.width( $textEditor.width() - 22 );
-			$textEditorClone.text( $textEditor.val() + '&nbsp;' );
-
-			hiddenHeight = $textEditorClone.height();
-
-			if ( hiddenHeight < autoresizeMinHeight ) {
-				hiddenHeight = autoresizeMinHeight;
-			}
-
-			if ( hiddenHeight === textEditorHeight ) {
-				return;
-			}
-
-			$textEditor.height( hiddenHeight );
-
-			adjust();
 		}
 
 		// We need to wait for TinyMCE to initialize.
@@ -177,7 +145,7 @@
 				var node = editor.selection.getNode(),
 					range, view, offset;
 
-				if ( editor.plugins.wpview && ( view = editor.plugins.wpview.getView( node ) ) ) {
+				if ( editor.wp && editor.wp.getView && ( view = editor.wp.getView( node ) ) ) {
 					offset = view.getBoundingClientRect();
 				} else {
 					range = editor.selection.getRng();
@@ -323,7 +291,7 @@
 			var windowPos = $window.scrollTop(),
 				type = event && event.type,
 				resize = type !== 'scroll',
-				visual = ( mceEditor && ! mceEditor.isHidden() ),
+				visual = mceEditor && ! mceEditor.isHidden(),
 				buffer = autoresizeMinHeight,
 				postBodyTop = $postBody.offset().top,
 				borderWidth = 1,
@@ -348,6 +316,11 @@
 				$top = $textTop;
 				$editor = $textEditor;
 				topHeight = heights.textTopHeight;
+			}
+
+			// TinyMCE still initializing.
+			if ( ! visual && ! $top.length ) {
+				return;
 			}
 
 			topPos = $top.parent().offset().top;
@@ -380,7 +353,8 @@
 						width: contentWrapWidth - ( borderWidth * 2 ) - ( visual ? 0 : ( $top.outerWidth() - $top.width() ) )
 					} );
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			} else {
 				// Maybe pin the top.
@@ -468,7 +442,7 @@
 
 					if ( event && event.deltaHeight > 0 && event.deltaHeight < 100 ) {
 						window.scrollBy( 0, event.deltaHeight );
-					} else if ( advanced ) {
+					} else if ( visual && advanced ) {
 						fixedBottom = true;
 
 						$statusBar.css( {
@@ -489,11 +463,8 @@
 						( windowPos + heights.windowHeight ) > ( editorPos + editorHeight + heights.bottomHeight + heights.statusBarHeight - borderWidth ) ) ) {
 					fixedBottom = false;
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
-
-					if ( ! advanced ) {
-						$statusBar.css( 'visibility', 'hidden' );
-					}
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			}
 
@@ -600,8 +571,6 @@
 					$textEditor.css( {
 						marginTop: heights.textTopHeight
 					} );
-
-					$textEditorClone.width( contentWrapWidth - 20 - ( borderWidth * 2 ) );
 				}
 			}
 		}
@@ -639,7 +608,7 @@
 
 			// Adjust when collapsing the menu, changing the columns, changing the body class.
 			$document.on( 'wp-collapse-menu.editor-expand postboxes-columnchange.editor-expand editor-classchange.editor-expand', adjust )
-				.on( 'postbox-toggled.editor-expand', function() {
+				.on( 'postbox-toggled.editor-expand postbox-moved.editor-expand', function() {
 					if ( ! fixedSideTop && ! fixedSideBottom && window.pageYOffset > pinnedToolsTop ) {
 						fixedSideBottom = true;
 						window.scrollBy( 0, -1 );
@@ -657,7 +626,6 @@
 				});
 
 			$textEditor.on( 'focus.editor-expand input.editor-expand propertychange.editor-expand', textEditorResize );
-			$textEditor.on( 'keyup.editor-expand', textEditorKeyup );
 			mceBind();
 
 			// Adjust when entering/exiting fullscreen mode.
@@ -682,7 +650,13 @@
 		}
 
 		function off() {
-			var height = window.getUserSetting('ed_size');
+			var height = parseInt( window.getUserSetting( 'ed_size', 300 ), 10 );
+
+			if ( height < 50 ) {
+				height = 50;
+			} else if ( height > 5000 ) {
+				height = 5000;
+			}
 
 			// Scroll to the top when triggering this from JS.
 			// Ensures toolbars are reset properly.
@@ -878,10 +852,15 @@
 		}
 
 		function fadeOut( event ) {
-			var key = event && event.keyCode;
+			var isMac,
+				key = event && event.keyCode;
 
-			// fadeIn and return on Escape and keyboard shortcut Alt+Shift+W.
-			if ( key === 27 || ( key === 87 && event.altKey && event.shiftKey ) ) {
+			if ( window.navigator.platform ) {
+				isMac = ( window.navigator.platform.indexOf( 'Mac' ) > -1 );
+			}
+
+			// fadeIn and return on Escape and keyboard shortcut Alt+Shift+W and Ctrl+Opt+W.
+			if ( key === 27 || ( key === 87 && event.altKey && ( ( ! isMac && event.shiftKey ) || ( isMac && event.ctrlKey ) ) ) ) {
 				fadeIn( event );
 				return;
 			}
@@ -1134,7 +1113,7 @@
 			} );
 
 			editor.addCommand( 'wpToggleDFW', toggle );
-			editor.addShortcut( 'alt+shift+w', '', 'wpToggleDFW' );
+			editor.addShortcut( 'access+w', '', 'wpToggleDFW' );
 		} );
 
 		$document.on( 'tinymce-editor-init.focus', function( event, editor ) {
@@ -1175,7 +1154,7 @@
 				$document.on( 'dfw-on.focus', mceBind ).on( 'dfw-off.focus', mceUnbind );
 
 				// Make sure the body focuses when clicking outside it.
-				editor.on( 'click', function( event ) {
+				editor.on( 'click', function( event ) {
 					if ( event.target === editor.getDoc().documentElement ) {
 						editor.focus();
 					}

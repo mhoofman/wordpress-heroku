@@ -1,9 +1,10 @@
 <?php
 /**
- * Includes all of the WordPress Administration API files.
+ * Core Administration API
  *
  * @package WordPress
  * @subpackage Administration
+ * @since 2.3.0
  */
 
 if ( ! defined('WP_ADMIN') ) {
@@ -14,6 +15,9 @@ if ( ! defined('WP_ADMIN') ) {
 	 */
 	load_textdomain( 'default', WP_LANG_DIR . '/admin-' . get_locale() . '.mo' );
 }
+
+/** WordPress Administration Hooks */
+require_once(ABSPATH . 'wp-admin/includes/admin-filters.php');
 
 /** WordPress Bookmark Administration API */
 require_once(ABSPATH . 'wp-admin/includes/bookmark.php');
@@ -36,6 +40,9 @@ require_once(ABSPATH . 'wp-admin/includes/import.php');
 /** WordPress Misc Administration API */
 require_once(ABSPATH . 'wp-admin/includes/misc.php');
 
+/** WordPress Options Administration API */
+require_once(ABSPATH . 'wp-admin/includes/options.php');
+
 /** WordPress Plugin Administration API */
 require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
@@ -43,6 +50,7 @@ require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 require_once(ABSPATH . 'wp-admin/includes/post.php');
 
 /** WordPress Administration Screen API */
+require_once(ABSPATH . 'wp-admin/includes/class-wp-screen.php');
 require_once(ABSPATH . 'wp-admin/includes/screen.php');
 
 /** WordPress Taxonomy Administration API */
@@ -53,6 +61,7 @@ require_once(ABSPATH . 'wp-admin/includes/template.php');
 
 /** WordPress List Table Administration API and base class */
 require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
+require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table-compat.php');
 require_once(ABSPATH . 'wp-admin/includes/list-table.php');
 
 /** WordPress Theme Administration API */
@@ -60,6 +69,9 @@ require_once(ABSPATH . 'wp-admin/includes/theme.php');
 
 /** WordPress User Administration API */
 require_once(ABSPATH . 'wp-admin/includes/user.php');
+
+/** WordPress Site Icon API */
+require_once(ABSPATH . 'wp-admin/includes/class-wp-site-icon.php');
 
 /** WordPress Update Administration API */
 require_once(ABSPATH . 'wp-admin/includes/update.php');
@@ -69,6 +81,7 @@ require_once(ABSPATH . 'wp-admin/includes/deprecated.php');
 
 /** WordPress Multisite support API */
 if ( is_multisite() ) {
+	require_once(ABSPATH . 'wp-admin/includes/ms-admin-filters.php');
 	require_once(ABSPATH . 'wp-admin/includes/ms.php');
 	require_once(ABSPATH . 'wp-admin/includes/ms-deprecated.php');
 }

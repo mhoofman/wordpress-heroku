@@ -2,7 +2,7 @@
 /**
  * Class for working with MO files
  *
- * @version $Id: mo.php 718 2012-10-31 00:32:02Z nbachiyski $
+ * @version $Id: mo.php 1157 2015-11-20 04:30:11Z dd32 $
  * @package pomo
  * @subpackage mo
  */
@@ -10,10 +10,26 @@
 require_once dirname(__FILE__) . '/translations.php';
 require_once dirname(__FILE__) . '/streams.php';
 
-if ( !class_exists( 'MO' ) ):
+if ( ! class_exists( 'MO', false ) ):
 class MO extends Gettext_Translations {
 
 	var $_nplurals = 2;
+
+	/**
+	 * Loaded MO file.
+	 *
+	 * @var string
+	 */
+	private $filename = '';
+
+	/**
+	 * Returns the loaded MO file.
+	 *
+	 * @return string The loaded MO file.
+	 */
+	public function get_filename() {
+		return $this->filename;
+	}
 
 	/**
 	 * Fills up with the entries from MO file $filename
@@ -21,12 +37,21 @@ class MO extends Gettext_Translations {
 	 * @param string $filename MO file to load
 	 */
 	function import_from_file($filename) {
-		$reader = new POMO_FileReader($filename);
-		if (!$reader->is_resource())
+		$reader = new POMO_FileReader( $filename );
+
+		if ( ! $reader->is_resource() ) {
 			return false;
-		return $this->import_from_reader($reader);
+		}
+
+		$this->filename = (string) $filename;
+
+		return $this->import_from_reader( $reader );
 	}
 
+	/**
+	 * @param string $filename
+	 * @return bool
+	 */
 	function export_to_file($filename) {
 		$fh = fopen($filename, 'wb');
 		if ( !$fh ) return false;
@@ -35,6 +60,9 @@ class MO extends Gettext_Translations {
 		return $res;
 	}
 
+	/**
+	 * @return string|false
+	 */
 	function export() {
 		$tmp_fh = fopen("php://temp", 'r+');
 		if ( !$tmp_fh ) return false;
@@ -43,6 +71,10 @@ class MO extends Gettext_Translations {
 		return stream_get_contents( $tmp_fh );
 	}
 
+	/**
+	 * @param Translation_Entry $entry
+	 * @return bool
+	 */
 	function is_entry_good_for_export( $entry ) {
 		if ( empty( $entry->translations ) ) {
 			return false;
@@ -55,6 +87,10 @@ class MO extends Gettext_Translations {
 		return true;
 	}
 
+	/**
+	 * @param resource $fh
+	 * @return true
+	 */
 	function export_to_file_handle($fh) {
 		$entries = array_filter( $this->entries, array( $this, 'is_entry_good_for_export' ) );
 		ksort($entries);
@@ -101,19 +137,30 @@ class MO extends Gettext_Translations {
 		return true;
 	}
 
+	/**
+	 * @param Translation_Entry $entry
+	 * @return string
+	 */
 	function export_original($entry) {
 		//TODO: warnings for control characters
 		$exported = $entry->singular;
 		if ($entry->is_plural) $exported .= chr(0).$entry->plural;
-		if (!is_null($entry->context)) $exported = $entry->context . chr(4) . $exported;
+		if ($entry->context) $exported = $entry->context . chr(4) . $exported;
 		return $exported;
 	}
 
+	/**
+	 * @param Translation_Entry $entry
+	 * @return string
+	 */
 	function export_translations($entry) {
 		//TODO: warnings for control characters
-		return implode(chr(0), $entry->translations);
+		return $entry->is_plural ? implode(chr(0), $entry->translations) : $entry->translations[0];
 	}
 
+	/**
+	 * @return string
+	 */
 	function export_headers() {
 		$exported = '';
 		foreach($this->headers as $header => $value) {
@@ -122,6 +169,10 @@ class MO extends Gettext_Translations {
 		return $exported;
 	}
 
+	/**
+	 * @param int $magic
+	 * @return string|false
+	 */
 	function get_byteorder($magic) {
 		// The magic is 0x950412de
 
@@ -254,10 +305,17 @@ class MO extends Gettext_Translations {
 		return $entry;
 	}
 
+	/**
+	 * @param int $count
+	 * @return string
+	 */
 	function select_plural_form($count) {
 		return $this->gettext_select_plural_form($count);
 	}
 
+	/**
+	 * @return int
+	 */
 	function get_plural_forms_count() {
 		return $this->_nplurals;
 	}

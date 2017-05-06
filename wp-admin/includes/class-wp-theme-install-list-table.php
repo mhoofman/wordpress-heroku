@@ -1,20 +1,40 @@
 <?php
 /**
- * Theme Installer List Table class.
+ * List Table API: WP_Theme_Install_List_Table class
  *
  * @package WordPress
- * @subpackage List_Table
+ * @subpackage Administration
+ * @since 3.1.0
+ */
+
+/**
+ * Core class used to implement displaying themes to install in a list table.
+ *
  * @since 3.1.0
  * @access private
+ *
+ * @see WP_Themes_List_Table
  */
 class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 
 	public $features = array();
 
+	/**
+	 *
+	 * @return bool
+	 */
 	public function ajax_user_can() {
 		return current_user_can( 'install_themes' );
 	}
 
+	/**
+	 *
+	 * @global array  $tabs
+	 * @global string $tab
+	 * @global int    $paged
+	 * @global string $type
+	 * @global array  $theme_field_defaults
+	 */
 	public function prepare_items() {
 		include( ABSPATH . 'wp-admin/includes/theme-install.php' );
 
@@ -38,7 +58,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		// These are the tabs which are shown on the page,
 		$tabs = array();
 		$tabs['dashboard'] = __( 'Search' );
-		if ( 'search' == $tab )
+		if ( 'search' === $tab )
 			$tabs['search']	= __( 'Search Results' );
 		$tabs['upload'] = __( 'Upload' );
 		$tabs['featured'] = _x( 'Featured', 'themes' );
@@ -52,7 +72,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		$tabs = apply_filters( 'install_themes_tabs', $tabs );
 
 		/**
-		 * Filter tabs not associated with a menu item on the Install Themes screen.
+		 * Filters tabs not associated with a menu item on the Install Themes screen.
 		 *
 		 * @since 2.8.0
 		 *
@@ -104,7 +124,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		}
 
 		/**
-		 * Filter API request arguments for each Install Themes screen tab.
+		 * Filters API request arguments for each Install Themes screen tab.
 		 *
 		 * The dynamic portion of the hook name, `$tab`, refers to the theme install
 		 * tabs. Default tabs are 'dashboard', 'search', 'upload', 'featured',
@@ -114,7 +134,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		 *
 		 * @param array $args An array of themes API arguments.
 		 */
-		$args = apply_filters( 'install_themes_table_api_args_' . $tab, $args );
+		$args = apply_filters( "install_themes_table_api_args_{$tab}", $args );
 
 		if ( ! $args )
 			return;
@@ -133,16 +153,25 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		) );
 	}
 
+	/**
+	 * @access public
+	 */
 	public function no_items() {
 		_e( 'No themes match your request.' );
 	}
 
+	/**
+	 *
+	 * @global array $tabs
+	 * @global string $tab
+	 * @return array
+	 */
 	protected function get_views() {
 		global $tabs, $tab;
 
 		$display_tabs = array();
 		foreach ( (array) $tabs as $action => $text ) {
-			$class = ( $action == $tab ) ? ' class="current"' : '';
+			$class = ( $action === $tab ) ? ' class="current"' : '';
 			$href = self_admin_url('theme-install.php?tab=' . $action);
 			$display_tabs['theme-install-'.$action] = "<a href='$href'$class>$text</a>";
 		}
@@ -150,6 +179,9 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		return $display_tabs;
 	}
 
+	/**
+	 * @access public
+	 */
 	public function display() {
 		wp_nonce_field( "fetch-list-" . get_class( $this ), '_ajax_fetch_list_nonce' );
 ?>
@@ -173,9 +205,12 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		</div>
 
 		<?php
-		parent::tablenav( 'bottom' );
+		$this->tablenav( 'bottom' );
 	}
 
+	/**
+	 * @access public
+	 */
 	public function display_rows() {
 		$themes = $this->items;
 		foreach ( $themes as $theme ) {
@@ -191,21 +226,26 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 	/**
 	 * Prints a theme from the WordPress.org API.
 	 *
-	 * @param object $theme An object that contains theme data returned by the WordPress.org API.
+	 * @since 3.1.0
+	 * @access public
 	 *
-	 * Example theme data:
-	 *   object(stdClass)[59]
-	 *     public 'name' => string 'Magazine Basic'
-	 *     public 'slug' => string 'magazine-basic'
-	 *     public 'version' => string '1.1'
-	 *     public 'author' => string 'tinkerpriest'
-	 *     public 'preview_url' => string 'http://wp-themes.com/?magazine-basic'
-	 *     public 'screenshot_url' => string 'http://wp-themes.com/wp-content/themes/magazine-basic/screenshot.png'
-	 *     public 'rating' => float 80
-	 *     public 'num_ratings' => int 1
-	 *     public 'homepage' => string 'http://wordpress.org/themes/magazine-basic'
-	 *     public 'description' => string 'A basic magazine style layout with a fully customizable layout through a backend interface. Designed by <a href="http://bavotasan.com">c.bavota</a> of <a href="http://tinkerpriestmedia.com">Tinker Priest Media</a>.'
-	 *     public 'download_link' => string 'http://wordpress.org/themes/download/magazine-basic.1.1.zip'
+	 * @global array $themes_allowedtags
+	 *
+	 * @param object $theme {
+	 *     An object that contains theme data returned by the WordPress.org API.
+	 *
+	 *     @type string $name           Theme name, e.g. 'Twenty Seventeen'.
+	 *     @type string $slug           Theme slug, e.g. 'twentyseventeen'.
+	 *     @type string $version        Theme version, e.g. '1.1'.
+	 *     @type string $author         Theme author username, e.g. 'melchoyce'.
+	 *     @type string $preview_url    Preview URL, e.g. 'http://2017.wordpress.net/'.
+	 *     @type string $screenshot_url Screenshot URL, e.g. 'https://wordpress.org/themes/twentyseventeen/'.
+	 *     @type float  $rating         Rating score.
+	 *     @type int    $num_ratings    The number of ratings.
+	 *     @type string $homepage       Theme homepage, e.g. 'https://wordpress.org/themes/twentyseventeen/'.
+	 *     @type string $description    Theme description.
+	 *     @type string $download_link  Theme ZIP download URL.
+	 * }
 	 */
 	public function single_row( $theme ) {
 		global $themes_allowedtags;
@@ -253,7 +293,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		$actions[] = '<a class="install-theme-preview" href="' . esc_url( $preview_url ) . '" title="' . esc_attr( sprintf( __( 'Preview %s' ), $name ) ) . '">' . __( 'Preview' ) . '</a>';
 
 		/**
-		 * Filter the install action links for a theme in the Install Themes list table.
+		 * Filters the install action links for a theme in the Install Themes list table.
 		 *
 		 * @since 3.4.0
 		 *
@@ -265,7 +305,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 
 		?>
 		<a class="screenshot install-theme-preview" href="<?php echo esc_url( $preview_url ); ?>" title="<?php echo esc_attr( $preview_title ); ?>">
-			<img src="<?php echo esc_url( $theme->screenshot_url ); ?>" width="150" />
+			<img src="<?php echo esc_url( $theme->screenshot_url ); ?>" width="150" alt="" />
 		</a>
 
 		<h3><?php echo $name; ?></h3>
@@ -292,17 +332,17 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		<div id="theme-installer" class="wp-full-overlay expanded">
 			<div class="wp-full-overlay-sidebar">
 				<div class="wp-full-overlay-header">
-					<a href="#" class="close-full-overlay button-secondary"><?php _e( 'Close' ); ?></a>
+					<a href="#" class="close-full-overlay button"><?php _e( 'Close' ); ?></a>
 					<span class="theme-install"></span>
 				</div>
 				<div class="wp-full-overlay-sidebar-content">
 					<div class="install-theme-info"></div>
 				</div>
 				<div class="wp-full-overlay-footer">
-					<a href="#" class="collapse-sidebar" title="<?php esc_attr_e('Collapse Sidebar'); ?>">
-						<span class="collapse-sidebar-label"><?php _e('Collapse'); ?></span>
+					<button type="button" class="collapse-sidebar button" aria-expanded="true" aria-label="<?php esc_attr_e( 'Collapse Sidebar' ); ?>">
 						<span class="collapse-sidebar-arrow"></span>
-					</a>
+						<span class="collapse-sidebar-label"><?php _e( 'Collapse' ); ?></span>
+					</button>
 				</div>
 			</div>
 			<div class="wp-full-overlay-main"></div>
@@ -332,6 +372,8 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 	/**
 	 * Prints the info for a theme (to be used in the theme installer modal).
 	 *
+	 * @global array $themes_allowedtags
+	 *
 	 * @param object $theme - A WordPress.org Theme API object.
 	 */
 	public function install_theme_info( $theme ) {
@@ -359,7 +401,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		<div class="install-theme-info"><?php
 			switch ( $status ) {
 				case 'update_available':
-					echo '<a class="theme-install button-primary" href="' . esc_url( wp_nonce_url( $update_url, 'upgrade-theme_' . $theme->slug ) ) . '" title="' . esc_attr( sprintf( __( 'Update to version %s' ), $theme->version ) ) . '">' . __( 'Update' ) . '</a>';
+					echo '<a class="theme-install button button-primary" href="' . esc_url( wp_nonce_url( $update_url, 'upgrade-theme_' . $theme->slug ) ) . '" title="' . esc_attr( sprintf( __( 'Update to version %s' ), $theme->version ) ) . '">' . __( 'Update' ) . '</a>';
 					break;
 				case 'newer_installed':
 				case 'latest_installed':
@@ -367,13 +409,13 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 					break;
 				case 'install':
 				default:
-					echo '<a class="theme-install button-primary" href="' . esc_url( wp_nonce_url( $install_url, 'install-theme_' . $theme->slug ) ) . '">' . __( 'Install' ) . '</a>';
+					echo '<a class="theme-install button button-primary" href="' . esc_url( wp_nonce_url( $install_url, 'install-theme_' . $theme->slug ) ) . '">' . __( 'Install' ) . '</a>';
 					break;
 			} ?>
 			<h3 class="theme-name"><?php echo $name; ?></h3>
 			<span class="theme-by"><?php printf( __( 'By %s' ), $author ); ?></span>
 			<?php if ( isset( $theme->screenshot_url ) ): ?>
-				<img class="theme-screenshot" src="<?php echo esc_url( $theme->screenshot_url ); ?>" />
+				<img class="theme-screenshot" src="<?php echo esc_url( $theme->screenshot_url ); ?>" alt="" />
 			<?php endif; ?>
 			<div class="theme-details">
 				<?php wp_star_rating( array( 'rating' => $theme->rating, 'type' => 'percent', 'number' => $theme->num_ratings ) ); ?>
@@ -396,8 +438,10 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 	 * @since 3.4.0
 	 * @access public
 	 *
-	 * @uses $tab Global; current tab within Themes->Install screen
-	 * @uses $type Global; type of search.
+	 * @global string $tab  Current tab within Themes->Install screen
+	 * @global string $type Type of search.
+	 *
+	 * @param array $extra_args Unused.
 	 */
 	public function _js_vars( $extra_args = array() ) {
 		global $tab, $type;

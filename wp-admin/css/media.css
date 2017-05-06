@@ -5,7 +5,7 @@
 .media-item .describe {
 	border-collapse: collapse;
 	width: 100%;
-	border-top: 1px solid #dfdfdf;
+	border-top: 1px solid #ddd;
 	clear: both;
 	cursor: default;
 }
@@ -124,8 +124,8 @@
 
 .media-upload-form .media-item,
 .media-upload-form .media-item .error {
-	-webkit-box-shadow: 0 1px 0 #dfdfdf;
-	box-shadow: 0 1px 0 #dfdfdf;
+	-webkit-box-shadow: 0 1px 0 #ddd;
+	box-shadow: 0 1px 0 #ddd;
 }
 
 #media-items:empty {
@@ -177,7 +177,7 @@
 	margin-top: -22px;
 	-webkit-border-radius: 22px;
 	border-radius: 22px;
-	background-color: #0074a2;
+	background-color: #0073aa;
 	-webkit-box-shadow: inset 0 0 2px rgba(0,0,0,0.3);
 	box-shadow: inset 0 0 2px rgba(0,0,0,0.3);
 }
@@ -242,7 +242,7 @@
 
 .find-box-head {
 	background: #fcfcfc;
-	border-bottom: 1px solid #dfdfdf;
+	border-bottom: 1px solid #ddd;
 	height: 36px;
 	font-size: 18px;
 	font-weight: 600;
@@ -274,9 +274,8 @@
 
 .find-box-search .spinner {
 	float: none;
-	left: 110px;
+	left: 105px;
 	position: absolute;
-	top: 2px;
 }
 
 .find-box-search,
@@ -303,31 +302,45 @@
 #find-posts-close {
 	width: 36px;
 	height: 36px;
+	border: none;
+	padding: 0;
 	position: absolute;
 	top: 0;
 	right: 0;
 	cursor: pointer;
 	text-align: center;
+	background: none;
 	color: #666;
 }
 
-#find-posts-close:hover {
-	color: #2ea2cc;
+#find-posts-close:hover,
+#find-posts-close:focus {
+	color: #00a0d2;
+}
+
+#find-posts-close:focus {
+	outline: none;
+	-webkit-box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+	box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
 #find-posts-close:before {
-	font: normal 20px/36px 'dashicons';
+	font: normal 20px/36px dashicons;
 	vertical-align: top;
 	speak: none;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	content: '\f158';
+	content: "\f158";
 }
 
 .find-box-buttons {
 	padding: 8px 16px;
 	background: #fcfcfc;
-	border-top: 1px solid #dfdfdf;
+	border-top: 1px solid #ddd;
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -385,12 +398,10 @@ form.upgrade .hint {
 	border: 1px solid #ddd;
 	line-height: 1.8em;
 	word-spacing: 3px;
-	-webkit-border-radius: 6px;
-	border-radius: 6px;
 }
 
 .drag-drop #drag-drop-area {
-	border: 4px dashed #bbb;
+	border: 4px dashed #b4b9be;
 	height: 200px;
 }
 
@@ -400,7 +411,7 @@ form.upgrade .hint {
 }
 
 .drag-drop-inside p {
-	color: #aaa;
+	color: #a0a5aa;
 	font-size: 14px;
 	margin: 5px 0;
 	display: none;
@@ -460,8 +471,10 @@ border color while dragging a file over the uploader drop area */
 	width: auto;
 	margin-bottom: 16px;
 	padding: 0 16px;
-	border: 1px solid #c00;
-	background-color: #feebe8;
+	border-left: 4px solid #dd3d36;
+ 	-webkit-box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+ 	box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+	background-color: #fff;
 }
 
 .upload-php .mode-grid .hide-sidebar .media-sidebar {
@@ -475,30 +488,34 @@ border color while dragging a file over the uploader drop area */
 }
 
 .upload-php .mode-grid .media-sidebar .upload-error {
-	margin: 20px 0;
-	padding: 0;
+	margin: 12px 0;
+	padding: 4px 0 0;
 	border: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
 	background: none;
 }
 
 .upload-php .mode-grid .media-sidebar .media-uploader-status .upload-dismiss-errors {
-	font-size: 0;
-	top: -12px;
-	right: -10px;
+	top: -10px;
+	right: -14px;
+	padding: 10px;
 }
 
 .upload-php .mode-grid .media-sidebar .media-uploader-status .upload-dismiss-errors:before {
-	content: "\f158";
-	font: normal 20px/1 dashicons;
-	color: #666;
+	content: "\f153";
+	display: block;
+	font: normal 16px/1 dashicons;
+	color: #b4b9be;
 }
 
 .upload-php .mode-grid .media-sidebar .media-uploader-status .upload-dismiss-errors:focus:before,
 .upload-php .mode-grid .media-sidebar .media-uploader-status .upload-dismiss-errors:hover:before {
-	color: #2ea2cc;
+	color: #c00;
 }
 
-.upload-php .mode-grid .media-sidebar .media-uploader-status.errors h3 {
+.upload-php .mode-grid .media-sidebar .media-uploader-status.errors h3, /* Back-compat for pre-4.4 */
+.upload-php .mode-grid .media-sidebar .media-uploader-status.errors h2 {
 	display: none;
 }
 
@@ -510,7 +527,7 @@ border color while dragging a file over the uploader drop area */
 	bottom: auto;
 	padding-top: 0;
 	margin-top: 0;
-	border: 4px dashed #bbb;
+	border: 4px dashed #b4b9be;
 }
 
 .media-frame.mode-select .attachments-browser.fixed .attachments {
@@ -567,9 +584,9 @@ border color while dragging a file over the uploader drop area */
 	font-size: 14px;
 }
 
-.media-frame.mode-grid .media-toolbar-secondary > .media-button {
-	margin-top: 10px;
-	margin-bottom: 10px;
+.media-frame.mode-grid.mode-edit .media-toolbar-secondary > .select-mode-toggle-button {
+	margin: 0 8px 0 0;
+	vertical-align: middle;
 }
 
 .media-frame.mode-grid .attachments-browser .bulk-select {
@@ -582,7 +599,7 @@ border color while dragging a file over the uploader drop area */
 }
 
 .media-frame.mode-grid .spinner {
-	margin-top: 15px;
+	margin-top: 16px;
 }
 
 .attachments-browser .media-toolbar-secondary > .media-button {
@@ -606,7 +623,7 @@ border color while dragging a file over the uploader drop area */
 }
 
 .media-frame.mode-grid .attachments-browser .no-media {
-	color: #999;
+	color: #666; /* same as no plugins and no themes */
 	font-size: 18px;
 	font-style: normal;
 	margin: 0;
@@ -629,20 +646,15 @@ border color while dragging a file over the uploader drop area */
 }
 
 .upload-php .media-modal-close .media-modal-icon:before {
-	content: '\f335';
+	content: "\f335";
 	font-size: 22px;
-}
-
-.upload-php .media-modal-close .media-modal-icon {
-	margin: 14px;
-	width: 22px;
 }
 
 .upload-php .media-modal-close,
 .edit-attachment-frame .edit-media-header .left,
 .edit-attachment-frame .edit-media-header .right {
 	cursor: pointer;
-	color: #777;
+	color: #72777c;
 	background-color: transparent;
 	height: 50px;
 	width: 50px;
@@ -652,7 +664,7 @@ border color while dragging a file over the uploader drop area */
 	border: 0;
 	border-left: 1px solid #ddd;
 	-webkit-transition: color .1s ease-in-out, background .1s ease-in-out;
-    transition: color .1s ease-in-out, background .1s ease-in-out;
+	transition: color .1s ease-in-out, background .1s ease-in-out;
 }
 
 .upload-php .media-modal-close {
@@ -675,7 +687,7 @@ border color while dragging a file over the uploader drop area */
 
 .edit-attachment-frame .edit-media-header .right:before,
 .edit-attachment-frame .edit-media-header .left:before {
-	font: normal 20px/50px 'dashicons' !important;
+	font: normal 20px/50px dashicons !important;
 	display: inline;
 	font-weight: 300;
 }
@@ -690,6 +702,8 @@ border color while dragging a file over the uploader drop area */
 	border-color: #ccc;
 	color: #000;
 	outline: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
 }
 
 .upload-php .media-modal-close:focus .media-modal-icon:before,
@@ -699,12 +713,12 @@ border color while dragging a file over the uploader drop area */
 
 .edit-attachment-frame .edit-media-header .left:before,
 .rtl .edit-attachment-frame .edit-media-header .right:before {
-	content: '\f341';
+	content: "\f341";
 }
 
 .edit-attachment-frame .edit-media-header .right:before,
 .rtl .edit-attachment-frame .edit-media-header .left:before {
-	content: '\f345';
+	content: "\f345";
 }
 
 .edit-attachment-frame .edit-media-header .left.disabled,
@@ -755,11 +769,15 @@ border color while dragging a file over the uploader drop area */
 
 .edit-attachment-frame .attachment-media-view .details-image {
 	display: block;
-	margin-bottom: 16px;
+	margin: 0 auto 16px;
 	max-width: 100%;
 	max-height: 90%;
 	max-height: -webkit-calc( 100% - 42px );
 	max-height: calc( 100% - 42px ); /* leave space for actions underneath */
+}
+
+.edit-attachment-frame .attachment-media-view .attachment-actions {
+	text-align: center;
 }
 
 .edit-attachment-frame .wp-media-wrapper {
@@ -799,7 +817,7 @@ border color while dragging a file over the uploader drop area */
 }
 
 .edit-attachment-frame .attachment-info .filename {
-	font-weight: normal;
+	font-weight: 400;
 	color: #666;
 }
 
@@ -837,10 +855,16 @@ border color while dragging a file over the uploader drop area */
 
 .imgedit-wrap {
 	position: relative;
+	padding-top: 10px;
 }
 
-.imgedit-settings p {
-	margin: 8px 0 0;
+.imgedit-settings p,
+.imgedit-settings fieldset {
+	margin: 8px 0;
+}
+
+.imgedit-settings legend {
+	margin-bottom: 5px;
 }
 
 .describe .imgedit-wrap .imgedit-settings {
@@ -853,13 +877,11 @@ border color while dragging a file over the uploader drop area */
 
 .wp_attachment_holder .imgedit-wrap > div {
 	height: auto;
-	overflow: hidden;
 }
 
 .wp_attachment_holder .imgedit-wrap .imgedit-panel-content {
-	padding-right: 16px;
-	width: auto;
-	overflow: hidden;
+	padding: 3px 16px 0 0;
+	float: left;
 }
 
 .wp_attachment_holder .imgedit-wrap .imgedit-settings {
@@ -875,14 +897,28 @@ border color while dragging a file over the uploader drop area */
 .imgedit-wait {
 	position: absolute;
 	top: 0;
-	background: #fff url(../images/spinner.gif) no-repeat center;
-	-webkit-background-size: 20px 20px;
-	background-size: 20px 20px;
+	bottom: 0;
+	width: 100%;
+	background: #fff;
 	opacity: 0.7;
 	filter: alpha(opacity=70);
-	width: 100%;
-	height: 500px;
 	display: none;
+}
+
+.imgedit-wait:before {
+	content: "";
+	display: block;
+	width: 20px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	margin: -10px 0 0 -10px;
+	background: transparent url(../images/spinner.gif) no-repeat center;
+	-webkit-background-size: 20px 20px;
+	background-size: 20px 20px;
+	-webkit-transform: translateZ(0);
+	transform: translateZ(0);
 }
 
 .no-float {
@@ -891,10 +927,11 @@ border color while dragging a file over the uploader drop area */
 
 .media-disabled,
 .imgedit-settings .disabled {
-	color: grey;
+	/* WCAG 1.4.3 Text or images of text that are part of an inactive user
+	   interface component ... have no contrast requirement. */
+	color: #a0a5aa;
 }
 
-.wp_attachment_image,
 .A1B1 {
 	overflow: hidden;
 }
@@ -911,77 +948,73 @@ border color while dragging a file over the uploader drop area */
 .wp_attachment_image .spinner,
 .A1B1 .spinner {
 	float: left;
-	padding: 0 0 4px 0;
-	vertical-align: bottom;
 }
 
 .imgedit-menu {
-	margin: 0 0 12px;
 	min-width: 300px;
+	margin: 0 0 12px;
 }
 
-.imgedit-menu div {
+.imgedit-menu .note-no-rotate {
+	clear: both;
+	margin: 0;
+	padding: 1em 0 0;
+}
+
+.image-editor .imgedit-menu .button {
 	float: left;
 	width: 32px;
-	border: 1px solid #d5d5d5;
-	background: #f1f1f1;
-	margin: 0 8px 0 0;
 	height: 32px;
+	margin: 0 8px 0 0;
+	padding: 0;
+	background: #f1f1f1;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	text-align: center;
-	line-height: 28px;
-	color: #777;
-	cursor: pointer;
+	line-height: 16px;
+	color: #72777c;
 }
 
-.imgedit-menu div:before {
-	font: normal 20px/1 'dashicons';
+.imgedit-menu .button:before {
+	font: normal 20px/1 dashicons;
 	speak: none;
 	vertical-align: middle;
 }
 
-.imgedit-menu div:hover {
-	border-color: #c1c1c1;
-	background-color: #eaeaea;
-	color: #333;
-}
-
-.imgedit-menu div.disabled {
+.imgedit-menu .button.disabled {
 	border-color: #ccc;
 	background-color: #ddd;
-	color: #777;
+	color: #72777c;
 	filter: alpha(opacity=50);
 	opacity: 0.5;
 	cursor: default;
 }
 
 .imgedit-crop:before {
-	content:'\f165';
+	content: "\f165";
 }
 
 .imgedit-rleft:before {
-	content:'\f166';
+	content: "\f166";
 }
 
 .imgedit-rright:before {
-	content:'\f167';
+	content: "\f167";
 }
 
 .imgedit-flipv:before {
-	content:'\f168';
+	content: "\f168";
 }
 
 .imgedit-fliph:before {
-	content:'\f169';
+	content: "\f169";
 }
 
 .imgedit-undo:before {
-	content:'\f171';
+	content: "\f171";
 }
 
 .imgedit-redo:before {
-	content:'\f172';
+	content: "\f172";
 }
 
 .imgedit-crop-wrap {
@@ -1016,25 +1049,31 @@ border color while dragging a file over the uploader drop area */
 	margin: 0 8px 0 3px;
 }
 
-.imgedit-applyto img {
-	margin: 0 8px 0 0;
+.imgedit-thumbnail-preview {
+	margin: 10px 8px 0 0;
 }
 
-.imgedit-group-top {
-	margin: 5px 0;
+.imgedit-thumbnail-preview-caption {
+	display: block;
 }
 
-#poststuff .imgedit-group-top h3 {
+#poststuff .imgedit-group-top h3, /* Back-compat for pre-4.4 */
+#poststuff .imgedit-group-top h2 {
+	display: inline-block;
+	margin: 0;
 	padding: 0;
+	font-size: 14px;
+	line-height: 1.4;
 }
 
-.imgedit-group-top h3 a {
+.imgedit-group-top h3 a, /* Back-compat for pre-4.4 */
+.imgedit-group-top h2 a {
 	text-decoration: none;
 }
 
 .imgedit-applyto .imgedit-label {
-	padding: 2px 0 0;
 	display: block;
+	padding: .5em 0 0;
 }
 
 .imgedit-help {
@@ -1042,8 +1081,31 @@ border color while dragging a file over the uploader drop area */
 	font-style: italic;
 }
 
-a.imgedit-help-toggle {
-	text-decoration: none;
+/* higher specificity than buttons */
+.image-editor .imgedit-settings .imgedit-help-toggle,
+.image-editor .imgedit-settings .imgedit-help-toggle:hover,
+.image-editor .imgedit-settings .imgedit-help-toggle:active {
+	border: 1px solid transparent;
+	margin: -1px 0 0 -1px;
+	padding: 0;
+	background: transparent;
+	color: #0074a2;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	-webkit-box-sizing: content-box;
+	-moz-box-sizing: content-box;
+	box-sizing: content-box;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.image-editor .imgedit-settings .imgedit-help-toggle:focus {
+	color: #0074a2;
+	border-color: #5b9dd9;
+	outline: none;
+	-webkit-box-shadow: 0 0 3px rgba( 0, 115, 170, .8 );
+	box-shadow: 0 0 3px rgba( 0, 115, 170, .8 );
 }
 
 .form-table td.imgedit-response {
@@ -1051,7 +1113,7 @@ a.imgedit-help-toggle {
 }
 
 .imgedit-submit {
-	margin: 8px 0;
+	margin: 8px 0 0;
 }
 
 .imgedit-submit-btn {
@@ -1060,6 +1122,8 @@ a.imgedit-help-toggle {
 
 .imgedit-wrap .nowrap {
 	white-space: nowrap;
+	font-size: 12px;
+	line-height: inherit;
 }
 
 span.imgedit-scale-warn {
@@ -1070,9 +1134,34 @@ span.imgedit-scale-warn {
 	vertical-align: middle;
 }
 
+.imgedit-save-target {
+	margin: 8px 0;
+}
+
 .imgedit-group {
 	margin-bottom: 8px;
-	padding: 2px 10px;
+	padding: 10px;
+}
+
+.imgedit-settings .imgedit-scale input[type="text"],
+.imgedit-settings .imgedit-crop-ratio input[type="text"],
+.imgedit-settings .imgedit-crop-sel input[type="text"] {
+	width: 50px;
+	font-size: 14px;
+	padding: 5px 8px;
+}
+
+.imgedit-separator {
+	display: inline-block;
+	width: 7px;
+	text-align: center;
+	vertical-align: middle;
+	font-size: 13px;
+	color: #444;
+}
+
+.imgedit-settings .imgedit-scale .button {
+	margin-bottom: 0;
 }
 
 audio, video {
@@ -1092,10 +1181,9 @@ audio, video {
  * HiDPI Displays
  */
 @media print,
-  (-o-min-device-pixel-ratio: 5/4),
   (-webkit-min-device-pixel-ratio: 1.25),
   (min-resolution: 120dpi) {
-	.imgedit-wait {
+	.imgedit-wait:before {
 		background-image: url(../images/spinner-2x.gif);
 	}
 }
@@ -1118,6 +1206,18 @@ audio, video {
 
 	.media-upload-form .media-item .error {
 		padding: 10px 0 10px 12px;
+	}
+
+	.imgedit-settings .imgedit-scale input[type="text"],
+	.imgedit-settings .imgedit-crop-ratio input[type="text"],
+	.imgedit-settings .imgedit-crop-sel input[type="text"] {
+		width: 60px;
+		font-size: 16px;
+		padding: 6px 10px;
+	}
+
+	.imgedit-applyto .imgedit-label {
+		vertical-align: middle;
 	}
 }
 
